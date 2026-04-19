@@ -22,7 +22,7 @@ export const Dashboard = () => {
     if (!user) return;
     setLoading(true);
     try {
-      const [h, l] = await Promise.all([getMyHabits(user.uid), getHabitLogs(user.uid)]);
+      const [h, l] = await Promise.all([getMyHabits(user.id), getHabitLogs(user.id)]);
       setHabits(h);
       setLogs(l);
     } catch (e) {
@@ -38,9 +38,9 @@ export const Dashboard = () => {
 
   const handleCreate = async () => {
     if (!user) return;
-    const newHabitId = await createHabit(user.uid, { title: "New Habit", color: "#3b82f6" });
+    const newHabitId = await createHabit(user.id, { title: "New Habit", color: "#3b82f6" });
     await loadData();
-    const newHabit = habits.find(h => h.id === newHabitId) || { id: newHabitId, ownerId: user.uid, title: "New Habit", color: "#3b82f6", sharedWith: [] } as Habit;
+    const newHabit = habits.find(h => h.id === newHabitId) || { id: newHabitId, ownerId: user.id, title: "New Habit", color: "#3b82f6", sharedWith: [] } as Habit;
     setEditingHabit(newHabit);
   };
 
@@ -61,27 +61,29 @@ export const Dashboard = () => {
       setLogs(newLogs.filter(l => l.id !== log.id));
     } else {
       if (log) log.status = "completed";
-      else newLogs.push({ id: "temp", habitId: habit.id, ownerId: user.uid, date: dateStr, status: "completed", sharedWith: habit.sharedWith });
+      else newLogs.push({ id: "temp", habitId: habit.id, ownerId: user.id, date: dateStr, status: "completed", sharedWith: habit.sharedWith });
       setLogs(newLogs);
     }
 
     try {
-      await toggleHabitLog(user.uid, habit, dateStr, log?.status);
-      loadData(); // Re-sync
+      await toggleHabitLog(user.id, habit, dateStr, log?.status);
+      loadData();
     } catch (e) {
       console.error(e);
-      loadData(); // Revert
+      loadData();
     }
   };
 
-  if (loading) return <div>Loading...</div>;
+  if (loading) return <div className="text-gray-500 dark:text-gray-400">Loading...</div>;
 
   return (
     <div className="space-y-8">
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-[28px] font-bold tracking-tight text-gray-900 mb-2">Hello, {user?.displayName?.split(' ')[0]} 👋</h1>
-          <p className="text-[16px] text-gray-500 font-normal">Track your daily progress</p>
+          <h1 className="text-[28px] font-bold tracking-tight text-gray-900 dark:text-gray-100 mb-2">
+            Hello, {user?.user_metadata?.full_name?.split(' ')[0] || user?.email?.split('@')[0]} 👋
+          </h1>
+          <p className="text-[16px] text-gray-500 dark:text-gray-400 font-normal">Track your daily progress</p>
         </div>
         <button
           onClick={handleCreate}
@@ -92,17 +94,17 @@ export const Dashboard = () => {
         </button>
       </div>
 
-      <div className="bg-white border border-gray-200 rounded-[16px] overflow-x-auto">
+      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-[16px] overflow-x-auto">
         <table className="w-full text-left border-collapse min-w-max">
           <thead>
             <tr>
-              <th className="p-4 border-b border-gray-200 font-medium text-gray-500 w-full min-w-[150px]">
-                <div className="text-[14px] font-[600] uppercase tracking-[0.05em] text-gray-500">My Habits</div>
+              <th className="p-4 border-b border-gray-200 dark:border-gray-800 font-medium text-gray-500 w-full min-w-[150px]">
+                <div className="text-[14px] font-[600] uppercase tracking-[0.05em] text-gray-500 dark:text-gray-400">My Habits</div>
               </th>
               {days.map((day, i) => (
-                <th key={i} className="p-4 border-b border-gray-200 text-center font-medium text-gray-500 min-w-[48px]">
-                  <div className="text-[11px] uppercase tracking-wider">{format(day, "E")}</div>
-                  <div className="mt-1 text-gray-900 text-base">{format(day, "d")}</div>
+                <th key={i} className="p-4 border-b border-gray-200 dark:border-gray-800 text-center font-medium text-gray-500 min-w-[48px]">
+                  <div className="text-[11px] uppercase tracking-wider text-gray-500 dark:text-gray-400">{format(day, "E")}</div>
+                  <div className="mt-1 text-gray-900 dark:text-gray-100 text-base">{format(day, "d")}</div>
                 </th>
               ))}
             </tr>
@@ -110,19 +112,19 @@ export const Dashboard = () => {
           <tbody>
             {habits.length === 0 ? (
               <tr>
-                <td colSpan={8} className="p-8 text-center text-gray-500">
+                <td colSpan={8} className="p-8 text-center text-gray-500 dark:text-gray-400">
                   No habits yet. Click "Add Habit" to get started!
                 </td>
               </tr>
             ) : (
               habits.map((habit) => (
-                <tr key={habit.id} className="group hover:bg-gray-50 transition-colors border-b border-gray-100 last:border-0">
-                  <td className="p-4 font-medium text-gray-900 group">
+                <tr key={habit.id} className="group hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors border-b border-gray-100 dark:border-gray-800 last:border-0">
+                  <td className="p-4 font-medium text-gray-900 dark:text-gray-100 group">
                     <div className="flex items-center gap-3">
                       <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: habit.color }} />
-                      <button onClick={() => setEditingHabit(habit)} className="hover:underline flex items-center gap-2 text-[16px] font-[600]">
+                      <button onClick={() => setEditingHabit(habit)} className="hover:underline flex items-center gap-2 text-[16px] font-[600] text-gray-900 dark:text-gray-100">
                         {habit.title}
-                        <Settings2 className="w-4 h-4 text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+                        <Settings2 className="w-4 h-4 text-gray-400 dark:text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity" />
                       </button>
                     </div>
                   </td>
@@ -134,8 +136,10 @@ export const Dashboard = () => {
                         <button
                           onClick={() => handleToggle(habit, day)}
                           className={cn(
-                            "w-10 h-10 rounded-[12px] transition-all mx-auto flex items-center justify-center border-2 border-transparent",
-                            isCompleted ? "" : "border-gray-200 text-white hover:bg-gray-100 hover:border-gray-300"
+                            "w-10 h-10 rounded-[12px] transition-all mx-auto flex items-center justify-center border-2",
+                            isCompleted
+                              ? "border-transparent"
+                              : "border-gray-200 dark:border-gray-700 text-white hover:bg-gray-100 dark:hover:bg-gray-700 hover:border-gray-300 dark:hover:border-gray-600"
                           )}
                           style={{
                             backgroundColor: isCompleted ? '#10B981' : undefined,
@@ -158,7 +162,7 @@ export const Dashboard = () => {
       {editingHabit && user && (
         <EditHabitModal
           habit={editingHabit}
-          userId={user.uid}
+          userId={user.id}
           onClose={() => setEditingHabit(null)}
           onSave={() => {
             setEditingHabit(null);

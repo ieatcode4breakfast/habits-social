@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { Habit, updateHabit, syncHabitLogsSharedWith } from "../lib/api";
-import { UserProfile } from "../pages/Social"; // Note: might need to export UserProfile from a types file or fetch it here. We'll duplicate the interface for now.
+import { UserProfile } from "../pages/Social";
 import { supabase } from "../lib/supabase";
-import { X, Save, Trash2 } from "lucide-react";
+import { X, Trash2 } from "lucide-react";
 
 interface Friendship {
   participants: string[];
@@ -75,7 +75,6 @@ export const EditHabitModal = ({
     setLoading(true);
     const updated = { ...habit, title, description, color, sharedWith };
     await updateHabit(habit.id, { title, description, color, sharedWith });
-    // Also sync the logs so they have the new sharedWith
     await syncHabitLogsSharedWith(updated);
     setLoading(false);
     onSave();
@@ -84,30 +83,30 @@ export const EditHabitModal = ({
   const colors = ["#3b82f6", "#ef4444", "#10b981", "#f59e0b", "#6366f1", "#ec4899"];
 
   return (
-    <div className="fixed inset-0 bg-slate-900/50 z-[100] flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl w-full max-w-md shadow-xl overflow-hidden flex flex-col max-h-[90vh]">
-        <div className="flex items-center justify-between p-4 border-b border-slate-100">
-          <h2 className="text-lg font-bold text-slate-800">Edit Habit</h2>
-          <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-full transition-colors">
-            <X className="w-5 h-5 text-slate-500" />
+    <div className="fixed inset-0 bg-slate-900/60 dark:bg-black/70 z-[100] flex items-center justify-center p-4">
+      <div className="bg-white dark:bg-gray-900 rounded-2xl w-full max-w-md shadow-xl border border-gray-100 dark:border-gray-800 overflow-hidden flex flex-col max-h-[90vh]">
+        <div className="flex items-center justify-between p-4 border-b border-slate-100 dark:border-gray-800">
+          <h2 className="text-lg font-bold text-slate-800 dark:text-gray-100">Edit Habit</h2>
+          <button onClick={onClose} className="p-2 hover:bg-slate-100 dark:hover:bg-gray-800 rounded-full transition-colors">
+            <X className="w-5 h-5 text-slate-500 dark:text-gray-400" />
           </button>
         </div>
         
         <form onSubmit={handleSave} className="p-4 md:p-6 overflow-y-auto space-y-6">
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Title</label>
+              <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-1">Title</label>
               <input
                 type="text"
                 required
                 value={title}
                 onChange={e => setTitle(e.target.value)}
-                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                className="w-full px-3 py-2 bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 placeholder:text-gray-400 dark:placeholder:text-gray-600"
               />
             </div>
             
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Color</label>
+              <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-1">Color</label>
               <div className="flex gap-2 flex-wrap">
                 {colors.map(c => (
                   <button
@@ -123,23 +122,23 @@ export const EditHabitModal = ({
               </div>
             </div>
 
-            <div className="pt-2 border-t border-slate-100">
-              <label className="block text-sm font-medium text-slate-700 mb-2">Share with friends</label>
+            <div className="pt-2 border-t border-slate-100 dark:border-gray-800">
+              <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">Share with friends</label>
               {friends.length === 0 ? (
-                <div className="text-sm text-slate-500 bg-slate-50 p-3 rounded-lg border border-slate-100">
+                <div className="text-sm text-slate-500 dark:text-gray-400 bg-slate-50 dark:bg-gray-800 p-3 rounded-lg border border-slate-100 dark:border-gray-700">
                   You haven't added any friends yet. Add friends on the Social tab.
                 </div>
               ) : (
-                <div className="space-y-2 max-h-48 overflow-y-auto pr-2 border scrollbar-thin scrollbar-thumb-slate-200 p-2 rounded-lg border-slate-100 bg-slate-50/50">
+                <div className="space-y-2 max-h-48 overflow-y-auto pr-2 border p-2 rounded-lg border-slate-100 dark:border-gray-700 bg-slate-50/50 dark:bg-gray-800/50">
                   {friends.map(f => (
-                    <label key={f.id} className="flex items-center gap-3 p-2 hover:bg-slate-100 rounded-md cursor-pointer transition-colors border border-transparent">
+                    <label key={f.id} className="flex items-center gap-3 p-2 hover:bg-slate-100 dark:hover:bg-gray-700 rounded-md cursor-pointer transition-colors border border-transparent">
                       <input
                         type="checkbox"
                         checked={sharedWith.includes(f.id)}
                         onChange={() => toggleShare(f.id)}
-                        className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 border-slate-300"
+                        className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 border-slate-300 dark:border-gray-600"
                       />
-                      <span className="text-sm font-medium text-slate-800">{f.displayName}</span>
+                      <span className="text-sm font-medium text-slate-800 dark:text-gray-200">{f.displayName}</span>
                     </label>
                   ))}
                 </div>
@@ -147,11 +146,11 @@ export const EditHabitModal = ({
             </div>
           </div>
 
-          <div className="flex items-center justify-between pt-4 border-t border-slate-100">
+          <div className="flex items-center justify-between pt-4 border-t border-slate-100 dark:border-gray-800">
             <button
               type="button"
               onClick={onDelete}
-              className="flex items-center gap-2 px-4 py-2 text-rose-600 hover:bg-rose-50 rounded-lg text-sm font-medium transition-colors"
+              className="flex items-center gap-2 px-4 py-2 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 rounded-lg text-sm font-medium transition-colors"
             >
               <Trash2 className="w-4 h-4" />
               Delete
