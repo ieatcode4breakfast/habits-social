@@ -1,0 +1,64 @@
+<template>
+  <div class="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col font-sans transition-colors duration-300">
+    <!-- Header -->
+    <header class="sticky top-0 z-50 px-4 py-3 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800">
+      <div class="max-w-5xl mx-auto flex items-center justify-between">
+        <NuxtLink to="/" class="flex items-center gap-2 group">
+          <div class="w-8 h-8 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-md shadow-indigo-500/20 group-hover:shadow-indigo-500/40 transition-shadow">
+            <Activity class="w-5 h-5 text-white" />
+          </div>
+          <span class="font-bold text-lg tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-slate-900 to-slate-700 dark:from-white dark:to-slate-300">
+            Habits
+          </span>
+        </NuxtLink>
+
+        <div v-if="user" class="flex items-center gap-4">
+          <nav class="hidden md:flex items-center gap-1">
+            <NuxtLink to="/" class="nav-link" active-class="nav-link-active">
+              Dashboard
+            </NuxtLink>
+            <NuxtLink to="/social" class="nav-link" active-class="nav-link-active">
+              Social
+            </NuxtLink>
+          </nav>
+          
+          <div class="w-px h-6 bg-slate-200 dark:bg-slate-800 hidden md:block"></div>
+          
+          <button @click="logout" class="px-4 py-2 text-sm font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800 rounded-lg transition-colors flex items-center gap-2">
+            <LogOut class="w-4 h-4" />
+            <span class="hidden sm:inline">Logout</span>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex-1 w-full max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12">
+      <slot />
+    </main>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { Activity, LogOut } from 'lucide-vue-next';
+
+const user = useSupabaseUser();
+const supabase = useSupabaseClient();
+const router = useRouter();
+
+const logout = async () => {
+  await supabase.auth.signOut();
+  router.push('/login');
+};
+</script>
+
+<style scoped>
+@reference "tailwindcss";
+
+.nav-link {
+  @apply px-3 py-2 text-sm font-medium rounded-lg text-slate-500 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800/50 transition-colors;
+}
+.nav-link-active {
+  @apply text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-500/10;
+}
+</style>
