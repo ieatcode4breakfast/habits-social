@@ -1,0 +1,150 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isAdmin() { return false; }
+    function isSignedIn() { return request.auth != null && request.auth.uid != null; }
+    function isValidId(id) { return id is string && id.size() > 0 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); }
+    function incoming() { return request.resource.data; }
+    function existing() { return resource.data; }
+
+    function isValidUser(data) {
+      return data.keys().hasAll(['email', 'displayName', 'createdAt']) &&
+             data.keys().size() <= 4 &&
+             data.email is string && data.email.size() <= 200 &&
+             data.displayName is string && data.displayName.size() <= 100 &&
+             data.createdAt is timestamp &&
+             (data.keys().hasAll(['photoURL']) ? (data.photoURL is string && data.photoURL.size() <= 1000) : true);
+    }
+
+    match /users/{userId} {
+      allow read: if isSignedIn();
+      
+      allow create: if isSignedIn() &&
+                    isValidId(userId) &&
+                    request.auth.uid == userId &&
+                    isValidUser(request.resource.data) &&
+                    request.resource.data.createdAt == request.time;
+      
+      allow update: if isSignedIn() &&
+                    request.auth.uid == userId &&
+                    isValidUser(request.resource.data) &&
+                    request.resource.data.createdAt == resource.data.createdAt &&
+                    request.resource.data.diff(resource.data).affectedKeys().hasOnly(['displayName', 'photoURL']);
+    }
+
+    function isValidFriendship(data) {
+      return data.keys().hasAll(['participants', 'initiatorId', 'receiverId', 'status', 'createdAt', 'updatedAt']) &&
+             data.keys().size() == 6 &&
+             data.participants is list && data.participants.size() == 2 &&
+             data.participants[0] is string && data.participants[0].size() <= 128 &&
+             data.participants[1] is string && data.participants[1].size() <= 128 &&
+             data.initiatorId is string && data.initiatorId.size() <= 128 &&
+             data.receiverId is string && data.receiverId.size() <= 128 &&
+             data.status is string && data.status in ['pending', 'accepted'] &&
+             data.createdAt is timestamp && data.updatedAt is timestamp;
+    }
+
+    match /friendships/{friendshipId} {
+      allow read: if isSignedIn() && request.auth.uid in resource.data.participants;
+      
+      allow create: if isSignedIn() &&
+                    isValidId(friendshipId) &&
+                    isValidFriendship(request.resource.data) &&
+                    request.resource.data.initiatorId == request.auth.uid &&
+                    request.auth.uid in request.resource.data.participants &&
+                    request.resource.data.status == 'pending' &&
+                    request.resource.data.createdAt == request.time &&
+                    request.resource.data.updatedAt == request.time;
+                    
+      allow update: if isSignedIn() &&
+                    request.auth.uid in resource.data.participants &&
+                    isValidFriendship(request.resource.data) &&
+                    request.resource.data.createdAt == resource.data.createdAt &&
+                    request.resource.data.updatedAt == request.time &&
+                    request.resource.data.initiatorId == resource.data.initiatorId &&
+                    request.resource.data.receiverId == resource.data.receiverId &&
+                    request.resource.data.participants == resource.data.participants &&
+                    request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'updatedAt']) &&
+                    resource.data.status == 'pending' &&
+                    request.resource.data.status == 'accepted' &&
+                    request.auth.uid == resource.data.receiverId;
+
+      allow delete: if isSignedIn() && request.auth.uid in resource.data.participants;
+    }
+
+    function isValidHabit(data) {
+      return data.keys().hasAll(['ownerId', 'title', 'color', 'sharedWith', 'createdAt', 'updatedAt']) &&
+             data.keys().size() <= 7 &&
+             data.ownerId is string && data.ownerId.size() <= 128 &&
+             data.ownerId == request.auth.uid &&
+             data.title is string && data.title.size() <= 100 &&
+             data.color is string && data.color.size() <= 30 &&
+             data.sharedWith is list && data.sharedWith.size() <= 100 &&
+             (data.sharedWith.size() > 0 ? data.sharedWith[0] is string : true) &&
+             data.createdAt is timestamp && data.updatedAt is timestamp &&
+             (data.keys().hasAll(['description']) ? (data.description is string && data.description.size() <= 500) : true);
+    }
+
+    match /habits/{habitId} {
+      allow read: if isSignedIn() && (resource.data.ownerId == request.auth.uid || request.auth.uid in resource.data.sharedWith);
+      
+      allow create: if isSignedIn() &&
+                    isValidId(habitId) &&
+                    isValidHabit(request.resource.data) &&
+                    request.resource.data.createdAt == request.time &&
+                    request.resource.data.updatedAt == request.time;
+                    
+      allow update: if isSignedIn() &&
+                    resource.data.ownerId == request.auth.uid &&
+                    isValidHabit(request.resource.data) &&
+                    request.resource.data.createdAt == resource.data.createdAt &&
+                    request.resource.data.updatedAt == request.time &&
+                    request.resource.data.ownerId == resource.data.ownerId &&
+                    request.resource.data.diff(resource.data).affectedKeys().hasOnly(['title', 'description', 'color', 'sharedWith', 'updatedAt']);
+                    
+      allow delete: if isSignedIn() && resource.data.ownerId == request.auth.uid;
+    }
+
+    function isValidHabitLog(data) {
+      return data.keys().hasAll(['habitId', 'ownerId', 'date', 'status', 'sharedWith', 'updatedAt']) &&
+             data.keys().size() == 6 &&
+             data.habitId is string && data.habitId.size() <= 128 &&
+             data.ownerId is string && data.ownerId.size() <= 128 &&
+             data.ownerId == request.auth.uid &&
+             data.date is string && data.date.size() <= 20 &&
+             data.status is string && data.status in ['completed', 'failed', 'skipped'] &&
+             data.sharedWith is list && data.sharedWith.size() <= 100 &&
+             data.updatedAt is timestamp;
+    }
+
+    match /habitLogs/{logId} {
+      allow read: if isSignedIn() && (
+        resource.data.ownerId == request.auth.uid ||
+        request.auth.uid in resource.data.sharedWith
+      );
+      
+      allow create: if isSignedIn() &&
+                    isValidId(logId) &&
+                    isValidHabitLog(request.resource.data) &&
+                    request.resource.data.updatedAt == request.time &&
+                    exists(/databases/$(database)/documents/habits/$(request.resource.data.habitId)) &&
+                    get(/databases/$(database)/documents/habits/$(request.resource.data.habitId)).data.ownerId == request.auth.uid;
+                    
+      allow update: if isSignedIn() &&
+                    resource.data.ownerId == request.auth.uid &&
+                    isValidHabitLog(request.resource.data) &&
+                    request.resource.data.ownerId == resource.data.ownerId &&
+                    request.resource.data.habitId == resource.data.habitId &&
+                    request.resource.data.date == resource.data.date &&
+                    request.resource.data.updatedAt == request.time &&
+                    request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'sharedWith', 'updatedAt']);
+                    
+      allow delete: if isSignedIn() && resource.data.ownerId == request.auth.uid;
+    }
+  }
+}
