@@ -4,8 +4,7 @@ import { useAuth } from "../components/AuthProvider";
 import { Habit, HabitLog, getFriendHabits, getFriendHabitLogs } from "../lib/api";
 import { format, subDays } from "date-fns";
 import { ArrowLeft, User } from "lucide-react";
-import { doc, getDoc } from "firebase/firestore";
-import { db } from "../lib/firebase";
+import { supabase } from "../lib/supabase";
 
 export const FriendView = () => {
   const { friendId } = useParams<{ friendId: string }>();
@@ -25,9 +24,9 @@ export const FriendView = () => {
       if (!user || !friendId) return;
       setLoading(true);
       try {
-        const uSnap = await getDoc(doc(db, "users", friendId));
-        if (uSnap.exists()) {
-          setProfile(uSnap.data());
+        const { data: uSnap } = await supabase.from('users').select('*').eq('id', friendId);
+        if (uSnap && uSnap.length > 0) {
+          setProfile(uSnap[0]);
         }
 
         const [h, l] = await Promise.all([

@@ -1,13 +1,13 @@
 import { Outlet, NavLink, useNavigate } from "react-router-dom";
 import { CheckSquare, Users, LogOut } from "lucide-react";
-import { logout } from "../lib/firebase";
+import { supabase } from "../lib/supabase";
 import { cn } from "../lib/utils";
 
 export const MainLayout = () => {
   const navigate = useNavigate();
 
   const handleLogout = async () => {
-    await logout();
+    await supabase.auth.signOut();
     navigate("/login");
   };
 

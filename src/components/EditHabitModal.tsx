@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Habit, updateHabit, syncHabitLogsSharedWith } from "../lib/api";
 import { UserProfile } from "../pages/Social"; // Note: might need to export UserProfile from a types file or fetch it here. We'll duplicate the interface for now.
-import { collection, query, where, getDocs } from "firebase/firestore";
-import { db } from "../lib/firebase";
+import { supabase } from "../lib/supabase";
 import { X, Save, Trash2 } from "lucide-react";
 
 interface Friendship {
@@ -33,9 +32,12 @@ export const EditHabitModal = ({
 
   useEffect(() => {
     const loadFriends = async () => {
-      const q = query(collection(db, "friendships"), where("participants", "array-contains", userId));
-      const snap = await getDocs(q);
-      const acc = snap.docs.map(d => d.data() as Friendship).filter(f => f.status === "accepted");
+      const { data: acc, error } = await supabase.from('friendships')
+        .select('*')
+        .contains('participants', [userId])
+        .eq('status', 'accepted');
+        
+      if (error || !acc) return;
       
       const friendIds = new Set<string>();
       acc.forEach(f => {
@@ -44,15 +46,18 @@ export const EditHabitModal = ({
       });
       friendIds.delete(userId);
 
-      const fList: any[] = [];
-      for (const fid of friendIds) {
-        const uq = query(collection(db, "users"), where("__name__", "==", fid));
-        const uSnap = await getDocs(uq);
-        if (!uSnap.empty) {
-          fList.push({ id: uSnap.docs[0].id, ...uSnap.docs[0].data() });
-        }
+      if (friendIds.size === 0) {
+        setFriends([]);
+        return;
       }
-      setFriends(fList);
+
+      const { data: usersData } = await supabase.from('users')
+        .select('*')
+        .in('id', Array.from(friendIds));
+
+      if (usersData) {
+        setFriends(usersData as any[]);
+      }
     };
     loadFriends();
   }, [userId]);

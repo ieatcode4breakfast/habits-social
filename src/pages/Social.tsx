@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useAuth } from "../components/AuthProvider";
-import { collection, query, where, getDocs, doc, setDoc, updateDoc, deleteDoc, serverTimestamp } from "firebase/firestore";
-import { db } from "../lib/firebase";
+import { supabase } from "../lib/supabase";
 import { Search, UserPlus, Check, X, User } from "lucide-react";
 import { Link } from "react-router-dom";
 
@@ -29,10 +28,17 @@ export const Social = () => {
   
   const loadFriendships = async () => {
     if (!user) return;
-    const q = query(collection(db, "friendships"), where("participants", "array-contains", user.uid));
-    const snap = await getDocs(q);
-    const loaded = snap.docs.map(d => ({ id: d.id, ...d.data() } as Friendship));
-    setFriendships(loaded);
+    
+    const { data: loaded, error } = await supabase.from('friendships')
+      .select('*')
+      .contains('participants', [user.id]);
+      
+    if (error) {
+      console.error(error);
+      return;
+    }
+    
+    setFriendships(loaded as Friendship[]);
 
     // Load profiles for participants
     const uidsToLoad = new Set<string>();
@@ -40,18 +46,29 @@ export const Social = () => {
       uidsToLoad.add(f.participants[0]);
       uidsToLoad.add(f.participants[1]);
     });
-    uidsToLoad.delete(user.uid);
+    uidsToLoad.delete(user.id);
+
+    if (uidsToLoad.size === 0) {
+      setFriendsProfiles({});
+      return;
+    }
+
+    const { data: users, error: usersError } = await supabase.from('users')
+      .select('*')
+      .in('id', Array.from(uidsToLoad));
+
+    if (usersError) {
+      console.error(usersError);
+      return;
+    }
 
     const profiles: Record<string, UserProfile> = {};
-    for (const uid of uidsToLoad) {
-      if (!uid) continue;
-      // Note: for production, use 'in' queries grouped by 10/30.
-      const qUser = query(collection(db, "users"), where("__name__", "==", uid));
-      const uSnap = await getDocs(qUser);
-      if (!uSnap.empty) {
-        profiles[uid] = { id: uSnap.docs[0].id, ...uSnap.docs[0].data() } as UserProfile;
-      }
+    if (users) {
+      users.forEach(u => {
+        profiles[u.id] = u as UserProfile;
+      });
     }
+    
     setFriendsProfiles(profiles);
   };
 
@@ -63,25 +80,24 @@ export const Social = () => {
     e.preventDefault();
     if (!searchEmail.trim() || !user) return;
     
-    // Exact email match for finding friends
-    const q = query(collection(db, "users"), where("email", "==", searchEmail.trim()));
-    const snap = await getDocs(q);
-    setSearchResults(snap.docs.map(d => ({ id: d.id, ...d.data() } as UserProfile)).filter(u => u.id !== user.uid));
+    const { data } = await supabase.from('users').select('*').eq('email', searchEmail.trim());
+    if (data) {
+      setSearchResults(data.filter((u: any) => u.id !== user.id) as UserProfile[]);
+    }
   };
 
   const sendRequest = async (targetUserId: string) => {
     if (!user) return;
     // Sort array so friendship Id is deterministic
-    const p = [user.uid, targetUserId].sort();
+    const p = [user.id, targetUserId].sort();
     const friendshipId = `${p[0]}_${p[1]}`;
     
-    await setDoc(doc(db, "friendships", friendshipId), {
+    await supabase.from('friendships').insert({
+      id: friendshipId,
       participants: p,
-      initiatorId: user.uid,
+      initiatorId: user.id,
       receiverId: targetUserId,
-      status: "pending",
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
+      status: "pending"
     });
     loadFriendships();
     setSearchResults([]);
@@ -89,21 +105,21 @@ export const Social = () => {
   };
 
   const acceptRequest = async (fid: string) => {
-    await updateDoc(doc(db, "friendships", fid), {
+    await supabase.from('friendships').update({
       status: "accepted",
-      updatedAt: serverTimestamp()
-    });
+      updatedAt: new Date().toISOString()
+    }).eq("id", fid);
     loadFriendships();
   };
 
   const removeFriend = async (fid: string) => {
-    await deleteDoc(doc(db, "friendships", fid));
+    await supabase.from('friendships').delete().eq("id", fid);
     loadFriendships();
   };
 
   if (!user) return null;
 
-  const pendingIncoming = friendships.filter(f => f.status === "pending" && f.receiverId === user.uid);
+  const pendingIncoming = friendships.filter(f => f.status === "pending" && f.receiverId === user.id);
   const acceptedFriends = friendships.filter(f => f.status === "accepted");
 
   return (
@@ -168,7 +184,7 @@ export const Social = () => {
         {searchResults.length > 0 && (
           <div className="mt-4 space-y-3">
             {searchResults.map(res => {
-              const sorted = [user.uid, res.id].sort();
+              const sorted = [user.id, res.id].sort();
               const fid = `${sorted[0]}_${sorted[1]}`;
               const existing = friendships.find(f => f.id === fid);
               
@@ -208,7 +224,7 @@ export const Social = () => {
         ) : (
           <div className="grid grid-cols-1 gap-4">
             {acceptedFriends.map(f => {
-              const friendId = f.participants.find(p => p !== user.uid)!;
+              const friendId = f.participants.find(p => p !== user.id)!;
               const profile = friendsProfiles[friendId];
               if (!profile) return null;
 
