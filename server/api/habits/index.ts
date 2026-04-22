@@ -1,0 +1,25 @@
+import { Habit } from '../../models';
+import { connectDB } from '../../utils/db';
+import { requireAuth } from '../../utils/auth';
+
+export default defineEventHandler(async (event) => {
+  await connectDB();
+  const userId = requireAuth(event);
+
+  if (event.method === 'GET') {
+    const habits = await Habit.find({ ownerid: userId }).lean();
+    return habits.map((h: any) => ({ ...h, id: h._id.toString() }));
+  }
+
+  if (event.method === 'POST') {
+    const body = await readBody(event);
+    const newHabit = await Habit.create({
+      ownerid: userId,
+      title: body.title || 'New Habit',
+      description: body.description || '',
+      color: body.color || '#3b82f6',
+      sharedwith: body.sharedwith || []
+    });
+    return { ...newHabit.toObject(), id: newHabit._id.toString() };
+  }
+});

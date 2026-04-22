@@ -64,16 +64,15 @@
   </div>
 </template>
 
-<script setup lang="ts">
 import { ArrowLeft, User } from 'lucide-vue-next';
 import { format, subDays } from 'date-fns';
 import type { Habit, HabitLog } from '~/composables/useHabitsApi';
+import { useAuth } from '~/composables/useAuth';
 
 definePageMeta({ middleware: 'auth' })
 
 const route = useRoute()
-const user = useSupabaseUser()
-const supabase = useSupabaseClient()
+const { user } = useAuth();
 const api = useHabitsApi()
 
 const friendId = route.params.id as string
@@ -90,10 +89,8 @@ const loadData = async () => {
   if (!user.value || !friendId) return;
   loading.value = true;
   try {
-    const { data: uSnap } = await supabase.from('users').select('*').eq('id', friendId);
-    if (uSnap && uSnap.length > 0) {
-      profile.value = uSnap[0];
-    }
+    const p = await $fetch('/api/social/profile', { query: { friendId } });
+    if (p) profile.value = p;
 
     const [h, l] = await Promise.all([
       api.getFriendHabits(friendId, user.value.id),

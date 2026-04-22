@@ -9,7 +9,7 @@
     <div v-if="pendingIncoming.length > 0" v-motion-fade class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm">
       <h2 class="text-sm font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-4">Friend Requests</h2>
       <div class="space-y-3">
-        <div v-for="req in pendingIncoming" :key="req.id" class="flex items-center justify-between bg-white dark:bg-slate-950 border border-slate-100 dark:border-slate-800 p-4 rounded-xl shadow-sm">
+        <div v-for="req in pendingIncoming" :key="req.id" class="flex items-center justify-between bg-white dark:bg-app-bg border border-slate-100 dark:border-slate-800 p-4 rounded-xl shadow-sm">
           <div class="flex items-center gap-3">
             <div class="w-10 h-10 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center overflow-hidden">
               <img v-if="friendsProfiles[req.initiatorid]?.photourl" :src="friendsProfiles[req.initiatorid].photourl" alt="photo" />
@@ -42,7 +42,7 @@
             v-model="searchEmail"
             type="email"
             placeholder="Friend's email address"
-            class="w-full pl-10 pr-4 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all text-slate-900 dark:text-white"
+            class="w-full pl-10 pr-4 py-2.5 bg-slate-50 dark:bg-app-bg border border-slate-200 dark:border-slate-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all text-slate-900 dark:text-white"
           />
         </div>
         <button type="submit" class="px-5 py-2.5 bg-slate-900 dark:bg-slate-100 hover:bg-slate-800 dark:hover:bg-white text-white dark:text-slate-900 rounded-xl transition-colors font-medium cursor-pointer shadow-sm">
@@ -51,7 +51,7 @@
       </form>
 
       <div v-if="searchResults.length > 0" class="mt-4 space-y-3">
-        <div v-for="res in searchResults" :key="res.id" class="flex items-center justify-between bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 p-4 rounded-xl">
+        <div v-for="res in searchResults" :key="res.id" class="flex items-center justify-between bg-slate-50 dark:bg-app-bg border border-slate-200 dark:border-slate-800 p-4 rounded-xl">
           <div class="flex items-center gap-3">
             <div class="w-10 h-10 bg-slate-200 dark:bg-slate-800 rounded-full flex items-center justify-center overflow-hidden">
               <img v-if="res.photourl" :src="res.photourl" alt="photo" />
@@ -84,7 +84,7 @@
           v-for="f in acceptedFriends"
           :key="f.id"
           :to="`/friends/${getFriendId(f)}`"
-          class="flex items-center gap-4 bg-white dark:bg-slate-950 p-4 rounded-xl border border-slate-200 dark:border-slate-800 hover:border-indigo-300 dark:hover:border-indigo-700 transition-all group shadow-sm hover:shadow-md"
+          class="flex items-center gap-4 bg-white dark:bg-app-bg p-4 rounded-xl border border-slate-200 dark:border-slate-800 hover:border-indigo-300 dark:hover:border-indigo-700 transition-all group shadow-sm hover:shadow-md"
         >
           <div class="w-12 h-12 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center overflow-hidden flex-shrink-0">
             <img v-if="friendsProfiles[getFriendId(f)]?.photourl" :src="friendsProfiles[getFriendId(f)].photourl" alt="photo" />
@@ -104,11 +104,11 @@
 
 <script setup lang="ts">
 import { Search, UserPlus, Check, X, User } from 'lucide-vue-next';
+import { useAuth } from '~/composables/useAuth';
 
 definePageMeta({ middleware: 'auth' })
 
-const user = useSupabaseUser()
-const supabase = useSupabaseClient()
+const { user } = useAuth();
 
 interface UserProfile {
   id: string;
@@ -137,94 +137,68 @@ const getFriendId = (f: Friendship) => f.participants.find(p => p !== user.value
 
 const getExistingFriendship = (targetId: string) => {
   if (!user.value) return undefined;
-  const sorted = [user.value.id, targetId].sort()
-  const fid = `${sorted[0]}_${sorted[1]}`
-  return friendships.value.find(f => f.id === fid)
+  // MongoDB doesn't have the string ID concatenation logic, we just check if any friendship has the targetId
+  return friendships.value.find(f => f.participants.includes(targetId))
 }
 
 const loadFriendships = async () => {
   if (!user.value) return;
-  
-  const { data: loaded, error } = await supabase.from('friendships')
-    .select('*')
-    .contains('participants', [user.value.id])
+  try {
+    const data = await $fetch<{ friendships: Friendship[], profiles: UserProfile[] }>('/api/social/friends');
+    friendships.value = data.friendships;
     
-  if (error) {
-    console.error(error);
-    return;
+    const profilesMap: Record<string, UserProfile> = {};
+    data.profiles.forEach(p => profilesMap[p.id] = p);
+    friendsProfiles.value = profilesMap;
+  } catch (e) {
+    console.error(e);
   }
-  
-  friendships.value = loaded as Friendship[];
-
-  const uidsToLoad = new Set<string>();
-  loaded.forEach((f: any) => {
-    uidsToLoad.add(f.participants[0]);
-    uidsToLoad.add(f.participants[1]);
-  });
-  uidsToLoad.delete(user.value.id);
-
-  if (uidsToLoad.size === 0) {
-    friendsProfiles.value = {};
-    return;
-  }
-
-  const { data: users, error: usersError } = await supabase.from('users')
-    .select('*')
-    .in('id', Array.from(uidsToLoad));
-
-  if (usersError) {
-    console.error(usersError);
-    return;
-  }
-
-  const profiles: Record<string, UserProfile> = {};
-  if (users) {
-    users.forEach((u: any) => {
-      profiles[u.id] = u as UserProfile;
-    });
-  }
-  
-  friendsProfiles.value = profiles;
 }
 
 onMounted(loadFriendships)
 
 const handleSearch = async () => {
   if (!searchEmail.value.trim() || !user.value) return;
-  
-  const { data } = await supabase.from('users').select('*').eq('email', searchEmail.value.trim());
-  if (data) {
-    searchResults.value = data.filter((u: any) => u.id !== user.value?.id) as UserProfile[];
+  try {
+    const data = await $fetch<UserProfile[]>('/api/social/search', {
+      query: { email: searchEmail.value.trim() }
+    });
+    searchResults.value = data;
+  } catch (e) {
+    console.error(e);
   }
 }
 
 const sendRequest = async (targetUserId: string) => {
   if (!user.value) return;
-  const p = [user.value.id, targetUserId].sort();
-  const friendshipId = `${p[0]}_${p[1]}`;
-  
-  await supabase.from('friendships').insert({
-    id: friendshipId,
-    participants: p,
-    initiatorid: user.value.id,
-    receiverid: targetUserId,
-    status: "pending"
-  });
-  await loadFriendships();
-  searchResults.value = [];
-  searchEmail.value = "";
+  try {
+    await $fetch('/api/social/friends', {
+      method: 'POST',
+      body: { targetUserId }
+    });
+    await loadFriendships();
+    searchResults.value = [];
+    searchEmail.value = "";
+  } catch (e) {
+    console.error(e);
+  }
 }
 
 const acceptRequest = async (fid: string) => {
-  await supabase.from('friendships').update({
-    status: "accepted",
-    updatedat: new Date().toISOString()
-  }).eq("id", fid);
-  await loadFriendships();
+  try {
+    await $fetch(`/api/social/requests/${fid}`, { method: 'PUT' });
+    await loadFriendships();
+  } catch (e) {
+    console.error(e);
+  }
 }
 
 const removeFriend = async (fid: string) => {
-  await supabase.from('friendships').delete().eq("id", fid);
-  await loadFriendships();
+  try {
+    await $fetch(`/api/social/requests/${fid}`, { method: 'DELETE' });
+    await loadFriendships();
+  } catch (e) {
+    console.error(e);
+  }
 }
 </script>

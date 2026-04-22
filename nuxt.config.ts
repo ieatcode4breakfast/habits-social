@@ -4,11 +4,11 @@ export default defineNuxtConfig({
   compatibilityDate: '2025-07-15',
   devtools: { enabled: true },
   modules: [
-    '@nuxtjs/supabase',
     '@vueuse/motion/nuxt' // VueUse motion for Nuxt
   ],
-  supabase: {
-    redirect: false // We will handle redirects explicitly
+  runtimeConfig: {
+    mongodbUri: process.env.MONGODB_URI,
+    jwtSecret: process.env.JWT_SECRET || 'fallback-secret-for-dev',
   },
   css: ['~/assets/css/main.css'],
   vite: {

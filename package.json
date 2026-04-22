@@ -4,17 +4,19 @@
   "private": true,
   "scripts": {
     "build": "nuxt build",
-    "dev": "nuxt dev",
+    "dev": "nuxt dev --host",
     "generate": "nuxt generate",
     "preview": "nuxt preview",
     "postinstall": "nuxt prepare"
   },
   "dependencies": {
-    "@nuxtjs/supabase": "^2.0.5",
     "@vueuse/motion": "^3.0.3",
+    "bcryptjs": "^3.0.3",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
+    "jsonwebtoken": "^9.0.3",
     "lucide-vue-next": "^1.0.0",
+    "mongoose": "^9.4.1",
     "nuxt": "^4.4.2",
     "tailwind-merge": "^3.5.0",
     "vue": "^3.5.32",
@@ -22,6 +24,8 @@
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.2.2",
+    "@types/bcryptjs": "^2.4.6",
+    "@types/jsonwebtoken": "^9.0.10",
     "tailwindcss": "^4.2.2"
   }
 }

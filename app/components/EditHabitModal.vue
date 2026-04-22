@@ -30,7 +30,7 @@
             v-model="editHabit.title" 
             type="text" 
             autoFocus
-            class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors text-slate-900 dark:text-white sm:text-sm outline-none"
+            class="w-full px-3 py-2 bg-slate-50 dark:bg-app-bg border border-slate-200 dark:border-slate-800 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors text-slate-900 dark:text-white sm:text-sm outline-none"
           >
         </div>
 

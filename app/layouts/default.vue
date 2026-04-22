@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col font-sans transition-colors duration-300">
+  <div class="min-h-screen bg-slate-50 dark:bg-app-bg text-slate-900 dark:text-slate-100 flex flex-col font-sans transition-colors duration-300">
     <!-- Header -->
     <header class="sticky top-0 z-50 px-4 py-3 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800">
       <div class="max-w-5xl mx-auto flex items-center justify-between">
@@ -41,14 +41,19 @@
 
 <script setup lang="ts">
 import { Activity, LogOut } from 'lucide-vue-next';
+import { useAuth } from '~/composables/useAuth';
 
-const user = useSupabaseUser();
-const supabase = useSupabaseClient();
+const { user, fetchUser } = useAuth();
 const router = useRouter();
 
 const logout = async () => {
-  await supabase.auth.signOut();
-  router.push('/login');
+  try {
+    await $fetch('/api/auth/logout', { method: 'POST' });
+    await fetchUser();
+    router.push('/login');
+  } catch (e) {
+    console.error(e);
+  }
 };
 </script>
 
