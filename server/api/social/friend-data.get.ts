@@ -7,9 +7,9 @@ export default defineEventHandler(async (event) => {
   const userId = requireAuth(event);
   const { friendId } = getQuery(event);
 
-  const habits = await Habit.find({ ownerid: String(friendId), sharedwith: userId }).lean();
+  const habits = await Habit.find({ ownerid: String(friendId), sharedwith: userId }).sort({ sortOrder: 1, createdAt: 1 }).lean();
   const habitIds = habits.map((h: any) => h._id);
-  const logs = await HabitLog.find({ ownerid: String(friendId), habitid: { $in: habitIds }, sharedwith: userId }).lean();
+  const logs = await HabitLog.find({ ownerid: String(friendId), habitid: { $in: habitIds } }).lean();
 
   return {
     habits: habits.map((h: any) => ({ ...h, id: h._id.toString() })),
