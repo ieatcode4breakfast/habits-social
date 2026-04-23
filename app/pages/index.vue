@@ -78,12 +78,12 @@
         leave-from-class="opacity-100 scale-100"
         leave-to-class="opacity-0 scale-95"
       >
-        <div v-if="showModal" class="fixed inset-0 z-[100] flex items-center justify-center p-4">
+        <div v-if="showModal" class="fixed inset-0 z-[100] flex items-center justify-center sm:p-4 p-0">
           <!-- Backdrop -->
           <div class="absolute inset-0 bg-black/80 backdrop-blur-md" @click="showModal = false"></div>
           
           <!-- Modal Content -->
-          <div class="relative w-full max-w-md bg-zinc-900 border border-zinc-800 rounded-3xl shadow-2xl p-8 overflow-hidden">
+          <div class="relative w-full h-full sm:h-auto sm:max-w-md max-w-none bg-zinc-900 border-x-0 sm:border border-zinc-800 sm:rounded-3xl rounded-none shadow-2xl p-8 overflow-y-auto">
             <h2 class="text-2xl font-bold text-white mb-6">New Habit</h2>
             
             <form @submit.prevent="addHabit" class="space-y-6">
@@ -131,12 +131,12 @@
         leave-from-class="opacity-100 scale-100"
         leave-to-class="opacity-0 scale-95"
       >
-        <div v-if="showEditModal" class="fixed inset-0 z-[100] flex items-center justify-center p-4">
+        <div v-if="showEditModal" class="fixed inset-0 z-[100] flex items-center justify-center sm:p-4 p-0">
           <!-- Backdrop -->
           <div class="absolute inset-0 bg-black/80 backdrop-blur-md" @click="showEditModal = false"></div>
           
           <!-- Modal Content -->
-          <div class="relative w-full max-w-lg bg-zinc-900 border border-zinc-800 rounded-3xl shadow-2xl p-8 overflow-hidden">
+          <div class="relative w-full h-full sm:h-auto sm:max-w-lg max-w-none bg-zinc-900 border-x-0 sm:border border-zinc-800 sm:rounded-3xl rounded-none shadow-2xl p-8 overflow-y-auto">
             <div class="flex items-center justify-between mb-6">
               <h2 class="text-2xl font-bold text-white">Edit Habit</h2>
               <button @click="showDeleteModal = true" class="p-2 text-zinc-500 hover:text-zinc-200 hover:bg-zinc-900 rounded-xl transition-all cursor-pointer">
