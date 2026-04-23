@@ -122,8 +122,6 @@ definePageMeta({ layout: false });
 const { user, fetchUser } = useAuth();
 const router = useRouter();
 
-watchEffect(() => { if (user.value) router.push('/'); });
-
 const tab = ref<'login' | 'signup'>('login');
 const email = ref('');
 const password = ref('');
@@ -144,12 +142,18 @@ const handleSubmit = async () => {
 
   try {
     const endpoint = tab.value === 'login' ? '/api/auth/login' : '/api/auth/register';
-    await $fetch(endpoint, { method: 'POST', body: { email: email.value, password: password.value } });
-    await fetchUser();
-    await navigateTo('/');
+    const response = await $fetch<{ user: any }>(endpoint, { 
+      method: 'POST', 
+      body: { email: email.value, password: password.value } 
+    });
+    
+    // Set user state immediately to avoid middleware race conditions
+    user.value = response.user;
+    
+    // Brief delay for signup success feedback if needed, then navigate
+    await navigateTo('/', { replace: true });
   } catch (e: any) {
     error.value = e?.data?.statusMessage || e?.statusMessage || 'Something went wrong.';
-  } finally {
     loading.value = false;
   }
 };

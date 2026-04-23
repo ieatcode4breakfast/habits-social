@@ -1,6 +1,6 @@
 <template>
   <div class="space-y-8">
-    <div class="flex flex-col md:flex-row md:items-center gap-4" v-motion-slide-visible-once-left>
+    <div class="flex flex-col md:flex-row md:items-center gap-4 px-4 sm:px-0" v-motion-slide-visible-once-left>
       <NuxtLink to="/social" class="inline-flex items-center justify-center w-10 h-10 rounded-xl bg-slate-900/40 backdrop-blur-sm border border-slate-800/50 hover:bg-slate-800 transition-all shadow-xl flex-shrink-0">
         <ArrowLeft class="w-5 h-5 text-slate-600 dark:text-slate-400" />
       </NuxtLink>
@@ -20,47 +20,43 @@
       <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
     </div>
 
-    <div v-else v-motion-fade class="bg-slate-900/40 backdrop-blur-sm border border-slate-800/50 rounded-2xl overflow-x-auto shadow-xl">
-      <table class="w-full text-left border-collapse min-w-max">
-        <thead>
-          <tr>
-            <th class="p-5 border-b border-slate-200 dark:border-slate-800 w-full min-w-[200px]">
-              <span class="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Shared Habits</span>
-            </th>
-            <th v-for="(day, i) in days" :key="i" class="p-4 border-b border-slate-200 dark:border-slate-800 text-center min-w-[52px]">
-              <div class="text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400">{{ format(day, 'E') }}</div>
-              <div class="mt-0.5 text-sm font-semibold text-slate-900 dark:text-slate-100">{{ format(day, 'd') }}</div>
-            </th>
-          </tr>
-        </thead>
-        <tbody class="divide-y divide-slate-100 dark:divide-slate-800/50">
-          <tr v-if="habits.length === 0">
-            <td colspan="8" class="p-10 text-center text-slate-400 dark:text-slate-500 italic text-sm">
-              {{ profile?.displayname }} hasn't shared any habits with you yet.
-            </td>
-          </tr>
-          <tr v-for="habit in habits" :key="habit.id" class="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
-            <td class="p-4">
-              <div class="flex items-center gap-3 font-medium text-slate-900 dark:text-slate-100">
-                <div class="w-3 h-3 rounded-full flex-shrink-0" :style="{ backgroundColor: habit.color }" />
-                {{ habit.title }}
-              </div>
-            </td>
-            <td v-for="(day, i) in days" :key="i" class="p-2 text-center">
-              <div
-                class="w-10 h-10 rounded-xl mx-auto flex items-center justify-center border-2 transition-all"
-                :class="isCompleted(habit.id, day)
-                  ? 'border-emerald-500 bg-emerald-500 shadow-sm'
-                  : 'border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800'"
-              >
-                <svg v-if="isCompleted(habit.id, day)" class="w-5 h-5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-                  <polyline points="20 6 9 17 4 12" />
-                </svg>
-              </div>
-            </td>
-          </tr>
-        </tbody>
-      </table>
+    <!-- Shared Habit List -->
+    <div v-if="!loading" v-motion-fade class="space-y-3">
+      <div v-if="habits.length === 0" class="p-10 text-center text-slate-400 dark:text-slate-500 italic text-sm bg-slate-900/40 backdrop-blur-sm border-y sm:border border-slate-800/50 sm:rounded-2xl">
+        {{ profile?.displayname }} hasn't shared any habits with you yet.
+      </div>
+      
+      <div v-for="habit in habits" :key="habit.id" class="bg-slate-900/40 backdrop-blur-sm border-y sm:border border-slate-800/50 sm:rounded-2xl p-4 shadow-xl">
+        <!-- Top Row: Title -->
+        <div class="flex items-start gap-3 mb-5">
+          <div class="w-2.5 h-2.5 rounded-full flex-shrink-0 shadow-sm mt-1.5" :style="{ backgroundColor: habit.color }" />
+          <h3 class="font-bold text-slate-900 dark:text-slate-100 leading-tight break-words max-w-sm sm:max-w-md">{{ habit.title }}</h3>
+        </div>
+        
+        <!-- Bottom Row: Days Grid -->
+        <div class="flex justify-between items-end gap-1">
+          <div v-for="(day, i) in days" :key="i" class="flex flex-col items-center gap-2">
+            <div class="text-[10px] uppercase tracking-tighter text-slate-500 dark:text-slate-400 font-black">
+              {{ format(day, 'EEE') }}
+            </div>
+            
+            <div
+              class="w-8 h-8 rounded-lg flex items-center justify-center border-2 transition-all"
+              :class="isCompleted(habit.id, day)
+                ? 'border-emerald-500 bg-emerald-500 shadow-sm shadow-emerald-500/30'
+                : 'border-slate-200 dark:border-slate-700 bg-slate-950/30 dark:bg-slate-800/50'"
+            >
+              <svg v-if="isCompleted(habit.id, day)" class="w-4 h-4 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="20 6 9 17 4 12" />
+              </svg>
+            </div>
+
+            <div class="text-[10px] font-bold text-slate-500">
+              {{ format(day, 'd') }}
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </template>

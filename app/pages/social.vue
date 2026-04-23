@@ -1,12 +1,12 @@
 <template>
   <div class="space-y-8">
-    <div v-motion-slide-visible-once-left>
+    <div v-motion-slide-visible-once-left class="px-4 sm:px-0">
       <h1 class="text-3xl font-bold tracking-tight text-slate-900 dark:text-slate-100 mb-1">Social</h1>
       <p class="text-slate-500 dark:text-slate-400">Connect with friends and view their progress</p>
     </div>
 
     <!-- Incoming Requests -->
-    <div v-if="pendingIncoming.length > 0" v-motion-fade class="bg-slate-900/40 backdrop-blur-sm border border-slate-800/50 rounded-2xl p-6 shadow-xl">
+    <div v-if="pendingIncoming.length > 0" v-motion-fade class="bg-slate-900/40 backdrop-blur-sm border-y sm:border border-slate-800/50 sm:rounded-2xl rounded-none p-6 shadow-xl">
       <h2 class="text-sm font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-4">Friend Requests</h2>
       <div class="space-y-3">
         <div v-for="req in pendingIncoming" :key="req.id" class="flex items-center justify-between bg-slate-950/50 border border-slate-800 p-4 rounded-xl">
@@ -29,7 +29,7 @@
     </div>
 
     <!-- Add Friend -->
-    <div v-motion-fade class="bg-slate-900/40 backdrop-blur-sm border border-slate-800/50 rounded-2xl p-6 shadow-xl">
+    <div v-motion-fade class="bg-slate-900/40 backdrop-blur-sm border-y sm:border border-slate-800/50 sm:rounded-2xl rounded-none p-6 shadow-xl">
       <h2 class="text-sm font-bold uppercase tracking-wider text-slate-400 mb-4">Add Friend</h2>
       <form @submit.prevent="handleSearch" class="flex gap-3">
         <div class="relative flex-1">
@@ -63,7 +63,7 @@
     </div>
 
     <!-- Friends List -->
-    <div v-motion-fade class="bg-slate-900/40 backdrop-blur-sm border border-slate-800/50 rounded-2xl p-6 shadow-xl">
+    <div v-motion-fade class="bg-slate-900/40 backdrop-blur-sm border-y sm:border border-slate-800/50 sm:rounded-2xl rounded-none p-6 shadow-xl">
       <h2 class="text-sm font-bold uppercase tracking-wider text-slate-400 mb-4">My Friends</h2>
       <p v-if="acceptedFriends.length === 0" class="text-slate-400 dark:text-slate-500 text-sm italic">No friends yet. Search by email above!</p>
       <div v-else class="grid grid-cols-1 md:grid-cols-2 gap-3">
