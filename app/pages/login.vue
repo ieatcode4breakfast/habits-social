@@ -11,7 +11,7 @@
       </div>
 
       <!-- Card -->
-      <div class="bg-slate-900/40 backdrop-blur-xl rounded-2xl shadow-2xl border border-slate-800/50 overflow-hidden">
+      <div class="bg-slate-900/80 backdrop-blur-xl rounded-2xl shadow-2xl border border-slate-800/50 overflow-hidden">
         <!-- Tabs -->
         <div class="flex border-b border-slate-200 dark:border-slate-800">
           <button
