@@ -184,14 +184,14 @@
                       <span class="text-sm font-semibold text-zinc-200">{{ friend.displayname || friend.email }}</span>
                     </div>
                     <div 
-                      class="w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all"
+                      class="w-6 h-6 rounded-lg flex items-center justify-center transition-all"
                       :class="[
                         newSharedWith.includes(friend.id) 
-                          ? 'bg-emerald-500 border-emerald-500 shadow-lg shadow-emerald-500/20' 
-                          : 'bg-transparent border-zinc-800'
+                          ? 'bg-zinc-700 shadow-lg shadow-zinc-700/20' 
+                          : 'bg-zinc-900'
                       ]"
                     >
-                      <Check v-if="newSharedWith.includes(friend.id)" class="w-3.5 h-3.5 text-white" />
+                      <Check v-if="newSharedWith.includes(friend.id)" class="w-3.5 h-3.5 text-zinc-100" />
                     </div>
                     <input type="checkbox" :value="friend.id" v-model="newSharedWith" class="hidden" />
                   </label>
@@ -319,14 +319,14 @@
                       <span class="text-sm font-semibold text-zinc-200">{{ friend.displayname || friend.email }}</span>
                     </div>
                     <div 
-                      class="w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all"
+                      class="w-6 h-6 rounded-lg flex items-center justify-center transition-all"
                       :class="[
                         editSharedWith.includes(friend.id) 
-                          ? 'bg-emerald-500 border-emerald-500 shadow-lg shadow-emerald-500/20' 
-                          : 'bg-transparent border-zinc-800'
+                          ? 'bg-zinc-700 shadow-lg shadow-zinc-700/20' 
+                          : 'bg-zinc-900'
                       ]"
                     >
-                      <Check v-if="editSharedWith.includes(friend.id)" class="w-3.5 h-3.5 text-white" />
+                      <Check v-if="editSharedWith.includes(friend.id)" class="w-3.5 h-3.5 text-zinc-100" />
                     </div>
                     <input type="checkbox" :value="friend.id" v-model="editSharedWith" class="hidden" />
                   </label>
