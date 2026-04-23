@@ -10,12 +10,19 @@
         <button
           v-if="habits.length > 1"
           @click="showReorderModal = true"
-          class="px-4 py-2.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 hover:text-white font-semibold rounded-xl transition-all cursor-pointer text-sm flex items-center gap-2 active:scale-95 border border-zinc-700/60"
+          class="w-11 sm:w-28 py-2.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 hover:text-white font-semibold rounded-xl transition-all cursor-pointer text-sm flex items-center justify-center gap-2 active:scale-95 border border-zinc-700/60"
+          title="Reorder"
         >
-          <ArrowUpDown class="w-4 h-4" /> Reorder
+          <ArrowUpDown class="w-4 h-4" />
+          <span class="hidden sm:inline">Reorder</span>
         </button>
-        <button @click="showModal = true" class="px-5 py-2.5 bg-white hover:bg-zinc-200 text-black font-semibold rounded-xl transition-all shadow-lg shadow-white/5 cursor-pointer text-sm flex items-center gap-2 active:scale-95">
-          <Plus class="w-4 h-4" /> Add
+        <button 
+          @click="showModal = true" 
+          class="w-11 sm:w-28 py-2.5 bg-white hover:bg-zinc-200 text-black font-semibold rounded-xl transition-all shadow-lg shadow-white/5 cursor-pointer text-sm flex items-center justify-center gap-2 active:scale-95"
+          title="Add Habit"
+        >
+          <Plus class="w-4 h-4" />
+          <span class="hidden sm:inline">Add</span>
         </button>
       </div>
     </div>
