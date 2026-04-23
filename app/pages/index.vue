@@ -306,33 +306,6 @@
                 </template>
               </div>
 
-              <!-- Share To -->
-              <div v-if="friends.length > 0" class="space-y-3">
-                <label class="text-xs font-bold uppercase tracking-widest text-zinc-500">Share to</label>
-                <div class="space-y-2 max-h-40 overflow-y-auto pr-2 custom-scrollbar">
-                  <label v-for="friend in friends" :key="friend.id" class="flex items-center justify-between p-3 bg-black border border-zinc-900 rounded-xl cursor-pointer hover:border-zinc-800 transition-colors">
-                    <div class="flex items-center gap-3">
-                      <div class="w-8 h-8 bg-zinc-900 rounded-full flex items-center justify-center overflow-hidden">
-                        <img v-if="friend.photourl" :src="friend.photourl" class="w-full h-full object-cover" />
-                        <User v-else class="w-4 h-4 text-zinc-600" />
-                      </div>
-                      <span class="text-sm font-semibold text-zinc-200">{{ friend.displayname || friend.email }}</span>
-                    </div>
-                    <div 
-                      class="w-6 h-6 rounded-lg flex items-center justify-center transition-all"
-                      :class="[
-                        editSharedWith.includes(friend.id) 
-                          ? 'bg-zinc-700 shadow-lg shadow-zinc-700/20' 
-                          : 'bg-zinc-900'
-                      ]"
-                    >
-                      <Check v-if="editSharedWith.includes(friend.id)" class="w-3.5 h-3.5 text-zinc-100" />
-                    </div>
-                    <input type="checkbox" :value="friend.id" v-model="editSharedWith" class="hidden" />
-                  </label>
-                </div>
-              </div>
-
               <!-- Monthly Calendar View -->
               <div class="space-y-4">
                 <div class="flex items-center justify-between px-2">
@@ -386,10 +359,63 @@
                 </div>
               </div>
 
+              <!-- Share To -->
+              <div v-if="friends.length > 0" class="space-y-3">
+                <div class="flex items-center gap-2">
+                  <label class="text-xs font-bold uppercase tracking-widest text-zinc-500">Share to</label>
+                  <button 
+                    @click="reachedConfirmViaDone = false; isEditingSharing ? (showSharingConfirmModal = true) : (isEditingSharing = true)"
+                    class="text-[10px] font-bold uppercase tracking-widest text-zinc-400 hover:text-white transition-colors flex items-center gap-1.5 cursor-pointer bg-zinc-900/50 px-2 py-0.5 rounded-md border border-zinc-800"
+                  >
+                    <template v-if="!isEditingSharing">
+                      <Edit2 class="w-3 h-3" /> Edit
+                    </template>
+                    <template v-else>
+                      <Save class="w-3 h-3" /> Confirm
+                    </template>
+                  </button>
+                  <div class="ml-auto">
+                    <button 
+                      v-if="isEditingSharing"
+                      @click="toggleSelectAll"
+                      title="Select/Unselect All"
+                      class="p-1 text-zinc-500 hover:text-white transition-colors cursor-pointer"
+                    >
+                      <CheckSquare class="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+                <div 
+                  class="space-y-2 max-h-40 overflow-y-auto pr-2 custom-scrollbar transition-all duration-300"
+                  :class="!isEditingSharing ? 'opacity-40 grayscale pointer-events-none' : 'opacity-100'"
+                >
+                  <label v-for="friend in friends" :key="friend.id" class="flex items-center justify-between p-3 bg-black border border-zinc-900 rounded-xl transition-colors" :class="isEditingSharing ? 'cursor-pointer hover:border-zinc-800' : 'cursor-default'">
+                    <div class="flex items-center gap-3">
+                      <div class="w-8 h-8 bg-zinc-900 rounded-full flex items-center justify-center overflow-hidden">
+                        <img v-if="friend.photourl" :src="friend.photourl" class="w-full h-full object-cover" />
+                        <User v-else class="w-4 h-4 text-zinc-600" />
+                      </div>
+                      <span class="text-sm font-semibold text-zinc-200">{{ friend.displayname || friend.email }}</span>
+                    </div>
+                    <div 
+                      class="w-6 h-6 rounded-lg flex items-center justify-center transition-all"
+                      :class="[
+                        editSharedWithWorking.includes(friend.id) 
+                          ? 'bg-zinc-700 shadow-lg shadow-zinc-700/20' 
+                          : 'bg-zinc-900'
+                      ]"
+                    >
+                      <Check v-if="editSharedWithWorking.includes(friend.id)" class="w-3.5 h-3.5 text-zinc-100" />
+                    </div>
+                    <input type="checkbox" :value="friend.id" v-model="editSharedWithWorking" class="hidden" />
+                  </label>
+                </div>
+              </div>
+
               <div class="pt-4">
                 <button
                   type="button"
-                  @click="showEditModal = false"
+                  @click="handleDoneClick"
                   class="w-full px-5 py-3 bg-white hover:bg-zinc-200 text-black font-semibold rounded-xl transition-all shadow-lg shadow-white/5 cursor-pointer"
                 >
                   Done
@@ -443,11 +469,50 @@
         </div>
       </Transition>
     </Teleport>
+
+    <!-- Sharing Confirmation Modal -->
+    <Teleport to="body">
+      <Transition
+        enter-active-class="transition duration-300 ease-out"
+        enter-from-class="opacity-0 scale-95"
+        enter-to-class="opacity-100 scale-100"
+        leave-active-class="transition duration-200 ease-in"
+        leave-from-class="opacity-100 scale-100"
+        leave-to-class="opacity-0 scale-95"
+      >
+        <div v-if="showSharingConfirmModal" class="fixed inset-0 z-[120] flex items-center justify-center p-4">
+          <div class="absolute inset-0 bg-black/90 backdrop-blur-md" @click="showSharingConfirmModal = false"></div>
+          <div class="relative w-full max-w-sm bg-zinc-900 border border-zinc-800 rounded-3xl shadow-2xl p-8 text-center">
+            <div class="w-16 h-16 bg-zinc-900 rounded-full flex items-center justify-center mx-auto mb-4">
+              <User class="w-8 h-8 text-zinc-400" />
+            </div>
+            <h2 class="text-xl font-bold text-white mb-2">Update Sharing?</h2>
+            <p class="text-zinc-500 mb-8 text-sm">
+              This will update who can see your progress for this habit.
+            </p>
+            <div class="flex flex-col gap-3">
+              <button
+                @click="confirmSharingSave"
+                class="w-full px-5 py-3 bg-white hover:bg-zinc-200 text-black font-semibold rounded-xl transition-all shadow-lg shadow-white/5 cursor-pointer"
+              >
+                Confirm Changes
+              </button>
+              <button
+                @click="cancelSharingSave"
+                class="w-full px-5 py-3 bg-transparent hover:bg-zinc-900 text-zinc-400 hover:text-zinc-200 font-semibold rounded-xl transition-all cursor-pointer"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
   </div>
 </template>
 
 <script setup lang="ts">
-import { Plus, Trash2, Check, X, Minus, ChevronLeft, ChevronRight, User, ChevronUp, ChevronDown } from 'lucide-vue-next';
+import { Plus, Trash2, Check, X, Minus, ChevronLeft, ChevronRight, User, ChevronUp, ChevronDown, Edit2, Save, CheckSquare } from 'lucide-vue-next';
 import { format, subDays, isToday, startOfMonth, endOfMonth, eachDayOfInterval, addMonths, subMonths, isAfter, startOfDay, addDays, isSameWeek, isSameMonth, getDaysInMonth } from 'date-fns';
 import type { Habit, HabitLog } from '~/composables/useHabitsApi';
 
@@ -475,6 +540,10 @@ const editDescription = ref('');
 const editFrequencyCount = ref(1);
 const editFrequencyPeriod = ref<'daily'|'weekly'|'monthly'>('daily');
 const editSharedWith = ref<string[]>([]);
+const editSharedWithWorking = ref<string[]>([]);
+const isEditingSharing = ref(false);
+const showSharingConfirmModal = ref(false);
+const reachedConfirmViaDone = ref(false);
 const currentCalendarDate = ref(new Date());
 
 const calendarDays = computed(() => {
@@ -655,7 +724,6 @@ const addHabit = async () => {
   newDescription.value = '';
   newFrequencyCount.value = 1;
   newFrequencyPeriod.value = 'daily';
-  newFrequencyCount.value = 1;
   newSharedWith.value = [];
   showModal.value = false;
 };
@@ -666,13 +734,32 @@ const openEditModal = (habit: Habit) => {
   editDescription.value = habit.description || '';
   editFrequencyCount.value = habit.frequencyCount || 1;
   editFrequencyPeriod.value = habit.frequencyPeriod || 'daily';
-  editSharedWith.value = habit.sharedwith || [];
+  editSharedWith.value = [...(habit.sharedwith || [])];
+  editSharedWithWorking.value = [...(habit.sharedwith || [])];
+  isEditingSharing.value = false;
   currentCalendarDate.value = new Date();
   showEditModal.value = true;
 };
 
 const prevMonth = () => currentCalendarDate.value = subMonths(currentCalendarDate.value, 1);
 const nextMonth = () => currentCalendarDate.value = addMonths(currentCalendarDate.value, 1);
+
+const toggleSelectAll = () => {
+  if (editSharedWithWorking.value.length === friends.value.length) {
+    editSharedWithWorking.value = [];
+  } else {
+    editSharedWithWorking.value = friends.value.map(f => f.id);
+  }
+};
+
+const handleDoneClick = () => {
+  if (isEditingSharing.value) {
+    reachedConfirmViaDone.value = true;
+    showSharingConfirmModal.value = true;
+  } else {
+    showEditModal.value = false;
+  }
+};
 
 const adjustFrequency = (isNew: boolean, delta: number) => {
   if (isNew) {
@@ -687,7 +774,7 @@ const adjustFrequency = (isNew: boolean, delta: number) => {
 let autosaveTimeout: NodeJS.Timeout | null = null;
 
 watch(
-  [editTitle, editDescription, editFrequencyCount, editFrequencyPeriod, editSharedWith],
+  [editTitle, editDescription, editFrequencyCount, editFrequencyPeriod],
   () => {
     if (showEditModal.value && editingHabit.value) {
       if (autosaveTimeout) clearTimeout(autosaveTimeout);
@@ -711,6 +798,23 @@ const updateHabit = async () => {
   const idx = habits.value.findIndex(h => h.id === editingHabit.value?.id);
   if (idx >= 0) {
     habits.value[idx] = updated;
+  }
+};
+
+const confirmSharingSave = async () => {
+  editSharedWith.value = [...editSharedWithWorking.value];
+  await updateHabit();
+  showSharingConfirmModal.value = false;
+  if (reachedConfirmViaDone.value) {
+    showEditModal.value = false;
+  }
+  isEditingSharing.value = false;
+};
+
+const cancelSharingSave = () => {
+  showSharingConfirmModal.value = false;
+  if (reachedConfirmViaDone.value) {
+    showEditModal.value = false;
   }
 };
 
