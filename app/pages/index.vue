@@ -17,14 +17,20 @@
         No habits yet. Add one above!
       </div>
       
-      <div v-for="habit in habits" :key="habit.id" class="relative p-4 group transition-all flex flex-wrap items-center justify-between gap-x-8 gap-y-4">
+      <div v-for="habit in habits" :key="habit.id" class="relative p-4 pt-14 sm:pt-4 group transition-all flex flex-wrap items-center justify-between gap-x-8 gap-y-4">
+        <!-- Floating Streak Badge -->
+        <div class="absolute top-3 left-0 sm:top-2 sm:-left-3 flex items-center gap-1.5 px-3 py-1 bg-black border border-yellow-400/50 border-l-0 sm:border-l rounded-r-full rounded-l-none sm:rounded-full z-20">
+          <Flame class="w-3.5 h-3.5 text-yellow-400 fill-yellow-400/80" />
+          <span class="text-[10px] font-black text-yellow-400 tracking-tight">x50,000 STREAK</span>
+        </div>
+
         <!-- Title Section -->
         <div class="flex items-start gap-3 min-w-[200px] flex-1">
           <button 
             @click="openEditModal(habit)"
             class="text-left group/title flex items-start gap-2 cursor-pointer relative"
           >
-            <h3 class="font-bold text-zinc-200 leading-tight break-words group-hover/title:text-white transition-colors">{{ habit.title }}</h3>
+            <h3 class="font-bold text-zinc-200 leading-tight break-all group-hover/title:text-white transition-colors">{{ habit.title }}</h3>
             
             <!-- Tooltip -->
             <div class="absolute -top-8 left-0 px-2 py-1 bg-black backdrop-blur-md text-white text-[10px] font-bold uppercase tracking-widest rounded-lg opacity-0 group-hover/title:opacity-100 transition-all translate-y-1 group-hover/title:translate-y-0 pointer-events-none whitespace-nowrap border border-zinc-800 shadow-2xl z-10">
@@ -164,7 +170,17 @@
                       </div>
                       <span class="text-sm font-semibold text-zinc-200">{{ friend.displayname || friend.email }}</span>
                     </div>
-                    <input type="checkbox" :value="friend.id" v-model="newSharedWith" class="w-4 h-4 rounded bg-black border-zinc-700 text-white focus:ring-zinc-600 focus:ring-offset-zinc-900 cursor-pointer" />
+                    <div 
+                      class="w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all"
+                      :class="[
+                        newSharedWith.includes(friend.id) 
+                          ? 'bg-emerald-500 border-emerald-500 shadow-lg shadow-emerald-500/20' 
+                          : 'bg-transparent border-zinc-800'
+                      ]"
+                    >
+                      <Check v-if="newSharedWith.includes(friend.id)" class="w-3.5 h-3.5 text-white" />
+                    </div>
+                    <input type="checkbox" :value="friend.id" v-model="newSharedWith" class="hidden" />
                   </label>
                 </div>
               </div>
@@ -289,7 +305,17 @@
                       </div>
                       <span class="text-sm font-semibold text-zinc-200">{{ friend.displayname || friend.email }}</span>
                     </div>
-                    <input type="checkbox" :value="friend.id" v-model="editSharedWith" class="w-4 h-4 rounded bg-black border-zinc-700 text-white focus:ring-zinc-600 focus:ring-offset-zinc-900 cursor-pointer" />
+                    <div 
+                      class="w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all"
+                      :class="[
+                        editSharedWith.includes(friend.id) 
+                          ? 'bg-emerald-500 border-emerald-500 shadow-lg shadow-emerald-500/20' 
+                          : 'bg-transparent border-zinc-800'
+                      ]"
+                    >
+                      <Check v-if="editSharedWith.includes(friend.id)" class="w-3.5 h-3.5 text-white" />
+                    </div>
+                    <input type="checkbox" :value="friend.id" v-model="editSharedWith" class="hidden" />
                   </label>
                 </div>
               </div>
