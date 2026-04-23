@@ -28,7 +28,7 @@
     </div>
 
     <!-- Habit List (Single Card) -->
-    <div v-motion-fade class="bg-zinc-900/80 backdrop-blur-md sm:rounded-2xl rounded-none shadow-2xl border border-zinc-800/80 divide-y divide-zinc-800/80">
+    <div v-motion-fade class="bg-zinc-900/80 backdrop-blur-md sm:rounded-2xl rounded-none shadow-2xl border border-zinc-800/80 divide-y divide-zinc-800/80 overflow-x-auto custom-scrollbar">
       <div v-if="habits.length === 0" class="p-10 text-center text-zinc-500 italic text-sm">
         No habits yet. Add one above!
       </div>
@@ -51,25 +51,26 @@
         <!-- Floating Streak Badge -->
         <div 
           v-if="(streakInfoMap.get(habit.id)?.count ?? 0) >= 2"
-          class="absolute top-3 left-0 sm:top-2 sm:-left-3 flex items-center gap-1.5 px-3 py-1 bg-black border border-l-0 sm:border-l rounded-r-full rounded-l-none sm:rounded-full z-20 transition-all duration-500"
+          class="absolute top-3 left-0 sm:top-2 flex items-center gap-1.5 px-3 py-1 bg-black border border-l-0 rounded-r-full rounded-l-none z-20 transition-all duration-500"
           :class="[
             streakInfoMap.get(habit.id)?.faded ? 'opacity-40 grayscale' : 'opacity-100',
             getStreakTheme(streakInfoMap.get(habit.id)?.count ?? 0).border
           ]"
         >
-          <Flame 
-            class="w-3.5 h-3.5" 
-            :class="[
-              getStreakTheme(streakInfoMap.get(habit.id)?.count ?? 0).text,
-              getStreakTheme(streakInfoMap.get(habit.id)?.count ?? 0).fill
-            ]"
-          />
           <span 
             class="text-[10px] font-black tracking-tight"
             :class="getStreakTheme(streakInfoMap.get(habit.id)?.count ?? 0).text"
           >
             x{{ streakInfoMap.get(habit.id)?.count }} STREAK
           </span>
+          <Flame 
+            v-if="(streakInfoMap.get(habit.id)?.count ?? 0) >= 7"
+            class="w-3.5 h-3.5" 
+            :class="[
+              getStreakTheme(streakInfoMap.get(habit.id)?.count ?? 0).text,
+              getStreakTheme(streakInfoMap.get(habit.id)?.count ?? 0).fill
+            ]"
+          />
         </div>
 
         <div class="flex items-center gap-3 min-w-[200px] flex-1">
@@ -608,7 +609,7 @@
 </template>
 
 <script setup lang="ts">
-import { Plus, Trash2, Check, X, Minus, ChevronLeft, ChevronRight, User, ChevronUp, ChevronDown, Edit2, Save, CheckSquare, GripVertical, ArrowUpDown } from 'lucide-vue-next';
+import { Plus, Trash2, Check, X, Minus, ChevronLeft, ChevronRight, User, ChevronUp, ChevronDown, Edit2, Save, CheckSquare, GripVertical, ArrowUpDown, Flame } from 'lucide-vue-next';
 import { format, subDays, isToday, startOfMonth, endOfMonth, eachDayOfInterval, addMonths, subMonths, isAfter, startOfDay, addDays, isSameWeek, isSameMonth, getDaysInMonth } from 'date-fns';
 import type { Habit, HabitLog } from '~/composables/useHabitsApi';
 
