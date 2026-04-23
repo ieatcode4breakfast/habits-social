@@ -19,9 +19,9 @@
       
       <div v-for="habit in habits" :key="habit.id" class="relative p-4 pt-14 sm:pt-4 group transition-all flex flex-wrap items-center justify-between gap-x-8 gap-y-4">
         <!-- Floating Streak Badge -->
-        <div class="absolute top-3 left-0 sm:top-2 sm:-left-3 flex items-center gap-1.5 px-3 py-1 bg-black border border-yellow-400/50 border-l-0 sm:border-l rounded-r-full rounded-l-none sm:rounded-full z-20">
-          <Flame class="w-3.5 h-3.5 text-yellow-400 fill-yellow-400/80" />
-          <span class="text-[10px] font-black text-yellow-400 tracking-tight">x50,000 STREAK</span>
+        <div class="absolute top-3 left-0 sm:top-2 sm:-left-3 flex items-center gap-1.5 px-3 py-1 bg-black border border-violet-500/50 border-l-0 sm:border-l rounded-r-full rounded-l-none sm:rounded-full z-20">
+          <Flame class="w-3.5 h-3.5 text-violet-500 fill-violet-500/80" />
+          <span class="text-[10px] font-black text-violet-500 tracking-tight">x50,000 STREAK</span>
         </div>
 
         <!-- Title Section -->
