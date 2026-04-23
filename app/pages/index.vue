@@ -23,9 +23,27 @@
         class="relative p-4 pt-14 sm:pt-4 group transition-all flex flex-wrap items-center justify-between gap-x-8 gap-y-4 cursor-pointer hover:bg-zinc-800/40"
       >
         <!-- Floating Streak Badge -->
-        <div class="absolute top-3 left-0 sm:top-2 sm:-left-3 flex items-center gap-1.5 px-3 py-1 bg-black border border-violet-500/50 border-l-0 sm:border-l rounded-r-full rounded-l-none sm:rounded-full z-20">
-          <Flame class="w-3.5 h-3.5 text-violet-500 fill-violet-500/80" />
-          <span class="text-[10px] font-black text-violet-500 tracking-tight">x50,000 STREAK</span>
+        <div 
+          v-if="(streakInfoMap.get(habit.id)?.count ?? 0) >= 2"
+          class="absolute top-3 left-0 sm:top-2 sm:-left-3 flex items-center gap-1.5 px-3 py-1 bg-black border border-l-0 sm:border-l rounded-r-full rounded-l-none sm:rounded-full z-20 transition-all duration-500"
+          :class="[
+            streakInfoMap.get(habit.id)?.faded ? 'opacity-40 grayscale' : 'opacity-100',
+            getStreakTheme(streakInfoMap.get(habit.id)?.count ?? 0).border
+          ]"
+        >
+          <Flame 
+            class="w-3.5 h-3.5" 
+            :class="[
+              getStreakTheme(streakInfoMap.get(habit.id)?.count ?? 0).text,
+              getStreakTheme(streakInfoMap.get(habit.id)?.count ?? 0).fill
+            ]"
+          />
+          <span 
+            class="text-[10px] font-black tracking-tight"
+            :class="getStreakTheme(streakInfoMap.get(habit.id)?.count ?? 0).text"
+          >
+            x{{ streakInfoMap.get(habit.id)?.count }} STREAK
+          </span>
         </div>
 
         <div class="flex items-start gap-3 min-w-[200px] flex-1">
@@ -224,7 +242,7 @@
               </button>
             </div>
             
-            <form @submit.prevent="updateHabit" class="space-y-6">
+            <div class="space-y-6">
               <div class="space-y-2">
                 <label class="text-xs font-bold uppercase tracking-widest text-zinc-500">Habit Name</label>
                 <input
@@ -368,22 +386,16 @@
                 </div>
               </div>
 
-              <div class="flex gap-3 pt-4">
+              <div class="pt-4">
                 <button
                   type="button"
                   @click="showEditModal = false"
-                  class="flex-1 px-5 py-3 bg-transparent hover:bg-zinc-900 text-zinc-400 hover:text-zinc-200 font-semibold rounded-xl transition-all cursor-pointer"
+                  class="w-full px-5 py-3 bg-white hover:bg-zinc-200 text-black font-semibold rounded-xl transition-all shadow-lg shadow-white/5 cursor-pointer"
                 >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  class="flex-1 px-5 py-3 bg-white hover:bg-zinc-200 text-black font-semibold rounded-xl transition-all shadow-lg shadow-white/5 cursor-pointer"
-                >
-                  Save
+                  Done
                 </button>
               </div>
-            </form>
+            </div>
           </div>
         </div>
       </Transition>
@@ -436,7 +448,7 @@
 
 <script setup lang="ts">
 import { Plus, Trash2, Check, X, Minus, ChevronLeft, ChevronRight, User, ChevronUp, ChevronDown } from 'lucide-vue-next';
-import { format, subDays, isToday, startOfMonth, endOfMonth, eachDayOfInterval, addMonths, subMonths, isAfter, startOfDay, addDays, isSameWeek } from 'date-fns';
+import { format, subDays, isToday, startOfMonth, endOfMonth, eachDayOfInterval, addMonths, subMonths, isAfter, startOfDay, addDays, isSameWeek, isSameMonth, getDaysInMonth } from 'date-fns';
 import type { Habit, HabitLog } from '~/composables/useHabitsApi';
 
 definePageMeta({ middleware: 'auth' });
@@ -479,8 +491,71 @@ const calendarDays = computed(() => {
 const today = new Date();
 const isFutureDay = (day: Date) => isAfter(startOfDay(day), startOfDay(today));
 const days = Array.from({ length: 7 }, (_, i) => subDays(today, 6 - i));
-const startDate = format(days[0]!, 'yyyy-MM-dd');
-const endDate = format(today, 'yyyy-MM-dd');
+const startDate = format(startOfMonth(subMonths(today, 1)), 'yyyy-MM-dd');
+const endDate = format(endOfMonth(addMonths(today, 1)), 'yyyy-MM-dd');
+
+const streakInfoMap = computed(() => {
+  const map = new Map<string, { count: number, faded: boolean }>();
+  for (const habit of habits.value) {
+    const logMap = new Map<string, string>();
+    for (const l of logs.value) {
+      if (l.habitid === habit.id) {
+        logMap.set(l.date, l.status);
+      }
+    }
+
+    let currentDay = new Date();
+    let streakCount = 0;
+    let foundAnchor = false;
+    let faded = false;
+    const todayStr = format(new Date(), 'yyyy-MM-dd');
+
+    for (let i = 0; i < 365; i++) {
+      const dateStr = format(currentDay, 'yyyy-MM-dd');
+      const status = logMap.get(dateStr);
+
+      if (!foundAnchor) {
+        if (status === 'completed' || status === 'failed' || status === 'skipped') {
+          foundAnchor = true;
+          if (dateStr !== todayStr) {
+            faded = true;
+          }
+        }
+      }
+
+      if (foundAnchor) {
+        if (status === 'completed') {
+          streakCount++;
+        } else if (status === 'skipped') {
+          // freeze
+        } else {
+          break;
+        }
+      }
+      currentDay = subDays(currentDay, 1);
+    }
+    map.set(habit.id, { count: streakCount, faded });
+  }
+  return map;
+});
+
+const getStreakTheme = (count: number) => {
+  if (count >= 30) return { 
+    border: 'border-yellow-400/50 shadow-lg shadow-yellow-400/10', 
+    text: 'text-yellow-400', 
+    fill: 'fill-yellow-400/80' 
+  };
+  if (count >= 7) return { 
+    border: 'border-violet-400/50 shadow-lg shadow-violet-400/10', 
+    text: 'text-violet-400', 
+    fill: 'fill-violet-400/80' 
+  };
+  return { 
+    border: 'border-emerald-500/50', 
+    text: 'text-emerald-500', 
+    fill: 'fill-emerald-500/80' 
+  };
+};
 
 const load = async () => {
   const [h, l, socialData] = await Promise.all([
@@ -523,6 +598,21 @@ const toggleLog = async (habit: Habit, day: Date) => {
       l.habitid === habit.id && 
       l.status === 'skipped' && 
       isSameWeek(new Date(l.date), day, { weekStartsOn: 0 })
+    ).length;
+
+    if (!currentStatus) nextStatus = 'completed';
+    else if (currentStatus === 'completed') nextStatus = 'failed';
+    else if (currentStatus === 'failed') {
+      nextStatus = usedSkips < maxSkips ? 'skipped' : null;
+    } else {
+      nextStatus = null;
+    }
+  } else if (habit.frequencyPeriod === 'monthly') {
+    const maxSkips = Math.max(0, getDaysInMonth(day) - (habit.frequencyCount || 1));
+    const usedSkips = logs.value.filter(l => 
+      l.habitid === habit.id && 
+      l.status === 'skipped' && 
+      isSameMonth(new Date(l.date), day)
     ).length;
 
     if (!currentStatus) nextStatus = 'completed';
@@ -594,6 +684,21 @@ const adjustFrequency = (isNew: boolean, delta: number) => {
   }
 };
 
+let autosaveTimeout: NodeJS.Timeout | null = null;
+
+watch(
+  [editTitle, editDescription, editFrequencyCount, editFrequencyPeriod, editSharedWith],
+  () => {
+    if (showEditModal.value && editingHabit.value) {
+      if (autosaveTimeout) clearTimeout(autosaveTimeout);
+      autosaveTimeout = setTimeout(() => {
+        updateHabit();
+      }, 750);
+    }
+  },
+  { deep: true }
+);
+
 const updateHabit = async () => {
   if (!editingHabit.value || !editTitle.value.trim()) return;
   const updated = await api.updateHabit(editingHabit.value.id, { 
@@ -604,8 +709,9 @@ const updateHabit = async () => {
     sharedwith: editSharedWith.value,
   });
   const idx = habits.value.findIndex(h => h.id === editingHabit.value?.id);
-  if (idx >= 0) habits.value[idx] = updated;
-  showEditModal.value = false;
+  if (idx >= 0) {
+    habits.value[idx] = updated;
+  }
 };
 
 const handleDelete = async () => {
