@@ -103,12 +103,19 @@
         leave-from-class="opacity-100 scale-100"
         leave-to-class="opacity-0 scale-95"
       >
-        <div v-if="showModal && selectedHabit" class="fixed inset-0 z-[100] flex items-center justify-center sm:p-4 p-0 modal-parent-adaptive">
+        <div v-if="showModal && selectedHabit" 
+          class="fixed inset-0 z-[100] flex items-center justify-center sm:p-4 p-0"
+          :class="{ 'modal-parent-adaptive': isHeightOverflowing }"
+        >
           <!-- Backdrop -->
           <div class="absolute inset-0 bg-black/80 backdrop-blur-md" @click="showModal = false"></div>
           
           <!-- Modal Content -->
-          <div class="relative w-full h-full sm:h-auto sm:max-w-md max-w-none bg-zinc-925 border-x-0 sm:border border-zinc-800 sm:rounded-3xl rounded-none shadow-2xl p-8 overflow-y-auto modal-adaptive-height">
+          <div 
+            ref="modalContent"
+            class="relative w-full h-full sm:h-auto sm:max-w-md max-w-none bg-zinc-925 border-x-0 sm:border border-zinc-800 sm:rounded-3xl rounded-none shadow-2xl p-8 overflow-y-auto transition-all duration-300"
+            :class="{ 'modal-adaptive-height': isHeightOverflowing }"
+          >
             <div class="flex items-start justify-between mb-2">
               <div class="flex-1 min-w-0">
                 <div class="flex items-center gap-2 mb-1">
@@ -354,11 +361,63 @@ const isCompleted = (habitId: string, day: Date) => {
   const dateStr = format(day, 'yyyy-MM-dd');
   return logs.value.some(l => l.habitid === habitId && l.date === dateStr && l.status === 'completed');
 };
+
+// ── Modal Overflow Logic ─────────────────────────────────────────────────────
+const modalContent = ref<HTMLElement | null>(null);
+const isHeightOverflowing = ref(false);
+
+const checkHeightOverflow = () => {
+  if (!modalContent.value) return;
+  isHeightOverflowing.value = modalContent.value.scrollHeight > (window.innerHeight - 32);
+};
+
+watch(showModal, async (isOpen) => {
+  if (isOpen) {
+    await nextTick();
+    checkHeightOverflow();
+    setTimeout(checkHeightOverflow, 350);
+  } else {
+    isHeightOverflowing.value = false;
+  }
+});
+
 onUnmounted(() => {
+  window.removeEventListener('resize', checkHeightOverflow);
+  window.removeEventListener('popstate', handlePopState);
   if (typeof document !== 'undefined') {
     document.body.classList.remove('overflow-hidden');
   }
 });
+
+// ── Back Button / History API Logic ──────────────────────────────────────────
+let modalStatePushed = false;
+
+const handlePopState = () => {
+  if (showModal.value) {
+    showModal.value = false;
+    modalStatePushed = false;
+  }
+};
+
+watch(showModal, (isOpen, oldOpen) => {
+  if (typeof window === 'undefined') return;
+  
+  if (isOpen && !oldOpen) {
+    window.history.pushState({ modal: true }, '');
+    modalStatePushed = true;
+  } else if (!isOpen && oldOpen && modalStatePushed) {
+    if (window.history.state?.modal) {
+      window.history.back();
+    }
+    modalStatePushed = false;
+  }
+});
+
+onMounted(() => {
+  window.addEventListener('resize', checkHeightOverflow);
+  window.addEventListener('popstate', handlePopState);
+});
+// ─────────────────────────────────────────────────────────────────────────────
 
 // ── Scroll Lock ──────────────────────────────────────────────────────────────
 watch(

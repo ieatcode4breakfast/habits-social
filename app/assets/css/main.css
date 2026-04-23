@@ -50,21 +50,19 @@ input, textarea {
   user-select: text;
 }
 
-/* Adaptive Height Modals: Switch to full-page if height is too small */
-@media (max-height: 820px) {
-  .modal-adaptive-height {
-    height: 100% !important;
-    width: 100% !important;
-    max-width: none !important;
-    max-height: none !important;
-    border-radius: 0 !important;
-    border-left: none !important;
-    border-right: none !important;
-    border-top: none !important;
-    border-bottom: none !important;
-  }
+/* Adaptive Height Modals: Triggered via JS when content overflows window height */
+.modal-adaptive-height {
+  height: 100% !important;
+  width: 100% !important;
+  max-width: none !important;
+  max-height: none !important;
+  border-radius: 0 !important;
+  border-left: none !important;
+  border-right: none !important;
+  border-top: none !important;
+  border-bottom: none !important;
+}
 
-  .modal-parent-adaptive {
-    padding: 0 !important;
-  }
+.modal-parent-adaptive {
+  padding: 0 !important;
 }

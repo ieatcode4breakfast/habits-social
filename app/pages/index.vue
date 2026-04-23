@@ -132,12 +132,19 @@
         leave-from-class="opacity-100 scale-100"
         leave-to-class="opacity-0 scale-95"
       >
-        <div v-if="showModal" class="fixed inset-0 z-[100] flex items-center justify-center sm:p-4 p-0 modal-parent-adaptive">
+        <div v-if="showModal" 
+          class="fixed inset-0 z-[100] flex items-center justify-center sm:p-4 p-0"
+          :class="{ 'modal-parent-adaptive': isHeightOverflowing }"
+        >
           <!-- Backdrop -->
           <div class="absolute inset-0 bg-black/80 backdrop-blur-md" @click="showModal = false"></div>
           
           <!-- Modal Content -->
-          <div class="relative w-full h-full sm:h-auto sm:max-w-md max-w-none bg-zinc-925 border-x-0 sm:border border-zinc-800 sm:rounded-3xl rounded-none shadow-2xl p-8 overflow-y-auto modal-adaptive-height">
+          <div 
+            ref="modalContent"
+            class="relative w-full h-full sm:h-auto sm:max-w-md max-w-none bg-zinc-925 border-x-0 sm:border border-zinc-800 sm:rounded-3xl rounded-none shadow-2xl p-8 overflow-y-auto transition-all duration-300"
+            :class="{ 'modal-adaptive-height': isHeightOverflowing }"
+          >
             <h2 class="text-2xl font-bold text-white mb-6">New Habit</h2>
             
             <form @submit.prevent="addHabit" class="space-y-6">
@@ -270,12 +277,19 @@
         leave-from-class="opacity-100 scale-100"
         leave-to-class="opacity-0 scale-95"
       >
-        <div v-if="showEditModal" class="fixed inset-0 z-[100] flex items-center justify-center sm:p-4 p-0 modal-parent-adaptive">
+        <div v-if="showEditModal" 
+          class="fixed inset-0 z-[100] flex items-center justify-center sm:p-4 p-0"
+          :class="{ 'modal-parent-adaptive': isHeightOverflowing }"
+        >
           <!-- Backdrop -->
           <div class="absolute inset-0 bg-black/80 backdrop-blur-md" @click="showEditModal = false"></div>
           
           <!-- Modal Content -->
-          <div class="relative w-full h-full sm:h-auto sm:max-w-lg max-w-none bg-zinc-925 border-x-0 sm:border border-zinc-800 sm:rounded-3xl rounded-none shadow-2xl p-8 overflow-y-auto modal-adaptive-height">
+          <div 
+            ref="modalContent"
+            class="relative w-full h-full sm:h-auto sm:max-w-lg max-w-none bg-zinc-925 border-x-0 sm:border border-zinc-800 sm:rounded-3xl rounded-none shadow-2xl p-8 overflow-y-auto transition-all duration-300"
+            :class="{ 'modal-adaptive-height': isHeightOverflowing }"
+          >
             <div class="flex items-start justify-between mb-6">
               <div class="flex-1 min-w-0">
                 <div class="flex items-center gap-2 mb-1">
@@ -1057,6 +1071,75 @@ const removeHabit = async (id: string) => {
   habits.value = habits.value.filter(h => h.id !== id);
 };
 
+// ── Modal Overflow Logic ─────────────────────────────────────────────────────
+const modalContent = ref<HTMLElement | null>(null);
+const isHeightOverflowing = ref(false);
+
+const checkHeightOverflow = () => {
+  if (!modalContent.value) return;
+  // Use a slight buffer (32px) for a more comfortable transition
+  isHeightOverflowing.value = modalContent.value.scrollHeight > (window.innerHeight - 32);
+};
+
+// Check on modal open, and when relevant content changes
+watch([showModal, showEditModal, editDescription, newDescription, editFrequencyPeriod], async (newVal) => {
+  const isAnyOpen = Array.isArray(newVal) ? newVal.slice(0, 2).some(v => v) : false;
+  if (isAnyOpen) {
+    await nextTick();
+    checkHeightOverflow();
+    // Double check after transitions
+    setTimeout(checkHeightOverflow, 350);
+  } else {
+    isHeightOverflowing.value = false;
+  }
+});
+
+onUnmounted(() => {
+  window.removeEventListener('resize', checkHeightOverflow);
+  window.removeEventListener('popstate', handlePopState);
+  if (typeof document !== 'undefined') {
+    document.body.classList.remove('overflow-hidden');
+  }
+});
+
+// ── Back Button / History API Logic ──────────────────────────────────────────
+const isAnyModalOpen = computed(() => 
+  showModal.value || showEditModal.value || showDeleteModal.value || showSharingConfirmModal.value || showReorderModal.value
+);
+
+let modalStatePushed = false;
+
+const handlePopState = () => {
+  if (isAnyModalOpen.value) {
+    showModal.value = false;
+    showEditModal.value = false;
+    showDeleteModal.value = false;
+    showSharingConfirmModal.value = false;
+    showReorderModal.value = false;
+    modalStatePushed = false;
+  }
+};
+
+watch(isAnyModalOpen, (isOpen, oldOpen) => {
+  if (typeof window === 'undefined') return;
+  
+  if (isOpen && !oldOpen) {
+    window.history.pushState({ modal: true }, '');
+    modalStatePushed = true;
+  } else if (!isOpen && oldOpen && modalStatePushed) {
+    if (window.history.state?.modal) {
+      window.history.back();
+    }
+    modalStatePushed = false;
+  }
+});
+
+onMounted(() => {
+  window.addEventListener('resize', checkHeightOverflow);
+  window.addEventListener('popstate', handlePopState);
+});
+// ─────────────────────────────────────────────────────────────────────────────
+
 // ── Scroll Lock ──────────────────────────────────────────────────────────────
 watch(
   [showModal, showEditModal, showDeleteModal, showSharingConfirmModal, showReorderModal],
@@ -1070,11 +1153,5 @@ watch(
     }
   }
 );
-
-onUnmounted(() => {
-  if (typeof document !== 'undefined') {
-    document.body.classList.remove('overflow-hidden');
-  }
-});
 // ─────────────────────────────────────────────────────────────────────────────
 </script>
