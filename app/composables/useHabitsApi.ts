@@ -37,5 +37,8 @@ export const useHabitsApi = () => {
   const getFriendHabits = (friendId: string) =>
     $fetch<{ habits: Habit[]; logs: HabitLog[] }>('/api/social/friend-data', { query: { friendId } });
 
-  return { getHabits, createHabit, updateHabit, deleteHabit, getLogs, upsertLog, getFriendHabits };
+  const deleteLog = (habitid: string, date: string) =>
+    $fetch('/api/habitlogs', { method: 'DELETE', query: { habitid, date } });
+
+  return { getHabits, createHabit, updateHabit, deleteHabit, getLogs, upsertLog, deleteLog, getFriendHabits };
 };

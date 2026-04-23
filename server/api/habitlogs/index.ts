@@ -35,4 +35,10 @@ export default defineEventHandler(async (event) => {
     });
     return { ...log.toObject(), id: log._id.toString(), habitid: log.habitid.toString() };
   }
+
+  if (event.method === 'DELETE') {
+    const query = getQuery(event);
+    await HabitLog.deleteOne({ habitid: query.habitid, ownerid: userId, date: query.date });
+    return { success: true };
+  }
 });
