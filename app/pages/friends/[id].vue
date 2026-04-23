@@ -1,11 +1,11 @@
 <template>
   <div class="space-y-3">
     <div class="flex flex-col md:flex-row md:items-center gap-4 px-4 sm:px-0" v-motion-slide-visible-once-left>
-      <NuxtLink to="/social" class="inline-flex items-center justify-center w-10 h-10 rounded-xl bg-zinc-900/80 backdrop-blur-sm border border-zinc-800/80 hover:bg-zinc-800 transition-all shadow-xl flex-shrink-0">
+      <NuxtLink to="/social" class="inline-flex items-center justify-center w-10 h-10 rounded-xl bg-zinc-925/80 backdrop-blur-sm border border-zinc-800/80 hover:bg-zinc-800 transition-all shadow-xl flex-shrink-0">
         <ArrowLeft class="w-5 h-5 text-zinc-400 hover:text-white transition-colors" />
       </NuxtLink>
       <div v-if="profile" class="flex items-center gap-4">
-        <div class="w-14 h-14 bg-zinc-900 rounded-2xl flex items-center justify-center overflow-hidden shadow-sm flex-shrink-0">
+        <div class="w-14 h-14 bg-zinc-925 rounded-2xl flex items-center justify-center overflow-hidden shadow-sm flex-shrink-0">
           <img v-if="profile.photourl" :src="profile.photourl" alt="" class="w-full h-full object-cover" />
           <User v-else class="w-7 h-7 text-zinc-600" />
         </div>
@@ -21,7 +21,7 @@
     </div>
 
     <!-- Shared Habit List (Single Card) -->
-    <div v-if="!loading" v-motion-fade class="bg-zinc-900/80 backdrop-blur-sm sm:rounded-2xl rounded-none shadow-2xl divide-y divide-zinc-800/80 border border-zinc-800/80">
+    <div v-if="!loading" v-motion-fade class="bg-zinc-925/80 backdrop-blur-sm sm:rounded-2xl rounded-none shadow-2xl divide-y divide-zinc-800/80 border border-zinc-800/80">
       <div v-if="habits.length === 0" class="p-10 text-center text-zinc-500 italic text-sm">
         {{ profile?.displayname }} hasn't shared any habits with you yet.
       </div>

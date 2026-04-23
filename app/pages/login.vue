@@ -11,9 +11,9 @@
       </div>
 
       <!-- Card -->
-      <div class="bg-zinc-900/80 backdrop-blur-xl rounded-2xl shadow-2xl border border-zinc-800 overflow-hidden">
+      <div class="bg-zinc-925/80 backdrop-blur-xl rounded-2xl shadow-2xl border border-zinc-800 overflow-hidden">
         <!-- Tabs -->
-        <div class="flex border-b border-zinc-900">
+        <div class="flex border-b border-zinc-925">
           <button
             @click="tab = 'login'"
             class="flex-1 py-4 text-sm font-semibold transition-colors cursor-pointer"
@@ -95,7 +95,7 @@
               <button
                 type="button"
                 @click="email = ''; password = ''; confirmPassword = ''; error = ''"
-                class="flex-1 py-3 text-sm font-semibold text-zinc-400 bg-transparent hover:bg-zinc-900 rounded-xl transition-colors cursor-pointer"
+                class="flex-1 py-3 text-sm font-semibold text-zinc-400 bg-transparent hover:bg-zinc-925 rounded-xl transition-colors cursor-pointer"
               >
                 Cancel
               </button>

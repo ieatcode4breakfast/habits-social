@@ -17,7 +17,7 @@
             <NuxtLink to="/social" class="nav-link" :class="{ 'nav-link-active': $route.path === '/social' }">Social</NuxtLink>
           </nav>
           <div class="w-px h-6 bg-zinc-800 hidden md:block mx-1"></div>
-          <button @click="logout" class="px-3 py-2 text-sm font-medium text-zinc-500 hover:text-white hover:bg-zinc-900 rounded-lg transition-colors flex items-center gap-2 cursor-pointer">
+          <button @click="logout" class="px-3 py-2 text-sm font-medium text-zinc-500 hover:text-white hover:bg-zinc-925 rounded-lg transition-colors flex items-center gap-2 cursor-pointer">
             <LogOut class="w-4 h-4" />
             <span class="hidden sm:inline">Logout</span>
           </button>
