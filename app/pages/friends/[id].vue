@@ -26,10 +26,9 @@
         {{ profile?.displayname }} hasn't shared any habits with you yet.
       </div>
       
-      <div v-for="habit in habits" :key="habit.id" class="p-4 flex flex-wrap items-center justify-between gap-x-8 gap-y-6">
+      <div v-for="habit in habits" :key="habit.id" class="p-4 flex flex-wrap items-center justify-between gap-x-8 gap-y-4">
         <!-- Title Section -->
         <div class="flex items-start gap-3 min-w-[200px] flex-1">
-          <div class="w-2.5 h-2.5 rounded-full flex-shrink-0 shadow-sm mt-1.5" :style="{ backgroundColor: habit.color }" />
           <h3 class="font-bold text-slate-900 dark:text-slate-100 leading-tight break-words">{{ habit.title }}</h3>
         </div>
         

@@ -6,7 +6,7 @@
         <h1 class="text-3xl font-bold tracking-tight text-slate-900 dark:text-slate-100 mb-1">My Habits</h1>
         <p class="text-slate-500 dark:text-slate-400">Track your habits this week</p>
       </div>
-      <button @click="showModal = true" class="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-xl transition-all shadow-lg shadow-indigo-500/20 cursor-pointer text-sm flex items-center gap-2 active:scale-95">
+      <button @click="showModal = true" class="px-5 py-2.5 bg-indigo-700 hover:bg-indigo-500 text-white font-semibold rounded-xl transition-all shadow-lg shadow-indigo-500/20 cursor-pointer text-sm flex items-center gap-2 active:scale-95">
         <Plus class="w-4 h-4" /> Add
       </button>
     </div>
@@ -17,10 +17,9 @@
         No habits yet. Add one above!
       </div>
       
-      <div v-for="habit in habits" :key="habit.id" class="relative p-4 group transition-all flex flex-wrap items-center justify-between gap-x-8 gap-y-6">
+      <div v-for="habit in habits" :key="habit.id" class="relative p-4 group transition-all flex flex-wrap items-center justify-between gap-x-8 gap-y-4">
         <!-- Title Section -->
         <div class="flex items-start gap-3 min-w-[200px] flex-1">
-          <div class="w-2.5 h-2.5 rounded-full flex-shrink-0 shadow-sm mt-1.5" :style="{ backgroundColor: habit.color }" />
           <h3 class="font-bold text-slate-900 dark:text-slate-100 leading-tight break-words">{{ habit.title }}</h3>
         </div>
         
@@ -95,19 +94,6 @@
                 />
               </div>
 
-              <div class="flex items-center justify-between p-4 bg-slate-950/30 rounded-2xl border border-slate-800/50">
-                <div class="space-y-1">
-                  <div class="text-sm font-bold text-white">Color Tag</div>
-                  <div class="text-xs text-slate-500">Choose a color for your habit</div>
-                </div>
-                <label class="relative w-10 h-10 flex items-center justify-center cursor-pointer group/color">
-                  <input v-model="newColor" type="color" class="absolute inset-0 opacity-0 w-full h-full cursor-pointer" />
-                  <div class="w-10 h-10 rounded-full border-2 border-slate-800 transition-all group-hover/color:border-slate-700 flex items-center justify-center bg-slate-950/50">
-                    <div class="w-6 h-6 rounded-full shadow-sm" :style="{ backgroundColor: newColor }" />
-                  </div>
-                </label>
-              </div>
-
               <div class="flex gap-3 pt-4">
                 <button
                   type="button"
@@ -143,7 +129,6 @@ const api = useHabitsApi();
 const habits = ref<Habit[]>([]);
 const logs = ref<HabitLog[]>([]);
 const newTitle = ref('');
-const newColor = ref('#6366f1');
 const showModal = ref(false);
 
 const today = new Date();
@@ -173,10 +158,9 @@ const toggleLog = async (habit: Habit, day: Date) => {
 
 const addHabit = async () => {
   if (!newTitle.value.trim()) return;
-  const habit = await api.createHabit({ title: newTitle.value.trim(), color: newColor.value });
+  const habit = await api.createHabit({ title: newTitle.value.trim(), color: '#6366f1' });
   habits.value.push(habit);
   newTitle.value = '';
-  newColor.value = '#6366f1';
   showModal.value = false;
 };
 
