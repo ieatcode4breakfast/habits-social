@@ -51,7 +51,7 @@
                 type="email"
                 placeholder="Email"
                 required
-                class="w-full pl-10 pr-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all text-sm"
+                class="w-full pl-10 pr-4 py-3 bg-slate-950/50 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all text-sm"
               />
             </div>
 
@@ -63,7 +63,23 @@
                 :type="showPassword ? 'text' : 'password'"
                 placeholder="Password"
                 required
-                class="w-full pl-10 pr-12 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all text-sm"
+                class="w-full pl-10 pr-12 py-3 bg-slate-950/50 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all text-sm"
+              />
+              <button type="button" @click="showPassword = !showPassword" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer">
+                <Eye v-if="!showPassword" class="w-4 h-4" />
+                <EyeOff v-else class="w-4 h-4" />
+              </button>
+            </div>
+
+            <!-- Confirm Password -->
+            <div v-if="tab === 'signup'" class="relative" v-motion-slide-top>
+              <Lock class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+              <input
+                v-model="confirmPassword"
+                :type="showPassword ? 'text' : 'password'"
+                placeholder="Confirm Password"
+                required
+                class="w-full pl-10 pr-12 py-3 bg-slate-950/50 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all text-sm"
               />
               <button type="button" @click="showPassword = !showPassword" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer">
                 <Eye v-if="!showPassword" class="w-4 h-4" />
@@ -78,7 +94,7 @@
             <div class="flex items-center gap-3 pt-2">
               <button
                 type="button"
-                @click="email = ''; password = ''; error = ''"
+                @click="email = ''; password = ''; confirmPassword = ''; error = ''"
                 class="flex-1 py-3 text-sm font-semibold text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-xl transition-colors cursor-pointer"
               >
                 Cancel
@@ -111,6 +127,7 @@ watchEffect(() => { if (user.value) router.push('/'); });
 const tab = ref<'login' | 'signup'>('login');
 const email = ref('');
 const password = ref('');
+const confirmPassword = ref('');
 const showPassword = ref(false);
 const loading = ref(false);
 const error = ref('');
@@ -118,6 +135,13 @@ const error = ref('');
 const handleSubmit = async () => {
   loading.value = true;
   error.value = '';
+
+  if (tab.value === 'signup' && password.value !== confirmPassword.value) {
+    error.value = 'Passwords do not match.';
+    loading.value = false;
+    return;
+  }
+
   try {
     const endpoint = tab.value === 'login' ? '/api/auth/login' : '/api/auth/register';
     await $fetch(endpoint, { method: 'POST', body: { email: email.value, password: password.value } });
