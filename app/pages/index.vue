@@ -6,9 +6,18 @@
         <h1 class="text-3xl font-bold tracking-tight text-white mb-1">My Habits</h1>
         <p class="text-zinc-400">Track your habits this week</p>
       </div>
-      <button @click="showModal = true" class="px-5 py-2.5 bg-white hover:bg-zinc-200 text-black font-semibold rounded-xl transition-all shadow-lg shadow-white/5 cursor-pointer text-sm flex items-center gap-2 active:scale-95">
-        <Plus class="w-4 h-4" /> Add
-      </button>
+      <div class="flex items-center gap-2">
+        <button
+          v-if="habits.length > 1"
+          @click="showReorderModal = true"
+          class="px-4 py-2.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 hover:text-white font-semibold rounded-xl transition-all cursor-pointer text-sm flex items-center gap-2 active:scale-95 border border-zinc-700/60"
+        >
+          <ArrowUpDown class="w-4 h-4" /> Reorder
+        </button>
+        <button @click="showModal = true" class="px-5 py-2.5 bg-white hover:bg-zinc-200 text-black font-semibold rounded-xl transition-all shadow-lg shadow-white/5 cursor-pointer text-sm flex items-center gap-2 active:scale-95">
+          <Plus class="w-4 h-4" /> Add
+        </button>
+      </div>
     </div>
 
     <!-- Habit List (Single Card) -->
@@ -18,9 +27,19 @@
       </div>
       
       <div 
-        v-for="habit in habits" :key="habit.id" 
+        v-for="habit in habits" :key="habit.id"
+        :data-habit-id="habit.id"
+        draggable="true"
+        @dragstart="onDragStart($event, habit.id)"
+        @dragover.prevent="onDragOver($event, habit.id)"
+        @drop.prevent="onDrop($event, habit.id)"
+        @dragend="onDragEnd"
         @click="openEditModal(habit)"
         class="relative p-4 pt-14 sm:pt-4 group transition-all flex flex-wrap items-center justify-between gap-x-8 gap-y-4 cursor-pointer hover:bg-zinc-800/40"
+        :class="[
+          draggingId === habit.id ? 'opacity-30' : 'opacity-100',
+          dragOverId === habit.id ? 'ring-2 ring-inset ring-white/20 bg-zinc-800/50' : ''
+        ]"
       >
         <!-- Floating Streak Badge -->
         <div 
@@ -46,7 +65,15 @@
           </span>
         </div>
 
-        <div class="flex items-start gap-3 min-w-[200px] flex-1">
+        <div class="flex items-center gap-3 min-w-[200px] flex-1">
+          <!-- Grip Handle -->
+          <div
+            class="touch-none shrink-0 text-zinc-700 transition-colors opacity-30 sm:opacity-0 sm:group-hover:opacity-100 hover:text-zinc-400"
+            :class="isDragging ? 'cursor-grabbing' : 'cursor-grab'"
+            @touchstart.prevent="onGripTouchStart($event, habit.id)"
+          >
+            <GripVertical class="w-4 h-4" />
+          </div>
           <div class="text-left flex items-start gap-2 relative">
             <h3 class="font-bold text-zinc-200 leading-tight break-all group-hover:text-white transition-colors">{{ habit.title }}</h3>
           </div>
@@ -508,11 +535,73 @@
         </div>
       </Transition>
     </Teleport>
+
+    <!-- Reorder Modal -->
+    <Teleport to="body">
+      <Transition
+        enter-active-class="transition duration-300 ease-out"
+        enter-from-class="opacity-0 scale-95"
+        enter-to-class="opacity-100 scale-100"
+        leave-active-class="transition duration-200 ease-in"
+        leave-from-class="opacity-100 scale-100"
+        leave-to-class="opacity-0 scale-95"
+      >
+        <div v-if="showReorderModal" class="fixed inset-0 z-[100] flex items-end sm:items-center justify-center sm:p-4 p-0">
+          <!-- Backdrop -->
+          <div class="absolute inset-0 bg-black/80 backdrop-blur-md" @click="showReorderModal = false"></div>
+
+          <!-- Modal Content -->
+          <div class="relative w-full sm:max-w-sm bg-zinc-900 border-t sm:border border-zinc-800 sm:rounded-3xl rounded-t-3xl shadow-2xl overflow-hidden flex flex-col" style="max-height: 80vh">
+            <!-- Header -->
+            <div class="flex items-center justify-between px-5 py-4 border-b border-zinc-800/80 shrink-0">
+              <div>
+                <h2 class="text-base font-bold text-white">Reorder Habits</h2>
+                <p class="text-[11px] text-zinc-500 mt-0.5">Drag to rearrange</p>
+              </div>
+              <button
+                @click="showReorderModal = false"
+                class="px-4 py-2 bg-white hover:bg-zinc-200 text-black text-xs font-bold rounded-lg transition-all cursor-pointer"
+              >
+                Done
+              </button>
+            </div>
+
+            <!-- Compact habit list -->
+            <div class="overflow-y-auto flex-1 p-2">
+              <div
+                v-for="habit in habits"
+                :key="habit.id"
+                :data-habit-id="habit.id"
+                draggable="true"
+                @dragstart="onDragStart($event, habit.id)"
+                @dragover.prevent="onDragOver($event, habit.id)"
+                @drop.prevent="onDrop($event, habit.id)"
+                @dragend="onDragEnd"
+                class="flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all select-none"
+                :class="[
+                  draggingId === habit.id ? 'opacity-30' : 'opacity-100',
+                  dragOverId === habit.id ? 'bg-zinc-700/60 ring-1 ring-white/20' : 'hover:bg-zinc-800/60'
+                ]"
+              >
+                <div
+                  class="touch-none shrink-0 text-zinc-500 hover:text-zinc-300 transition-colors"
+                  :class="isDragging ? 'cursor-grabbing' : 'cursor-grab'"
+                  @touchstart.prevent="onGripTouchStart($event, habit.id)"
+                >
+                  <GripVertical class="w-4 h-4" />
+                </div>
+                <span class="text-sm font-semibold text-zinc-200 truncate flex-1">{{ habit.title }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
   </div>
 </template>
 
 <script setup lang="ts">
-import { Plus, Trash2, Check, X, Minus, ChevronLeft, ChevronRight, User, ChevronUp, ChevronDown, Edit2, Save, CheckSquare } from 'lucide-vue-next';
+import { Plus, Trash2, Check, X, Minus, ChevronLeft, ChevronRight, User, ChevronUp, ChevronDown, Edit2, Save, CheckSquare, GripVertical, ArrowUpDown } from 'lucide-vue-next';
 import { format, subDays, isToday, startOfMonth, endOfMonth, eachDayOfInterval, addMonths, subMonths, isAfter, startOfDay, addDays, isSameWeek, isSameMonth, getDaysInMonth } from 'date-fns';
 import type { Habit, HabitLog } from '~/composables/useHabitsApi';
 
@@ -531,6 +620,7 @@ const newFrequencyCount = ref(1);
 const newFrequencyPeriod = ref<'daily' | 'weekly' | 'monthly'>('daily');
 const newSharedWith = ref<string[]>([]);
 const showModal = ref(false);
+const showReorderModal = ref(false);
 
 const showEditModal = ref(false);
 const showDeleteModal = ref(false);
@@ -770,6 +860,87 @@ const adjustFrequency = (isNew: boolean, delta: number) => {
     editFrequencyCount.value = Math.max(1, Math.min(max, editFrequencyCount.value + delta));
   }
 };
+
+// ── Drag-and-drop reorder ────────────────────────────────────────────────────
+const draggingId = ref<string | null>(null);
+const dragOverId = ref<string | null>(null);
+const isDragging = ref(false);
+
+// Desktop — HTML5 drag events
+const onDragStart = (e: DragEvent, id: string) => {
+  draggingId.value = id;
+  isDragging.value = true;
+  e.dataTransfer!.effectAllowed = 'move';
+};
+
+const onDragOver = (e: DragEvent, id: string) => {
+  e.preventDefault();
+  if (draggingId.value && draggingId.value !== id) dragOverId.value = id;
+};
+
+const onDrop = (e: DragEvent, targetId: string) => {
+  e.preventDefault();
+  if (!draggingId.value || draggingId.value === targetId) return;
+  applyReorder(draggingId.value, targetId);
+};
+
+const onDragEnd = () => {
+  draggingId.value = null;
+  dragOverId.value = null;
+  isDragging.value = false;
+};
+
+// Mobile — touch events (attached to the grip handle)
+const onGripTouchStart = (e: TouchEvent, id: string) => {
+  draggingId.value = id;
+  isDragging.value = true;
+
+  const onTouchMove = (ev: TouchEvent) => {
+    ev.preventDefault();
+    const touch = ev.touches[0];
+    if (!touch) return;
+    const el = document.elementFromPoint(touch.clientX, touch.clientY);
+    const row = el?.closest('[data-habit-id]') as HTMLElement | null;
+    if (row) {
+      const hid = row.dataset.habitId;
+      if (hid && hid !== draggingId.value) dragOverId.value = hid;
+    }
+  };
+
+  const onTouchEnd = () => {
+    if (draggingId.value && dragOverId.value && draggingId.value !== dragOverId.value) {
+      applyReorder(draggingId.value, dragOverId.value);
+    }
+    draggingId.value = null;
+    dragOverId.value = null;
+    isDragging.value = false;
+    document.removeEventListener('touchmove', onTouchMove);
+    document.removeEventListener('touchend', onTouchEnd);
+  };
+
+  document.addEventListener('touchmove', onTouchMove, { passive: false });
+  document.addEventListener('touchend', onTouchEnd);
+};
+
+const applyReorder = (fromId: string, toId: string) => {
+  const fromIdx = habits.value.findIndex(h => h.id === fromId);
+  const toIdx   = habits.value.findIndex(h => h.id === toId);
+  if (fromIdx === -1 || toIdx === -1) return;
+  const list = [...habits.value];
+  const [moved] = list.splice(fromIdx, 1) as [Habit];
+  list.splice(toIdx, 0, moved);
+  habits.value = list;
+  scheduleReorderSave();
+};
+
+let reorderTimeout: ReturnType<typeof setTimeout> | null = null;
+const scheduleReorderSave = () => {
+  if (reorderTimeout) clearTimeout(reorderTimeout);
+  reorderTimeout = setTimeout(() => {
+    api.reorderHabits(habits.value.map(h => h.id));
+  }, 500);
+};
+// ─────────────────────────────────────────────────────────────────────────────
 
 let autosaveTimeout: NodeJS.Timeout | null = null;
 

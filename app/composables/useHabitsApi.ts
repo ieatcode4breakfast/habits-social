@@ -7,6 +7,7 @@ export interface Habit {
   frequencyPeriod: 'daily' | 'weekly' | 'monthly';
   color: string;
   sharedwith: string[];
+  sortOrder?: number;
 }
 
 export interface HabitLog {
@@ -42,5 +43,8 @@ export const useHabitsApi = () => {
   const deleteLog = (habitid: string, date: string) =>
     $fetch('/api/habitlogs', { method: 'DELETE', query: { habitid, date } });
 
-  return { getHabits, createHabit, updateHabit, deleteHabit, getLogs, upsertLog, deleteLog, getFriendHabits };
+  const reorderHabits = (ids: string[]) =>
+    $fetch('/api/habits/reorder', { method: 'POST', body: { ids } });
+
+  return { getHabits, createHabit, updateHabit, deleteHabit, getLogs, upsertLog, deleteLog, getFriendHabits, reorderHabits };
 };
