@@ -3,6 +3,8 @@ export interface Habit {
   ownerid: string;
   title: string;
   description: string;
+  frequencyCount: number;
+  frequencyPeriod: 'daily' | 'weekly' | 'monthly';
   color: string;
   sharedwith: string[];
 }

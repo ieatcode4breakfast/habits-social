@@ -100,6 +100,75 @@
                 />
               </div>
 
+              <!-- Description -->
+              <div class="space-y-2">
+                <label class="text-xs font-bold uppercase tracking-widest text-zinc-500">Description</label>
+                <textarea
+                  v-model="newDescription"
+                  rows="2"
+                  placeholder=""
+                  class="w-full px-4 py-3 bg-black border border-zinc-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-zinc-600 text-white placeholder-zinc-700 transition-all resize-none"
+                ></textarea>
+              </div>
+
+              <!-- Frequency Group -->
+              <div class="flex items-start gap-3">
+                <!-- Left: Label + Selector -->
+                <div class="flex flex-col gap-2">
+                  <label class="text-xs font-bold uppercase tracking-widest text-zinc-500 h-4 flex items-center">I will do this</label>
+                  <select
+                    v-model="newFrequencyPeriod"
+                    class="w-32 h-10 px-3 py-2 bg-black border border-zinc-800 rounded-lg focus:outline-none focus:ring-2 focus:ring-zinc-600 text-white appearance-none cursor-pointer text-sm"
+                  >
+                    <option value="daily">Daily</option>
+                    <option value="weekly">Weekly</option>
+                    <option value="monthly">Monthly</option>
+                  </select>
+                </div>
+
+                <!-- Right: Stepper + Times -->
+                <template v-if="newFrequencyPeriod !== 'daily'">
+                  <div class="flex items-start gap-3">
+                    <div class="flex flex-col items-center">
+                      <button type="button" @click="adjustFrequency(true, 1)" class="h-4 flex items-center justify-center text-zinc-500 hover:text-white transition-colors">
+                        <ChevronUp class="w-3 h-3" />
+                      </button>
+                      <div class="pt-2">
+                        <input
+                          v-model.number="newFrequencyCount"
+                          type="number"
+                          @blur="newFrequencyCount = newFrequencyPeriod === 'weekly' ? Math.max(1, Math.min(7, newFrequencyCount)) : Math.max(1, Math.min(31, newFrequencyCount))"
+                          class="w-10 h-10 bg-black border border-zinc-800 rounded-lg text-center text-xs font-black text-white focus:outline-none focus:ring-1 focus:ring-zinc-600 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                        />
+                      </div>
+                      <button type="button" @click="adjustFrequency(true, -1)" class="p-1 text-zinc-500 hover:text-white transition-colors">
+                        <ChevronDown class="w-3 h-3" />
+                      </button>
+                    </div>
+                    <div class="pt-8 h-full flex items-center">
+                      <span class="text-zinc-500 text-[10px] font-black uppercase tracking-widest">times</span>
+                    </div>
+                  </div>
+                </template>
+              </div>
+
+              <!-- Share To -->
+              <div v-if="friends.length > 0" class="space-y-3">
+                <label class="text-xs font-bold uppercase tracking-widest text-zinc-500">Share to</label>
+                <div class="space-y-2 max-h-40 overflow-y-auto pr-2 custom-scrollbar">
+                  <label v-for="friend in friends" :key="friend.id" class="flex items-center justify-between p-3 bg-black border border-zinc-900 rounded-xl cursor-pointer hover:border-zinc-800 transition-colors">
+                    <div class="flex items-center gap-3">
+                      <div class="w-8 h-8 bg-zinc-900 rounded-full flex items-center justify-center overflow-hidden">
+                        <img v-if="friend.photourl" :src="friend.photourl" class="w-full h-full object-cover" />
+                        <User v-else class="w-4 h-4 text-zinc-600" />
+                      </div>
+                      <span class="text-sm font-semibold text-zinc-200">{{ friend.displayname || friend.email }}</span>
+                    </div>
+                    <input type="checkbox" :value="friend.id" v-model="newSharedWith" class="w-4 h-4 rounded bg-black border-zinc-700 text-white focus:ring-zinc-600 focus:ring-offset-zinc-900 cursor-pointer" />
+                  </label>
+                </div>
+              </div>
+
               <div class="flex gap-3 pt-4">
                 <button
                   type="button"
@@ -154,6 +223,75 @@
                   maxlength="50"
                   class="w-full px-4 py-3 bg-black border border-zinc-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-zinc-600 text-white placeholder-zinc-700 transition-all"
                 />
+              </div>
+
+              <!-- Description -->
+              <div class="space-y-2">
+                <label class="text-xs font-bold uppercase tracking-widest text-zinc-500">Description</label>
+                <textarea
+                  v-model="editDescription"
+                  rows="2"
+                  placeholder=""
+                  class="w-full px-4 py-3 bg-black border border-zinc-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-zinc-600 text-white placeholder-zinc-700 transition-all resize-none"
+                ></textarea>
+              </div>
+
+              <!-- Frequency Group -->
+              <div class="flex items-start gap-3">
+                <!-- Left: Label + Selector -->
+                <div class="flex flex-col gap-2">
+                  <label class="text-xs font-bold uppercase tracking-widest text-zinc-500 h-4 flex items-center">I will do this</label>
+                  <select
+                    v-model="editFrequencyPeriod"
+                    class="w-32 h-10 px-3 py-2 bg-black border border-zinc-800 rounded-lg focus:outline-none focus:ring-2 focus:ring-zinc-600 text-white appearance-none cursor-pointer text-sm"
+                  >
+                    <option value="daily">Daily</option>
+                    <option value="weekly">Weekly</option>
+                    <option value="monthly">Monthly</option>
+                  </select>
+                </div>
+
+                <!-- Right: Stepper + Times -->
+                <template v-if="editFrequencyPeriod !== 'daily'">
+                  <div class="flex items-start gap-3">
+                    <div class="flex flex-col items-center">
+                      <button type="button" @click="adjustFrequency(false, 1)" class="h-4 flex items-center justify-center text-zinc-500 hover:text-white transition-colors">
+                        <ChevronUp class="w-3 h-3" />
+                      </button>
+                      <div class="pt-2">
+                        <input
+                          v-model.number="editFrequencyCount"
+                          type="number"
+                          @blur="editFrequencyCount = editFrequencyPeriod === 'weekly' ? Math.max(1, Math.min(7, editFrequencyCount)) : Math.max(1, Math.min(31, editFrequencyCount))"
+                          class="w-10 h-10 bg-black border border-zinc-800 rounded-lg text-center text-xs font-black text-white focus:outline-none focus:ring-1 focus:ring-zinc-600 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                        />
+                      </div>
+                      <button type="button" @click="adjustFrequency(false, -1)" class="p-1 text-zinc-500 hover:text-white transition-colors">
+                        <ChevronDown class="w-3 h-3" />
+                      </button>
+                    </div>
+                    <div class="pt-8 h-full flex items-center">
+                      <span class="text-zinc-500 text-[10px] font-black uppercase tracking-widest">times</span>
+                    </div>
+                  </div>
+                </template>
+              </div>
+
+              <!-- Share To -->
+              <div v-if="friends.length > 0" class="space-y-3">
+                <label class="text-xs font-bold uppercase tracking-widest text-zinc-500">Share to</label>
+                <div class="space-y-2 max-h-40 overflow-y-auto pr-2 custom-scrollbar">
+                  <label v-for="friend in friends" :key="friend.id" class="flex items-center justify-between p-3 bg-black border border-zinc-900 rounded-xl cursor-pointer hover:border-zinc-800 transition-colors">
+                    <div class="flex items-center gap-3">
+                      <div class="w-8 h-8 bg-zinc-900 rounded-full flex items-center justify-center overflow-hidden">
+                        <img v-if="friend.photourl" :src="friend.photourl" class="w-full h-full object-cover" />
+                        <User v-else class="w-4 h-4 text-zinc-600" />
+                      </div>
+                      <span class="text-sm font-semibold text-zinc-200">{{ friend.displayname || friend.email }}</span>
+                    </div>
+                    <input type="checkbox" :value="friend.id" v-model="editSharedWith" class="w-4 h-4 rounded bg-black border-zinc-700 text-white focus:ring-zinc-600 focus:ring-offset-zinc-900 cursor-pointer" />
+                  </label>
+                </div>
               </div>
 
               <!-- Monthly Calendar View -->
@@ -276,23 +414,34 @@
 </template>
 
 <script setup lang="ts">
-import { Plus, Trash2, Check, X, Minus, ChevronLeft, ChevronRight } from 'lucide-vue-next';
+import { Plus, Trash2, Check, X, Minus, ChevronLeft, ChevronRight, User, ChevronUp, ChevronDown } from 'lucide-vue-next';
 import { format, subDays, isToday, startOfMonth, endOfMonth, eachDayOfInterval, addMonths, subMonths, isAfter, startOfDay, addDays } from 'date-fns';
 import type { Habit, HabitLog } from '~/composables/useHabitsApi';
 
 definePageMeta({ middleware: 'auth' });
 
 const api = useHabitsApi();
+const { user } = useAuth();
 
 const habits = ref<Habit[]>([]);
 const logs = ref<HabitLog[]>([]);
+const friends = ref<any[]>([]);
+
 const newTitle = ref('');
+const newDescription = ref('');
+const newFrequencyCount = ref(1);
+const newFrequencyPeriod = ref<'daily'|'weekly'|'monthly'>('daily');
+const newSharedWith = ref<string[]>([]);
 const showModal = ref(false);
 
 const showEditModal = ref(false);
 const showDeleteModal = ref(false);
 const editingHabit = ref<Habit | null>(null);
 const editTitle = ref('');
+const editDescription = ref('');
+const editFrequencyCount = ref(1);
+const editFrequencyPeriod = ref<'daily'|'weekly'|'monthly'>('daily');
+const editSharedWith = ref<string[]>([]);
 const currentCalendarDate = ref(new Date());
 
 const calendarDays = computed(() => {
@@ -313,7 +462,22 @@ const startDate = format(days[0]!, 'yyyy-MM-dd');
 const endDate = format(today, 'yyyy-MM-dd');
 
 const load = async () => {
-  [habits.value, logs.value] = await Promise.all([api.getHabits(), api.getLogs(startDate, endDate)]);
+  const [h, l, socialData] = await Promise.all([
+    api.getHabits(), 
+    api.getLogs(startDate, endDate),
+    $fetch<any>('/api/social/friends')
+  ]);
+  habits.value = h;
+  logs.value = l;
+
+  const profilesMap = new Map(socialData.profiles.map((p: any) => [p.id, p]));
+  friends.value = socialData.friendships
+    .filter((f: any) => f.status === 'accepted')
+    .map((f: any) => {
+      const friendId = f.participants.find((p: string) => p !== user.value?.id) || '';
+      return profilesMap.get(friendId);
+    })
+    .filter(Boolean);
 };
 
 onMounted(load);
@@ -334,7 +498,7 @@ const toggleLog = async (habit: Habit, day: Date) => {
   else if (currentStatus === 'skipped') nextStatus = null;
 
   if (nextStatus) {
-    const log = await api.upsertLog({ habitid: habit.id, date: dateStr, status: nextStatus });
+    const log = await api.upsertLog({ habitid: habit.id, date: dateStr, status: nextStatus, sharedwith: habit.sharedwith });
     const idx = logs.value.findIndex(l => l.habitid === habit.id && l.date === dateStr);
     if (idx >= 0) logs.value[idx] = log;
     else logs.value.push(log);
@@ -346,15 +510,30 @@ const toggleLog = async (habit: Habit, day: Date) => {
 
 const addHabit = async () => {
   if (!newTitle.value.trim()) return;
-  const habit = await api.createHabit({ title: newTitle.value.trim(), color: '#6366f1' });
+  const habit = await api.createHabit({ 
+    title: newTitle.value.trim(), 
+    description: newDescription.value.trim(),
+    frequencyCount: newFrequencyCount.value,
+    frequencyPeriod: newFrequencyPeriod.value,
+    sharedwith: newSharedWith.value,
+    color: '#6366f1' 
+  });
   habits.value.push(habit);
   newTitle.value = '';
+  newDescription.value = '';
+  newFrequencyCount.value = 1;
+  newFrequencyPeriod.value = 'daily';
+  newSharedWith.value = [];
   showModal.value = false;
 };
 
 const openEditModal = (habit: Habit) => {
   editingHabit.value = habit;
   editTitle.value = habit.title;
+  editDescription.value = habit.description || '';
+  editFrequencyCount.value = habit.frequencyCount || 1;
+  editFrequencyPeriod.value = habit.frequencyPeriod || 'daily';
+  editSharedWith.value = habit.sharedwith || [];
   currentCalendarDate.value = new Date();
   showEditModal.value = true;
 };
@@ -362,9 +541,25 @@ const openEditModal = (habit: Habit) => {
 const prevMonth = () => currentCalendarDate.value = subMonths(currentCalendarDate.value, 1);
 const nextMonth = () => currentCalendarDate.value = addMonths(currentCalendarDate.value, 1);
 
+const adjustFrequency = (isNew: boolean, delta: number) => {
+  if (isNew) {
+    const max = newFrequencyPeriod.value === 'weekly' ? 7 : 31;
+    newFrequencyCount.value = Math.max(1, Math.min(max, newFrequencyCount.value + delta));
+  } else {
+    const max = editFrequencyPeriod.value === 'weekly' ? 7 : 31;
+    editFrequencyCount.value = Math.max(1, Math.min(max, editFrequencyCount.value + delta));
+  }
+};
+
 const updateHabit = async () => {
   if (!editingHabit.value || !editTitle.value.trim()) return;
-  const updated = await api.updateHabit(editingHabit.value.id, { title: editTitle.value.trim() });
+  const updated = await api.updateHabit(editingHabit.value.id, { 
+    title: editTitle.value.trim(),
+    description: editDescription.value.trim(),
+    frequencyCount: editFrequencyCount.value,
+    frequencyPeriod: editFrequencyPeriod.value,
+    sharedwith: editSharedWith.value,
+  });
   const idx = habits.value.findIndex(h => h.id === editingHabit.value?.id);
   if (idx >= 0) habits.value[idx] = updated;
   showEditModal.value = false;

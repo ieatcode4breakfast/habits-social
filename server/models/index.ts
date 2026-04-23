@@ -12,6 +12,8 @@ const HabitSchema = new mongoose.Schema({
   ownerid: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   title: { type: String, required: true },
   description: { type: String, default: '' },
+  frequencyCount: { type: Number, default: 1 },
+  frequencyPeriod: { type: String, enum: ['daily', 'weekly', 'monthly'], default: 'daily' },
   color: { type: String, default: '#6366f1' },
   sharedwith: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
   createdAt: { type: Date, default: Date.now },
