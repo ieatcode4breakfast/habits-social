@@ -103,12 +103,12 @@
         leave-from-class="opacity-100 scale-100"
         leave-to-class="opacity-0 scale-95"
       >
-        <div v-if="showModal && selectedHabit" class="fixed inset-0 z-[100] flex items-center justify-center sm:p-4 p-0">
+        <div v-if="showModal && selectedHabit" class="fixed inset-0 z-[100] flex items-center justify-center sm:p-4 p-0 modal-parent-adaptive">
           <!-- Backdrop -->
           <div class="absolute inset-0 bg-black/80 backdrop-blur-md" @click="showModal = false"></div>
           
           <!-- Modal Content -->
-          <div class="relative w-full h-full sm:h-auto sm:max-w-md max-w-none bg-zinc-925 border-x-0 sm:border border-zinc-800 sm:rounded-3xl rounded-none shadow-2xl p-8 overflow-y-auto">
+          <div class="relative w-full h-full sm:h-auto sm:max-w-md max-w-none bg-zinc-925 border-x-0 sm:border border-zinc-800 sm:rounded-3xl rounded-none shadow-2xl p-8 overflow-y-auto modal-adaptive-height">
             <div class="flex items-start justify-between mb-2">
               <div class="flex-1 min-w-0">
                 <div class="flex items-center gap-2 mb-1">
@@ -147,7 +147,7 @@
               </button>
             </div>
             
-            <p v-if="selectedHabit.description" class="text-zinc-300 text-sm mt-4 mb-6 leading-relaxed">
+            <p v-if="selectedHabit.description" class="text-zinc-400 text-sm mb-4 italic break-words whitespace-pre-wrap">
               {{ selectedHabit.description }}
             </p>
             <div v-else class="mb-6"></div>
@@ -202,7 +202,7 @@
               </div>
             </div>
             
-            <div class="mt-8">
+            <div class="mt-5">
               <button
                 @click="showModal = false"
                 class="w-full py-3 px-4 bg-white text-black font-semibold rounded-xl hover:bg-zinc-200 transition-all cursor-pointer shadow-sm"
@@ -354,4 +354,23 @@ const isCompleted = (habitId: string, day: Date) => {
   const dateStr = format(day, 'yyyy-MM-dd');
   return logs.value.some(l => l.habitid === habitId && l.date === dateStr && l.status === 'completed');
 };
+onUnmounted(() => {
+  if (typeof document !== 'undefined') {
+    document.body.classList.remove('overflow-hidden');
+  }
+});
+
+// ── Scroll Lock ──────────────────────────────────────────────────────────────
+watch(
+  () => showModal.value,
+  (isOpen) => {
+    if (typeof document === 'undefined') return;
+    if (isOpen) {
+      document.body.classList.add('overflow-hidden');
+    } else {
+      document.body.classList.remove('overflow-hidden');
+    }
+  }
+);
+// ─────────────────────────────────────────────────────────────────────────────
 </script>

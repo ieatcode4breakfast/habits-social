@@ -132,12 +132,12 @@
         leave-from-class="opacity-100 scale-100"
         leave-to-class="opacity-0 scale-95"
       >
-        <div v-if="showModal" class="fixed inset-0 z-[100] flex items-center justify-center sm:p-4 p-0">
+        <div v-if="showModal" class="fixed inset-0 z-[100] flex items-center justify-center sm:p-4 p-0 modal-parent-adaptive">
           <!-- Backdrop -->
           <div class="absolute inset-0 bg-black/80 backdrop-blur-md" @click="showModal = false"></div>
           
           <!-- Modal Content -->
-          <div class="relative w-full h-full sm:h-auto sm:max-w-md max-w-none bg-zinc-925 border-x-0 sm:border border-zinc-800 sm:rounded-3xl rounded-none shadow-2xl p-8 overflow-y-auto">
+          <div class="relative w-full h-full sm:h-auto sm:max-w-md max-w-none bg-zinc-925 border-x-0 sm:border border-zinc-800 sm:rounded-3xl rounded-none shadow-2xl p-8 overflow-y-auto modal-adaptive-height">
             <h2 class="text-2xl font-bold text-white mb-6">New Habit</h2>
             
             <form @submit.prevent="addHabit" class="space-y-6">
@@ -270,12 +270,12 @@
         leave-from-class="opacity-100 scale-100"
         leave-to-class="opacity-0 scale-95"
       >
-        <div v-if="showEditModal" class="fixed inset-0 z-[100] flex items-center justify-center sm:p-4 p-0">
+        <div v-if="showEditModal" class="fixed inset-0 z-[100] flex items-center justify-center sm:p-4 p-0 modal-parent-adaptive">
           <!-- Backdrop -->
           <div class="absolute inset-0 bg-black/80 backdrop-blur-md" @click="showEditModal = false"></div>
           
           <!-- Modal Content -->
-          <div class="relative w-full h-full sm:h-auto sm:max-w-lg max-w-none bg-zinc-925 border-x-0 sm:border border-zinc-800 sm:rounded-3xl rounded-none shadow-2xl p-8 overflow-y-auto">
+          <div class="relative w-full h-full sm:h-auto sm:max-w-lg max-w-none bg-zinc-925 border-x-0 sm:border border-zinc-800 sm:rounded-3xl rounded-none shadow-2xl p-8 overflow-y-auto modal-adaptive-height">
             <div class="flex items-start justify-between mb-6">
               <div class="flex-1 min-w-0">
                 <div class="flex items-center gap-2 mb-1">
@@ -1056,4 +1056,25 @@ const removeHabit = async (id: string) => {
   await api.deleteHabit(id);
   habits.value = habits.value.filter(h => h.id !== id);
 };
+
+// ── Scroll Lock ──────────────────────────────────────────────────────────────
+watch(
+  [showModal, showEditModal, showDeleteModal, showSharingConfirmModal, showReorderModal],
+  (newVal) => {
+    if (typeof document === 'undefined') return;
+    const isAnyOpen = newVal.some(v => v);
+    if (isAnyOpen) {
+      document.body.classList.add('overflow-hidden');
+    } else {
+      document.body.classList.remove('overflow-hidden');
+    }
+  }
+);
+
+onUnmounted(() => {
+  if (typeof document !== 'undefined') {
+    document.body.classList.remove('overflow-hidden');
+  }
+});
+// ─────────────────────────────────────────────────────────────────────────────
 </script>

@@ -37,14 +37,34 @@ body {
 }
 
 * {
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
   user-select: none;
 }
 
-p,
-h1,
-h2,
-h3,
-h4,
-span.selectable {
+input, textarea {
+  -webkit-user-select: text;
+  -moz-user-select: text;
+  -ms-user-select: text;
   user-select: text;
+}
+
+/* Adaptive Height Modals: Switch to full-page if height is too small */
+@media (max-height: 820px) {
+  .modal-adaptive-height {
+    height: 100% !important;
+    width: 100% !important;
+    max-width: none !important;
+    max-height: none !important;
+    border-radius: 0 !important;
+    border-left: none !important;
+    border-right: none !important;
+    border-top: none !important;
+    border-bottom: none !important;
+  }
+
+  .modal-parent-adaptive {
+    padding: 0 !important;
+  }
 }
