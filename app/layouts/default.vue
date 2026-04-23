@@ -1,6 +1,5 @@
 <template>
-  <div class="min-h-screen bg-slate-50 dark:bg-app-bg text-slate-900 dark:text-slate-100 flex flex-col font-sans transition-colors duration-300">
-    <!-- Header -->
+  <div class="min-h-screen bg-slate-50 dark:bg-app-bg text-slate-900 dark:text-slate-100 flex flex-col transition-colors duration-300">
     <header class="sticky top-0 z-50 px-4 py-3 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800">
       <div class="max-w-5xl mx-auto flex items-center justify-between">
         <NuxtLink to="/" class="flex items-center gap-2 group">
@@ -12,19 +11,13 @@
           </span>
         </NuxtLink>
 
-        <div v-if="user" class="flex items-center gap-4">
+        <div v-if="user" class="flex items-center gap-2">
           <nav class="hidden md:flex items-center gap-1">
-            <NuxtLink to="/" class="nav-link" active-class="nav-link-active">
-              Dashboard
-            </NuxtLink>
-            <NuxtLink to="/social" class="nav-link" active-class="nav-link-active">
-              Social
-            </NuxtLink>
+            <NuxtLink to="/" class="nav-link" :class="{ 'nav-link-active': $route.path === '/' }">Dashboard</NuxtLink>
+            <NuxtLink to="/social" class="nav-link" :class="{ 'nav-link-active': $route.path === '/social' }">Social</NuxtLink>
           </nav>
-          
-          <div class="w-px h-6 bg-slate-200 dark:bg-slate-800 hidden md:block"></div>
-          
-          <button @click="logout" class="px-4 py-2 text-sm font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800 rounded-lg transition-colors flex items-center gap-2">
+          <div class="w-px h-6 bg-slate-200 dark:bg-slate-800 hidden md:block mx-1"></div>
+          <button @click="logout" class="px-3 py-2 text-sm font-medium text-slate-500 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800 rounded-lg transition-colors flex items-center gap-2 cursor-pointer">
             <LogOut class="w-4 h-4" />
             <span class="hidden sm:inline">Logout</span>
           </button>
@@ -32,7 +25,6 @@
       </div>
     </header>
 
-    <!-- Main Content -->
     <main class="flex-1 w-full max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12">
       <slot />
     </main>
@@ -41,29 +33,33 @@
 
 <script setup lang="ts">
 import { Activity, LogOut } from 'lucide-vue-next';
-import { useAuth } from '~/composables/useAuth';
 
 const { user, fetchUser } = useAuth();
 const router = useRouter();
+const route = useRoute();
 
 const logout = async () => {
-  try {
-    await $fetch('/api/auth/logout', { method: 'POST' });
-    await fetchUser();
-    router.push('/login');
-  } catch (e) {
-    console.error(e);
-  }
+  await $fetch('/api/auth/logout', { method: 'POST' });
+  await fetchUser();
+  router.push('/login');
 };
 </script>
 
 <style scoped>
-@reference "tailwindcss";
-
 .nav-link {
-  @apply px-3 py-2 text-sm font-medium rounded-lg text-slate-500 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800/50 transition-colors;
+  padding: 0.375rem 0.75rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  border-radius: 0.5rem;
+  color: rgb(100 116 139);
+  transition: color 150ms, background-color 150ms;
 }
-.nav-link-active {
-  @apply text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-500/10;
+.nav-link:hover {
+  color: rgb(15 23 42);
+  background-color: rgb(241 245 249);
 }
+:where(html.dark) .nav-link { color: rgb(148 163 184); }
+:where(html.dark) .nav-link:hover { color: white; background-color: rgba(30, 41, 59, 0.5); }
+.nav-link-active { color: rgb(79 70 229); background-color: rgb(238 242 255); }
+:where(html.dark) .nav-link-active { color: rgb(129 140 248); background-color: rgba(99, 102, 241, 0.1); }
 </style>

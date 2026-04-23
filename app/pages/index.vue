@@ -1,208 +1,131 @@
 <template>
   <div class="space-y-8">
-    <div class="flex items-center justify-between mb-8">
-      <div v-motion-slide-visible-once-left>
-        <h1 class="text-3xl font-bold tracking-tight text-slate-900 dark:text-slate-100 mb-2 flex items-center gap-2">
-          Hello, {{ userName }} <span class="animate-bounce origin-bottom inline-block">👋</span>
-        </h1>
-        <p class="text-lg text-slate-500 dark:text-slate-400 font-normal">Track your daily progress</p>
-      </div>
-      <div v-motion-slide-visible-once-right>
-        <button
-          @click="openCreateModal"
-          class="flex items-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl transition-all font-medium shadow-md shadow-indigo-500/20 hover:shadow-indigo-500/40 hover:-translate-y-0.5 cursor-pointer"
-        >
-          <Plus class="w-5 h-5" />
-          <span class="hidden md:inline">Add Habit</span>
+    <!-- Header -->
+    <div v-motion-slide-visible-once-left>
+      <h1 class="text-3xl font-bold tracking-tight text-slate-900 dark:text-slate-100 mb-1">Dashboard</h1>
+      <p class="text-slate-500 dark:text-slate-400">Track your habits this week</p>
+    </div>
+
+    <!-- Add Habit -->
+    <div v-motion-fade class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm">
+      <h2 class="text-sm font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-4">New Habit</h2>
+      <form @submit.prevent="addHabit" class="flex gap-3 flex-wrap">
+        <input
+          v-model="newTitle"
+          type="text"
+          placeholder="Habit name..."
+          required
+          class="flex-1 min-w-[200px] px-4 py-2.5 bg-slate-50 dark:bg-app-bg border border-slate-200 dark:border-slate-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900 dark:text-white placeholder-slate-400 text-sm transition-all"
+        />
+        <input v-model="newColor" type="color" class="w-10 h-10 rounded-lg border border-slate-200 dark:border-slate-700 cursor-pointer bg-slate-50 dark:bg-slate-800" />
+        <button type="submit" class="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-xl transition-colors shadow-sm shadow-indigo-500/20 cursor-pointer text-sm flex items-center gap-2">
+          <Plus class="w-4 h-4" /> Add
         </button>
-      </div>
+      </form>
     </div>
 
-    <div v-if="loading" class="flex flex-col items-center justify-center p-12 space-y-4">
-      <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
-    </div>
-
-    <div v-else-if="error" class="p-8 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900/50 rounded-2xl text-center space-y-4">
-      <div class="text-red-500">{{ error }}</div>
-      <button @click="loadData" class="px-4 py-2 bg-red-600 text-white rounded-lg">Retry</button>
-    </div>
-
-    <div v-else v-motion-fade class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl overflow-x-auto shadow-sm">
+    <!-- Habit Grid -->
+    <div v-motion-fade class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl overflow-x-auto shadow-sm">
       <table class="w-full text-left border-collapse min-w-max">
         <thead>
           <tr>
             <th class="p-5 border-b border-slate-200 dark:border-slate-800 w-full min-w-[200px]">
-              <div class="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">My Habits</div>
+              <span class="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Habit</span>
             </th>
-            <th v-for="(day, i) in days" :key="i" class="p-4 border-b border-slate-200 dark:border-slate-800 text-center min-w-[60px]">
+            <th v-for="(day, i) in days" :key="i" class="p-4 border-b border-slate-200 dark:border-slate-800 text-center min-w-[52px]">
               <div class="text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400">{{ format(day, 'E') }}</div>
-              <div class="mt-1 text-slate-900 dark:text-slate-100 font-semibold">{{ format(day, 'd') }}</div>
+              <div class="mt-0.5 text-sm font-semibold" :class="isToday(day) ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-900 dark:text-slate-100'">
+                {{ format(day, 'd') }}
+              </div>
             </th>
+            <th class="p-4 border-b border-slate-200 dark:border-slate-800 min-w-[60px]"></th>
           </tr>
         </thead>
         <tbody class="divide-y divide-slate-100 dark:divide-slate-800/50">
           <tr v-if="habits.length === 0">
-            <td colspan="8" class="p-8 text-center text-slate-500 dark:text-slate-400 italic">
-              No habits yet. Click "Add Habit" to get started!
-            </td>
+            <td colspan="9" class="p-10 text-center text-slate-400 dark:text-slate-500 italic text-sm">No habits yet. Add one above!</td>
           </tr>
           <tr v-for="habit in habits" :key="habit.id" class="group hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
             <td class="p-4">
-              <div class="flex items-center gap-3">
-                <div class="w-3.5 h-3.5 rounded-full shadow-sm flex-shrink-0" :style="{ backgroundColor: habit.color }" />
-                <button @click="openEditModal(habit)" class="font-medium text-slate-900 dark:text-slate-100 flex items-center gap-2 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors cursor-pointer">
-                  {{ habit.title }}
-                  <Settings2 class="w-4 h-4 text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity" />
-                </button>
+              <div class="flex items-center gap-3 font-medium text-slate-900 dark:text-slate-100">
+                <div class="w-3 h-3 rounded-full flex-shrink-0 shadow-sm" :style="{ backgroundColor: habit.color }" />
+                {{ habit.title }}
               </div>
             </td>
             <td v-for="(day, i) in days" :key="i" class="p-2 text-center">
               <button
-                @click="toggleDay(habit, day)"
-                class="w-10 h-10 rounded-xl transition-all mx-auto flex items-center justify-center border-2 relative overflow-hidden"
-                :class="isCompleted(habit.id, day) ? 'border-transparent text-white shadow-sm' : 'border-slate-200 dark:border-slate-700 text-transparent hover:bg-slate-100 dark:hover:bg-slate-700 cursor-pointer'"
-                :style="isCompleted(habit.id, day) ? { backgroundColor: '#10B981', borderColor: '#10B981', color: 'white' } : {}"
+                @click="toggleLog(habit, day)"
+                class="w-10 h-10 rounded-xl mx-auto flex items-center justify-center transition-all border-2 cursor-pointer"
+                :class="isCompleted(habit.id, day)
+                  ? 'border-emerald-500 bg-emerald-500 shadow-sm shadow-emerald-500/30'
+                  : 'border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 hover:border-indigo-400'"
               >
-                <!-- the checkmark icon manually generated because Lucide Check needs to be defined -->
-                <svg v-if="isCompleted(habit.id, day)" class="w-5 h-5 absolute inset-0 m-auto animate-in zoom-in" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
-                <div v-else class="w-full h-full font-bold opacity-0 group-hover:opacity-50 text-slate-400 flex items-center justify-center">✓</div>
+                <svg v-if="isCompleted(habit.id, day)" class="w-5 h-5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
+              </button>
+            </td>
+            <td class="p-2 text-center">
+              <button @click="removeHabit(habit.id)" class="opacity-0 group-hover:opacity-100 p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-all cursor-pointer">
+                <Trash2 class="w-4 h-4" />
               </button>
             </td>
           </tr>
         </tbody>
       </table>
     </div>
-
-    <EditHabitModal
-      :is-open="isModalOpen"
-      :habit="editingHabit"
-      @close="isModalOpen = false"
-      @save="handleSave"
-      @delete="handleDelete"
-    />
   </div>
 </template>
 
 <script setup lang="ts">
-import { Plus, Settings2 } from 'lucide-vue-next';
-import { format, subDays } from 'date-fns';
+import { Plus, Trash2 } from 'lucide-vue-next';
+import { format, subDays, isToday } from 'date-fns';
 import type { Habit, HabitLog } from '~/composables/useHabitsApi';
 
-definePageMeta({ middleware: 'auth' })
+definePageMeta({ middleware: 'auth' });
 
-const user = useSupabaseUser()
-const api = useHabitsApi()
+const api = useHabitsApi();
 
-const habits = ref<Habit[]>([])
-const logs = ref<HabitLog[]>([])
-const loading = ref(true)
-const error = ref<string | null>(null)
+const habits = ref<Habit[]>([]);
+const logs = ref<HabitLog[]>([]);
+const newTitle = ref('');
+const newColor = ref('#6366f1');
 
-const isModalOpen = ref(false)
-const editingHabit = ref<Partial<Habit>>({})
+const today = new Date();
+const days = Array.from({ length: 7 }, (_, i) => subDays(today, 6 - i));
+const startDate = format(days[0]!, 'yyyy-MM-dd');
+const endDate = format(today, 'yyyy-MM-dd');
 
-const userName = computed(() => {
-  return user.value?.user_metadata?.full_name?.split(' ')[0] 
-      || user.value?.email?.split('@')[0] 
-      || 'Friend'
-})
+const load = async () => {
+  [habits.value, logs.value] = await Promise.all([api.getHabits(), api.getLogs(startDate, endDate)]);
+};
 
-const today = new Date()
-const days = Array.from({ length: 7 }).map((_, i) => subDays(today, 6 - i))
-
-const loadData = async () => {
-  if (!user.value) return;
-  loading.value = true;
-  error.value = null;
-  try {
-    const [h, l] = await Promise.all([
-      api.getMyHabits(user.value.id),
-      api.getHabitLogs(user.value.id)
-    ])
-    habits.value = h
-    logs.value = l
-  } catch (e: any) {
-    error.value = e.message
-  } finally {
-    loading.value = false
-  }
-}
-
-onMounted(loadData)
+onMounted(load);
 
 const isCompleted = (habitId: string, day: Date) => {
-  const dateStr = format(day, "yyyy-MM-dd");
-  return logs.value.some(l => l.habitid === habitId && l.date === dateStr && l.status === "completed");
-}
+  const dateStr = format(day, 'yyyy-MM-dd');
+  return logs.value.some(l => l.habitid === habitId && l.date === dateStr && l.status === 'completed');
+};
 
-const toggleDay = async (habit: Habit, day: Date) => {
-  if (!user.value) return;
-  const dateStr = format(day, "yyyy-MM-dd");
-  const log = logs.value.find(l => l.habitid === habit.id && l.date === dateStr);
-  
-  if (log && log.status === "completed") {
-    logs.value = logs.value.filter(l => l.id !== log.id);
-  } else {
-    const tempLog: HabitLog = { 
-      id: "temp_" + Date.now(), 
-      habitid: habit.id, 
-      ownerid: user.value.id, 
-      date: dateStr, 
-      status: "completed", 
-      sharedwith: habit.sharedwith 
-    };
-    logs.value = [...logs.value, tempLog];
-  }
+const toggleLog = async (habit: Habit, day: Date) => {
+  const dateStr = format(day, 'yyyy-MM-dd');
+  const completed = isCompleted(habit.id, day);
+  const log = await api.upsertLog({ habitid: habit.id, date: dateStr, status: completed ? 'skipped' : 'completed' });
+  const idx = logs.value.findIndex(l => l.habitid === habit.id && l.date === dateStr);
+  if (idx >= 0) logs.value[idx] = log;
+  else logs.value.push(log);
+};
 
-  try {
-    await api.toggleHabitLog(user.value.id, habit, dateStr, log?.status);
-    await loadData();
-  } catch (e) {
-    console.error(e)
-    await loadData();
-  }
-}
+const addHabit = async () => {
+  if (!newTitle.value.trim()) return;
+  const habit = await api.createHabit({ title: newTitle.value.trim(), color: newColor.value });
+  habits.value.push(habit);
+  newTitle.value = '';
+  newColor.value = '#6366f1';
+};
 
-const openCreateModal = () => {
-  editingHabit.value = {
-    title: "New Habit",
-    color: "#818cf8",
-    sharedwith: []
-  }
-  isModalOpen.value = true
-}
-
-const openEditModal = (habit: Habit) => {
-  editingHabit.value = { ...habit }
-  isModalOpen.value = true
-}
-
-const handleSave = async (habitData: Partial<Habit>) => {
-  if (!user.value) return;
-  isModalOpen.value = false;
-  loading.value = true;
-  try {
-    if (habitData.id) {
-      await api.updateHabit(habitData.id, habitData)
-    } else {
-      await api.createHabit(user.value.id, habitData)
-    }
-  } catch (e) {
-    console.error(e)
-  } finally {
-    await loadData()
-  }
-}
-
-const handleDelete = async (id: string) => {
-  isModalOpen.value = false;
-  loading.value = true;
-  try {
-    await api.deleteHabit(id)
-  } catch (e) {
-    console.error(e)
-  } finally {
-    await loadData()
-  }
-}
+const removeHabit = async (id: string) => {
+  await api.deleteHabit(id);
+  habits.value = habits.value.filter(h => h.id !== id);
+};
 </script>

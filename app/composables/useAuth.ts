@@ -1,24 +1,11 @@
-import { useState } from '#app';
-
-export interface UserContext {
-  id: string;
-  email: string;
-  displayname?: string;
-  photourl?: string;
-}
-
 export const useAuth = () => {
-  const user = useState<UserContext | null>('auth-user', () => null);
+  const user = useState<{ id: string; email: string; displayname: string; photourl?: string } | null>('auth-user', () => null);
 
   const fetchUser = async () => {
     try {
-      const { data } = await useFetch<{ user: UserContext | null }>('/api/auth/me');
-      if (data.value && data.value.user) {
-        user.value = data.value.user;
-      } else {
-        user.value = null;
-      }
-    } catch (e) {
+      const data = await $fetch<{ user: any }>('/api/auth/me');
+      user.value = data.user;
+    } catch {
       user.value = null;
     }
   };

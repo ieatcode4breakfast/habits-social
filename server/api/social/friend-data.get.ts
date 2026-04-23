@@ -5,21 +5,14 @@ import { requireAuth } from '../../utils/auth';
 export default defineEventHandler(async (event) => {
   await connectDB();
   const userId = requireAuth(event);
-  const query = getQuery(event);
-  const friendId = query.friendId ? String(query.friendId) : null;
-  const type = query.type ? String(query.type) : 'habits';
+  const { friendId } = getQuery(event);
 
-  if (!friendId) {
-    return [];
-  }
+  const habits = await Habit.find({ ownerid: String(friendId), sharedwith: userId }).lean();
+  const habitIds = habits.map((h: any) => h._id);
+  const logs = await HabitLog.find({ ownerid: String(friendId), habitid: { $in: habitIds }, sharedwith: userId }).lean();
 
-  // Get habits/logs where owner is friendId and sharedwith contains userId
-  if (type === 'habits') {
-    const habits = await Habit.find({ ownerid: friendId, sharedwith: userId }).lean();
-    return habits.map((h: any) => ({ ...h, id: h._id.toString() }));
-  } else {
-    // habit logs
-    const logs = await HabitLog.find({ ownerid: friendId, sharedwith: userId }).lean();
-    return logs.map((l: any) => ({ ...l, id: l._id.toString() }));
-  }
+  return {
+    habits: habits.map((h: any) => ({ ...h, id: h._id.toString() })),
+    logs: logs.map((l: any) => ({ ...l, id: l._id.toString(), habitid: l.habitid.toString() }))
+  };
 });

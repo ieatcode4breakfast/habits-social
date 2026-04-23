@@ -1,5 +1,5 @@
 <template>
-  <div class="h-full antialiased font-sans">
+  <div class="min-h-screen antialiased font-sans">
     <NuxtRouteAnnouncer />
     <NuxtLayout>
       <NuxtPage />
@@ -11,7 +11,3 @@
 const { fetchUser } = useAuth();
 await callOnce(fetchUser);
 </script>
-
-<style>
-/* Using global css instead */
-</style>

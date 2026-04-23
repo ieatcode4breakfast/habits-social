@@ -13,13 +13,13 @@ export default defineEventHandler(async (event) => {
 
   if (event.method === 'POST') {
     const body = await readBody(event);
-    const newHabit = await Habit.create({
+    const habit = await Habit.create({
       ownerid: userId,
-      title: body.title || 'New Habit',
+      title: body.title,
       description: body.description || '',
-      color: body.color || '#3b82f6',
+      color: body.color || '#6366f1',
       sharedwith: body.sharedwith || []
     });
-    return { ...newHabit.toObject(), id: newHabit._id.toString() };
+    return { ...habit.toObject(), id: habit._id.toString() };
   }
 });

@@ -7,43 +7,33 @@ export default defineEventHandler(async (event) => {
   const userId = requireAuth(event);
 
   if (event.method === 'GET') {
-    // Get all friendships for user
     const friendships = await Friendship.find({ participants: userId }).lean();
-    
-    // We also need to get the profiles for these participants
-    const participantIds = new Set<string>();
-    friendships.forEach((f: any) => {
-      f.participants.forEach((p: any) => participantIds.add(p.toString()));
-    });
-    participantIds.delete(userId);
-
-    const users = await User.find({ _id: { $in: Array.from(participantIds) } }).lean();
-    const profiles = users.map((u: any) => ({ id: u._id.toString(), email: u.email, displayname: u.displayname, photourl: u.photourl }));
-
+    const friendIds = [...new Set(
+      friendships.flatMap((f: any) => f.participants.map((p: any) => p.toString()).filter((id: string) => id !== userId))
+    )];
+    const profiles = await User.find({ _id: { $in: friendIds } }).select('-passwordHash').lean();
     return {
-      friendships: friendships.map((f: any) => ({ ...f, id: f._id.toString() })),
-      profiles
+      friendships: friendships.map((f: any) => ({
+        ...f,
+        id: f._id.toString(),
+        participants: f.participants.map((p: any) => p.toString()),
+        initiatorid: f.initiatorid.toString(),
+        receiverid: f.receiverid.toString()
+      })),
+      profiles: profiles.map((p: any) => ({ ...p, id: p._id.toString() }))
     };
   }
 
   if (event.method === 'POST') {
-    // Send a friend request
-    const body = await readBody(event);
-    const { targetUserId } = body;
-
-    if (!targetUserId) throw createError({ statusCode: 400 });
-
-    const participants = [userId, targetUserId].sort();
-    
-    const existing = await Friendship.findOne({ participants: { $all: participants } });
-    if (existing) return { success: true };
-
-    await Friendship.create({
-      participants,
+    const { targetUserId } = await readBody(event);
+    const existing = await Friendship.findOne({ participants: { $all: [userId, targetUserId] } });
+    if (existing) throw createError({ statusCode: 400, statusMessage: 'Friendship already exists' });
+    const friendship = await Friendship.create({
+      participants: [userId, targetUserId],
       initiatorid: userId,
       receiverid: targetUserId,
       status: 'pending'
     });
-    return { success: true };
+    return { ...friendship.toObject(), id: friendship._id.toString() };
   }
 });

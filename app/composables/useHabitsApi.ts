@@ -2,7 +2,7 @@ export interface Habit {
   id: string;
   ownerid: string;
   title: string;
-  description?: string;
+  description: string;
   color: string;
   sharedwith: string[];
 }
@@ -12,74 +12,30 @@ export interface HabitLog {
   habitid: string;
   ownerid: string;
   date: string;
-  status: "completed" | "skipped" | "failed";
+  status: 'completed' | 'skipped' | 'failed';
   sharedwith: string[];
 }
 
 export const useHabitsApi = () => {
-  const getMyHabits = async (userId: string) => {
-    return await $fetch<Habit[]>("/api/habits");
-  };
+  const getHabits = () => $fetch<Habit[]>('/api/habits');
 
-  const createHabit = async (userId: string, data: Partial<Habit>) => {
-    const newHabit = await $fetch<Habit>("/api/habits", {
-      method: "POST",
-      body: data
-    });
-    return newHabit.id;
-  };
+  const createHabit = (data: Partial<Habit>) =>
+    $fetch<Habit>('/api/habits', { method: 'POST', body: data });
 
-  const updateHabit = async (habitId: string, data: Partial<Habit>) => {
-    await $fetch(`/api/habits/${habitId}`, {
-      method: "PUT",
-      body: data
-    });
-  };
+  const updateHabit = (id: string, data: Partial<Habit>) =>
+    $fetch<Habit>(`/api/habits/${id}`, { method: 'PUT', body: data });
 
-  const deleteHabit = async (habitId: string) => {
-    await $fetch(`/api/habits/${habitId}`, {
-      method: "DELETE"
-    });
-  };
+  const deleteHabit = (id: string) =>
+    $fetch(`/api/habits/${id}`, { method: 'DELETE' });
 
-  const getHabitLogs = async (userId: string) => {
-    return await $fetch<HabitLog[]>("/api/habitlogs", {
-      query: { ownerId: userId }
-    });
-  };
+  const getLogs = (startDate: string, endDate: string) =>
+    $fetch<HabitLog[]>('/api/habitlogs', { query: { startDate, endDate } });
 
-  const toggleHabitLog = async (userId: string, habit: Habit, date: string, currentStatus?: string) => {
-    await $fetch("/api/habitlogs", {
-      method: "POST",
-      body: {
-        habitId: habit.id,
-        date,
-        currentStatus,
-        sharedwith: habit.sharedwith
-      }
-    });
-  };
+  const upsertLog = (data: { habitid: string; date: string; status: string; sharedwith?: string[] }) =>
+    $fetch<HabitLog>('/api/habitlogs', { method: 'POST', body: data });
 
-  const getFriendHabits = async (friendId: string, currentUserId: string) => {
-    return await $fetch<Habit[]>("/api/social/friend-data", {
-      query: { friendId, type: 'habits' }
-    });
-  };
+  const getFriendHabits = (friendId: string) =>
+    $fetch<{ habits: Habit[]; logs: HabitLog[] }>('/api/social/friend-data', { query: { friendId } });
 
-  const getFriendHabitLogs = async (friendId: string, currentUserId: string) => {
-    return await $fetch<HabitLog[]>("/api/social/friend-data", {
-      query: { friendId, type: 'logs' }
-    });
-  };
-
-  return {
-    getMyHabits,
-    createHabit,
-    updateHabit,
-    deleteHabit,
-    getHabitLogs,
-    toggleHabitLog,
-    getFriendHabits,
-    getFriendHabitLogs
-  };
+  return { getHabits, createHabit, updateHabit, deleteHabit, getLogs, upsertLog, getFriendHabits };
 };

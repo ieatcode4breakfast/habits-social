@@ -5,42 +5,20 @@ import { generateToken } from '../../utils/auth';
 
 export default defineEventHandler(async (event) => {
   await connectDB();
-  const body = await readBody(event);
-  const { email, password, displayname } = body;
+  const { email, password } = await readBody(event);
 
-  if (!email || !password) {
+  if (!email || !password)
     throw createError({ statusCode: 400, statusMessage: 'Email and password are required' });
-  }
 
-  const existingUser = await (User as any).findOne({ email });
-  if (existingUser) {
-    throw createError({ statusCode: 400, statusMessage: 'User already exists' });
-  }
+  const existing = await User.findOne({ email });
+  if (existing) throw createError({ statusCode: 400, statusMessage: 'An account with this email already exists' });
 
-  const salt = await bcrypt.genSalt(10);
-  const passwordHash = await bcrypt.hash(password, salt);
-
-  const name = displayname || email.split('@')[0];
-
-  const newUser = await User.create({
-    email,
-    passwordHash,
-    displayname: name,
-  });
+  const passwordHash = await bcrypt.hash(password, 10);
+  const displayname = email.split('@')[0];
+  const newUser = await User.create({ email, passwordHash, displayname });
 
   const token = generateToken(newUser._id.toString());
-  setCookie(event, 'auth_token', token, {
-    httpOnly: true,
-    maxAge: 60 * 60 * 24 * 7, // 7 days
-    path: '/',
-    sameSite: 'strict'
-  });
+  setCookie(event, 'auth_token', token, { httpOnly: true, maxAge: 60 * 60 * 24 * 7, path: '/', sameSite: 'strict' });
 
-  return {
-    user: {
-      id: newUser._id,
-      email: newUser.email,
-      displayname: newUser.displayname,
-    }
-  };
+  return { user: { id: newUser._id, email: newUser.email, displayname: newUser.displayname } };
 });

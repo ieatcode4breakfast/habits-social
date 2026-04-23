@@ -1,112 +1,132 @@
 <template>
-  <div class="min-h-screen flex flex-col items-center justify-center py-12 px-4 sm:px-6 lg:px-8 relative bg-slate-50 dark:bg-app-bg transition-colors duration-500 overflow-hidden">
-
-    <div class="w-full max-w-md bg-white/70 dark:bg-slate-900/70 backdrop-blur-md p-8 rounded-[2.5rem] shadow-2xl border border-white/20 dark:border-slate-800/50 relative z-10">
-      <div class="flex flex-col items-center mb-8 text-center">
-        <div class="w-16 h-16 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl flex items-center justify-center shadow-lg shadow-indigo-500/30 mb-6 group hover:scale-105 transition-transform duration-300">
-          <Activity class="w-8 h-8 text-white" />
+  <div class="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-app-bg px-4">
+    <div class="w-full max-w-md">
+      <!-- Logo -->
+      <div class="flex flex-col items-center mb-8">
+        <div class="w-14 h-14 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl flex items-center justify-center shadow-lg shadow-indigo-500/30 mb-4">
+          <Activity class="w-7 h-7 text-white" />
         </div>
-        <h2 class="text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white mb-2">Track Together</h2>
-        <p class="text-slate-500 dark:text-slate-400">Join friends and build lasting habits.</p>
+        <h1 class="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">Habits</h1>
+        <p class="text-slate-500 dark:text-slate-400 text-sm mt-1">Track together, grow together</p>
       </div>
 
-      <form @submit.prevent="handleLogin" class="space-y-4">
-        <div>
-          <label class="sr-only">Email address</label>
-          <input 
-            v-model="email"
-            type="email" 
-            required 
-            class="w-full px-4 py-3 bg-white dark:bg-app-bg border border-slate-200 dark:border-slate-800 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all outline-none text-slate-900 dark:text-white placeholder-slate-400"
-            placeholder="Email address"
+      <!-- Card -->
+      <div class="bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800 overflow-hidden">
+        <!-- Tabs -->
+        <div class="flex border-b border-slate-200 dark:border-slate-800">
+          <button
+            @click="tab = 'login'"
+            class="flex-1 py-4 text-sm font-semibold transition-colors cursor-pointer"
+            :class="tab === 'login'
+              ? 'text-indigo-600 dark:text-indigo-400 border-b-2 border-indigo-600 dark:border-indigo-400'
+              : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'"
           >
-        </div>
-        <div>
-          <label class="sr-only">Password</label>
-          <input 
-            v-model="password"
-            type="password" 
-            required 
-            class="w-full px-4 py-3 bg-white dark:bg-app-bg border border-slate-200 dark:border-slate-800 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all outline-none text-slate-900 dark:text-white placeholder-slate-400"
-            placeholder="Password"
+            Log In
+          </button>
+          <button
+            @click="tab = 'signup'"
+            class="flex-1 py-4 text-sm font-semibold transition-colors cursor-pointer"
+            :class="tab === 'signup'
+              ? 'text-indigo-600 dark:text-indigo-400 border-b-2 border-indigo-600 dark:border-indigo-400'
+              : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'"
           >
+            Sign Up
+          </button>
         </div>
-        <button 
-          type="submit" 
-          :disabled="loading"
-          class="w-full flex items-center justify-center py-3 px-4 border border-transparent rounded-xl shadow-[0_0_20px_rgba(99,102,241,0.3)] hover:shadow-[0_0_25px_rgba(99,102,241,0.5)] text-sm font-semibold text-white bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-300 disabled:opacity-50 cursor-pointer"
-        >
-          {{ loading ? 'Signing in...' : 'Sign In' }}
-        </button>
-      </form>
-      
-      <p v-if="message" class="mt-4 text-center text-sm text-indigo-600 dark:text-indigo-400 font-medium bg-indigo-50 dark:bg-indigo-500/10 py-2 rounded-lg">
-        {{ message }}
-      </p>
+
+        <div class="p-8">
+          <h2 class="text-xl font-bold text-slate-900 dark:text-white mb-1">
+            {{ tab === 'login' ? 'Log In' : 'Create Account' }}
+          </h2>
+          <p class="text-sm text-slate-500 dark:text-slate-400 mb-6">
+            {{ tab === 'login' ? 'Enter your credentials to continue.' : 'Sign up to start tracking your habits.' }}
+          </p>
+
+          <form @submit.prevent="handleSubmit" class="space-y-4">
+            <!-- Email -->
+            <div class="relative">
+              <Mail class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+              <input
+                v-model="email"
+                type="email"
+                placeholder="Email"
+                required
+                class="w-full pl-10 pr-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all text-sm"
+              />
+            </div>
+
+            <!-- Password -->
+            <div class="relative">
+              <Lock class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+              <input
+                v-model="password"
+                :type="showPassword ? 'text' : 'password'"
+                placeholder="Password"
+                required
+                class="w-full pl-10 pr-12 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all text-sm"
+              />
+              <button type="button" @click="showPassword = !showPassword" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer">
+                <Eye v-if="!showPassword" class="w-4 h-4" />
+                <EyeOff v-else class="w-4 h-4" />
+              </button>
+            </div>
+
+            <!-- Error -->
+            <p v-if="error" class="text-sm text-red-500 dark:text-red-400 bg-red-50 dark:bg-red-500/10 px-3 py-2 rounded-lg">{{ error }}</p>
+
+            <!-- Actions -->
+            <div class="flex items-center gap-3 pt-2">
+              <button
+                type="button"
+                @click="email = ''; password = ''; error = ''"
+                class="flex-1 py-3 text-sm font-semibold text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-xl transition-colors cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                :disabled="loading"
+                class="flex-1 py-3 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 rounded-xl transition-colors cursor-pointer shadow-lg shadow-indigo-500/20"
+              >
+                {{ loading ? 'Please wait...' : (tab === 'login' ? 'Log In' : 'Sign Up') }}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
     </div>
   </div>
 </template>
 
-import { Activity } from 'lucide-vue-next';
-import { useAuth } from '~/composables/useAuth';
+<script setup lang="ts">
+import { Activity, Mail, Lock, Eye, EyeOff } from 'lucide-vue-next';
 
-definePageMeta({
-  layout: false
-});
+definePageMeta({ layout: false });
 
 const { user, fetchUser } = useAuth();
-const router = useRouter()
+const router = useRouter();
 
-const email = ref('')
-const password = ref('')
-const loading = ref(false)
-const message = ref('')
+watchEffect(() => { if (user.value) router.push('/'); });
 
-// If already logged in, redirect
-watchEffect(() => {
-  if (user.value) {
-    router.push('/')
-  }
-})
+const tab = ref<'login' | 'signup'>('login');
+const email = ref('');
+const password = ref('');
+const showPassword = ref(false);
+const loading = ref(false);
+const error = ref('');
 
-const handleLogin = async () => {
-  loading.value = true
-  message.value = ''
+const handleSubmit = async () => {
+  loading.value = true;
+  error.value = '';
   try {
-    // Attempt Login
-    try {
-      await $fetch('/api/auth/login', {
-        method: 'POST',
-        body: { email: email.value, password: password.value }
-      });
-      message.value = 'Success! Redirecting...'
-      await fetchUser()
-      await navigateTo('/')
-      return
-    } catch (signInErr: any) {
-      if (signInErr.statusMessage === 'Invalid credentials' || signInErr.statusCode === 400 || signInErr.response?.status === 400) {
-        // Assume user doesn't exist, try to register
-        try {
-          await $fetch('/api/auth/register', {
-            method: 'POST',
-            body: { email: email.value, password: password.value }
-          });
-          message.value = 'Account created! Logging you in...'
-          await fetchUser()
-          await new Promise(r => setTimeout(r, 800))
-          await navigateTo('/')
-          return
-        } catch (signUpErr: any) {
-           throw signUpErr;
-        }
-      } else {
-        throw signInErr;
-      }
-    }
-  } catch (error: any) {
-    message.value = error.data?.statusMessage || error.statusMessage || error.message || 'Error occurred during login.'
+    const endpoint = tab.value === 'login' ? '/api/auth/login' : '/api/auth/register';
+    await $fetch(endpoint, { method: 'POST', body: { email: email.value, password: password.value } });
+    await fetchUser();
+    await navigateTo('/');
+  } catch (e: any) {
+    error.value = e?.data?.statusMessage || e?.statusMessage || 'Something went wrong.';
   } finally {
-    loading.value = false
+    loading.value = false;
   }
-}
+};
 </script>
