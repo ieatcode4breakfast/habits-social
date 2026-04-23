@@ -17,26 +17,21 @@
         No habits yet. Add one above!
       </div>
       
-      <div v-for="habit in habits" :key="habit.id" class="relative p-4 pt-14 sm:pt-4 group transition-all flex flex-wrap items-center justify-between gap-x-8 gap-y-4">
+      <div 
+        v-for="habit in habits" :key="habit.id" 
+        @click="openEditModal(habit)"
+        class="relative p-4 pt-14 sm:pt-4 group transition-all flex flex-wrap items-center justify-between gap-x-8 gap-y-4 cursor-pointer hover:bg-zinc-800/40"
+      >
         <!-- Floating Streak Badge -->
         <div class="absolute top-3 left-0 sm:top-2 sm:-left-3 flex items-center gap-1.5 px-3 py-1 bg-black border border-violet-500/50 border-l-0 sm:border-l rounded-r-full rounded-l-none sm:rounded-full z-20">
           <Flame class="w-3.5 h-3.5 text-violet-500 fill-violet-500/80" />
           <span class="text-[10px] font-black text-violet-500 tracking-tight">x50,000 STREAK</span>
         </div>
 
-        <!-- Title Section -->
         <div class="flex items-start gap-3 min-w-[200px] flex-1">
-          <button 
-            @click="openEditModal(habit)"
-            class="text-left group/title flex items-start gap-2 cursor-pointer relative"
-          >
-            <h3 class="font-bold text-zinc-200 leading-tight break-all group-hover/title:text-white transition-colors">{{ habit.title }}</h3>
-            
-            <!-- Tooltip -->
-            <div class="absolute -top-8 left-0 px-2 py-1 bg-black backdrop-blur-md text-white text-[10px] font-bold uppercase tracking-widest rounded-lg opacity-0 group-hover/title:opacity-100 transition-all translate-y-1 group-hover/title:translate-y-0 pointer-events-none whitespace-nowrap border border-zinc-800 shadow-2xl z-10">
-              Edit habit
-            </div>
-          </button>
+          <div class="text-left flex items-start gap-2 relative">
+            <h3 class="font-bold text-zinc-200 leading-tight break-all group-hover:text-white transition-colors">{{ habit.title }}</h3>
+          </div>
         </div>
         
         <!-- Checkboxes & Actions Section -->
@@ -48,7 +43,7 @@
               </div>
               
               <button
-                @click="toggleLog(habit, day)"
+                @click.stop="toggleLog(habit, day)"
                 class="w-9 h-9 rounded-lg flex items-center justify-center transition-all border-2 cursor-pointer relative"
                 :class="[
                   getStatus(habit.id, day) === 'completed' ? 'bg-emerald-500 border-emerald-500 shadow-md shadow-emerald-500/20' :
@@ -441,7 +436,7 @@
 
 <script setup lang="ts">
 import { Plus, Trash2, Check, X, Minus, ChevronLeft, ChevronRight, User, ChevronUp, ChevronDown } from 'lucide-vue-next';
-import { format, subDays, isToday, startOfMonth, endOfMonth, eachDayOfInterval, addMonths, subMonths, isAfter, startOfDay, addDays } from 'date-fns';
+import { format, subDays, isToday, startOfMonth, endOfMonth, eachDayOfInterval, addMonths, subMonths, isAfter, startOfDay, addDays, isSameWeek } from 'date-fns';
 import type { Habit, HabitLog } from '~/composables/useHabitsApi';
 
 definePageMeta({ middleware: 'auth' });
@@ -456,7 +451,7 @@ const friends = ref<any[]>([]);
 const newTitle = ref('');
 const newDescription = ref('');
 const newFrequencyCount = ref(1);
-const newFrequencyPeriod = ref<'daily'|'weekly'|'monthly'>('daily');
+const newFrequencyPeriod = ref<'daily' | 'weekly' | 'monthly'>('daily');
 const newSharedWith = ref<string[]>([]);
 const showModal = ref(false);
 
@@ -518,10 +513,31 @@ const toggleLog = async (habit: Habit, day: Date) => {
   const currentStatus = getStatus(habit.id, day);
 
   let nextStatus: 'completed' | 'failed' | 'skipped' | null = null;
-  if (!currentStatus) nextStatus = 'completed';
-  else if (currentStatus === 'completed') nextStatus = 'failed';
-  else if (currentStatus === 'failed') nextStatus = 'skipped';
-  else if (currentStatus === 'skipped') nextStatus = null;
+  if (habit.frequencyPeriod === 'daily') {
+    if (!currentStatus) nextStatus = 'completed';
+    else if (currentStatus === 'completed') nextStatus = 'failed';
+    else nextStatus = null;
+  } else if (habit.frequencyPeriod === 'weekly') {
+    const maxSkips = 7 - (habit.frequencyCount || 1);
+    const usedSkips = logs.value.filter(l => 
+      l.habitid === habit.id && 
+      l.status === 'skipped' && 
+      isSameWeek(new Date(l.date), day, { weekStartsOn: 0 })
+    ).length;
+
+    if (!currentStatus) nextStatus = 'completed';
+    else if (currentStatus === 'completed') nextStatus = 'failed';
+    else if (currentStatus === 'failed') {
+      nextStatus = usedSkips < maxSkips ? 'skipped' : null;
+    } else {
+      nextStatus = null;
+    }
+  } else {
+    if (!currentStatus) nextStatus = 'completed';
+    else if (currentStatus === 'completed') nextStatus = 'failed';
+    else if (currentStatus === 'failed') nextStatus = 'skipped';
+    else if (currentStatus === 'skipped') nextStatus = null;
+  }
 
   if (nextStatus) {
     const log = await api.upsertLog({ habitid: habit.id, date: dateStr, status: nextStatus, sharedwith: habit.sharedwith });
@@ -549,6 +565,7 @@ const addHabit = async () => {
   newDescription.value = '';
   newFrequencyCount.value = 1;
   newFrequencyPeriod.value = 'daily';
+  newFrequencyCount.value = 1;
   newSharedWith.value = [];
   showModal.value = false;
 };
