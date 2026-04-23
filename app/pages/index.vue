@@ -157,12 +157,18 @@
               <!-- Description -->
               <div class="space-y-2">
                 <label class="text-xs font-bold uppercase tracking-widest text-zinc-500">Description</label>
-                <textarea
-                  v-model="newDescription"
-                  rows="2"
-                  placeholder=""
-                  class="w-full px-4 py-3 bg-black border border-zinc-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-zinc-600 text-white placeholder-zinc-700 transition-all resize-none"
-                ></textarea>
+                <div class="relative">
+                  <textarea
+                    v-model="newDescription"
+                    rows="5"
+                    maxlength="300"
+                    placeholder=""
+                    class="w-full px-4 py-3 bg-black border border-zinc-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-zinc-600 text-white placeholder-zinc-700 transition-all resize-none"
+                  ></textarea>
+                  <div class="absolute -bottom-5 right-1 text-[10px] font-bold text-zinc-600">
+                    {{ newDescription.length }}/300
+                  </div>
+                </div>
               </div>
 
               <!-- Frequency Group -->
@@ -299,9 +305,6 @@
                     />
                   </div>
                 </div>
-                <div class="text-sm font-medium text-zinc-400">
-                  <span class="capitalize">{{ editFrequencyPeriod }}</span><template v-if="editFrequencyPeriod !== 'daily'">, {{ editFrequencyCount }} {{ editFrequencyCount === 1 ? 'time' : 'times' }}</template>
-                </div>
               </div>
               <div class="flex items-center gap-2">
                 <button @click="showDeleteModal = true" class="p-2 text-zinc-500 hover:text-zinc-200 hover:bg-zinc-925 rounded-xl transition-all cursor-pointer">
@@ -325,12 +328,18 @@
               <!-- Description -->
               <div class="space-y-2">
                 <label class="text-xs font-bold uppercase tracking-widest text-zinc-500">Description</label>
-                <textarea
-                  v-model="editDescription"
-                  rows="2"
-                  placeholder=""
-                  class="w-full px-4 py-3 bg-black border border-zinc-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-zinc-600 text-white placeholder-zinc-700 transition-all resize-none"
-                ></textarea>
+                <div class="relative">
+                  <textarea
+                    v-model="editDescription"
+                    rows="5"
+                    maxlength="300"
+                    placeholder=""
+                    class="w-full px-4 py-3 bg-black border border-zinc-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-zinc-600 text-white placeholder-zinc-700 transition-all resize-none"
+                  ></textarea>
+                  <div class="absolute -bottom-5 right-1 text-[10px] font-bold text-zinc-600">
+                    {{ editDescription.length }}/300
+                  </div>
+                </div>
               </div>
 
               <!-- Frequency Group -->
@@ -787,13 +796,18 @@ const toggleLog = async (habit: Habit, day: Date) => {
   const dateStr = format(day, 'yyyy-MM-dd');
   const currentStatus = getStatus(habit.id, day);
 
+  // Use modal values if currently editing this habit to enforce rules immediately
+  const isEditingThis = showEditModal.value && editingHabit.value?.id === habit.id;
+  const frequencyPeriod = isEditingThis ? editFrequencyPeriod.value : habit.frequencyPeriod;
+  const frequencyCount = isEditingThis ? editFrequencyCount.value : (habit.frequencyCount || 1);
+
   let nextStatus: 'completed' | 'failed' | 'skipped' | null = null;
-  if (habit.frequencyPeriod === 'daily') {
+  if (frequencyPeriod === 'daily') {
     if (!currentStatus) nextStatus = 'completed';
     else if (currentStatus === 'completed') nextStatus = 'failed';
     else nextStatus = null;
-  } else if (habit.frequencyPeriod === 'weekly') {
-    const maxSkips = 7 - (habit.frequencyCount || 1);
+  } else if (frequencyPeriod === 'weekly') {
+    const maxSkips = 7 - (frequencyCount || 1);
     const usedSkips = logs.value.filter(l => 
       l.habitid === habit.id && 
       l.status === 'skipped' && 
@@ -807,8 +821,8 @@ const toggleLog = async (habit: Habit, day: Date) => {
     } else {
       nextStatus = null;
     }
-  } else if (habit.frequencyPeriod === 'monthly') {
-    const maxSkips = Math.max(0, getDaysInMonth(day) - (habit.frequencyCount || 1));
+  } else if (frequencyPeriod === 'monthly') {
+    const maxSkips = Math.max(0, getDaysInMonth(day) - (frequencyCount || 1));
     const usedSkips = logs.value.filter(l => 
       l.habitid === habit.id && 
       l.status === 'skipped' && 
