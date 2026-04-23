@@ -13,7 +13,7 @@ await callOnce(fetchUser);
 
 useHead({
   htmlAttrs: { class: 'dark' },
-  title: 'Habits',
+  title: 'Habits Social',
   meta: [
     { name: 'description', content: 'Track together, grow together' },
     { name: 'theme-color', content: '#080916' }

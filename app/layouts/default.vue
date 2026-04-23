@@ -7,7 +7,7 @@
             <Activity class="w-5 h-5 text-white" />
           </div>
           <span class="font-bold text-lg tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-slate-900 to-slate-700 dark:from-white dark:to-slate-300">
-            Habits
+            Habits Social
           </span>
         </NuxtLink>
 
