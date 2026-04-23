@@ -7,15 +7,15 @@
     </div>
 
     <!-- Add Habit -->
-    <div v-motion-fade class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm">
-      <h2 class="text-sm font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-4">New Habit</h2>
+    <div v-motion-fade class="bg-slate-900/40 backdrop-blur-sm border border-slate-800/50 rounded-2xl p-6 shadow-xl">
+      <h2 class="text-sm font-bold uppercase tracking-wider text-slate-400 mb-4">New Habit</h2>
       <form @submit.prevent="addHabit" class="flex gap-3 flex-wrap">
         <input
           v-model="newTitle"
           type="text"
           placeholder="Habit name..."
           required
-          class="flex-1 min-w-[200px] px-4 py-2.5 bg-slate-50 dark:bg-app-bg border border-slate-200 dark:border-slate-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900 dark:text-white placeholder-slate-400 text-sm transition-all"
+          class="flex-1 min-w-[200px] px-4 py-2.5 bg-slate-950/50 border border-slate-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-white placeholder-slate-500 text-sm transition-all"
         />
         <input v-model="newColor" type="color" class="w-10 h-10 rounded-lg border border-slate-200 dark:border-slate-700 cursor-pointer bg-slate-50 dark:bg-slate-800" />
         <button type="submit" class="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-xl transition-colors shadow-sm shadow-indigo-500/20 cursor-pointer text-sm flex items-center gap-2">
@@ -25,7 +25,7 @@
     </div>
 
     <!-- Habit Grid -->
-    <div v-motion-fade class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl overflow-x-auto shadow-sm">
+    <div v-motion-fade class="bg-slate-900/40 backdrop-blur-sm border border-slate-800/50 rounded-2xl overflow-x-auto shadow-xl">
       <table class="w-full text-left border-collapse min-w-max">
         <thead>
           <tr>

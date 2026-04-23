@@ -1,6 +1,6 @@
 <template>
-  <div class="min-h-screen bg-slate-50 dark:bg-app-bg text-slate-900 dark:text-slate-100 flex flex-col transition-colors duration-300">
-    <header class="sticky top-0 z-50 px-4 py-3 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800">
+  <div class="min-h-screen text-slate-100 flex flex-col transition-colors duration-300">
+    <header class="sticky top-0 z-50 px-4 py-3 bg-slate-950/50 backdrop-blur-md border-b border-white/5">
       <div class="max-w-5xl mx-auto flex items-center justify-between">
         <NuxtLink to="/" class="flex items-center gap-2 group">
           <div class="w-8 h-8 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-md shadow-indigo-500/20 group-hover:shadow-indigo-500/40 transition-shadow">

@@ -1,7 +1,7 @@
 <template>
   <div class="space-y-8">
     <div class="flex flex-col md:flex-row md:items-center gap-4" v-motion-slide-visible-once-left>
-      <NuxtLink to="/social" class="inline-flex items-center justify-center w-10 h-10 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all shadow-sm flex-shrink-0">
+      <NuxtLink to="/social" class="inline-flex items-center justify-center w-10 h-10 rounded-xl bg-slate-900/40 backdrop-blur-sm border border-slate-800/50 hover:bg-slate-800 transition-all shadow-xl flex-shrink-0">
         <ArrowLeft class="w-5 h-5 text-slate-600 dark:text-slate-400" />
       </NuxtLink>
       <div v-if="profile" class="flex items-center gap-4">
@@ -20,7 +20,7 @@
       <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
     </div>
 
-    <div v-else v-motion-fade class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl overflow-x-auto shadow-sm">
+    <div v-else v-motion-fade class="bg-slate-900/40 backdrop-blur-sm border border-slate-800/50 rounded-2xl overflow-x-auto shadow-xl">
       <table class="w-full text-left border-collapse min-w-max">
         <thead>
           <tr>

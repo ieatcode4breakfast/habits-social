@@ -6,10 +6,10 @@
     </div>
 
     <!-- Incoming Requests -->
-    <div v-if="pendingIncoming.length > 0" v-motion-fade class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm">
+    <div v-if="pendingIncoming.length > 0" v-motion-fade class="bg-slate-900/40 backdrop-blur-sm border border-slate-800/50 rounded-2xl p-6 shadow-xl">
       <h2 class="text-sm font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-4">Friend Requests</h2>
       <div class="space-y-3">
-        <div v-for="req in pendingIncoming" :key="req.id" class="flex items-center justify-between bg-slate-50 dark:bg-app-bg border border-slate-100 dark:border-slate-800 p-4 rounded-xl">
+        <div v-for="req in pendingIncoming" :key="req.id" class="flex items-center justify-between bg-slate-950/50 border border-slate-800 p-4 rounded-xl">
           <div class="flex items-center gap-3">
             <div class="w-10 h-10 bg-slate-200 dark:bg-slate-700 rounded-full flex items-center justify-center overflow-hidden">
               <img v-if="profilesMap[req.initiatorid]?.photourl" :src="profilesMap[req.initiatorid]?.photourl" alt="" class="w-full h-full object-cover" />
@@ -29,19 +29,19 @@
     </div>
 
     <!-- Add Friend -->
-    <div v-motion-fade class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm">
-      <h2 class="text-sm font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-4">Add Friend</h2>
+    <div v-motion-fade class="bg-slate-900/40 backdrop-blur-sm border border-slate-800/50 rounded-2xl p-6 shadow-xl">
+      <h2 class="text-sm font-bold uppercase tracking-wider text-slate-400 mb-4">Add Friend</h2>
       <form @submit.prevent="handleSearch" class="flex gap-3">
         <div class="relative flex-1">
           <Search class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
           <input v-model="searchEmail" type="email" placeholder="Friend's email address"
-            class="w-full pl-10 pr-4 py-2.5 bg-slate-50 dark:bg-app-bg border border-slate-200 dark:border-slate-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900 dark:text-white placeholder-slate-400 text-sm transition-all" />
+            class="w-full pl-10 pr-4 py-2.5 bg-slate-950/50 border border-slate-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-white placeholder-slate-500 text-sm transition-all" />
         </div>
         <button type="submit" class="px-5 py-2.5 bg-slate-900 dark:bg-slate-100 hover:bg-slate-700 dark:hover:bg-white text-white dark:text-slate-900 rounded-xl transition-colors font-semibold text-sm cursor-pointer shadow-sm">Search</button>
       </form>
 
       <div v-if="searchResults.length > 0" class="mt-4 space-y-3">
-        <div v-for="res in searchResults" :key="res.id" class="flex items-center justify-between bg-slate-50 dark:bg-app-bg border border-slate-200 dark:border-slate-800 p-4 rounded-xl">
+        <div v-for="res in searchResults" :key="res.id" class="flex items-center justify-between bg-slate-950/50 border border-slate-800 p-4 rounded-xl">
           <div class="flex items-center gap-3">
             <div class="w-10 h-10 bg-slate-200 dark:bg-slate-700 rounded-full flex items-center justify-center overflow-hidden">
               <img v-if="res.photourl" :src="res.photourl" alt="" class="w-full h-full object-cover" />
@@ -63,8 +63,8 @@
     </div>
 
     <!-- Friends List -->
-    <div v-motion-fade class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm">
-      <h2 class="text-sm font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-4">My Friends</h2>
+    <div v-motion-fade class="bg-slate-900/40 backdrop-blur-sm border border-slate-800/50 rounded-2xl p-6 shadow-xl">
+      <h2 class="text-sm font-bold uppercase tracking-wider text-slate-400 mb-4">My Friends</h2>
       <p v-if="acceptedFriends.length === 0" class="text-slate-400 dark:text-slate-500 text-sm italic">No friends yet. Search by email above!</p>
       <div v-else class="grid grid-cols-1 md:grid-cols-2 gap-3">
         <NuxtLink v-for="f in acceptedFriends" :key="f.id" :to="`/friends/${getFriendId(f)}`"

@@ -10,4 +10,13 @@
 <script setup lang="ts">
 const { fetchUser } = useAuth();
 await callOnce(fetchUser);
+
+useHead({
+  htmlAttrs: { class: 'dark' },
+  title: 'Habits',
+  meta: [
+    { name: 'description', content: 'Track together, grow together' },
+    { name: 'theme-color', content: '#080916' }
+  ]
+});
 </script>

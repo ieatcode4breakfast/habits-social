@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-app-bg px-4">
+  <div class="min-h-screen flex items-center justify-center px-4">
     <div class="w-full max-w-md">
       <!-- Logo -->
       <div class="flex flex-col items-center mb-8">
@@ -11,7 +11,7 @@
       </div>
 
       <!-- Card -->
-      <div class="bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800 overflow-hidden">
+      <div class="bg-slate-900/40 backdrop-blur-xl rounded-2xl shadow-2xl border border-slate-800/50 overflow-hidden">
         <!-- Tabs -->
         <div class="flex border-b border-slate-200 dark:border-slate-800">
           <button

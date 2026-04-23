@@ -2,21 +2,50 @@
 
 :root {
   --font-sans: "Inter", system-ui, sans-serif;
-  --color-app-bg: #0B0C1E;
+  --color-app-bg: #111333;
+  --color-card-bg: rgba(15, 23, 42, 0.6);
 }
 
 body {
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  background-color: var(--color-app-bg);
+  background-image:
+    radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.12) 0px, transparent 50%),
+    radial-gradient(at 100% 0%, rgba(168, 85, 247, 0.12) 0px, transparent 50%),
+    radial-gradient(at 50% 100%, rgba(79, 70, 229, 0.08) 0px, transparent 50%);
+  background-attachment: fixed;
+  color: #F8FAFC;
 }
 
-::-webkit-scrollbar { width: 6px; height: 6px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: rgb(148 163 184); border-radius: 9999px; }
-::-webkit-scrollbar-thumb:hover { background: rgb(100 116 139); }
-html.dark ::-webkit-scrollbar-thumb { background: rgb(51 65 85); }
-html.dark ::-webkit-scrollbar-thumb:hover { background: rgb(71 85 105); }
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
 
-* { user-select: none; }
-p, h1, h2, h3, h4, span.selectable { user-select: text; }
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.2);
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(148, 163, 184, 0.4);
+}
+
+* {
+  user-select: none;
+}
+
+p,
+h1,
+h2,
+h3,
+h4,
+span.selectable {
+  user-select: text;
+}
