@@ -27,18 +27,18 @@ export default defineEventHandler(async (event) => {
 
   if (event.method === 'POST') {
     const body = await readBody(event);
-    const habitId = body.habitid;
+    const habitId = String(body.habitid);
     
     const existing = await HabitLog.findOne({
       habitid: habitId,
       ownerid: userId,
-      date: body.date
+      date: String(body.date)
     });
 
     let logResult;
     
     if (existing) {
-      existing.status = body.status;
+      existing.status = String(body.status);
       existing.updatedat = new Date();
       if (body.sharedwith && Array.isArray(body.sharedwith)) {
         existing.sharedwith = body.sharedwith;
@@ -49,8 +49,8 @@ export default defineEventHandler(async (event) => {
       const newLog = await HabitLog.create({
         habitid: habitId,
         ownerid: userId,
-        date: body.date,
-        status: body.status,
+        date: String(body.date),
+        status: String(body.status),
         sharedwith: body.sharedwith && Array.isArray(body.sharedwith) ? body.sharedwith : []
       });
       logResult = newLog._id.toString();
@@ -61,7 +61,7 @@ export default defineEventHandler(async (event) => {
 
   if (event.method === 'DELETE') {
     const query = getQuery(event);
-    const habitId = query.habitid;
+    const habitId = String(query.habitid);
     
     await HabitLog.deleteOne({
       habitid: habitId,
