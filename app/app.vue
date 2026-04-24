@@ -16,7 +16,15 @@ useHead({
   title: 'Habits Social',
   meta: [
     { name: 'description', content: 'Track together, grow together' },
-    { name: 'theme-color', content: '#080916' }
+    { name: 'theme-color', content: '#080916' },
+    { name: 'apple-mobile-web-app-capable', content: 'yes' },
+    { name: 'apple-mobile-web-app-status-bar-style', content: 'default' },
+    { name: 'apple-mobile-web-app-title', content: 'Habits Social' }
+  ],
+  link: [
+    { rel: 'manifest', href: '/manifest.json?v=8' },
+    { rel: 'icon', type: 'image/png', href: '/icons/favicon.png?v=8' },
+    { rel: 'apple-touch-icon', href: '/icons/apple-touch-icon.png?v=8' }
   ]
 });
 </script>
