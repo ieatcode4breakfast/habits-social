@@ -1,8 +1,8 @@
 import { hash } from 'bcrypt-ts';
-import { User } from '../../models';
+import { IUser } from '../../models';
 
 export default defineEventHandler(async (event) => {
-  await useDB();
+  const db = await useDB();
   const { email, password, username } = await readBody(event);
   
   if (!email || !password || !username)
@@ -14,24 +14,25 @@ export default defineEventHandler(async (event) => {
   if (password.length < 8)
     throw createError({ statusCode: 400, statusMessage: 'Password must be at least 8 characters long' });
 
-  const existingEmail = await User.findOne({ email });
+  const existingEmail = await db.collection<IUser>('users').findOne({ email });
   if (existingEmail) throw createError({ statusCode: 400, statusMessage: 'An account with this email already exists' });
 
-  const existingUsername = await User.findOne({ username });
+  const existingUsername = await db.collection<IUser>('users').findOne({ username });
   if (existingUsername) throw createError({ statusCode: 400, statusMessage: 'This username is already taken' });
 
   const passwordHash = await hash(password, 10);
   
-  const user = await User.create({ 
+  const result = await db.collection<IUser>('users').insertOne({ 
     email, 
     username, 
-    passwordHash 
+    passwordHash,
+    createdAt: new Date()
   });
 
-  if (!user) throw createError({ statusCode: 500, statusMessage: 'Failed to create user' });
+  if (!result.insertedId) throw createError({ statusCode: 500, statusMessage: 'Failed to create user' });
 
-  const token = await generateToken(user._id.toString(), event);
+  const token = await generateToken(result.insertedId.toString(), event);
   setCookie(event, 'auth_token', token, { httpOnly: true, maxAge: 60 * 60 * 24 * 7, path: '/', sameSite: 'strict' });
 
-  return { user: { id: user._id.toString(), email: user.email, username: user.username } };
+  return { user: { id: result.insertedId.toString(), email, username } };
 });

@@ -1,0 +1,4 @@
+name = "habits-social"
+main = "./.output/server/index.mjs"
+compatibility_date = "2024-04-24"
+compatibility_flags = ["nodejs_compat"]

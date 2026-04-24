@@ -1,17 +1,18 @@
-import { Habit, HabitLog } from '../../models';
+import { IHabit, IHabitLog } from '../../models';
 
 export default defineEventHandler(async (event) => {
-  await useDB();
+  const db = await useDB();
   const userId = await requireAuth(event);
   const { friendId } = getQuery(event);
   const fId = String(friendId);
 
-  const sharedHabits = await Habit.find({
-    ownerid: fId,
-    sharedwith: userId
-  })
-  .sort({ sortOrder: 1 })
-  .lean();
+  const sharedHabits = await db.collection<IHabit>('habits')
+    .find({
+      ownerid: fId,
+      sharedwith: userId
+    })
+    .sort({ sortOrder: 1 })
+    .toArray();
 
   const friendHabits = sharedHabits.map((h: any) => ({
     ...h,
@@ -22,10 +23,12 @@ export default defineEventHandler(async (event) => {
 
   let logs: any[] = [];
   if (habitIds.length > 0) {
-    const rawLogs = await HabitLog.find({
-      ownerid: fId,
-      habitid: { $in: habitIds }
-    }).lean();
+    const rawLogs = await db.collection<IHabitLog>('habitlogs')
+      .find({
+        ownerid: fId,
+        habitid: { $in: habitIds }
+      })
+      .toArray();
     
     logs = rawLogs.map((l: any) => ({
       ...l,

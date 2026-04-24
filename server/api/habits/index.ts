@@ -1,13 +1,14 @@
-import { Habit } from '../../models';
+import { IHabit } from '../../models';
 
 export default defineEventHandler(async (event) => {
-  await useDB();
+  const db = await useDB();
   const userId = await requireAuth(event);
 
   if (event.method === 'GET') {
-    const userHabits = await Habit.find({ ownerid: userId })
+    const userHabits = await db.collection<IHabit>('habits')
+      .find({ ownerid: userId })
       .sort({ sortOrder: 1, createdAt: 1 })
-      .lean();
+      .toArray();
     
     const results = userHabits.map((habit: any) => ({
       ...habit,
@@ -20,10 +21,10 @@ export default defineEventHandler(async (event) => {
   if (event.method === 'POST') {
     const body = await readBody(event);
     
-    const count = await Habit.countDocuments({ ownerid: userId });
+    const count = await db.collection<IHabit>('habits').countDocuments({ ownerid: userId });
     const nextSortOrder = count || 0;
 
-    const newHabit = await Habit.create({
+    const newHabit = {
       ownerid: userId,
       title: body.title,
       description: body.description || '',
@@ -32,11 +33,16 @@ export default defineEventHandler(async (event) => {
       color: body.color || '#6366f1',
       sharedwith: body.sharedwith && Array.isArray(body.sharedwith) ? body.sharedwith : [],
       sortOrder: nextSortOrder,
-    });
+      createdAt: new Date(),
+      updatedat: new Date()
+    };
+
+    const result = await db.collection<IHabit>('habits').insertOne(newHabit);
 
     return { 
-      ...newHabit.toObject(), 
-      id: newHabit._id.toString() 
+      ...newHabit, 
+      _id: result.insertedId,
+      id: result.insertedId.toString() 
     };
   }
 });

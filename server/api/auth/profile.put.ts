@@ -1,8 +1,9 @@
 import { hash } from 'bcrypt-ts';
-import { User } from '../../models';
+import { IUser } from '../../models';
+import { ObjectId } from 'mongodb';
 
 export default defineEventHandler(async (event) => {
-  await useDB();
+  const db = await useDB();
   const userId = await requireAuth(event);
   const { username, email, password, photourl } = await readBody(event);
 
@@ -18,16 +19,20 @@ export default defineEventHandler(async (event) => {
     return { message: 'No changes made' };
   }
 
-  const updatedUser = await User.findByIdAndUpdate(userId, updateData, { new: true });
+  const result = await db.collection<IUser>('users').findOneAndUpdate(
+    { _id: new ObjectId(userId) },
+    { $set: updateData },
+    { returnDocument: 'after' }
+  );
 
-  if (!updatedUser) throw createError({ statusCode: 404, statusMessage: 'User not found' });
+  if (!result) throw createError({ statusCode: 404, statusMessage: 'User not found' });
 
   return {
     user: {
-      id: updatedUser._id.toString(),
-      email: updatedUser.email,
-      username: updatedUser.username,
-      photourl: updatedUser.photourl
+      id: result._id!.toString(),
+      email: result.email,
+      username: result.username,
+      photourl: result.photourl
     }
   };
 });

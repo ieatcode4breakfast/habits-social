@@ -6,7 +6,9 @@ export default defineNuxtConfig({
   devtools: { enabled: true },
   modules: ['@vueuse/motion/nuxt'],
   ssr: true,
-
+  nitro: {
+    preset: 'cloudflare'
+  },
   runtimeConfig: {
     jwtSecret: process.env.JWT_SECRET || 'fallback-secret-for-dev',
   },

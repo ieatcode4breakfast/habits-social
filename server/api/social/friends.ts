@@ -1,16 +1,17 @@
-import { Friendship, User } from '../../models';
+import { IFriendship, IUser } from '../../models';
+import { ObjectId } from 'mongodb';
 
 export default defineEventHandler(async (event) => {
-  await useDB();
+  const db = await useDB();
   const userId = await requireAuth(event);
 
   if (event.method === 'GET') {
-    const userFriendships = await Friendship.find({
+    const userFriendships = await db.collection<IFriendship>('friendships').find({
       $or: [
         { initiatorId: userId },
         { receiverId: userId }
       ]
-    }).lean();
+    }).toArray();
     
     const friendIds = userFriendships.map((f: any) => 
       f.initiatorId.toString() === userId ? f.receiverId : f.initiatorId
@@ -18,9 +19,11 @@ export default defineEventHandler(async (event) => {
     
     let profiles: any[] = [];
     if (friendIds.length > 0) {
-      profiles = await User.find({ _id: { $in: friendIds } })
-        .select('-passwordHash')
-        .lean();
+      const objectIds = friendIds.map((id: string) => new ObjectId(id));
+      profiles = await db.collection<IUser>('users').find(
+        { _id: { $in: objectIds } },
+        { projection: { passwordHash: 0 } }
+      ).toArray();
     }
 
     const mappedFriendships = userFriendships.map((f: any) => ({
@@ -45,7 +48,7 @@ export default defineEventHandler(async (event) => {
   if (event.method === 'POST') {
     const { targetUserId } = await readBody(event);
 
-    const existing = await Friendship.findOne({
+    const existing = await db.collection<IFriendship>('friendships').findOne({
       $or: [
         { initiatorId: userId, receiverId: targetUserId },
         { initiatorId: targetUserId, receiverId: userId }
@@ -54,19 +57,22 @@ export default defineEventHandler(async (event) => {
 
     if (existing) throw createError({ statusCode: 400, statusMessage: 'Friendship already exists' });
 
-    const newFriendship = await Friendship.create({
+    const newFriendship = {
       initiatorId: userId,
       receiverId: targetUserId,
-      status: 'pending'
-    });
+      status: 'pending',
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
 
-    const obj = newFriendship.toObject();
+    const result = await db.collection<IFriendship>('friendships').insertOne(newFriendship);
+
     return { 
-      ...obj, 
-      id: newFriendship._id.toString(),
-      initiatorId: obj.initiatorId.toString(),
-      receiverId: obj.receiverId.toString(),
-      participants: [obj.initiatorId.toString(), obj.receiverId.toString()]
+      ...newFriendship, 
+      id: result.insertedId.toString(),
+      initiatorId: newFriendship.initiatorId.toString(),
+      receiverId: newFriendship.receiverId.toString(),
+      participants: [newFriendship.initiatorId.toString(), newFriendship.receiverId.toString()]
     };
   }
 });

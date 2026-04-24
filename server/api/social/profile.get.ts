@@ -1,12 +1,16 @@
-import { User } from '../../models';
+import { IUser } from '../../models';
+import { ObjectId } from 'mongodb';
 
 export default defineEventHandler(async (event) => {
-  await useDB();
+  const db = await useDB();
   await requireAuth(event);
   const { friendId } = getQuery(event);
   
-  const user = await User.findById(friendId).select('-passwordHash').lean();
+  const user = await db.collection<IUser>('users').findOne(
+    { _id: new ObjectId(String(friendId)) },
+    { projection: { passwordHash: 0 } }
+  );
   
   if (!user) throw createError({ statusCode: 404 });
-  return { ...user, id: user._id.toString() };
+  return { ...user, id: user._id!.toString() };
 });

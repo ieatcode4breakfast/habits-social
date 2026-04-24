@@ -1,7 +1,7 @@
-import { HabitLog } from '../../models';
+import { IHabitLog } from '../../models';
 
 export default defineEventHandler(async (event) => {
-  await useDB();
+  const db = await useDB();
   const userId = await requireAuth(event);
 
   if (event.method === 'GET') {
@@ -15,7 +15,7 @@ export default defineEventHandler(async (event) => {
       };
     }
     
-    const logs = await HabitLog.find(filter).lean();
+    const logs = await db.collection<IHabitLog>('habitlogs').find(filter).toArray();
     
     const results = logs.map((log: any) => ({
       ...log,
@@ -28,45 +28,58 @@ export default defineEventHandler(async (event) => {
   if (event.method === 'POST') {
     const body = await readBody(event);
     const habitId = String(body.habitid);
+    const dateStr = String(body.date);
     
-    const existing = await HabitLog.findOne({
+    const existing = await db.collection<IHabitLog>('habitlogs').findOne({
       habitid: habitId,
       ownerid: userId,
-      date: String(body.date)
+      date: dateStr
     });
 
-    let savedLog;
-    
     if (existing) {
-      existing.status = String(body.status);
-      existing.updatedat = new Date();
+      const updateData: any = {
+        status: String(body.status),
+        updatedat: new Date()
+      };
       if (body.sharedwith && Array.isArray(body.sharedwith)) {
-        existing.sharedwith = body.sharedwith;
+        updateData.sharedwith = body.sharedwith;
       }
-      await existing.save();
-      savedLog = existing;
+      
+      const result = await db.collection<IHabitLog>('habitlogs').findOneAndUpdate(
+        { _id: existing._id },
+        { $set: updateData },
+        { returnDocument: 'after' }
+      );
+      
+      return { 
+        ...result,
+        id: result!._id!.toString() 
+      };
     } else {
-      const newLog = await HabitLog.create({
+      const newLog = {
         habitid: habitId,
         ownerid: userId,
-        date: String(body.date),
+        date: dateStr,
         status: String(body.status),
-        sharedwith: body.sharedwith && Array.isArray(body.sharedwith) ? body.sharedwith : []
-      });
-      savedLog = newLog;
+        sharedwith: body.sharedwith && Array.isArray(body.sharedwith) ? body.sharedwith : [],
+        updatedat: new Date()
+      };
+      
+      const result = await db.collection<IHabitLog>('habitlogs').insertOne(newLog);
+      
+      return { 
+        ...newLog,
+        _id: result.insertedId,
+        id: result.insertedId.toString() 
+      };
     }
-
-    return { 
-      ...savedLog.toObject(),
-      id: savedLog._id.toString() 
-    };
   }
 
   if (event.method === 'DELETE') {
     const query = getQuery(event);
     const habitId = String(query.habitid);
     
-    await HabitLog.deleteOne({
+    await db.collection<IHabitLog>('habitlogs').deleteOne({
       habitid: habitId,
       ownerid: userId,
       date: String(query.date)

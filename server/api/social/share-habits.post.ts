@@ -1,7 +1,8 @@
-import { Habit } from '../../models';
+import { IHabit } from '../../models';
+import { ObjectId } from 'mongodb';
 
 export default defineEventHandler(async (event) => {
-  await useDB();
+  const db = await useDB();
   const userId = await requireAuth(event);
 
   const { targetUserId, habitIds } = await readBody(event);
@@ -12,8 +13,9 @@ export default defineEventHandler(async (event) => {
   const targetId = String(targetUserId);
 
   if (habitIds.length > 0) {
-    await Habit.updateMany(
-      { _id: { $in: habitIds }, ownerid: userId },
+    const objectIds = habitIds.map((id: string) => new ObjectId(id));
+    await db.collection<IHabit>('habits').updateMany(
+      { _id: { $in: objectIds }, ownerid: userId },
       { $addToSet: { sharedwith: targetId } }
     );
   }
