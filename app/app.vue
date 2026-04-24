@@ -23,7 +23,7 @@ useHead({
   ],
   link: [
     { rel: 'manifest', href: '/manifest.json?v=11' },
-    { rel: 'icon', type: 'image/png', href: '/icons/favicon.png?v=11' },
+    { rel: 'icon', type: 'image/svg+xml', href: `/favicon-rounded.svg?v=${Date.now()}` },
     { rel: 'apple-touch-icon', href: '/icons/apple-touch-icon.png?v=11' }
   ]
 });

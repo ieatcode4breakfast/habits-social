@@ -4,7 +4,7 @@
       <div class="max-w-5xl mx-auto flex items-center justify-between">
         <NuxtLink to="/" class="flex items-center gap-2 group">
           <div class="w-8 h-8 rounded-xl bg-white flex items-center justify-center shadow-md shadow-white/10 group-hover:shadow-white/20 transition-shadow overflow-hidden">
-            <img src="/icons/icon-512.png" class="w-10 h-10 object-cover" alt="Logo" />
+            <img src="/icons/icon-512.png" class="w-full h-full object-cover scale-[1.35] transform-gpu" alt="Logo" />
           </div>
           <span class="font-bold text-lg tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-zinc-200 to-zinc-400">
             Habits Social
