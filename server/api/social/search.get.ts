@@ -1,15 +1,22 @@
-import { User } from '../../models';
-import { connectDB } from '../../utils/db';
-import { requireAuth } from '../../utils/auth';
+import { users } from '../../models';
+import { eq, ne, and, like } from 'drizzle-orm';
 
 export default defineEventHandler(async (event) => {
-  await connectDB();
+  const db = useDB(event);
   const userId = requireAuth(event);
   const { username } = getQuery(event);
   if (!username) return [];
-  const users = await User.find({ 
-    username: { $regex: new RegExp(String(username), 'i') }, 
-    _id: { $ne: userId } 
-  }).lean();
-  return users.map((u: any) => ({ ...u, id: u._id.toString() }));
+
+  const results = await db.select({
+    id: users.id,
+    username: users.username,
+    email: users.email,
+    photourl: users.photourl,
+  }).from(users)
+    .where(and(
+      like(users.username, `%${username}%`),
+      ne(users.id, userId)
+    ));
+
+  return results;
 });

@@ -1,12 +1,19 @@
-import { User } from '../../models';
-import { connectDB } from '../../utils/db';
-import { requireAuth } from '../../utils/auth';
+import { users } from '../../models';
+import { eq } from 'drizzle-orm';
 
 export default defineEventHandler(async (event) => {
-  await connectDB();
+  const db = useDB(event);
   requireAuth(event);
   const { friendId } = getQuery(event);
-  const user = await User.findById(String(friendId)).select('-passwordHash').lean() as any;
+  
+  const user = await db.select({
+    id: users.id,
+    username: users.username,
+    email: users.email,
+    photourl: users.photourl,
+    createdAt: users.createdAt,
+  }).from(users).where(eq(users.id, Number(friendId))).get();
+  
   if (!user) throw createError({ statusCode: 404 });
-  return { ...user, id: user._id.toString() };
+  return user;
 });

@@ -1,26 +1,44 @@
-import { Friendship, Habit } from '../../../models';
-import { connectDB } from '../../../utils/db';
-import { requireAuth } from '../../../utils/auth';
+import { friendships, habits, habitShares } from '../../../models';
+import { eq, inArray } from 'drizzle-orm';
 
 export default defineEventHandler(async (event) => {
-  await connectDB();
+  const db = useDB(event);
   requireAuth(event);
-  const id = getRouterParam(event, 'id');
+  const id = Number(getRouterParam(event, 'id'));
   if (!id) throw createError({ statusCode: 400 });
 
   if (event.method === 'PUT') {
-    await Friendship.updateOne({ _id: id }, { status: 'accepted', updatedat: new Date() });
+    await db.update(friendships)
+      .set({ status: 'accepted', updatedAt: new Date() })
+      .where(eq(friendships.id, id));
     return { success: true };
   }
 
   if (event.method === 'DELETE') {
-    const friendship = await Friendship.findById(id);
+    const friendship = await db.select().from(friendships).where(eq(friendships.id, id)).get();
     if (friendship) {
-      const [u1, u2] = friendship.participants;
-      // Remove each user from the other's shared habits
-      await Habit.updateMany({ ownerid: u1 }, { $pull: { sharedwith: u2 } });
-      await Habit.updateMany({ ownerid: u2 }, { $pull: { sharedwith: u1 } });
-      await Friendship.deleteOne({ _id: id });
+      const u1 = friendship.initiatorId;
+      const u2 = friendship.receiverId;
+
+      await db.transaction(async (tx: any) => {
+        // Remove shares between these users
+        // 1. Find habits owned by u1
+        const h1 = await tx.select({ id: habits.id }).from(habits).where(eq(habits.ownerId, u1));
+        const h1Ids = h1.map((h: any) => h.id);
+        if (h1Ids.length > 0) {
+          await tx.delete(habitShares).where(inArray(habitShares.habitId, h1Ids));
+        }
+
+        // 2. Find habits owned by u2
+        const h2 = await tx.select({ id: habits.id }).from(habits).where(eq(habits.ownerId, u2));
+        const h2Ids = h2.map((h: any) => h.id);
+        if (h2Ids.length > 0) {
+          await tx.delete(habitShares).where(inArray(habitShares.habitId, h2Ids));
+        }
+
+        // 3. Delete friendship
+        await tx.delete(friendships).where(eq(friendships.id, id));
+      });
     }
     return { success: true };
   }

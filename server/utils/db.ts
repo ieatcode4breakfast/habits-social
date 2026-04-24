@@ -1,25 +1,25 @@
-import mongoose from 'mongoose';
+import { drizzle } from 'drizzle-orm/d1';
+import * as schema from '../database/schema';
 
-let isConnected = false;
-
-export const connectDB = async () => {
-  if (isConnected) return;
-  const config = useRuntimeConfig();
-  const uri = config.mongodbUri as string;
-  if (!uri) throw new Error('MONGODB_URI is not set');
-
-  try {
-    await mongoose.connect(uri, {
-      bufferCommands: false,
-      autoIndex: false,
-    });
-    isConnected = true;
-    console.log('Successfully connected to MongoDB.');
-  } catch (err: any) {
-    console.error('MongoDB connection error:', err.message);
+export const useDB = (event: any) => {
+  const runtimeConfig = useRuntimeConfig();
+  
+  // In Cloudflare, the DB binding is on event.context.cloudflare.env
+  // Locally with Nuxt/Nitro, it might be mocked or provided differently
+  const dbBinding = event.context.cloudflare?.env?.DB;
+  
+  if (!dbBinding) {
     throw createError({
       statusCode: 500,
-      statusMessage: 'Database connection failed. Please check your terminal logs.',
+      statusMessage: 'Internal Server Error: Database binding not found.',
     });
   }
+
+  return drizzle(dbBinding, { schema });
+};
+
+// For backward compatibility during migration
+export const connectDB = async () => {
+  // This is now a no-op as D1 is always "connected"
+  return;
 };

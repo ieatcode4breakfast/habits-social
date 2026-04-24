@@ -1,19 +1,20 @@
-import { Habit } from '../../models';
-import { connectDB } from '../../utils/db';
-import { requireAuth } from '../../utils/auth';
+import { habits } from '../../models';
+import { eq, and } from 'drizzle-orm';
 
 export default defineEventHandler(async (event) => {
-  await connectDB();
+  const db = useDB(event);
   const userId = requireAuth(event);
 
   const { ids } = await readBody(event);
   if (!Array.isArray(ids)) throw createError({ statusCode: 400, statusMessage: 'ids must be an array' });
 
-  await Promise.all(
-    ids.map((id: string, index: number) =>
-      Habit.updateOne({ _id: id, ownerid: userId }, { sortOrder: index })
-    )
-  );
+  await db.transaction(async (tx) => {
+    for (let i = 0; i < ids.length; i++) {
+      await tx.update(habits)
+        .set({ sortOrder: i })
+        .where(and(eq(habits.id, Number(ids[i])), eq(habits.ownerId, userId)));
+    }
+  });
 
   return { success: true };
 });

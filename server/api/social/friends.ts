@@ -1,39 +1,52 @@
-import { Friendship, User } from '../../models';
-import { connectDB } from '../../utils/db';
-import { requireAuth } from '../../utils/auth';
+import { friendships, users } from '../../models';
+import { eq, or, and, inArray } from 'drizzle-orm';
 
 export default defineEventHandler(async (event) => {
-  await connectDB();
+  const db = useDB(event);
   const userId = requireAuth(event);
 
   if (event.method === 'GET') {
-    const friendships = await Friendship.find({ participants: userId }).lean();
-    const friendIds = [...new Set(
-      friendships.flatMap((f: any) => f.participants.map((p: any) => p.toString()).filter((id: string) => id !== userId))
-    )];
-    const profiles = await User.find({ _id: { $in: friendIds } }).select('-passwordHash').lean();
+    const userFriendships = await db.select().from(friendships)
+      .where(or(eq(friendships.initiatorId, userId), eq(friendships.receiverId, userId)));
+    
+    const friendIds = userFriendships.map((f: any) => f.initiatorId === userId ? f.receiverId : f.initiatorId);
+    
+    let profiles: any[] = [];
+    if (friendIds.length > 0) {
+      profiles = await db.select({
+        id: users.id,
+        email: users.email,
+        username: users.username,
+        photourl: users.photourl,
+        createdAt: users.createdAt,
+      }).from(users).where(inArray(users.id, friendIds));
+    }
+
     return {
-      friendships: friendships.map((f: any) => ({
-        ...f,
-        id: f._id.toString(),
-        participants: f.participants.map((p: any) => p.toString()),
-        initiatorid: f.initiatorid.toString(),
-        receiverid: f.receiverid.toString()
-      })),
-      profiles: profiles.map((p: any) => ({ ...p, id: p._id.toString() }))
+      friendships: userFriendships,
+      profiles: profiles
     };
   }
 
   if (event.method === 'POST') {
     const { targetUserId } = await readBody(event);
-    const existing = await Friendship.findOne({ participants: { $all: [userId, targetUserId] } });
+    const targetId = Number(targetUserId);
+
+    const existing = await db.select().from(friendships).where(
+      or(
+        and(eq(friendships.initiatorId, userId), eq(friendships.receiverId, targetId)),
+        and(eq(friendships.initiatorId, targetId), eq(friendships.receiverId, userId))
+      )
+    ).get();
+
     if (existing) throw createError({ statusCode: 400, statusMessage: 'Friendship already exists' });
-    const friendship = await Friendship.create({
-      participants: [userId, targetUserId],
-      initiatorid: userId,
-      receiverid: targetUserId,
+
+    const result = await db.insert(friendships).values({
+      initiatorId: userId,
+      receiverId: targetId,
       status: 'pending'
-    });
-    return { ...friendship.toObject(), id: friendship._id.toString() };
+    }).returning().get();
+
+    return result;
   }
 });

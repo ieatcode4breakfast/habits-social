@@ -1,8 +1,9 @@
 import bcrypt from 'bcryptjs';
-import { User } from '../../models';
+import { users } from '../../models';
+import { eq } from 'drizzle-orm';
 
 export default defineEventHandler(async (event) => {
-  await connectDB();
+  const db = useDB(event);
   const { email, password, username } = await readBody(event);
   
   if (!email || !password || !username)
@@ -14,17 +15,26 @@ export default defineEventHandler(async (event) => {
   if (password.length < 8)
     throw createError({ statusCode: 400, statusMessage: 'Password must be at least 8 characters long' });
 
-  const existingEmail = await User.findOne({ email });
+  // Check existing email
+  const existingEmail = await db.select().from(users).where(eq(users.email, email)).get();
   if (existingEmail) throw createError({ statusCode: 400, statusMessage: 'An account with this email already exists' });
 
-  const existingUsername = await User.findOne({ username: { $regex: new RegExp(`^${username}$`, 'i') } });
+  // Check existing username (SQLite is case-insensitive by default for ASCII, but let's be explicit if needed)
+  const existingUsername = await db.select().from(users).where(eq(users.username, username)).get();
   if (existingUsername) throw createError({ statusCode: 400, statusMessage: 'This username is already taken' });
 
   const passwordHash = await bcrypt.hash(password, 10);
-  const newUser = await User.create({ email, username, passwordHash });
+  
+  const result = await db.insert(users).values({ 
+    email, 
+    username, 
+    passwordHash 
+  }).returning().get();
 
-  const token = generateToken(newUser._id.toString());
+  if (!result) throw createError({ statusCode: 500, statusMessage: 'Failed to create user' });
+
+  const token = generateToken(result.id.toString());
   setCookie(event, 'auth_token', token, { httpOnly: true, maxAge: 60 * 60 * 24 * 7, path: '/', sameSite: 'strict' });
 
-  return { user: { id: newUser._id, email: newUser.email, username: newUser.username } };
+  return { user: { id: result.id, email: result.email, username: result.username } };
 });

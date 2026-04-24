@@ -1,9 +1,7 @@
-import { Habit } from '../../models';
-import { connectDB } from '../../utils/db';
-import { requireAuth } from '../../utils/auth';
+import { habitShares } from '../../models';
 
 export default defineEventHandler(async (event) => {
-  await connectDB();
+  const db = useDB(event);
   const userId = requireAuth(event);
 
   const { targetUserId, habitIds } = await readBody(event);
@@ -11,11 +9,18 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: 'Missing targetUserId or habitIds array' });
   }
 
+  const targetId = Number(targetUserId);
+
   if (habitIds.length > 0) {
-    await Habit.updateMany(
-      { _id: { $in: habitIds }, ownerid: userId },
-      { $addToSet: { sharedwith: targetUserId } }
-    );
+    await db.transaction(async (tx: any) => {
+      for (const hId of habitIds) {
+        // Use insert ignore or check existence
+        await tx.insert(habitShares).values({
+          habitId: Number(hId),
+          userId: targetId,
+        }).onConflictDoNothing();
+      }
+    });
   }
 
   return { success: true };
