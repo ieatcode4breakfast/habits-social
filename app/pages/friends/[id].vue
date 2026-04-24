@@ -10,7 +10,7 @@
           <User v-else class="w-7 h-7 text-zinc-600" />
         </div>
         <div>
-          <h1 class="text-2xl font-bold tracking-tight text-white">{{ profile.displayname }}'s Habits</h1>
+          <h1 class="text-2xl font-bold tracking-tight text-white">{{ profile.username }}'s Habits</h1>
           <p class="text-zinc-400 text-sm">Habits shared with you</p>
         </div>
       </div>
@@ -21,14 +21,14 @@
     </div>
 
     <!-- Shared Habit List (Single Card) -->
-    <div v-if="!loading" v-motion-fade class="bg-zinc-925/80 backdrop-blur-sm sm:rounded-2xl rounded-none shadow-2xl divide-y divide-zinc-800/80 border border-zinc-800/80">
+    <div v-if="!loading" v-motion-fade class="bg-zinc-925/80 backdrop-blur-sm sm:rounded-2xl rounded-none shadow-2xl divide-y divide-zinc-800/80 border-y border-x-0 sm:border border-zinc-800/80">
       <div v-if="habits.length === 0" class="p-10 text-center text-zinc-500 italic text-sm">
-        {{ profile?.displayname }} hasn't shared any habits with you yet.
+        {{ profile?.username }} hasn't shared any habits with you yet.
       </div>
       
       <div v-for="habit in habits" :key="habit.id" 
            @click="openHabitDetails(habit)"
-           class="p-4 flex flex-wrap items-center justify-between gap-x-8 gap-y-4 relative group cursor-pointer hover:bg-zinc-925/50 transition-colors">
+           class="p-4 pt-14 sm:pt-4 flex flex-wrap items-center justify-between gap-x-8 gap-y-4 relative group cursor-pointer hover:bg-zinc-925/50 transition-colors">
         
         <!-- Floating Streak Badge -->
         <div 
@@ -58,12 +58,12 @@
         <!-- Title Section -->
         <div class="flex items-center gap-3 min-w-[200px] flex-1">
           <div class="text-left flex items-start gap-2 relative">
-            <h3 class="font-bold text-zinc-200 leading-tight break-words group-hover:text-white transition-colors">{{ habit.title }}</h3>
+            <h3 class="font-bold text-zinc-200 leading-tight break-all group-hover:text-white transition-colors">{{ habit.title }}</h3>
           </div>
         </div>
         
         <!-- Checkboxes Section -->
-        <div class="flex-1 min-w-[320px] flex justify-center sm:justify-end items-end gap-3">
+        <div class="flex-1 min-w-[320px] flex justify-center sm:justify-end items-end gap-4">
           <div class="flex justify-evenly items-end w-full max-w-lg">
             <div v-for="(day, i) in days" :key="i" class="flex flex-col items-center gap-2">
               <div class="text-[10px] uppercase tracking-tighter text-zinc-500 font-black">
@@ -81,10 +81,10 @@
               >
                 <Check v-if="getStatus(habit.id, day) === 'completed'" class="w-4 h-4 text-white" />
                 <X v-else-if="getStatus(habit.id, day) === 'failed'" class="w-4 h-4 text-white" />
-                <span v-else-if="getStatus(habit.id, day) === 'skipped'" class="w-4 h-0.5 bg-white rounded-full"></span>
+                <Minus v-else-if="getStatus(habit.id, day) === 'skipped'" class="w-4 h-4 text-white" />
               </div>
 
-              <div class="text-[10px] font-bold" :class="isToday(day) ? 'text-white' : 'text-zinc-600'">
+              <div class="text-[10px] font-bold" :class="isToday(day) ? 'text-white' : 'text-zinc-500'">
                 {{ format(day, 'd') }}
               </div>
             </div>

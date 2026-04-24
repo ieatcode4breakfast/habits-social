@@ -6,7 +6,7 @@
         <div class="w-14 h-14 bg-white rounded-2xl flex items-center justify-center shadow-lg shadow-white/10 mb-4">
           <Activity class="w-7 h-7 text-black" />
         </div>
-        <h1 class="text-2xl font-bold text-white tracking-tight">Habits</h1>
+        <h1 class="text-2xl font-bold text-white tracking-tight">Habits Social</h1>
         <p class="text-zinc-500 text-sm mt-1">Track together, grow together</p>
       </div>
 

@@ -17,11 +17,10 @@ export default defineEventHandler(async (event) => {
   if (existingUsername) throw createError({ statusCode: 400, statusMessage: 'This username is already taken' });
 
   const passwordHash = await bcrypt.hash(password, 10);
-  const displayname = username; // Default display name to username
-  const newUser = await User.create({ email, username, passwordHash, displayname });
+  const newUser = await User.create({ email, username, passwordHash });
 
   const token = generateToken(newUser._id.toString());
   setCookie(event, 'auth_token', token, { httpOnly: true, maxAge: 60 * 60 * 24 * 7, path: '/', sameSite: 'strict' });
 
-  return { user: { id: newUser._id, email: newUser.email, username: newUser.username, displayname: newUser.displayname } };
+  return { user: { id: newUser._id, email: newUser.email, username: newUser.username } };
 });

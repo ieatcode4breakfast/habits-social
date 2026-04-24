@@ -28,7 +28,7 @@
     </div>
 
     <!-- Habit List (Single Card) -->
-    <div v-motion-fade class="bg-zinc-925/80 backdrop-blur-md sm:rounded-2xl rounded-none shadow-2xl border border-zinc-800/80 divide-y divide-zinc-800/80 overflow-x-auto custom-scrollbar">
+    <div v-motion-fade class="bg-zinc-925/80 backdrop-blur-md sm:rounded-2xl rounded-none shadow-2xl border-y border-x-0 sm:border border-zinc-800/80 divide-y divide-zinc-800/80 overflow-x-auto custom-scrollbar">
       <div v-if="habits.length === 0" class="p-10 text-center text-zinc-500 italic text-sm">
         No habits yet. Add one above!
       </div>
@@ -74,14 +74,7 @@
         </div>
 
         <div class="flex items-center gap-3 min-w-[200px] flex-1">
-          <!-- Grip Handle -->
-          <div
-            class="touch-none shrink-0 text-zinc-700 transition-colors opacity-30 sm:opacity-0 sm:group-hover:opacity-100 hover:text-zinc-400"
-            :class="isDragging ? 'cursor-grabbing' : 'cursor-grab'"
-            @touchstart.prevent="onGripTouchStart($event, habit.id)"
-          >
-            <GripVertical class="w-4 h-4" />
-          </div>
+          <!-- Grip Handle Removed -->
           <div class="text-left flex items-start gap-2 relative">
             <h3 class="font-bold text-zinc-200 leading-tight break-all group-hover:text-white transition-colors">{{ habit.title }}</h3>
           </div>
@@ -229,7 +222,7 @@
                         <img v-if="friend.photourl" :src="friend.photourl" class="w-full h-full object-cover" />
                         <User v-else class="w-4 h-4 text-zinc-600" />
                       </div>
-                      <span class="text-sm font-semibold text-zinc-200">{{ friend.displayname || friend.email }}</span>
+                      <span class="text-sm font-semibold text-zinc-200">{{ friend.username || friend.email }}</span>
                     </div>
                     <div 
                       class="w-6 h-6 rounded-lg flex items-center justify-center transition-all"
@@ -486,7 +479,7 @@
                         <img v-if="friend.photourl" :src="friend.photourl" class="w-full h-full object-cover" />
                         <User v-else class="w-4 h-4 text-zinc-600" />
                       </div>
-                      <span class="text-sm font-semibold text-zinc-200">{{ friend.displayname || friend.email }}</span>
+                      <span class="text-sm font-semibold text-zinc-200">{{ friend.username || friend.email }}</span>
                     </div>
                     <div 
                       class="w-6 h-6 rounded-lg flex items-center justify-center transition-all"

@@ -10,5 +10,5 @@ export default defineEventHandler(async (event) => {
   const user = await User.findById(userId).select('-passwordHash');
   if (!user) return { user: null };
 
-  return { user: { id: user._id, email: user.email, username: user.username, displayname: user.displayname, photourl: user.photourl } };
+  return { user: { id: user._id, email: user.email, username: user.username, photourl: user.photourl } };
 });

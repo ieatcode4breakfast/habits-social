@@ -6,7 +6,7 @@
     </div>
 
     <!-- Incoming Requests -->
-    <div v-if="pendingIncoming.length > 0" v-motion-fade class="bg-zinc-925/80 backdrop-blur-sm sm:rounded-2xl rounded-none p-6 shadow-2xl border border-zinc-800/80">
+    <div v-if="pendingIncoming.length > 0" v-motion-fade class="bg-zinc-925/80 backdrop-blur-sm sm:rounded-2xl rounded-none p-6 shadow-2xl border-y border-x-0 sm:border border-zinc-800/80">
       <h2 class="text-sm font-bold uppercase tracking-wider text-zinc-500 mb-4">Friend Requests</h2>
       <div class="space-y-3">
         <div v-for="req in pendingIncoming" :key="req.id" class="flex items-center justify-between bg-black border border-zinc-925 p-4 rounded-xl">
@@ -16,7 +16,7 @@
               <User v-else class="w-5 h-5 text-zinc-600" />
             </div>
             <div>
-              <div class="font-semibold text-zinc-200 text-sm">{{ profilesMap[req.initiatorid]?.displayname || 'Unknown' }}</div>
+              <div class="font-semibold text-zinc-200 text-sm">{{ profilesMap[req.initiatorid]?.username || 'Unknown' }}</div>
               <div class="text-zinc-500 text-xs">{{ profilesMap[req.initiatorid]?.email }}</div>
             </div>
           </div>
@@ -29,7 +29,7 @@
     </div>
 
     <!-- Add Friend -->
-    <div v-motion-fade class="bg-zinc-925/80 backdrop-blur-sm sm:rounded-2xl rounded-none p-6 shadow-2xl border border-zinc-800/80">
+    <div v-motion-fade class="bg-zinc-925/80 backdrop-blur-sm sm:rounded-2xl rounded-none p-6 shadow-2xl border-y border-x-0 sm:border border-zinc-800/80">
       <h2 class="text-sm font-bold uppercase tracking-wider text-zinc-500 mb-4">Add Friend</h2>
       <form @submit.prevent="handleSearch" class="flex gap-3">
         <div class="relative flex-1">
@@ -48,7 +48,7 @@
               <User v-else class="w-5 h-5 text-zinc-600" />
             </div>
             <div>
-              <div class="font-semibold text-zinc-200 text-sm">{{ res.displayname }}</div>
+              <div class="font-semibold text-zinc-200 text-sm">{{ res.username }}</div>
               <div class="text-zinc-500 text-xs">{{ res.email }}</div>
             </div>
           </div>
@@ -63,7 +63,7 @@
     </div>
 
     <!-- Friends List -->
-    <div v-motion-fade class="bg-zinc-925/80 backdrop-blur-sm sm:rounded-2xl rounded-none p-6 shadow-2xl border border-zinc-800/80">
+    <div v-motion-fade class="bg-zinc-925/80 backdrop-blur-sm sm:rounded-2xl rounded-none p-6 shadow-2xl border-y border-x-0 sm:border border-zinc-800/80">
       <h2 class="text-sm font-bold uppercase tracking-wider text-zinc-500 mb-4">My Friends</h2>
       <p v-if="acceptedFriends.length === 0" class="text-zinc-600 text-sm italic">No friends yet. Search by email above!</p>
       <div v-else class="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -75,7 +75,7 @@
           </div>
           <div class="flex-1 min-w-0">
             <div class="font-semibold text-zinc-200 truncate group-hover:text-white transition-colors text-sm">
-              {{ profilesMap[getFriendId(f)]?.displayname || 'Unknown' }}
+              {{ profilesMap[getFriendId(f)]?.username || 'Unknown' }}
             </div>
             <div class="text-zinc-500 text-xs truncate">{{ profilesMap[getFriendId(f)]?.email }}</div>
           </div>
@@ -93,7 +93,7 @@ definePageMeta({ middleware: 'auth' });
 
 const { user } = useAuth();
 
-interface UserProfile { id: string; email: string; displayname: string; photourl?: string; }
+interface UserProfile { id: string; email: string; username: string; photourl?: string; }
 interface Friendship { id: string; participants: string[]; initiatorid: string; receiverid: string; status: 'pending' | 'accepted'; }
 
 const searchEmail = ref('');
