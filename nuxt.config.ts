@@ -10,9 +10,6 @@ export default defineNuxtConfig({
   },
   css: ['~/assets/css/main.css'],
   nitro: {
-    experimental: {
-      nodeJsCompat: true,
-    },
     alias: {
       'mongodb-client-encryption': 'unenv/mock/proxy',
       aws4: 'unenv/mock/proxy',
