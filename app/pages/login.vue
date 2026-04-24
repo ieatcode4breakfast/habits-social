@@ -43,6 +43,18 @@
           </p>
 
           <form @submit.prevent="handleSubmit" class="space-y-4">
+            <!-- Username -->
+            <div v-if="tab === 'signup'" class="relative" v-motion-slide-top>
+              <User class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
+              <input
+                v-model="username"
+                type="text"
+                placeholder="Username"
+                required
+                class="w-full pl-10 pr-4 py-3 bg-black border border-zinc-800 rounded-xl text-white placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-zinc-600 focus:border-transparent transition-all text-sm"
+              />
+            </div>
+
             <!-- Email -->
             <div class="relative">
               <Mail class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
@@ -88,13 +100,13 @@
             </div>
 
             <!-- Error -->
-            <p v-if="error" class="text-sm text-red-400 bg-red-950/50 px-3 py-2 rounded-lg">{{ error }}</p>
+            <p v-if="error" class="text-sm text-red-400 bg-red-950/50 px-3 py-2 rounded-lg text-center">{{ error }}</p>
 
             <!-- Actions -->
             <div class="flex items-center gap-3 pt-2">
               <button
                 type="button"
-                @click="email = ''; password = ''; confirmPassword = ''; error = ''"
+                @click="email = ''; username = ''; password = ''; confirmPassword = ''; error = ''"
                 class="flex-1 py-3 text-sm font-semibold text-zinc-400 bg-transparent hover:bg-zinc-925 rounded-xl transition-colors cursor-pointer"
               >
                 Cancel
@@ -115,7 +127,7 @@
 </template>
 
 <script setup lang="ts">
-import { Activity, Mail, Lock, Eye, EyeOff } from 'lucide-vue-next';
+import { Activity, Mail, Lock, Eye, EyeOff, User } from 'lucide-vue-next';
 
 definePageMeta({ layout: false });
 
@@ -124,6 +136,7 @@ const router = useRouter();
 
 const tab = ref<'login' | 'signup'>('login');
 const email = ref('');
+const username = ref('');
 const password = ref('');
 const confirmPassword = ref('');
 const showPassword = ref(false);
@@ -144,7 +157,11 @@ const handleSubmit = async () => {
     const endpoint = tab.value === 'login' ? '/api/auth/login' : '/api/auth/register';
     const response = await $fetch<{ user: any }>(endpoint, { 
       method: 'POST', 
-      body: { email: email.value, password: password.value } 
+      body: { 
+        email: email.value, 
+        password: password.value,
+        ...(tab.value === 'signup' ? { username: username.value } : {})
+      } 
     });
     
     // Set user state immediately to avoid middleware race conditions

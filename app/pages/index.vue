@@ -53,7 +53,7 @@
           v-if="(streakInfoMap.get(habit.id)?.count ?? 0) >= 2"
           class="absolute top-3 left-0 sm:top-2 flex items-center gap-1.5 px-3 py-1 bg-black border border-l-0 rounded-r-full rounded-l-none z-20 transition-all duration-500"
           :class="[
-            streakInfoMap.get(habit.id)?.faded ? 'opacity-40 grayscale' : 'opacity-100',
+            streakInfoMap.get(habit.id)?.faded ? 'opacity-30' : 'opacity-100',
             getStreakTheme(streakInfoMap.get(habit.id)?.count ?? 0).border
           ]"
         >
@@ -299,7 +299,7 @@
                     v-if="(streakInfoMap.get(editingHabit?.id || '')?.count ?? 0) >= 2"
                     class="flex items-center gap-1 px-2 py-0.5 bg-black border rounded-full shrink-0"
                     :class="[
-                      streakInfoMap.get(editingHabit?.id || '')?.faded ? 'opacity-40 grayscale' : 'opacity-100',
+                      streakInfoMap.get(editingHabit?.id || '')?.faded ? 'opacity-30' : 'opacity-100',
                       getStreakTheme(streakInfoMap.get(editingHabit?.id || '')?.count ?? 0).border
                     ]"
                   >

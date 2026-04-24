@@ -19,5 +19,5 @@ export default defineEventHandler(async (event) => {
   const token = generateToken(user._id.toString());
   setCookie(event, 'auth_token', token, { httpOnly: true, maxAge: 60 * 60 * 24 * 7, path: '/', sameSite: 'strict' });
 
-  return { user: { id: user._id, email: user.email, displayname: user.displayname, photourl: user.photourl } };
+  return { user: { id: user._id, email: user.email, username: user.username, displayname: user.displayname, photourl: user.photourl } };
 });
