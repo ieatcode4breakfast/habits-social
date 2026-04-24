@@ -26,11 +26,11 @@
           <div v-for="req in pendingIncoming" :key="req.id" class="flex items-center justify-between bg-black border border-zinc-925 p-4 rounded-xl">
             <div class="flex items-center gap-3">
               <div class="w-10 h-10 bg-zinc-925 rounded-full flex items-center justify-center overflow-hidden">
-                <img v-if="profilesMap[req.initiatorid]?.photourl" :src="profilesMap[req.initiatorid]?.photourl" alt="" class="w-full h-full object-cover" />
+                <img v-if="profilesMap[req.initiatorId]?.photourl" :src="profilesMap[req.initiatorId]?.photourl" alt="" class="w-full h-full object-cover" />
                 <User v-else class="w-5 h-5 text-zinc-600" />
               </div>
               <div>
-                <div class="font-semibold text-zinc-200 text-sm">{{ profilesMap[req.initiatorid]?.username || 'Unknown' }}</div>
+                <div class="font-semibold text-zinc-200 text-sm">{{ profilesMap[req.initiatorId]?.username || 'Unknown' }}</div>
               </div>
             </div>
             <div class="flex gap-2">
@@ -92,11 +92,11 @@
       <p v-if="displayFriends.length === 0" class="text-zinc-600 text-sm italic">No friends yet. Search for people above!</p>
       <p v-else-if="filteredDisplayFriends.length === 0" class="text-zinc-600 text-sm italic">No friends found matching your filter.</p>
       <div v-else class="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-[480px] overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-zinc-800 scrollbar-track-transparent">
-        <component 
-          :is="f.status === 'accepted' ? 'NuxtLink' : 'div'"
-          v-for="f in filteredDisplayFriends" :key="f.id" :to="f.status === 'accepted' ? `/friends/${getFriendId(f)}` : undefined"
-          class="flex items-center gap-4 p-4 rounded-xl border border-zinc-925 hover:border-zinc-700 bg-black transition-all group shadow-sm hover:shadow-md"
-          :class="{ 'cursor-default': f.status === 'pending' }"
+        <div 
+          v-for="f in filteredDisplayFriends" :key="f.id"
+          @click="handleFriendClick(f)"
+          class="flex items-center gap-4 p-4 rounded-xl border border-zinc-925 bg-black transition-all group shadow-sm"
+          :class="f.status === 'accepted' ? 'hover:border-zinc-700 hover:shadow-md cursor-pointer' : 'cursor-default'"
         >
           <div class="w-12 h-12 bg-zinc-925 rounded-full flex items-center justify-center overflow-hidden flex-shrink-0">
             <img v-if="profilesMap[getFriendId(f)]?.photourl" :src="profilesMap[getFriendId(f)]?.photourl" alt="" class="w-full h-full object-cover" />
@@ -104,7 +104,7 @@
           </div>
           <div class="flex-1 min-w-0">
             <div class="flex items-center gap-2">
-              <div class="font-semibold text-zinc-200 truncate group-hover:text-white transition-colors text-sm">
+              <div class="font-semibold text-zinc-200 truncate transition-colors text-sm" :class="{ 'group-hover:text-white': f.status === 'accepted' }">
                 {{ profilesMap[getFriendId(f)]?.username || 'Unknown' }}
               </div>
               <span v-if="f.status === 'pending'" class="text-[10px] font-bold uppercase tracking-widest text-zinc-600 bg-zinc-925 px-2 py-0.5 rounded-md shrink-0">
@@ -112,14 +112,17 @@
               </span>
             </div>
           </div>
-          <button 
-            @click.prevent.stop="confirmUnfriend(f)" 
-            class="p-2 text-zinc-600 hover:text-rose-500 hover:bg-rose-500/10 rounded-xl transition-all flex-shrink-0 cursor-pointer"
-            :title="f.status === 'pending' ? 'Cancel Request' : 'Unfriend'"
-          >
-            <X class="w-4 h-4" />
-          </button>
-        </component>
+          <div class="flex items-center gap-1 flex-shrink-0">
+            <button 
+              @click.stop="confirmUnfriend(f)" 
+              class="p-2 text-zinc-600 hover:text-rose-500 hover:bg-rose-500/10 rounded-xl transition-all cursor-pointer"
+              :title="f.status === 'pending' ? 'Cancel Request' : 'Unfriend'"
+            >
+              <X class="w-4 h-4" />
+            </button>
+            <ChevronRight v-if="f.status === 'accepted'" class="w-4 h-4 text-zinc-800 group-hover:text-zinc-500 transition-colors" />
+          </div>
+        </div>
       </div>
     </div>
 
@@ -260,7 +263,7 @@ definePageMeta({ middleware: 'auth' });
 const { user } = useAuth();
 
 interface UserProfile { id: string; email: string; username: string; photourl?: string; }
-interface Friendship { id: string; participants: string[]; initiatorid: string; receiverid: string; status: 'pending' | 'accepted'; }
+interface Friendship { id: string; participants: string[]; initiatorId: string; receiverId: string; status: 'pending' | 'accepted'; }
 
 const searchQuery = ref('');
 const friendsSearchQuery = ref('');
@@ -277,8 +280,8 @@ const myHabits = ref<any[]>([]);
 const selectedHabitIds = ref<string[]>([]);
 const userBeingSharedWith = ref<UserProfile | null>(null);
 
-const pendingIncoming = computed(() => friendships.value.filter(f => f.status === 'pending' && f.receiverid === user.value?.id));
-const pendingOutgoing = computed(() => friendships.value.filter(f => f.status === 'pending' && f.initiatorid === user.value?.id));
+const pendingIncoming = computed(() => friendships.value.filter(f => f.status === 'pending' && f.receiverId === user.value?.id));
+const pendingOutgoing = computed(() => friendships.value.filter(f => f.status === 'pending' && f.initiatorId === user.value?.id));
 const acceptedFriends = computed(() => friendships.value.filter(f => f.status === 'accepted'));
 const displayFriends = computed(() => {
   const combined = [...acceptedFriends.value, ...pendingOutgoing.value];
@@ -297,8 +300,14 @@ const filteredDisplayFriends = computed(() => {
     return username.includes(q);
   });
 });
-const getFriendId = (f: Friendship) => f.participants.find(p => p !== user.value?.id) ?? '';
-const getRelationship = (targetId: string) => friendships.value.find(f => f.participants.includes(targetId))?.status;
+const getFriendId = (f: Friendship) => f.participants?.find(p => String(p) !== String(user.value?.id)) ?? '';
+const getRelationship = (targetId: string) => friendships.value.find(f => f.participants?.includes(targetId))?.status;
+
+const handleFriendClick = (f: Friendship) => {
+  if (f.status === 'accepted') {
+    navigateTo(`/friends/${getFriendId(f)}`);
+  }
+};
 
 // Modal Adaptive Logic
 const modalContent = ref<HTMLElement | null>(null);

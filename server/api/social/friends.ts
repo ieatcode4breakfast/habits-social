@@ -27,7 +27,8 @@ export default defineEventHandler(async (event) => {
       ...f,
       id: f._id.toString(),
       initiatorId: f.initiatorId.toString(),
-      receiverId: f.receiverId.toString()
+      receiverId: f.receiverId.toString(),
+      participants: [f.initiatorId.toString(), f.receiverId.toString()]
     }));
 
     const mappedProfiles = profiles.map((p: any) => ({
@@ -59,6 +60,13 @@ export default defineEventHandler(async (event) => {
       status: 'pending'
     });
 
-    return { ...newFriendship.toObject(), id: newFriendship._id.toString() };
+    const obj = newFriendship.toObject();
+    return { 
+      ...obj, 
+      id: newFriendship._id.toString(),
+      initiatorId: obj.initiatorId.toString(),
+      receiverId: obj.receiverId.toString(),
+      participants: [obj.initiatorId.toString(), obj.receiverId.toString()]
+    };
   }
 });
