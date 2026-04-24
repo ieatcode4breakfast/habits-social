@@ -1,4 +1,4 @@
-import { IHabit } from '../../models';
+import type { IHabit } from '../../models';
 import { ObjectId } from 'mongodb';
 
 export default defineEventHandler(async (event) => {

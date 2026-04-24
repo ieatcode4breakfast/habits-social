@@ -1,4 +1,4 @@
-import { IFriendship, IUser } from '../../models';
+import type { IFriendship, IUser } from '../../models';
 import { ObjectId } from 'mongodb';
 
 export default defineEventHandler(async (event) => {

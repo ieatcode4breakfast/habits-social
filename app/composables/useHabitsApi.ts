@@ -37,14 +37,11 @@ export const useHabitsApi = () => {
   const upsertLog = (data: { habitid: string; date: string; status: string; sharedwith?: string[] }) =>
     $fetch<HabitLog>('/api/habitlogs', { method: 'POST', body: data });
 
-  const getFriendHabits = (friendId: string) =>
-    $fetch<{ habits: Habit[]; logs: HabitLog[] }>('/api/social/friend-data', { query: { friendId } });
-
   const deleteLog = (habitid: string, date: string) =>
     $fetch('/api/habitlogs', { method: 'DELETE', query: { habitid, date } });
 
   const reorderHabits = (ids: string[]) =>
     $fetch('/api/habits/reorder', { method: 'POST', body: { ids } });
 
-  return { getHabits, createHabit, updateHabit, deleteHabit, getLogs, upsertLog, deleteLog, getFriendHabits, reorderHabits };
+  return { getHabits, createHabit, updateHabit, deleteHabit, getLogs, upsertLog, deleteLog, reorderHabits };
 };

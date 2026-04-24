@@ -1,5 +1,5 @@
 import { hash } from 'bcrypt-ts';
-import { IUser } from '../../models';
+import type { IUser } from '../../models';
 import { ObjectId } from 'mongodb';
 
 export default defineEventHandler(async (event) => {

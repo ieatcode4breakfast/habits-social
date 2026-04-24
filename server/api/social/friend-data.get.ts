@@ -1,4 +1,4 @@
-import { IHabit, IHabitLog } from '../../models';
+import type { IHabit, IHabitLog } from '../../models';
 
 export default defineEventHandler(async (event) => {
   const db = await useDB();
