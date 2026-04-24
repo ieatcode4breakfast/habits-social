@@ -35,7 +35,7 @@ export default defineEventHandler(async (event) => {
       date: String(body.date)
     });
 
-    let logResult;
+    let savedLog;
     
     if (existing) {
       existing.status = String(body.status);
@@ -44,7 +44,7 @@ export default defineEventHandler(async (event) => {
         existing.sharedwith = body.sharedwith;
       }
       await existing.save();
-      logResult = existing._id.toString();
+      savedLog = existing;
     } else {
       const newLog = await HabitLog.create({
         habitid: habitId,
@@ -53,10 +53,13 @@ export default defineEventHandler(async (event) => {
         status: String(body.status),
         sharedwith: body.sharedwith && Array.isArray(body.sharedwith) ? body.sharedwith : []
       });
-      logResult = newLog._id.toString();
+      savedLog = newLog;
     }
 
-    return { id: logResult, ...body };
+    return { 
+      ...savedLog.toObject(),
+      id: savedLog._id.toString() 
+    };
   }
 
   if (event.method === 'DELETE') {

@@ -24,7 +24,10 @@ export default defineEventHandler(async (event) => {
     habit.updatedat = new Date();
     await habit.save();
 
-    return { success: true };
+    return { 
+      ...habit.toObject(),
+      id: habit._id.toString()
+    };
   }
 
   if (event.method === 'DELETE') {

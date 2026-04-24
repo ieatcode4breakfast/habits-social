@@ -880,7 +880,10 @@ const addHabit = async () => {
   showModal.value = false;
 };
 
+let isInitializingEdit = false;
+
 const openEditModal = (habit: Habit) => {
+  isInitializingEdit = true;
   editingHabit.value = habit;
   editTitle.value = habit.title;
   editDescription.value = habit.description || '';
@@ -891,6 +894,11 @@ const openEditModal = (habit: Habit) => {
   isEditingSharing.value = false;
   currentCalendarDate.value = new Date();
   showEditModal.value = true;
+  
+  nextTick(() => {
+    isInitializingEdit = false;
+    isDirty.value = false;
+  });
 };
 
 const prevMonth = () => currentCalendarDate.value = subMonths(currentCalendarDate.value, 1);
@@ -1005,11 +1013,19 @@ const scheduleReorderSave = () => {
 // ─────────────────────────────────────────────────────────────────────────────
 
 let autosaveTimeout: NodeJS.Timeout | null = null;
+const isDirty = ref(false);
+
+watch(showEditModal, (isOpen) => {
+  if (!isOpen && isDirty.value) {
+    updateHabit();
+  }
+});
 
 watch(
   [editTitle, editDescription, editFrequencyCount, editFrequencyPeriod],
   () => {
-    if (showEditModal.value && editingHabit.value) {
+    if (showEditModal.value && editingHabit.value && !isInitializingEdit) {
+      isDirty.value = true;
       if (autosaveTimeout) clearTimeout(autosaveTimeout);
       autosaveTimeout = setTimeout(() => {
         updateHabit();
@@ -1021,6 +1037,11 @@ watch(
 
 const updateHabit = async () => {
   if (!editingHabit.value || !editTitle.value.trim()) return;
+  isDirty.value = false;
+  if (autosaveTimeout) {
+    clearTimeout(autosaveTimeout);
+    autosaveTimeout = null;
+  }
   const updated = await api.updateHabit(editingHabit.value.id, { 
     title: editTitle.value.trim(),
     description: editDescription.value.trim(),
