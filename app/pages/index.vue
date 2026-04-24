@@ -222,7 +222,7 @@
                         <img v-if="friend.photourl" :src="friend.photourl" class="w-full h-full object-cover" />
                         <User v-else class="w-4 h-4 text-zinc-600" />
                       </div>
-                      <span class="text-sm font-semibold text-zinc-200">{{ friend.username || friend.email }}</span>
+                      <span class="text-sm font-semibold text-zinc-200">{{ friend.username || 'Unknown' }}</span>
                     </div>
                     <div 
                       class="w-6 h-6 rounded-lg flex items-center justify-center transition-all"
@@ -479,7 +479,7 @@
                         <img v-if="friend.photourl" :src="friend.photourl" class="w-full h-full object-cover" />
                         <User v-else class="w-4 h-4 text-zinc-600" />
                       </div>
-                      <span class="text-sm font-semibold text-zinc-200">{{ friend.username || friend.email }}</span>
+                      <span class="text-sm font-semibold text-zinc-200">{{ friend.username || 'Unknown' }}</span>
                     </div>
                     <div 
                       class="w-6 h-6 rounded-lg flex items-center justify-center transition-all"

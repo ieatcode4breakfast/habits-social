@@ -51,6 +51,8 @@
                 type="text"
                 placeholder="Username"
                 required
+                minlength="3"
+                maxlength="20"
                 class="w-full pl-10 pr-4 py-3 bg-black border border-zinc-800 rounded-xl text-white placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-zinc-600 focus:border-transparent transition-all text-sm"
               />
             </div>
@@ -75,6 +77,7 @@
                 :type="showPassword ? 'text' : 'password'"
                 placeholder="Password"
                 required
+                minlength="8"
                 class="w-full pl-10 pr-12 py-3 bg-black border border-zinc-800 rounded-xl text-white placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-zinc-600 focus:border-transparent transition-all text-sm"
               />
               <button type="button" @click="showPassword = !showPassword" class="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300 cursor-pointer">
@@ -147,10 +150,22 @@ const handleSubmit = async () => {
   loading.value = true;
   error.value = '';
 
-  if (tab.value === 'signup' && password.value !== confirmPassword.value) {
-    error.value = 'Passwords do not match.';
-    loading.value = false;
-    return;
+  if (tab.value === 'signup') {
+    if (username.value.length < 3 || username.value.length > 20) {
+      error.value = 'Username must be between 3 and 20 characters.';
+      loading.value = false;
+      return;
+    }
+    if (password.value.length < 8) {
+      error.value = 'Password must be at least 8 characters long.';
+      loading.value = false;
+      return;
+    }
+    if (password.value !== confirmPassword.value) {
+      error.value = 'Passwords do not match.';
+      loading.value = false;
+      return;
+    }
   }
 
   try {
