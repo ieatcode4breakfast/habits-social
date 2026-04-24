@@ -1,4 +1,4 @@
-import bcrypt from 'bcryptjs';
+import { compare } from 'bcrypt-ts';
 import { users } from '../../models';
 import { eq } from 'drizzle-orm';
 
@@ -13,7 +13,7 @@ export default defineEventHandler(async (event) => {
   
   if (!user) throw createError({ statusCode: 400, statusMessage: 'Invalid credentials' });
 
-  const isMatch = await bcrypt.compare(password, user.passwordHash);
+  const isMatch = await compare(password, user.passwordHash);
   if (!isMatch) throw createError({ statusCode: 400, statusMessage: 'Invalid credentials' });
 
   // Await the generateToken call

@@ -1,14 +1,23 @@
-import { User } from '../../models';
-import { connectDB } from '../../utils/db';
-import { getUserFromEvent } from '../../utils/auth';
+import { users } from '../../models';
+import { eq } from 'drizzle-orm';
 
 export default defineEventHandler(async (event) => {
-  const userId = getUserFromEvent(event);
-  if (!userId) return { user: null };
+  const db = useDB(event);
+  const userId = await requireAuth(event);
 
-  await connectDB();
-  const user = await User.findById(userId).select('-passwordHash');
-  if (!user) return { user: null };
+  const user = await db.select({
+    id: users.id,
+    email: users.email,
+    username: users.username,
+    photourl: users.photourl
+  })
+  .from(users)
+  .where(eq(users.id, userId))
+  .get();
 
-  return { user: { id: user._id, email: user.email, username: user.username, photourl: user.photourl } };
+  if (!user) {
+    throw createError({ statusCode: 404, statusMessage: 'User not found' });
+  }
+
+  return { user };
 });

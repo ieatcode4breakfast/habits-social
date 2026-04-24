@@ -1,4 +1,4 @@
-import bcrypt from 'bcryptjs';
+import { hash } from 'bcrypt-ts';
 import { users } from '../../models';
 import { eq } from 'drizzle-orm';
 
@@ -23,7 +23,7 @@ export default defineEventHandler(async (event) => {
   const existingUsername = await db.select().from(users).where(eq(users.username, username)).get();
   if (existingUsername) throw createError({ statusCode: 400, statusMessage: 'This username is already taken' });
 
-  const passwordHash = await bcrypt.hash(password, 10);
+  const passwordHash = await hash(password, 10);
   
   const result = await db.insert(users).values({ 
     email, 

@@ -1,17 +1,17 @@
 {
   "name": "habits-social",
-  "type": "module",
   "private": true,
+  "type": "module",
   "scripts": {
     "build": "nuxt build",
-    "dev": "nuxt dev --host",
+    "dev": "nuxt dev",
     "generate": "nuxt generate",
     "preview": "nuxt preview",
     "postinstall": "nuxt prepare"
   },
   "dependencies": {
     "@vueuse/motion": "^3.0.3",
-    "bcryptjs": "^3.0.3",
+    "bcrypt-ts": "^5.0.3",
     "date-fns": "^4.1.0",
     "drizzle-orm": "^0.40.0",
     "jose": "^6.0.0",
@@ -21,11 +21,8 @@
     "vue-router": "^5.0.4"
   },
   "devDependencies": {
-    "@aws-sdk/credential-providers": "^3.1036.0",
     "@tailwindcss/vite": "^4.2.2",
-    "@types/bcryptjs": "^2.4.6",
     "drizzle-kit": "^0.30.5",
-    "sharp": "^0.34.5",
     "tailwindcss": "^4.2.2"
   }
 }
