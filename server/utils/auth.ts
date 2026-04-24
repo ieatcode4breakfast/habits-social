@@ -1,17 +1,23 @@
 import jwt from 'jsonwebtoken';
 import type { H3Event } from 'h3';
 
-export const generateToken = (userId: string | number): string => {
+const getSecret = (event: H3Event) => {
   const config = useRuntimeConfig();
-  return jwt.sign({ userId }, config.jwtSecret as string, { expiresIn: '7d' });
+  // Prefer the Cloudflare env variable directly, then fallback to runtimeConfig
+  return event.context.cloudflare?.env?.JWT_SECRET || config.jwtSecret as string;
+};
+
+export const generateToken = (userId: string | number, event: H3Event): string => {
+  const secret = getSecret(event);
+  return jwt.sign({ userId }, secret, { expiresIn: '7d' });
 };
 
 export const getUserFromEvent = (event: H3Event): number | null => {
-  const config = useRuntimeConfig();
+  const secret = getSecret(event);
   const token = getCookie(event, 'auth_token');
   if (!token) return null;
   try {
-    const decoded = jwt.verify(token, config.jwtSecret as string) as { userId: string | number };
+    const decoded = jwt.verify(token, secret) as { userId: string | number };
     return Number(decoded.userId);
   } catch {
     return null;
