@@ -1,34 +1,19 @@
-import { drizzle as drizzleD1 } from 'drizzle-orm/d1';
-import { drizzle as drizzleSqlite } from 'drizzle-orm/better-sqlite3';
-import Database from 'better-sqlite3';
-import * as schema from '../database/schema';
-import fs from 'fs';
-import path from 'path';
+import mongoose from 'mongoose';
 
-// Singleton for local dev to prevent too many connections
-let sqliteDb: any = null;
+let isConnected = false;
 
-export const useDB = (event: any) => {
-  // In Cloudflare (Production), the D1 binding is provided in the event context
-  const dbBinding = event.context.cloudflare?.env?.DB;
+export const useDB = async () => {
+  if (isConnected) return;
 
-  if (dbBinding) {
-    return drizzleD1(dbBinding, { schema });
+  const uri = process.env.MONGODB_URI;
+  if (!uri) throw new Error('MONGODB_URI is not defined in environment variables.');
+
+  try {
+    await mongoose.connect(uri);
+    isConnected = true;
+    console.log('Connected to MongoDB');
+  } catch (error) {
+    console.error('Failed to connect to MongoDB', error);
+    throw error;
   }
-
-  // Fallback for local development (npm run dev)
-  if (process.env.NODE_ENV === 'development') {
-    if (!sqliteDb) {
-      console.warn('[dev] Using local SQLite fallback for D1 database');
-      const dataDir = path.resolve('.data');
-      if (!fs.existsSync(dataDir)) {
-        fs.mkdirSync(dataDir, { recursive: true });
-      }
-      const sqlite = new Database(path.join(dataDir, 'local.db'));
-      sqliteDb = drizzleSqlite(sqlite, { schema });
-    }
-    return sqliteDb;
-  }
-
-  throw new Error('Database binding "DB" not found in cloudflare environment and not in development mode');
 };

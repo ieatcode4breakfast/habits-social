@@ -1,52 +1,64 @@
-import { friendships, users } from '../../models';
-import { eq, or, and, inArray } from 'drizzle-orm';
+import { Friendship, User } from '../../models';
 
 export default defineEventHandler(async (event) => {
-  const db = useDB(event);
+  await useDB();
   const userId = await requireAuth(event);
 
   if (event.method === 'GET') {
-    const userFriendships = await db.select().from(friendships)
-      .where(or(eq(friendships.initiatorId, userId), eq(friendships.receiverId, userId)));
+    const userFriendships = await Friendship.find({
+      $or: [
+        { initiatorId: userId },
+        { receiverId: userId }
+      ]
+    }).lean();
     
-    const friendIds = userFriendships.map((f: any) => f.initiatorId === userId ? f.receiverId : f.initiatorId);
+    const friendIds = userFriendships.map((f: any) => 
+      f.initiatorId.toString() === userId ? f.receiverId : f.initiatorId
+    );
     
     let profiles: any[] = [];
     if (friendIds.length > 0) {
-      profiles = await db.select({
-        id: users.id,
-        email: users.email,
-        username: users.username,
-        photourl: users.photourl,
-        createdAt: users.createdAt,
-      }).from(users).where(inArray(users.id, friendIds));
+      profiles = await User.find({ _id: { $in: friendIds } })
+        .select('-passwordHash')
+        .lean();
     }
 
+    const mappedFriendships = userFriendships.map((f: any) => ({
+      ...f,
+      id: f._id.toString(),
+      initiatorId: f.initiatorId.toString(),
+      receiverId: f.receiverId.toString()
+    }));
+
+    const mappedProfiles = profiles.map((p: any) => ({
+      ...p,
+      id: p._id.toString()
+    }));
+
     return {
-      friendships: userFriendships,
-      profiles: profiles
+      friendships: mappedFriendships,
+      profiles: mappedProfiles
     };
   }
 
   if (event.method === 'POST') {
     const { targetUserId } = await readBody(event);
-    const targetId = Number(targetUserId);
 
-    const existing = await db.select().from(friendships).where(
-      or(
-        and(eq(friendships.initiatorId, userId), eq(friendships.receiverId, targetId)),
-        and(eq(friendships.initiatorId, targetId), eq(friendships.receiverId, userId))
-      )
-    ).get();
+    const existing = await Friendship.findOne({
+      $or: [
+        { initiatorId: userId, receiverId: targetUserId },
+        { initiatorId: targetUserId, receiverId: userId }
+      ]
+    });
 
     if (existing) throw createError({ statusCode: 400, statusMessage: 'Friendship already exists' });
 
-    const result = await db.insert(friendships).values({
+    const newFriendship = await Friendship.create({
       initiatorId: userId,
-      receiverId: targetId,
+      receiverId: targetUserId,
       status: 'pending'
-    }).returning().get();
+    });
 
-    return result;
+    return { ...newFriendship.toObject(), id: newFriendship._id.toString() };
   }
 });

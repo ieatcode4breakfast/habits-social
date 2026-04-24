@@ -16,19 +16,19 @@ export const generateToken = async (userId: string | number, event: H3Event): Pr
     .sign(secret);
 };
 
-export const getUserFromEvent = async (event: H3Event): Promise<number | null> => {
+export const getUserFromEvent = async (event: H3Event): Promise<string | null> => {
   const secret = getSecret(event);
   const token = getCookie(event, 'auth_token');
   if (!token) return null;
   try {
     const { payload } = await jwtVerify(token, secret);
-    return Number(payload.userId);
+    return String(payload.userId);
   } catch {
     return null;
   }
 };
 
-export const requireAuth = async (event: H3Event): Promise<number> => {
+export const requireAuth = async (event: H3Event): Promise<string> => {
   const userId = await getUserFromEvent(event);
   if (!userId) throw createError({ statusCode: 401, statusMessage: 'Unauthorized' });
   return userId;

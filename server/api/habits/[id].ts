@@ -1,47 +1,34 @@
-import { habits, habitShares } from '../../models';
-import { eq, and } from 'drizzle-orm';
+import { Habit } from '../../models';
 
 export default defineEventHandler(async (event) => {
-  const db = useDB(event);
+  await useDB();
   const userId = await requireAuth(event);
-  const id = Number(getRouterParam(event, 'id'));
+  const id = getRouterParam(event, 'id');
 
-  const habit = await db.select().from(habits).where(and(eq(habits.id, id), eq(habits.ownerId, userId))).get();
+  const habit = await Habit.findOne({ _id: id, ownerid: userId });
   if (!habit) throw createError({ statusCode: 404, statusMessage: 'Not found' });
 
   if (event.method === 'PUT') {
     const body = await readBody(event);
     
-    await db.transaction(async (tx: any) => {
-      await tx.update(habits).set({
-        title: body.title,
-        description: body.description,
-        frequencyCount: body.frequencyCount,
-        frequencyPeriod: body.frequencyPeriod,
-        color: body.color,
-        updatedAt: new Date(),
-      }).where(eq(habits.id, id));
-
-      if (body.sharedwith && Array.isArray(body.sharedwith)) {
-        // Sync shares: delete old, insert new
-        await tx.delete(habitShares).where(eq(habitShares.habitId, id));
-        for (const sharedUserId of body.sharedwith) {
-          await tx.insert(habitShares).values({
-            habitId: id,
-            userId: Number(sharedUserId),
-          });
-        }
-      }
-    });
+    habit.title = body.title !== undefined ? body.title : habit.title;
+    habit.description = body.description !== undefined ? body.description : habit.description;
+    habit.frequencyCount = body.frequencyCount !== undefined ? body.frequencyCount : habit.frequencyCount;
+    habit.frequencyPeriod = body.frequencyPeriod !== undefined ? body.frequencyPeriod : habit.frequencyPeriod;
+    habit.color = body.color !== undefined ? body.color : habit.color;
+    
+    if (body.sharedwith && Array.isArray(body.sharedwith)) {
+      habit.sharedwith = body.sharedwith;
+    }
+    
+    habit.updatedat = new Date();
+    await habit.save();
 
     return { success: true };
   }
 
   if (event.method === 'DELETE') {
-    await db.transaction(async (tx: any) => {
-      await tx.delete(habitShares).where(eq(habitShares.habitId, id));
-      await tx.delete(habits).where(eq(habits.id, id));
-    });
+    await Habit.deleteOne({ _id: id });
     return { success: true };
   }
 });

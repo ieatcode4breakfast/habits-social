@@ -1,20 +1,22 @@
-import { habits } from '../../models';
-import { eq, and } from 'drizzle-orm';
+import { Habit } from '../../models';
 
 export default defineEventHandler(async (event) => {
-  const db = useDB(event);
+  await useDB();
   const userId = await requireAuth(event);
 
   const { ids } = await readBody(event);
   if (!Array.isArray(ids)) throw createError({ statusCode: 400, statusMessage: 'ids must be an array' });
 
-  await db.transaction(async (tx: any) => {
-    for (let i = 0; i < ids.length; i++) {
-      await tx.update(habits)
-        .set({ sortOrder: i })
-        .where(and(eq(habits.id, Number(ids[i])), eq(habits.ownerId, userId)));
+  const bulkOps = ids.map((id, index) => ({
+    updateOne: {
+      filter: { _id: id, ownerid: userId },
+      update: { $set: { sortOrder: index } }
     }
-  });
+  }));
+
+  if (bulkOps.length > 0) {
+    await Habit.bulkWrite(bulkOps);
+  }
 
   return { success: true };
 });

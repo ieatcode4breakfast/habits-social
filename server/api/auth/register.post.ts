@@ -1,9 +1,8 @@
 import { hash } from 'bcrypt-ts';
-import { users } from '../../models';
-import { eq } from 'drizzle-orm';
+import { User } from '../../models';
 
 export default defineEventHandler(async (event) => {
-  const db = useDB(event);
+  await useDB();
   const { email, password, username } = await readBody(event);
   
   if (!email || !password || !username)
@@ -15,27 +14,24 @@ export default defineEventHandler(async (event) => {
   if (password.length < 8)
     throw createError({ statusCode: 400, statusMessage: 'Password must be at least 8 characters long' });
 
-  // Check existing email
-  const existingEmail = await db.select().from(users).where(eq(users.email, email)).get();
+  const existingEmail = await User.findOne({ email });
   if (existingEmail) throw createError({ statusCode: 400, statusMessage: 'An account with this email already exists' });
 
-  // Check existing username
-  const existingUsername = await db.select().from(users).where(eq(users.username, username)).get();
+  const existingUsername = await User.findOne({ username });
   if (existingUsername) throw createError({ statusCode: 400, statusMessage: 'This username is already taken' });
 
   const passwordHash = await hash(password, 10);
   
-  const result = await db.insert(users).values({ 
+  const user = await User.create({ 
     email, 
     username, 
     passwordHash 
-  }).returning().get();
+  });
 
-  if (!result) throw createError({ statusCode: 500, statusMessage: 'Failed to create user' });
+  if (!user) throw createError({ statusCode: 500, statusMessage: 'Failed to create user' });
 
-  // Await the generateToken call
-  const token = await generateToken(result.id.toString(), event);
+  const token = await generateToken(user._id.toString(), event);
   setCookie(event, 'auth_token', token, { httpOnly: true, maxAge: 60 * 60 * 24 * 7, path: '/', sameSite: 'strict' });
 
-  return { user: { id: result.id, email: result.email, username: result.username } };
+  return { user: { id: user._id.toString(), email: user.email, username: user.username } };
 });

@@ -1,9 +1,8 @@
 import { hash } from 'bcrypt-ts';
-import { users } from '../../models';
-import { eq } from 'drizzle-orm';
+import { User } from '../../models';
 
 export default defineEventHandler(async (event) => {
-  const db = useDB(event);
+  await useDB();
   const userId = await requireAuth(event);
   const { username, email, password, photourl } = await readBody(event);
 
@@ -19,17 +18,13 @@ export default defineEventHandler(async (event) => {
     return { message: 'No changes made' };
   }
 
-  const updatedUser = await db.update(users)
-    .set(updateData)
-    .where(eq(users.id, userId))
-    .returning()
-    .get();
+  const updatedUser = await User.findByIdAndUpdate(userId, updateData, { new: true });
 
   if (!updatedUser) throw createError({ statusCode: 404, statusMessage: 'User not found' });
 
   return {
     user: {
-      id: updatedUser.id,
+      id: updatedUser._id.toString(),
       email: updatedUser.email,
       username: updatedUser.username,
       photourl: updatedUser.photourl

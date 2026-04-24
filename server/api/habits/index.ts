@@ -1,22 +1,17 @@
-import { habits, habitShares } from '../../models';
-import { eq, asc, count as drizzleCount } from 'drizzle-orm';
+import { Habit } from '../../models';
 
 export default defineEventHandler(async (event) => {
-  const db = useDB(event);
+  await useDB();
   const userId = await requireAuth(event);
 
   if (event.method === 'GET') {
-    const userHabits = await db.select().from(habits)
-      .where(eq(habits.ownerId, userId))
-      .orderBy(asc(habits.sortOrder), asc(habits.createdAt));
+    const userHabits = await Habit.find({ ownerid: userId })
+      .sort({ sortOrder: 1, createdAt: 1 })
+      .lean();
     
-    // Fetch shares for each habit
-    const results = await Promise.all(userHabits.map(async (habit: any) => {
-      const shares = await db.select().from(habitShares).where(eq(habitShares.habitId, habit.id));
-      return {
-        ...habit,
-        sharedwith: shares.map((s: any) => s.userId)
-      };
+    const results = userHabits.map((habit: any) => ({
+      ...habit,
+      id: habit._id.toString()
     }));
     
     return results;
@@ -25,33 +20,23 @@ export default defineEventHandler(async (event) => {
   if (event.method === 'POST') {
     const body = await readBody(event);
     
-    // Get count for sortOrder
-    const [stats] = await db.select({ value: drizzleCount() }).from(habits).where(eq(habits.ownerId, userId));
-    const nextSortOrder = stats?.value || 0;
+    const count = await Habit.countDocuments({ ownerid: userId });
+    const nextSortOrder = count || 0;
 
-    const newHabit = await db.transaction(async (tx: any) => {
-      const created = await tx.insert(habits).values({
-        ownerId: userId,
-        title: body.title,
-        description: body.description || '',
-        frequencyCount: body.frequencyCount || 1,
-        frequencyPeriod: body.frequencyPeriod || 'daily',
-        color: body.color || '#6366f1',
-        sortOrder: nextSortOrder,
-      }).returning().get();
-
-      if (body.sharedwith && Array.isArray(body.sharedwith)) {
-        for (const sharedUserId of body.sharedwith) {
-          await tx.insert(habitShares).values({
-            habitId: created.id,
-            userId: Number(sharedUserId),
-          });
-        }
-      }
-
-      return created;
+    const newHabit = await Habit.create({
+      ownerid: userId,
+      title: body.title,
+      description: body.description || '',
+      frequencyCount: body.frequencyCount || 1,
+      frequencyPeriod: body.frequencyPeriod || 'daily',
+      color: body.color || '#6366f1',
+      sharedwith: body.sharedwith && Array.isArray(body.sharedwith) ? body.sharedwith : [],
+      sortOrder: nextSortOrder,
     });
 
-    return { ...newHabit, sharedwith: body.sharedwith || [] };
+    return { 
+      ...newHabit.toObject(), 
+      id: newHabit._id.toString() 
+    };
   }
 });
