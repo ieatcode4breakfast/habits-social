@@ -3,8 +3,8 @@
     <header class="sticky top-0 z-50 px-4 py-3 bg-black/50 backdrop-blur-md border-b border-white/5">
       <div class="max-w-5xl mx-auto flex items-center justify-between">
         <NuxtLink to="/" class="flex items-center gap-2 group">
-          <div class="w-8 h-8 rounded-xl bg-white flex items-center justify-center shadow-md shadow-white/10 group-hover:shadow-white/20 transition-shadow">
-            <Activity class="w-5 h-5 text-black" />
+          <div class="w-8 h-8 rounded-xl bg-white flex items-center justify-center shadow-md shadow-white/10 group-hover:shadow-white/20 transition-shadow overflow-hidden">
+            <img src="/icons/icon-512.png" class="w-10 h-10 object-cover" alt="Logo" />
           </div>
           <span class="font-bold text-lg tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-zinc-200 to-zinc-400">
             Habits Social
@@ -179,7 +179,7 @@
 </template>
 
 <script setup lang="ts">
-import { Activity, LogOut, LayoutDashboard, Users, User as UserIcon, Mail, Lock, X, Loader2, Eye, EyeOff } from 'lucide-vue-next';
+import { LogOut, LayoutDashboard, Users, User as UserIcon, Mail, Lock, X, Loader2, Eye, EyeOff } from 'lucide-vue-next';
 
 const { user, fetchUser } = useAuth();
 const router = useRouter();
