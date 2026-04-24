@@ -19,7 +19,7 @@ export default defineEventHandler(async (event) => {
   const existingEmail = await db.select().from(users).where(eq(users.email, email)).get();
   if (existingEmail) throw createError({ statusCode: 400, statusMessage: 'An account with this email already exists' });
 
-  // Check existing username (SQLite is case-insensitive by default for ASCII, but let's be explicit if needed)
+  // Check existing username
   const existingUsername = await db.select().from(users).where(eq(users.username, username)).get();
   if (existingUsername) throw createError({ statusCode: 400, statusMessage: 'This username is already taken' });
 
@@ -33,7 +33,8 @@ export default defineEventHandler(async (event) => {
 
   if (!result) throw createError({ statusCode: 500, statusMessage: 'Failed to create user' });
 
-  const token = generateToken(result.id.toString(), event);
+  // Await the generateToken call
+  const token = await generateToken(result.id.toString(), event);
   setCookie(event, 'auth_token', token, { httpOnly: true, maxAge: 60 * 60 * 24 * 7, path: '/', sameSite: 'strict' });
 
   return { user: { id: result.id, email: result.email, username: result.username } };

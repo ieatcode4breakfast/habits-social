@@ -3,7 +3,7 @@ import { eq, and } from 'drizzle-orm';
 
 export default defineEventHandler(async (event) => {
   const db = useDB(event);
-  const userId = requireAuth(event);
+  const userId = await requireAuth(event);
 
   const { ids } = await readBody(event);
   if (!Array.isArray(ids)) throw createError({ statusCode: 400, statusMessage: 'ids must be an array' });

@@ -2,7 +2,7 @@ import { habitShares } from '../../models';
 
 export default defineEventHandler(async (event) => {
   const db = useDB(event);
-  const userId = requireAuth(event);
+  const userId = await requireAuth(event);
 
   const { targetUserId, habitIds } = await readBody(event);
   if (!targetUserId || !Array.isArray(habitIds)) {

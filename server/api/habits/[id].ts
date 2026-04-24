@@ -3,7 +3,7 @@ import { eq, and } from 'drizzle-orm';
 
 export default defineEventHandler(async (event) => {
   const db = useDB(event);
-  const userId = requireAuth(event);
+  const userId = await requireAuth(event);
   const id = Number(getRouterParam(event, 'id'));
 
   const habit = await db.select().from(habits).where(and(eq(habits.id, id), eq(habits.ownerId, userId))).get();

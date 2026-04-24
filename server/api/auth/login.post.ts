@@ -16,7 +16,8 @@ export default defineEventHandler(async (event) => {
   const isMatch = await bcrypt.compare(password, user.passwordHash);
   if (!isMatch) throw createError({ statusCode: 400, statusMessage: 'Invalid credentials' });
 
-  const token = generateToken(user.id.toString(), event);
+  // Await the generateToken call
+  const token = await generateToken(user.id.toString(), event);
   setCookie(event, 'auth_token', token, { httpOnly: true, maxAge: 60 * 60 * 24 * 7, path: '/', sameSite: 'strict' });
 
   return { 

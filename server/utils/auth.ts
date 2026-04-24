@@ -1,31 +1,35 @@
-import jwt from 'jsonwebtoken';
+import { SignJWT, jwtVerify } from 'jose';
 import type { H3Event } from 'h3';
 
 const getSecret = (event: H3Event) => {
   const config = useRuntimeConfig();
-  // Prefer the Cloudflare env variable directly, then fallback to runtimeConfig
-  return event.context.cloudflare?.env?.JWT_SECRET || config.jwtSecret as string;
+  const secret = event.context.cloudflare?.env?.JWT_SECRET || config.jwtSecret as string;
+  return new TextEncoder().encode(secret);
 };
 
-export const generateToken = (userId: string | number, event: H3Event): string => {
+export const generateToken = async (userId: string | number, event: H3Event): Promise<string> => {
   const secret = getSecret(event);
-  return jwt.sign({ userId }, secret, { expiresIn: '7d' });
+  return await new SignJWT({ userId })
+    .setProtectedHeader({ alg: 'HS256' })
+    .setIssuedAt()
+    .setExpirationTime('7d')
+    .sign(secret);
 };
 
-export const getUserFromEvent = (event: H3Event): number | null => {
+export const getUserFromEvent = async (event: H3Event): Promise<number | null> => {
   const secret = getSecret(event);
   const token = getCookie(event, 'auth_token');
   if (!token) return null;
   try {
-    const decoded = jwt.verify(token, secret) as { userId: string | number };
-    return Number(decoded.userId);
+    const { payload } = await jwtVerify(token, secret);
+    return Number(payload.userId);
   } catch {
     return null;
   }
 };
 
-export const requireAuth = (event: H3Event): number => {
-  const userId = getUserFromEvent(event);
+export const requireAuth = async (event: H3Event): Promise<number> => {
+  const userId = await getUserFromEvent(event);
   if (!userId) throw createError({ statusCode: 401, statusMessage: 'Unauthorized' });
   return userId;
 };

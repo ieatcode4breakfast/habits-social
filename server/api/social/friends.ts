@@ -3,7 +3,7 @@ import { eq, or, and, inArray } from 'drizzle-orm';
 
 export default defineEventHandler(async (event) => {
   const db = useDB(event);
-  const userId = requireAuth(event);
+  const userId = await requireAuth(event);
 
   if (event.method === 'GET') {
     const userFriendships = await db.select().from(friendships)

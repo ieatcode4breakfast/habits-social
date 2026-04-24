@@ -3,7 +3,7 @@ import { eq, ne, and, like } from 'drizzle-orm';
 
 export default defineEventHandler(async (event) => {
   const db = useDB(event);
-  const userId = requireAuth(event);
+  const userId = await requireAuth(event);
   const { username } = getQuery(event);
   if (!username) return [];
 

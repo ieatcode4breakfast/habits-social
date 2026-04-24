@@ -3,7 +3,7 @@ import { eq, asc, count as drizzleCount } from 'drizzle-orm';
 
 export default defineEventHandler(async (event) => {
   const db = useDB(event);
-  const userId = requireAuth(event);
+  const userId = await requireAuth(event);
 
   if (event.method === 'GET') {
     const userHabits = await db.select().from(habits)

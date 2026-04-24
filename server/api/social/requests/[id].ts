@@ -3,7 +3,7 @@ import { eq, inArray } from 'drizzle-orm';
 
 export default defineEventHandler(async (event) => {
   const db = useDB(event);
-  requireAuth(event);
+  await requireAuth(event);
   const id = Number(getRouterParam(event, 'id'));
   if (!id) throw createError({ statusCode: 400 });
 
