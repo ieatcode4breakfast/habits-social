@@ -21,6 +21,7 @@
     "vue-router": "^5.0.4"
   },
   "devDependencies": {
+    "@aws-sdk/credential-providers": "^3.1036.0",
     "@tailwindcss/vite": "^4.2.2",
     "@types/bcryptjs": "^2.4.6",
     "@types/jsonwebtoken": "^9.0.10",
