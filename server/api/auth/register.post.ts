@@ -1,7 +1,5 @@
 import bcrypt from 'bcryptjs';
 import { User } from '../../models';
-import { connectDB } from '../../utils/db';
-import { generateToken } from '../../utils/auth';
 
 export default defineEventHandler(async (event) => {
   await connectDB();

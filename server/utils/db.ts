@@ -9,7 +9,10 @@ export const connectDB = async () => {
   if (!uri) throw new Error('MONGODB_URI is not set');
 
   try {
-    await mongoose.connect(uri);
+    await mongoose.connect(uri, {
+      bufferCommands: false,
+      autoIndex: false,
+    });
     isConnected = true;
     console.log('Successfully connected to MongoDB.');
   } catch (err: any) {
