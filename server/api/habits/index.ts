@@ -11,11 +11,11 @@ export default defineEventHandler(async (event) => {
       .orderBy(asc(habits.sortOrder), asc(habits.createdAt));
     
     // Fetch shares for each habit
-    const results = await Promise.all(userHabits.map(async (habit) => {
+    const results = await Promise.all(userHabits.map(async (habit: any) => {
       const shares = await db.select().from(habitShares).where(eq(habitShares.habitId, habit.id));
       return {
         ...habit,
-        sharedwith: shares.map(s => s.userId)
+        sharedwith: shares.map((s: any) => s.userId)
       };
     }));
     
@@ -29,7 +29,7 @@ export default defineEventHandler(async (event) => {
     const [stats] = await db.select({ value: drizzleCount() }).from(habits).where(eq(habits.ownerId, userId));
     const nextSortOrder = stats?.value || 0;
 
-    const newHabit = await db.transaction(async (tx) => {
+    const newHabit = await db.transaction(async (tx: any) => {
       const created = await tx.insert(habits).values({
         ownerId: userId,
         title: body.title,

@@ -12,7 +12,7 @@ export default defineEventHandler(async (event) => {
   if (event.method === 'PUT') {
     const body = await readBody(event);
     
-    await db.transaction(async (tx) => {
+    await db.transaction(async (tx: any) => {
       await tx.update(habits).set({
         title: body.title,
         description: body.description,
@@ -38,7 +38,7 @@ export default defineEventHandler(async (event) => {
   }
 
   if (event.method === 'DELETE') {
-    await db.transaction(async (tx) => {
+    await db.transaction(async (tx: any) => {
       await tx.delete(habitShares).where(eq(habitShares.habitId, id));
       await tx.delete(habits).where(eq(habits.id, id));
     });

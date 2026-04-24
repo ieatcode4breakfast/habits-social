@@ -8,7 +8,7 @@ export default defineEventHandler(async (event) => {
   const { ids } = await readBody(event);
   if (!Array.isArray(ids)) throw createError({ statusCode: 400, statusMessage: 'ids must be an array' });
 
-  await db.transaction(async (tx) => {
+  await db.transaction(async (tx: any) => {
     for (let i = 0; i < ids.length; i++) {
       await tx.update(habits)
         .set({ sortOrder: i })
