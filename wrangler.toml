@@ -3,10 +3,13 @@ main = ".output/server/index.mjs"
 compatibility_date = "2024-11-01"
 compatibility_flags = ["nodejs_compat"]
 
+[env.production]
+name = "habits-social-live"
 routes = [
   { pattern = "habitssocial.com", custom_domain = true },
   { pattern = "www.habitssocial.com", custom_domain = true }
 ]
+
 [assets]
 directory = ".output/public"
 binding = "ASSETS"
