@@ -1,14 +1,14 @@
 import { SignJWT, jwtVerify } from 'jose';
 import type { H3Event } from 'h3';
 
-const getSecret = (event: H3Event) => {
+const getSecret = () => {
   const config = useRuntimeConfig();
-  const secret = event.context.cloudflare?.env?.JWT_SECRET || config.jwtSecret as string;
+  const secret = config.jwtSecret as string;
   return new TextEncoder().encode(secret);
 };
 
 export const generateToken = async (userId: string | number, event: H3Event): Promise<string> => {
-  const secret = getSecret(event);
+  const secret = getSecret();
   return await new SignJWT({ userId })
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt()
@@ -17,7 +17,7 @@ export const generateToken = async (userId: string | number, event: H3Event): Pr
 };
 
 export const getUserFromEvent = async (event: H3Event): Promise<string | null> => {
-  const secret = getSecret(event);
+  const secret = getSecret();
   const token = getCookie(event, 'auth_token');
   if (!token) return null;
   try {

@@ -29,6 +29,7 @@ export default defineNuxtConfig({
     }
   },
   runtimeConfig: {
+    mongodbUri: process.env.MONGODB_URI,
     jwtSecret: process.env.JWT_SECRET || 'fallback-secret-for-dev',
   },
 

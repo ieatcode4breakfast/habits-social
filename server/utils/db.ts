@@ -6,7 +6,9 @@ let dbInstance: Db | null = null;
 export const useDB = async (): Promise<Db> => {
   if (dbInstance) return dbInstance;
 
-  const uri = process.env.MONGODB_URI;
+  const config = useRuntimeConfig();
+  const uri = config.mongodbUri as string;
+  
   if (!uri) throw new Error('MONGODB_URI is not defined in environment variables.');
 
   try {
