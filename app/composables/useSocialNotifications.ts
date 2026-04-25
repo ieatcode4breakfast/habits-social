@@ -1,7 +1,13 @@
 import { ref, onMounted, onUnmounted } from 'vue';
 import { useRealtime } from './useRealtime';
 
-export const useSocialNotifications = () => {
+export interface SocialNotificationOptions {
+  onFriendRequestReceived?: (data: any) => void;
+  onFriendRequestAccepted?: (data: any) => void;
+  onFriendshipRemoved?: (data: any) => void;
+}
+
+export const useSocialNotifications = (options?: SocialNotificationOptions) => {
   const pendingCount = useState('pendingRequestsCount', () => 0);
   const { user } = useAuth();
   const { subscribeToSocials } = useRealtime();
@@ -23,8 +29,11 @@ export const useSocialNotifications = () => {
     
     refreshCount();
     
-    unsubscribe = subscribeToSocials(() => {
+    unsubscribe = subscribeToSocials((eventName, data) => {
       refreshCount();
+      if (eventName === 'friend-request-received' && options?.onFriendRequestReceived) options.onFriendRequestReceived(data);
+      if (eventName === 'friend-request-accepted' && options?.onFriendRequestAccepted) options.onFriendRequestAccepted(data);
+      if (eventName === 'friendship-removed' && options?.onFriendshipRemoved) options.onFriendshipRemoved(data);
     });
   };
 

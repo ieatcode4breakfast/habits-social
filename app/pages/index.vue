@@ -1125,14 +1125,7 @@ watch([showModal, showEditModal, editDescription, newDescription, editFrequencyP
   }
 });
 
-onUnmounted(() => {
-  unsubscribeOwnHabits();
-  window.removeEventListener('resize', checkHeightOverflow);
-  window.removeEventListener('popstate', handlePopState);
-  if (typeof document !== 'undefined') {
-    document.body.classList.remove('overflow-hidden');
-  }
-});
+
 
 // ── Back Button / History API Logic ──────────────────────────────────────────
 const isAnyModalOpen = computed(() => 
@@ -1168,13 +1161,14 @@ watch(isAnyModalOpen, (isOpen, oldOpen) => {
 
 const { subscribeToFriendHabits } = useRealtime();
 let unsubscribeOwnHabits = () => {};
-
-useSocialNotifications({
+const { init: initSocial, cleanup: cleanupSocial } = useSocialNotifications({
+  onFriendRequestReceived: () => load(),
   onFriendRequestAccepted: () => load(),
   onFriendshipRemoved: () => load(),
 });
 
 onMounted(() => {
+  initSocial();
   load();
   if (user.value?.id) {
     unsubscribeOwnHabits = subscribeToFriendHabits(String(user.value.id), () => {
@@ -1183,6 +1177,16 @@ onMounted(() => {
   }
   window.addEventListener('resize', checkHeightOverflow);
   window.addEventListener('popstate', handlePopState);
+});
+
+onUnmounted(() => {
+  cleanupSocial();
+  unsubscribeOwnHabits();
+  window.removeEventListener('resize', checkHeightOverflow);
+  window.removeEventListener('popstate', handlePopState);
+  if (typeof document !== 'undefined') {
+    document.body.classList.remove('overflow-hidden');
+  }
 });
 // ─────────────────────────────────────────────────────────────────────────────
 

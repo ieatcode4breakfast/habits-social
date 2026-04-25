@@ -380,22 +380,20 @@ const loadFriendships = async () => {
   profilesMap.value = map;
 };
 
-const { subscribeToSocials } = useRealtime();
-let unsubscribeSocials = () => {};
-const { refreshCount } = useSocialNotifications();
+const { init: initSocial, cleanup: cleanupSocial } = useSocialNotifications({
+  onFriendRequestReceived: () => loadFriendships(),
+  onFriendRequestAccepted: () => loadFriendships(),
+  onFriendshipRemoved: () => loadFriendships(),
+});
 
 onMounted(() => {
   loadFriendships();
-  refreshCount();
-  unsubscribeSocials = subscribeToSocials(() => {
-    loadFriendships();
-    refreshCount();
-  });
+  initSocial();
   window.addEventListener('resize', checkHeightOverflow);
 });
 
 onUnmounted(() => {
-  unsubscribeSocials();
+  cleanupSocial();
   window.removeEventListener('resize', checkHeightOverflow);
   if (typeof document !== 'undefined') {
     document.body.classList.remove('overflow-hidden');
