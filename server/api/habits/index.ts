@@ -7,13 +7,7 @@ export default defineEventHandler(async (event) => {
   if (event.method === 'GET') {
     setResponseHeader(event, 'Cache-Control', 'no-cache, no-store, must-revalidate');
     const userHabits = await sql`SELECT * FROM habits WHERE ownerid = ${userId} ORDER BY "sortOrder" ASC, "createdAt" ASC`;
-    
-    const results = userHabits.map((habit: any) => ({
-      ...habit,
-      _id: habit.id // for frontend compatibility if it uses ._id
-    }));
-    
-    return results;
+    return userHabits;
   }
 
   if (event.method === 'POST') {
@@ -37,9 +31,6 @@ export default defineEventHandler(async (event) => {
 
     const newHabit = result[0];
 
-    return { 
-      ...newHabit, 
-      _id: newHabit.id,
-    };
+    return newHabit;
   }
 });

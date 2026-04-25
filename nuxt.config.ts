@@ -1,10 +1,4 @@
-// Triggering deployment test build
 import tailwindcss from '@tailwindcss/vite';
-import { fileURLToPath } from 'node:url';
-import { resolve, dirname } from 'node:path';
-
-const __dirname = dirname(fileURLToPath(import.meta.url));
-const noop = resolve(__dirname, 'node_modules/unenv/dist/runtime/mock/noop.mjs');
 
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
@@ -24,7 +18,6 @@ export default defineNuxtConfig({
     jwtSecret: process.env.JWT_SECRET || 'fallback-secret-for-dev',
   },
 
-  // Temporarily disabling compatibilityVersion 4 to see if it fixes the bundler crash
   css: ['~/assets/css/main.css'],
   vite: {
     plugins: [tailwindcss()]

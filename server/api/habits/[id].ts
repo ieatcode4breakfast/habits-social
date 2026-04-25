@@ -31,10 +31,7 @@ export default defineEventHandler(async (event) => {
     if (result.length === 0) throw createError({ statusCode: 404, statusMessage: 'Not found after update' });
 
     const updatedHabit = result[0];
-    return { 
-      ...updatedHabit,
-      _id: updatedHabit.id
-    };
+    return updatedHabit;
   }
 
   if (event.method === 'DELETE') {

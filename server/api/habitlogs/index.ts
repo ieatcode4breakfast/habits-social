@@ -20,12 +20,7 @@ export default defineEventHandler(async (event) => {
       logs = await sql`SELECT * FROM habitlogs WHERE ownerid = ${userId}`;
     }
     
-    const results = logs.map((log: any) => ({
-      ...log,
-      _id: log.id
-    }));
-    
-    return results;
+    return logs;
   }
 
   if (event.method === 'POST') {
@@ -62,10 +57,7 @@ export default defineEventHandler(async (event) => {
         RETURNING *
       `;
       
-      return { 
-        ...result[0],
-        _id: result[0].id
-      };
+      return result[0];
     }
   }
 

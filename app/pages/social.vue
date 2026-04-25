@@ -226,16 +226,16 @@
             </div>
 
             <div class="max-h-[320px] overflow-y-auto pr-2 space-y-2 mb-8 scrollbar-thin scrollbar-thumb-zinc-800 scrollbar-track-transparent">
-              <div v-for="habit in myHabits" :key="habit._id" 
-                @click="toggleHabitSelection(habit._id)"
+              <div v-for="habit in myHabits" :key="habit.id" 
+                @click="toggleHabitSelection(habit.id)"
                 class="flex items-center gap-3 p-3 rounded-xl border transition-all cursor-pointer group"
-                :class="selectedHabitIds.includes(habit._id) ? 'bg-white/5 border-white/20' : 'bg-black border-zinc-900 hover:border-zinc-700'"
+                :class="selectedHabitIds.includes(habit.id) ? 'bg-white/5 border-white/20' : 'bg-black border-zinc-900 hover:border-zinc-700'"
               >
                 <div class="flex-1 text-sm text-zinc-200 font-medium">{{ habit.title }}</div>
                 <div class="w-5 h-5 rounded-md border flex items-center justify-center transition-all"
-                  :class="selectedHabitIds.includes(habit._id) ? 'bg-white border-white text-black' : 'border-zinc-700 group-hover:border-zinc-500'"
+                  :class="selectedHabitIds.includes(habit.id) ? 'bg-white border-white text-black' : 'border-zinc-700 group-hover:border-zinc-500'"
                 >
-                  <Check v-if="selectedHabitIds.includes(habit._id)" class="w-3 h-3" />
+                  <Check v-if="selectedHabitIds.includes(habit.id)" class="w-3 h-3" />
                 </div>
               </div>
             </div>
