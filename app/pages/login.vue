@@ -132,7 +132,10 @@
 <script setup lang="ts">
 import { Mail, Lock, Eye, EyeOff, User } from 'lucide-vue-next';
 
-definePageMeta({ layout: false });
+definePageMeta({ 
+  layout: false,
+  middleware: 'auth'
+});
 
 const { user, fetchUser } = useAuth();
 const router = useRouter();
