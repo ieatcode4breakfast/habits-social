@@ -5,6 +5,7 @@ export default defineEventHandler(async (event) => {
   const userId = await requireAuth(event);
 
   if (event.method === 'GET') {
+    setResponseHeader(event, 'Cache-Control', 'no-cache, no-store, must-revalidate');
     const query = getQuery(event);
     const filter: any = { ownerid: userId };
     

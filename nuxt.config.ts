@@ -14,7 +14,12 @@ export default defineNuxtConfig({
   ssr: true,
   nitro: {
     preset: 'cloudflare-module',
+    routeRules: {
+      '/': { headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate' } },
+      '/api/**': { headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate' } },
+    },
     alias: {
+
       // MongoDB's optional integrations that we don't use.
       // Aliased to no-ops so Rollup doesn't crash bundling for Cloudflare Workers.
       '@aws-sdk/credential-providers': noop,

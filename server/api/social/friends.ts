@@ -6,15 +6,18 @@ export default defineEventHandler(async (event) => {
   const userId = await requireAuth(event);
 
   if (event.method === 'GET') {
+    setResponseHeader(event, 'Cache-Control', 'no-cache, no-store, must-revalidate');
     const userFriendships = await db.collection<IFriendship>('friendships').find({
       $or: [
         { initiatorId: userId },
-        { receiverId: userId }
+        { receiverId: userId },
+        { initiatorId: new ObjectId(userId) },
+        { receiverId: new ObjectId(userId) }
       ]
     }).toArray();
     
     const friendIds = userFriendships.map((f: any) => 
-      f.initiatorId.toString() === userId ? f.receiverId : f.initiatorId
+      String(f.initiatorId) === userId ? String(f.receiverId) : String(f.initiatorId)
     );
     
     let profiles: any[] = [];
@@ -29,9 +32,9 @@ export default defineEventHandler(async (event) => {
     const mappedFriendships = userFriendships.map((f: any) => ({
       ...f,
       id: f._id.toString(),
-      initiatorId: f.initiatorId.toString(),
-      receiverId: f.receiverId.toString(),
-      participants: [f.initiatorId.toString(), f.receiverId.toString()]
+      initiatorId: String(f.initiatorId),
+      receiverId: String(f.receiverId),
+      participants: [String(f.initiatorId), String(f.receiverId)]
     }));
 
     const mappedProfiles = profiles.map((p: any) => ({

@@ -280,9 +280,22 @@ const myHabits = ref<any[]>([]);
 const selectedHabitIds = ref<string[]>([]);
 const userBeingSharedWith = ref<UserProfile | null>(null);
 
-const pendingIncoming = computed(() => friendships.value.filter(f => f.status === 'pending' && f.receiverId === user.value?.id));
-const pendingOutgoing = computed(() => friendships.value.filter(f => f.status === 'pending' && f.initiatorId === user.value?.id));
-const acceptedFriends = computed(() => friendships.value.filter(f => f.status === 'accepted'));
+const pendingIncoming = computed(() => {
+  if (!user.value?.id) return [];
+  const myId = String(user.value.id);
+  return friendships.value.filter(f => f.status === 'pending' && String(f.receiverId) === myId);
+});
+
+const pendingOutgoing = computed(() => {
+  if (!user.value?.id) return [];
+  const myId = String(user.value.id);
+  return friendships.value.filter(f => f.status === 'pending' && String(f.initiatorId) === myId);
+});
+
+const acceptedFriends = computed(() => {
+  return friendships.value.filter(f => f.status === 'accepted');
+});
+
 const displayFriends = computed(() => {
   const combined = [...acceptedFriends.value, ...pendingOutgoing.value];
   return combined.sort((a, b) => {
