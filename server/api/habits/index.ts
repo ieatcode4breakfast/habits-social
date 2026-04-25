@@ -1,7 +1,7 @@
 import type { IHabit } from '../../models';
 
 export default defineEventHandler(async (event) => {
-  const db = await useDB();
+  const db = await useDB(event);
   const userId = await requireAuth(event);
 
   if (event.method === 'GET') {

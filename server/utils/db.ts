@@ -1,15 +1,20 @@
 import { MongoClient, Db } from 'mongodb';
+import type { H3Event } from 'h3';
 
 let client: MongoClient | null = null;
 let dbInstance: Db | null = null;
 
-export const useDB = async (): Promise<Db> => {
+export const useDB = async (event?: H3Event): Promise<Db> => {
   if (dbInstance) return dbInstance;
 
-  const config = useRuntimeConfig();
-  const uri = config.mongodbUri as string;
+  const config = useRuntimeConfig(event);
+  // Try config, then cloudflare env directly, then process.env as last resort
+  const uri = config.mongodbUri as string || (event as any)?.context?.cloudflare?.env?.MONGODB_URI || process.env.MONGODB_URI;
   
-  if (!uri) throw new Error('MONGODB_URI is not defined in environment variables.');
+  if (!uri) {
+    console.error('MONGODB_URI is not defined in any context.');
+    throw createError({ statusCode: 500, statusMessage: 'Database configuration is missing' });
+  }
 
   try {
     if (!client) {
@@ -22,6 +27,6 @@ export const useDB = async (): Promise<Db> => {
     return dbInstance;
   } catch (error) {
     console.error('Failed to connect to MongoDB', error);
-    throw error;
+    throw createError({ statusCode: 500, statusMessage: 'Database connection failed' });
   }
 };

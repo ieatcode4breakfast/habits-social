@@ -2,7 +2,7 @@ import type { IUser } from '../../models';
 import { ObjectId } from 'mongodb';
 
 export default defineEventHandler(async (event) => {
-  const db = await useDB();
+  const db = await useDB(event);
   await requireAuth(event);
   const { friendId } = getQuery(event);
   

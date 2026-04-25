@@ -3,7 +3,7 @@ import type { IUser } from '../../models';
 import { ObjectId } from 'mongodb';
 
 export default defineEventHandler(async (event) => {
-  const db = await useDB();
+  const db = await useDB(event);
   const userId = await requireAuth(event);
   const { username, email, password, photourl } = await readBody(event);
 

@@ -2,7 +2,7 @@ import { hash } from 'bcrypt-ts';
 import type { IUser } from '../../models';
 
 export default defineEventHandler(async (event) => {
-  const db = await useDB();
+  const db = await useDB(event);
   const { email, password, username } = await readBody(event);
   
   if (!email || !password || !username)

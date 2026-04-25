@@ -2,7 +2,7 @@ import type { IHabit } from '../../models';
 import { ObjectId } from 'mongodb';
 
 export default defineEventHandler(async (event) => {
-  const db = await useDB();
+  const db = await useDB(event);
   const userId = await requireAuth(event);
 
   const { targetUserId, habitIds } = await readBody(event);

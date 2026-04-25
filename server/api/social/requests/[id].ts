@@ -2,7 +2,7 @@ import type { IFriendship, IHabit, IHabitLog } from '../../../models';
 import { ObjectId } from 'mongodb';
 
 export default defineEventHandler(async (event) => {
-  const db = await useDB();
+  const db = await useDB(event);
   await requireAuth(event);
   const id = getRouterParam(event, 'id');
   if (!id) throw createError({ statusCode: 400 });
