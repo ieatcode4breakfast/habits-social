@@ -1,44 +1,44 @@
 import type { IHabit } from '../../models';
-import { ObjectId } from 'mongodb';
 
 export default defineEventHandler(async (event) => {
-  const db = await useDB(event);
+  const sql = useDB(event);
   const userId = await requireAuth(event);
   const id = getRouterParam(event, 'id');
 
   if (!id) throw createError({ statusCode: 400, statusMessage: 'Bad Request' });
 
-  const habit = await db.collection<IHabit>('habits').findOne({ _id: new ObjectId(id), ownerid: userId });
-  if (!habit) throw createError({ statusCode: 404, statusMessage: 'Not found' });
+  const habits = await sql`SELECT * FROM habits WHERE id = ${id}::uuid AND ownerid = ${userId}`;
+  if (habits.length === 0) throw createError({ statusCode: 404, statusMessage: 'Not found' });
+  const habit = habits[0] as IHabit;
 
   if (event.method === 'PUT') {
     const body = await readBody(event);
     
-    const updateData: any = {};
-    if (body.title !== undefined) updateData.title = body.title;
-    if (body.description !== undefined) updateData.description = body.description;
-    if (body.frequencyCount !== undefined) updateData.frequencyCount = body.frequencyCount;
-    if (body.frequencyPeriod !== undefined) updateData.frequencyPeriod = body.frequencyPeriod;
-    if (body.color !== undefined) updateData.color = body.color;
-    if (body.sharedwith && Array.isArray(body.sharedwith)) updateData.sharedwith = body.sharedwith;
-    updateData.updatedat = new Date();
+    const title = body.title !== undefined ? body.title : habit.title;
+    const description = body.description !== undefined ? body.description : habit.description;
+    const frequencyCount = body.frequencyCount !== undefined ? body.frequencyCount : habit.frequencyCount;
+    const frequencyPeriod = body.frequencyPeriod !== undefined ? body.frequencyPeriod : habit.frequencyPeriod;
+    const color = body.color !== undefined ? body.color : habit.color;
+    const sharedwith = body.sharedwith && Array.isArray(body.sharedwith) ? body.sharedwith : habit.sharedwith;
 
-    const result = await db.collection<IHabit>('habits').findOneAndUpdate(
-      { _id: new ObjectId(id) },
-      { $set: updateData },
-      { returnDocument: 'after' }
-    );
+    const result = await sql`
+      UPDATE habits
+      SET title = ${title}, description = ${description}, "frequencyCount" = ${frequencyCount}, "frequencyPeriod" = ${frequencyPeriod}, color = ${color}, sharedwith = ${sharedwith}, updatedat = NOW()
+      WHERE id = ${id}::uuid
+      RETURNING *
+    `;
 
-    if (!result) throw createError({ statusCode: 404, statusMessage: 'Not found after update' });
+    if (result.length === 0) throw createError({ statusCode: 404, statusMessage: 'Not found after update' });
 
+    const updatedHabit = result[0];
     return { 
-      ...result,
-      id: result._id!.toString()
+      ...updatedHabit,
+      _id: updatedHabit.id
     };
   }
 
   if (event.method === 'DELETE') {
-    await db.collection<IHabit>('habits').deleteOne({ _id: new ObjectId(id) });
+    await sql`DELETE FROM habits WHERE id = ${id}::uuid`;
     return { success: true };
   }
 });

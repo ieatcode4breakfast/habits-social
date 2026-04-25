@@ -17,24 +17,10 @@ export default defineNuxtConfig({
     routeRules: {
       '/': { headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate' } },
       '/api/**': { headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate' } },
-    },
-    alias: {
-
-      // MongoDB's optional integrations that we don't use.
-      // Aliased to no-ops so Rollup doesn't crash bundling for Cloudflare Workers.
-      '@aws-sdk/credential-providers': noop,
-      'aws4': noop,
-      'mongodb-client-encryption': noop,
-      'kerberos': noop,
-      'snappy': noop,
-      'gcp-metadata': noop,
-      '@mongodb-js/zstd': noop,
-      '@mongodb-js/sasl-plain': noop,
-      'socks': noop,
     }
   },
   runtimeConfig: {
-    mongodbUri: process.env.MONGODB_URI,
+    databaseUrl: process.env.DATABASE_URL,
     jwtSecret: process.env.JWT_SECRET || 'fallback-secret-for-dev',
   },
 

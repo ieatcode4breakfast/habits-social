@@ -1,11 +1,11 @@
 import type { IUser } from '../../models';
-import { ObjectId } from 'mongodb';
 
 export default defineEventHandler(async (event) => {
-  const db = await useDB(event);
+  const sql = useDB(event);
   const userId = await requireAuth(event);
 
-  const user = await db.collection<IUser>('users').findOne({ _id: new ObjectId(userId) });
+  const users = await sql`SELECT * FROM users WHERE id = ${userId}::uuid`;
+  const user = users[0] as IUser | undefined;
 
   if (!user) {
     throw createError({ statusCode: 404, statusMessage: 'User not found' });
@@ -13,7 +13,7 @@ export default defineEventHandler(async (event) => {
 
   return { 
     user: {
-      id: user._id!.toString(),
+      id: user.id,
       email: user.email,
       username: user.username,
       photourl: user.photourl

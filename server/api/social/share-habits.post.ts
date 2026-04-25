@@ -1,8 +1,7 @@
 import type { IHabit } from '../../models';
-import { ObjectId } from 'mongodb';
 
 export default defineEventHandler(async (event) => {
-  const db = await useDB(event);
+  const sql = useDB(event);
   const userId = await requireAuth(event);
 
   const { targetUserId, habitIds } = await readBody(event);
@@ -13,11 +12,13 @@ export default defineEventHandler(async (event) => {
   const targetId = String(targetUserId);
 
   if (habitIds.length > 0) {
-    const objectIds = habitIds.map((id: string) => new ObjectId(id));
-    await db.collection<IHabit>('habits').updateMany(
-      { _id: { $in: objectIds }, ownerid: userId },
-      { $addToSet: { sharedwith: targetId } }
-    );
+    await sql`
+      UPDATE habits 
+      SET sharedwith = array_append(sharedwith, ${targetId})
+      WHERE id = ANY(${habitIds}::uuid[]) 
+        AND ownerid = ${userId}
+        AND NOT (${targetId} = ANY(sharedwith))
+    `;
   }
 
   return { success: true };

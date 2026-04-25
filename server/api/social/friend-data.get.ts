@@ -1,38 +1,34 @@
 import type { IHabit, IHabitLog } from '../../models';
 
 export default defineEventHandler(async (event) => {
-  const db = await useDB(event);
+  const sql = useDB(event);
   const userId = await requireAuth(event);
   const { friendId } = getQuery(event);
   const fId = String(friendId);
 
-  const sharedHabits = await db.collection<IHabit>('habits')
-    .find({
-      ownerid: fId,
-      sharedwith: userId
-    })
-    .sort({ sortOrder: 1 })
-    .toArray();
+  const sharedHabits = await sql`
+    SELECT * FROM habits 
+    WHERE ownerid = ${fId} AND ${userId} = ANY(sharedwith)
+    ORDER BY "sortOrder" ASC
+  `;
 
   const friendHabits = sharedHabits.map((h: any) => ({
     ...h,
-    id: h._id.toString()
+    id: h.id
   }));
   
   const habitIds = friendHabits.map((h: any) => h.id);
 
   let logs: any[] = [];
   if (habitIds.length > 0) {
-    const rawLogs = await db.collection<IHabitLog>('habitlogs')
-      .find({
-        ownerid: fId,
-        habitid: { $in: habitIds }
-      })
-      .toArray();
+    const rawLogs = await sql`
+      SELECT * FROM habitlogs 
+      WHERE ownerid = ${fId} AND habitid = ANY(${habitIds}::uuid[])
+    `;
     
     logs = rawLogs.map((l: any) => ({
       ...l,
-      id: l._id.toString()
+      id: l.id
     }));
   }
 

@@ -1,38 +1,43 @@
 import { hash } from 'bcrypt-ts';
 import type { IUser } from '../../models';
-import { ObjectId } from 'mongodb';
 
 export default defineEventHandler(async (event) => {
-  const db = await useDB(event);
+  const sql = useDB(event);
   const userId = await requireAuth(event);
   const { username, email, password, photourl } = await readBody(event);
 
-  const updateData: any = {};
-  if (username) updateData.username = username;
-  if (email) updateData.email = email;
-  if (photourl) updateData.photourl = photourl;
-  if (password) {
-    updateData.passwordHash = await hash(password, 10);
-  }
-
-  if (Object.keys(updateData).length === 0) {
+  if (!username && !email && !password && photourl === undefined) {
     return { message: 'No changes made' };
   }
 
-  const result = await db.collection<IUser>('users').findOneAndUpdate(
-    { _id: new ObjectId(userId) },
-    { $set: updateData },
-    { returnDocument: 'after' }
-  );
+  const users = await sql`SELECT * FROM users WHERE id = ${userId}::uuid`;
+  if (users.length === 0) throw createError({ statusCode: 404, statusMessage: 'User not found' });
+  const user = users[0] as IUser;
 
-  if (!result) throw createError({ statusCode: 404, statusMessage: 'User not found' });
+  const newUsername = username || user.username;
+  const newEmail = email || user.email;
+  const newPhotourl = photourl !== undefined ? photourl : user.photourl;
+  let newPasswordHash = user.passwordHash;
+  
+  if (password) {
+    newPasswordHash = await hash(password, 10);
+  }
+
+  const result = await sql`
+    UPDATE users 
+    SET username = ${newUsername}, email = ${newEmail}, photourl = ${newPhotourl}, "passwordHash" = ${newPasswordHash}
+    WHERE id = ${userId}::uuid
+    RETURNING *
+  `;
+
+  const updatedUser = result[0] as IUser;
 
   return {
     user: {
-      id: result._id!.toString(),
-      email: result.email,
-      username: result.username,
-      photourl: result.photourl
+      id: updatedUser.id,
+      email: updatedUser.email,
+      username: updatedUser.username,
+      photourl: updatedUser.photourl
     }
   };
 });

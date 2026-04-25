@@ -1,19 +1,16 @@
 import type { IHabit } from '../../models';
 
 export default defineEventHandler(async (event) => {
-  const db = await useDB(event);
+  const sql = useDB(event);
   const userId = await requireAuth(event);
 
   if (event.method === 'GET') {
     setResponseHeader(event, 'Cache-Control', 'no-cache, no-store, must-revalidate');
-    const userHabits = await db.collection<IHabit>('habits')
-      .find({ ownerid: userId })
-      .sort({ sortOrder: 1, createdAt: 1 })
-      .toArray();
+    const userHabits = await sql`SELECT * FROM habits WHERE ownerid = ${userId} ORDER BY "sortOrder" ASC, "createdAt" ASC`;
     
     const results = userHabits.map((habit: any) => ({
       ...habit,
-      id: habit._id.toString()
+      _id: habit.id // for frontend compatibility if it uses ._id
     }));
     
     return results;
@@ -22,28 +19,27 @@ export default defineEventHandler(async (event) => {
   if (event.method === 'POST') {
     const body = await readBody(event);
     
-    const count = await db.collection<IHabit>('habits').countDocuments({ ownerid: userId });
-    const nextSortOrder = count || 0;
+    const countResult = await sql`SELECT COUNT(*) FROM habits WHERE ownerid = ${userId}`;
+    const nextSortOrder = parseInt(countResult[0].count) || 0;
 
-    const newHabit = {
-      ownerid: userId,
-      title: body.title,
-      description: body.description || '',
-      frequencyCount: body.frequencyCount || 1,
-      frequencyPeriod: body.frequencyPeriod || 'daily',
-      color: body.color || '#6366f1',
-      sharedwith: body.sharedwith && Array.isArray(body.sharedwith) ? body.sharedwith : [],
-      sortOrder: nextSortOrder,
-      createdAt: new Date(),
-      updatedat: new Date()
-    };
+    const title = body.title;
+    const description = body.description || '';
+    const frequencyCount = body.frequencyCount || 1;
+    const frequencyPeriod = body.frequencyPeriod || 'daily';
+    const color = body.color || '#6366f1';
+    const sharedwith = body.sharedwith && Array.isArray(body.sharedwith) ? body.sharedwith : [];
 
-    const result = await db.collection<IHabit>('habits').insertOne(newHabit);
+    const result = await sql`
+      INSERT INTO habits (ownerid, title, description, "frequencyCount", "frequencyPeriod", color, sharedwith, "sortOrder", "createdAt", updatedat)
+      VALUES (${userId}, ${title}, ${description}, ${frequencyCount}, ${frequencyPeriod}, ${color}, ${sharedwith}, ${nextSortOrder}, NOW(), NOW())
+      RETURNING *
+    `;
+
+    const newHabit = result[0];
 
     return { 
       ...newHabit, 
-      _id: result.insertedId,
-      id: result.insertedId.toString() 
+      _id: newHabit.id,
     };
   }
 });

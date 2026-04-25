@@ -1,33 +1,34 @@
 import type { IFriendship, IHabit, IHabitLog } from '../../../models';
-import { ObjectId } from 'mongodb';
 
 export default defineEventHandler(async (event) => {
-  const db = await useDB(event);
+  const sql = useDB(event);
   await requireAuth(event);
   const id = getRouterParam(event, 'id');
   if (!id) throw createError({ statusCode: 400 });
 
   if (event.method === 'PUT') {
-    await db.collection<IFriendship>('friendships').updateOne(
-      { _id: new ObjectId(id) },
-      { $set: { status: 'accepted', updatedAt: new Date() } }
-    );
+    await sql`
+      UPDATE friendships 
+      SET status = 'accepted', "updatedAt" = NOW()
+      WHERE id = ${id}::uuid
+    `;
     return { success: true };
   }
 
   if (event.method === 'DELETE') {
-    const friendship = await db.collection<IFriendship>('friendships').findOne({ _id: new ObjectId(id) });
-    if (friendship) {
-      const u1 = String(friendship.initiatorId);
-      const u2 = String(friendship.receiverId);
+    const friendships = await sql`SELECT * FROM friendships WHERE id = ${id}::uuid`;
+    if (friendships.length > 0) {
+      const friendship = friendships[0];
+      const u1 = friendship.initiatorId;
+      const u2 = friendship.receiverId;
 
-      await db.collection<IHabit>('habits').updateMany({ ownerid: u1 }, { $pull: { sharedwith: u2 } });
-      await db.collection<IHabitLog>('habitlogs').updateMany({ ownerid: u1 }, { $pull: { sharedwith: u2 } });
+      await sql`UPDATE habits SET sharedwith = array_remove(sharedwith, ${u2}) WHERE ownerid = ${u1}`;
+      await sql`UPDATE habitlogs SET sharedwith = array_remove(sharedwith, ${u2}) WHERE ownerid = ${u1}`;
       
-      await db.collection<IHabit>('habits').updateMany({ ownerid: u2 }, { $pull: { sharedwith: u1 } });
-      await db.collection<IHabitLog>('habitlogs').updateMany({ ownerid: u2 }, { $pull: { sharedwith: u1 } });
+      await sql`UPDATE habits SET sharedwith = array_remove(sharedwith, ${u1}) WHERE ownerid = ${u2}`;
+      await sql`UPDATE habitlogs SET sharedwith = array_remove(sharedwith, ${u1}) WHERE ownerid = ${u2}`;
 
-      await db.collection<IFriendship>('friendships').deleteOne({ _id: new ObjectId(id) });
+      await sql`DELETE FROM friendships WHERE id = ${id}::uuid`;
     }
     return { success: true };
   }

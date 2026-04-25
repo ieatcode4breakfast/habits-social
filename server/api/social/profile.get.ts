@@ -1,16 +1,16 @@
 import type { IUser } from '../../models';
-import { ObjectId } from 'mongodb';
 
 export default defineEventHandler(async (event) => {
-  const db = await useDB(event);
+  const sql = useDB(event);
   await requireAuth(event);
   const { friendId } = getQuery(event);
   
-  const user = await db.collection<IUser>('users').findOne(
-    { _id: new ObjectId(String(friendId)) },
-    { projection: { passwordHash: 0 } }
-  );
+  const users = await sql`
+    SELECT id, email, username, photourl FROM users 
+    WHERE id = ${String(friendId)}::uuid
+  `;
   
-  if (!user) throw createError({ statusCode: 404 });
-  return { ...user, id: user._id!.toString() };
+  if (users.length === 0) throw createError({ statusCode: 404 });
+  const user = users[0];
+  return { ...user, id: user.id };
 });

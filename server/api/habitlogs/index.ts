@@ -1,26 +1,28 @@
 import type { IHabitLog } from '../../models';
 
 export default defineEventHandler(async (event) => {
-  const db = await useDB(event);
+  const sql = useDB(event);
   const userId = await requireAuth(event);
 
   if (event.method === 'GET') {
     setResponseHeader(event, 'Cache-Control', 'no-cache, no-store, must-revalidate');
     const query = getQuery(event);
-    const filter: any = { ownerid: userId };
     
+    let logs;
     if (query.startDate && query.endDate) {
-      filter.date = {
-        $gte: String(query.startDate),
-        $lte: String(query.endDate)
-      };
+      logs = await sql`
+        SELECT * FROM habitlogs 
+        WHERE ownerid = ${userId} 
+          AND date >= ${String(query.startDate)} 
+          AND date <= ${String(query.endDate)}
+      `;
+    } else {
+      logs = await sql`SELECT * FROM habitlogs WHERE ownerid = ${userId}`;
     }
-    
-    const logs = await db.collection<IHabitLog>('habitlogs').find(filter).toArray();
     
     const results = logs.map((log: any) => ({
       ...log,
-      id: log._id.toString()
+      _id: log.id
     }));
     
     return results;
@@ -30,48 +32,39 @@ export default defineEventHandler(async (event) => {
     const body = await readBody(event);
     const habitId = String(body.habitid);
     const dateStr = String(body.date);
-    
-    const existing = await db.collection<IHabitLog>('habitlogs').findOne({
-      habitid: habitId,
-      ownerid: userId,
-      date: dateStr
-    });
+    const status = String(body.status);
 
-    if (existing) {
-      const updateData: any = {
-        status: String(body.status),
-        updatedat: new Date()
-      };
-      if (body.sharedwith && Array.isArray(body.sharedwith)) {
-        updateData.sharedwith = body.sharedwith;
-      }
+    const existing = await sql`
+      SELECT * FROM habitlogs 
+      WHERE habitid = ${habitId}::uuid AND ownerid = ${userId} AND date = ${dateStr}
+    `;
+
+    if (existing.length > 0) {
+      const existingLog = existing[0];
+      const newSharedwith = body.sharedwith && Array.isArray(body.sharedwith) ? body.sharedwith : existingLog.sharedwith;
       
-      const result = await db.collection<IHabitLog>('habitlogs').findOneAndUpdate(
-        { _id: existing._id },
-        { $set: updateData },
-        { returnDocument: 'after' }
-      );
+      const result = await sql`
+        UPDATE habitlogs
+        SET status = ${status}, sharedwith = ${newSharedwith}, updatedat = NOW()
+        WHERE id = ${existingLog.id}
+        RETURNING *
+      `;
       
       return { 
-        ...result,
-        id: result!._id!.toString() 
+        ...result[0],
+        _id: result[0].id
       };
     } else {
-      const newLog = {
-        habitid: habitId,
-        ownerid: userId,
-        date: dateStr,
-        status: String(body.status),
-        sharedwith: body.sharedwith && Array.isArray(body.sharedwith) ? body.sharedwith : [],
-        updatedat: new Date()
-      };
-      
-      const result = await db.collection<IHabitLog>('habitlogs').insertOne(newLog);
+      const sharedwith = body.sharedwith && Array.isArray(body.sharedwith) ? body.sharedwith : [];
+      const result = await sql`
+        INSERT INTO habitlogs (habitid, ownerid, date, status, sharedwith, updatedat)
+        VALUES (${habitId}::uuid, ${userId}, ${dateStr}, ${status}, ${sharedwith}, NOW())
+        RETURNING *
+      `;
       
       return { 
-        ...newLog,
-        _id: result.insertedId,
-        id: result.insertedId.toString() 
+        ...result[0],
+        _id: result[0].id
       };
     }
   }
@@ -79,12 +72,12 @@ export default defineEventHandler(async (event) => {
   if (event.method === 'DELETE') {
     const query = getQuery(event);
     const habitId = String(query.habitid);
+    const dateStr = String(query.date);
     
-    await db.collection<IHabitLog>('habitlogs').deleteOne({
-      habitid: habitId,
-      ownerid: userId,
-      date: String(query.date)
-    });
+    await sql`
+      DELETE FROM habitlogs 
+      WHERE habitid = ${habitId}::uuid AND ownerid = ${userId} AND date = ${dateStr}
+    `;
     
     return { success: true };
   }
