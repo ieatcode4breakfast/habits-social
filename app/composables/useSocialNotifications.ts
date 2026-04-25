@@ -12,6 +12,7 @@ export const useSocialNotifications = (options?: SocialNotificationOptions) => {
   const { user } = useAuth();
   const { subscribeToSocials } = useRealtime();
   let unsubscribe: (() => void) | null = null;
+  let stopWatch: (() => void) | null = null;
 
   const refreshCount = async () => {
     if (!user.value) return;
@@ -27,17 +28,29 @@ export const useSocialNotifications = (options?: SocialNotificationOptions) => {
   const init = () => {
     if (import.meta.server) return;
     
+    console.log('[SocialNotifications] Initializing...');
     refreshCount();
-    
-    unsubscribe = subscribeToSocials((eventName, data) => {
-      refreshCount();
-      if (eventName === 'friend-request-received' && options?.onFriendRequestReceived) options.onFriendRequestReceived(data);
-      if (eventName === 'friend-request-accepted' && options?.onFriendRequestAccepted) options.onFriendRequestAccepted(data);
-      if (eventName === 'friendship-removed' && options?.onFriendshipRemoved) options.onFriendshipRemoved(data);
-    });
+
+    // Watch for user ID to be available before subscribing
+    stopWatch = watch(() => user.value?.id, (newId) => {
+      if (newId && !unsubscribe) {
+        console.log('[SocialNotifications] User ID available, setting up subscription:', newId);
+        unsubscribe = subscribeToSocials((eventName, data) => {
+          console.log('[SocialNotifications] Event received:', eventName, data);
+          refreshCount();
+          if (eventName === 'friend-request-received' && options?.onFriendRequestReceived) options.onFriendRequestReceived(data);
+          if (eventName === 'friend-request-accepted' && options?.onFriendRequestAccepted) options.onFriendRequestAccepted(data);
+          if (eventName === 'friendship-removed' && options?.onFriendshipRemoved) options.onFriendshipRemoved(data);
+        });
+      }
+    }, { immediate: true });
   };
 
   const cleanup = () => {
+    if (stopWatch) {
+      stopWatch();
+      stopWatch = null;
+    }
     if (unsubscribe) {
       unsubscribe();
       unsubscribe = null;

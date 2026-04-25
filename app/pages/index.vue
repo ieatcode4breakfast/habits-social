@@ -786,24 +786,43 @@ const getStreakTheme = (count: number) => {
 };
 
 const load = async () => {
-  const [h, l, socialData] = await Promise.all([
-    api.getHabits(), 
-    api.getLogs(startDate, endDate),
-    $fetch<any>('/api/social/friends')
-  ]);
-  habits.value = h;
-  logs.value = l;
+  console.log('[Dashboard] load() triggered');
+  try {
+    const [h, l, socialData] = await Promise.all([
+      api.getHabits(), 
+      api.getLogs(startDate, endDate),
+      $fetch<any>('/api/social/friends')
+    ]);
+    habits.value = h;
+    logs.value = l;
 
-  const profilesMap = new Map(socialData.profiles.map((p: any) => [p.id, p]));
-  friends.value = socialData.friendships
-    .filter((f: any) => f.status === 'accepted')
-    .map((f: any) => {
-      const myId = user.value?.id ? String(user.value.id) : null;
-      if (!myId) return null;
-      const friendId = f.participants.find((p: string) => String(p) !== myId) || '';
-      return profilesMap.get(friendId);
-    })
-    .filter(Boolean);
+    const profilesMap = new Map(socialData.profiles.map((p: any) => [String(p.id), p]));
+    console.log('[Dashboard] Social data received:', socialData);
+    
+    friends.value = socialData.friendships
+      .filter((f: any) => f.status === 'accepted')
+      .map((f: any) => {
+        const myId = user.value?.id ? String(user.value.id) : null;
+        if (!myId) {
+          console.warn('[Dashboard] No user ID available during friends mapping');
+          return null;
+        }
+        const friendId = f.participants.find((p: string) => String(p) !== myId);
+        if (!friendId) {
+          console.warn('[Dashboard] Could not find friend ID in participants:', f.participants);
+          return null;
+        }
+        const profile = profilesMap.get(String(friendId));
+        if (!profile) {
+          console.warn('[Dashboard] Could not find profile for friend ID:', friendId);
+        }
+        return profile;
+      })
+      .filter(Boolean);
+    console.log('[Dashboard] Load complete. Friends count:', friends.value.length, friends.value);
+  } catch (error) {
+    console.error('[Dashboard] load() failed:', error);
+  }
 };
 
 
@@ -1168,10 +1187,13 @@ const { init: initSocial, cleanup: cleanupSocial } = useSocialNotifications({
 });
 
 onMounted(() => {
+  console.log('[Dashboard] onMounted, user ID:', user.value?.id);
   initSocial();
   load();
   if (user.value?.id) {
+    console.log('[Dashboard] Subscribing to own habit updates...');
     unsubscribeOwnHabits = subscribeToFriendHabits(String(user.value.id), () => {
+      console.log('[Dashboard] Own habit update received, reloading...');
       load();
     });
   }

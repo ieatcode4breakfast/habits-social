@@ -145,8 +145,8 @@
             <h2 class="text-xl font-bold text-white mb-2">{{ friendshipToUnfriend?.status === 'pending' ? 'Cancel Request?' : 'Unfriend?' }}</h2>
             <p class="text-zinc-500 mb-8 text-sm">
               {{ friendshipToUnfriend?.status === 'pending' 
-                ? `Cancel your friend request to ${profilesMap[getFriendId(friendshipToUnfriend!)]?.username}?`
-                : `Are you sure you want to unfriend ${profilesMap[getFriendId(friendshipToUnfriend!)]?.username}?` 
+                ? `Cancel your friend request to ${unfriendDisplayName}?`
+                : `Are you sure you want to unfriend ${unfriendDisplayName}?` 
               }}
             </p>
             <div class="flex flex-col gap-3">
@@ -283,6 +283,7 @@ const friendships = ref<Friendship[]>([]);
 const profilesMap = ref<Record<string, UserProfile>>({});
 const showUnfriendModal = ref(false);
 const friendshipToUnfriend = ref<Friendship | null>(null);
+const unfriendDisplayName = ref('');
 const showAddModal = ref(false);
 const userToRequest = ref<UserProfile | null>(null);
 const showShareModal = ref(false);
@@ -502,14 +503,22 @@ const declineRequest = async (fid: string) => {
 
 const confirmUnfriend = (f: Friendship) => {
   friendshipToUnfriend.value = f;
+  unfriendDisplayName.value = profilesMap.value[getFriendId(f)]?.username || 'Unknown';
   showUnfriendModal.value = true;
 };
 
 const executeUnfriend = async () => {
   if (!friendshipToUnfriend.value) return;
-  await $fetch(`/api/social/requests/${friendshipToUnfriend.value.id}`, { method: 'DELETE' });
-  await loadFriendships();
+  const fid = friendshipToUnfriend.value.id;
+  
+  // Close modal first to avoid flickering when data reloads
   showUnfriendModal.value = false;
+  
+  await $fetch(`/api/social/requests/${fid}`, { method: 'DELETE' });
+  await loadFriendships();
+  
+  // Clear reference after data is reloaded
   friendshipToUnfriend.value = null;
+  unfriendDisplayName.value = '';
 };
 </script>
