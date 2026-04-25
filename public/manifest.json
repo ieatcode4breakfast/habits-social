@@ -1,5 +1,6 @@
 {
   "short_name": "Habits Social",
+  "version": "1.0.0",
   "name": "Habits Social",
   "description": "A social habit tracking app.",
   "start_url": "/?source=pwa",
