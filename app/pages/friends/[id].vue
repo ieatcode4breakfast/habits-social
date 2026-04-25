@@ -1,6 +1,6 @@
 <template>
   <div class="space-y-3">
-    <div class="flex flex-col md:flex-row md:items-center gap-4 px-4 sm:px-0" v-motion-slide-visible-once-left>
+    <div class="flex items-center gap-4 px-4 sm:px-0" v-motion-slide-visible-once-left>
       <NuxtLink to="/social" class="inline-flex items-center justify-center w-10 h-10 rounded-xl bg-zinc-925/80 backdrop-blur-sm border border-zinc-800/80 hover:bg-zinc-800 transition-all shadow-xl flex-shrink-0">
         <ArrowLeft class="w-5 h-5 text-zinc-400 hover:text-white transition-colors" />
       </NuxtLink>
