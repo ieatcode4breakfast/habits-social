@@ -21,7 +21,7 @@
     </div>
 
     <!-- Shared Habit List (Single Card) -->
-    <div v-if="!loading" v-motion-fade class="bg-zinc-925/80 backdrop-blur-sm sm:rounded-2xl rounded-none shadow-2xl divide-y divide-zinc-800/80 border-y border-x-0 sm:border border-zinc-800/80">
+    <div v-if="!loading" v-motion-fade class="bg-zinc-925/80 backdrop-blur-sm sm:rounded-2xl rounded-none shadow-2xl divide-y divide-zinc-800/80 border-y border-x-0 sm:border border-zinc-800/80 overflow-x-auto">
       <div v-if="habits.length === 0" class="p-10 text-center text-zinc-500 italic text-sm">
         {{ profile?.username }} hasn't shared any habits with you yet.
       </div>
