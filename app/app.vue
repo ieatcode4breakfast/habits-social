@@ -11,6 +11,17 @@
 const { fetchUser } = useAuth();
 await fetchUser();
 
+onMounted(() => {
+  // Nuclear option: Unregister any stale service workers that might be causing the redirect crash
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.getRegistrations().then((registrations) => {
+      for (const registration of registrations) {
+        registration.unregister();
+      }
+    });
+  }
+});
+
 useHead({
   htmlAttrs: { class: 'dark' },
   title: 'Habits Social',
