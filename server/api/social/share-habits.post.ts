@@ -11,11 +11,14 @@ export default defineEventHandler(async (event) => {
 
   const targetId = String(targetUserId);
 
-  if (habitIds.length > 0) {
+  // Update each habit individually to avoid Neon HTTP driver array param issues
+  for (const rawId of habitIds) {
+    const habitId = String(rawId);
     await sql`
       UPDATE habits 
-      SET sharedwith = array_append(sharedwith, ${targetId})
-      WHERE id = ANY(${habitIds}::uuid[]) 
+      SET sharedwith = array_append(sharedwith, ${targetId}),
+          updatedat = NOW()
+      WHERE id = ${habitId}::uuid
         AND ownerid = ${userId}
         AND NOT (${targetId} = ANY(sharedwith))
     `;
