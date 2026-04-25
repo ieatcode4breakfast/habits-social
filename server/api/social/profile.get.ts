@@ -13,7 +13,7 @@ export default defineEventHandler(async (event) => {
   }
   
   const users = await sql`
-    SELECT id, username, email, avatar_url, bio 
+    SELECT id, username, email, photourl 
     FROM users 
     WHERE id = ${friendId}::uuid
   `;
