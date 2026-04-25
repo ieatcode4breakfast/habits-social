@@ -805,7 +805,7 @@ const load = async () => {
     .filter(Boolean);
 };
 
-onMounted(load);
+
 
 const getStatus = (habitId: string, day: Date) => {
   const dateStr = format(day, 'yyyy-MM-dd');
@@ -1125,6 +1125,7 @@ watch([showModal, showEditModal, editDescription, newDescription, editFrequencyP
 });
 
 onUnmounted(() => {
+  unsubscribeOwnHabits();
   window.removeEventListener('resize', checkHeightOverflow);
   window.removeEventListener('popstate', handlePopState);
   if (typeof document !== 'undefined') {
@@ -1164,7 +1165,16 @@ watch(isAnyModalOpen, (isOpen, oldOpen) => {
   }
 });
 
+const { subscribeToFriendHabits } = useRealtime();
+let unsubscribeOwnHabits = () => {};
+
 onMounted(() => {
+  load();
+  if (user.value?.id) {
+    unsubscribeOwnHabits = subscribeToFriendHabits(String(user.value.id), () => {
+      load();
+    });
+  }
   window.addEventListener('resize', checkHeightOverflow);
   window.addEventListener('popstate', handlePopState);
 });

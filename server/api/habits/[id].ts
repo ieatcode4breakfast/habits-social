@@ -1,4 +1,5 @@
 import type { IHabit } from '../../models';
+import { usePusher } from '../../utils/pusher';
 
 export default defineEventHandler(async (event) => {
   const sql = useDB(event);
@@ -31,11 +32,25 @@ export default defineEventHandler(async (event) => {
     if (result.length === 0) throw createError({ statusCode: 404, statusMessage: 'Not found after update' });
 
     const updatedHabit = result[0];
+
+    // Real-time: Notify other devices
+    const pusher = usePusher();
+    if (pusher) {
+      await pusher.trigger(`user-${userId}-habits`, 'habit-updated', { habitId: id });
+    }
+
     return updatedHabit;
   }
 
   if (event.method === 'DELETE') {
     await sql`DELETE FROM habits WHERE id = ${id}::uuid`;
+
+    // Real-time: Notify other devices
+    const pusher = usePusher();
+    if (pusher) {
+      await pusher.trigger(`user-${userId}-habits`, 'habit-deleted', { habitId: id });
+    }
+
     return { success: true };
   }
 });

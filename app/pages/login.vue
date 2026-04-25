@@ -57,13 +57,13 @@
               />
             </div>
 
-            <!-- Email -->
+            <!-- Email / Username -->
             <div class="relative">
-              <Mail class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
+              <component :is="tab === 'login' ? User : Mail" class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
               <input
                 v-model="email"
-                type="email"
-                placeholder="Email"
+                :type="tab === 'login' ? 'text' : 'email'"
+                :placeholder="tab === 'login' ? 'Email or Username' : 'Email'"
                 required
                 class="w-full pl-10 pr-4 py-3 bg-black border border-zinc-800 rounded-xl text-white placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-zinc-600 focus:border-transparent transition-all text-sm"
               />
@@ -112,7 +112,7 @@
                 @click="email = ''; username = ''; password = ''; confirmPassword = ''; error = ''"
                 class="flex-1 py-3 text-sm font-semibold text-zinc-400 bg-transparent hover:bg-zinc-925 rounded-xl transition-colors cursor-pointer"
               >
-                Cancel
+                Reset
               </button>
               <button
                 type="submit"

@@ -1,4 +1,5 @@
 import type { IHabit } from '../../models';
+import { usePusher } from '../../utils/pusher';
 
 export default defineEventHandler(async (event) => {
   const sql = useDB(event);
@@ -30,6 +31,13 @@ export default defineEventHandler(async (event) => {
     `;
 
     const newHabit = result[0];
+    if (!newHabit) throw createError({ statusCode: 500, statusMessage: 'Failed to create habit' });
+
+    // Real-time: Notify other devices
+    const pusher = usePusher();
+    if (pusher) {
+      await pusher.trigger(`user-${userId}-habits`, 'habit-updated', { habitId: newHabit!.id });
+    }
 
     return newHabit;
   }

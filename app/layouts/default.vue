@@ -14,7 +14,10 @@
         <div v-if="user" class="flex items-center gap-0">
           <nav class="hidden md:flex items-center gap-1">
             <NuxtLink to="/" class="nav-link" :class="{ 'nav-link-active': $route.path === '/' }">Dashboard</NuxtLink>
-            <NuxtLink to="/social" class="nav-link" :class="{ 'nav-link-active': $route.path === '/social' }">Social</NuxtLink>
+            <NuxtLink to="/social" class="nav-link flex items-center gap-2" :class="{ 'nav-link-active': $route.path === '/social' }">
+              Social
+              <span v-if="pendingCount > 0 && $route.path !== '/social'" class="flex w-2 h-2 bg-rose-500 rounded-full"></span>
+            </NuxtLink>
           </nav>
           <div class="w-px h-6 bg-zinc-800 hidden md:block mx-2 shrink-0"></div>
           <button 
@@ -43,10 +46,12 @@
           </div>
           <span class="text-[10px] font-bold uppercase tracking-widest">Dashboard</span>
         </NuxtLink>
-        <NuxtLink to="/social" class="flex flex-col items-center gap-1 group transition-colors" :class="$route.path === '/social' ? 'text-white' : 'text-zinc-500'">
+        <NuxtLink to="/social" class="flex flex-col items-center gap-1 group transition-colors relative" :class="$route.path === '/social' ? 'text-white' : 'text-zinc-500'">
           <div class="p-1 rounded-lg transition-colors" :class="$route.path === '/social' ? 'bg-white/10' : 'group-hover:bg-white/5'">
             <Users class="w-6 h-6" />
           </div>
+          <!-- Badge -->
+          <div v-if="pendingCount > 0 && $route.path !== '/social'" class="absolute top-0 right-1 w-2.5 h-2.5 bg-rose-500 rounded-full border-2 border-black"></div>
           <span class="text-[10px] font-bold uppercase tracking-widest">Social</span>
         </NuxtLink>
       </div>
@@ -182,6 +187,18 @@
 import { LogOut, LayoutDashboard, Users, User as UserIcon, Mail, Lock, X, Loader2, Eye, EyeOff } from 'lucide-vue-next';
 
 const { user, fetchUser } = useAuth();
+const { pendingCount, init: initSocial, cleanup: cleanupSocial } = useSocialNotifications();
+
+onMounted(() => {
+  if (user.value) {
+    initSocial();
+  }
+});
+
+onUnmounted(() => {
+  cleanupSocial();
+});
+
 const router = useRouter();
 
 // Profile Modal State

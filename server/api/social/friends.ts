@@ -1,4 +1,5 @@
 import type { IFriendship, IUser } from '../../models';
+import { usePusher } from '../../utils/pusher';
 
 export default defineEventHandler(async (event) => {
   const sql = useDB(event);
@@ -61,13 +62,19 @@ export default defineEventHandler(async (event) => {
     `;
     
     const newFriendship = result[0];
+    if (!newFriendship) throw createError({ statusCode: 500, statusMessage: 'Failed to create friendship' });
+
+    const pusher = usePusher();
+    if (pusher) {
+      pusher.trigger(`user-${targetUserId}-social`, 'friend-request-received', newFriendship);
+    }
 
     return { 
       ...newFriendship, 
-      id: newFriendship.id,
-      initiatorId: newFriendship.initiatorId,
-      receiverId: newFriendship.receiverId,
-      participants: [newFriendship.initiatorId, newFriendship.receiverId]
+      id: newFriendship!.id,
+      initiatorId: newFriendship!.initiatorId,
+      receiverId: newFriendship!.receiverId,
+      participants: [newFriendship!.initiatorId, newFriendship!.receiverId]
     };
   }
 });

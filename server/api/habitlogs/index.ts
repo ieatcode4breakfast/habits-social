@@ -1,4 +1,5 @@
 import type { IHabitLog } from '../../models';
+import { usePusher } from '../../utils/pusher';
 
 export default defineEventHandler(async (event) => {
   const sql = useDB(event);
@@ -45,7 +46,12 @@ export default defineEventHandler(async (event) => {
         RETURNING *
       `;
       
-      return result[0];
+      const updatedLog = result[0];
+      const pusher = usePusher();
+      if (pusher) {
+        await pusher.trigger(`user-${userId}-habits`, 'habit-updated', updatedLog);
+      }
+      return updatedLog;
     } else {
       const sharedwith = body.sharedwith && Array.isArray(body.sharedwith) ? body.sharedwith : [];
       const result = await sql`
@@ -54,7 +60,12 @@ export default defineEventHandler(async (event) => {
         RETURNING *
       `;
       
-      return result[0];
+      const newLog = result[0];
+      const pusher = usePusher();
+      if (pusher) {
+        await pusher.trigger(`user-${userId}-habits`, 'habit-updated', newLog);
+      }
+      return newLog;
     }
   }
 
@@ -68,6 +79,10 @@ export default defineEventHandler(async (event) => {
       WHERE habitid = ${habitId} AND ownerid = ${userId} AND date = ${dateStr}
     `;
     
+    const pusher = usePusher();
+    if (pusher) {
+      await pusher.trigger(`user-${userId}-habits`, 'habit-deleted', { habitid: habitId, date: dateStr });
+    }
     return { success: true };
   }
 });
