@@ -6,7 +6,7 @@ export const useRealtime = () => {
   const config = useRuntimeConfig();
   const { user } = useAuth(); // assuming user auth gives us the user id
   
-  if (!pusherInstance && config.public.pusherKey && config.public.pusherCluster) {
+  if (import.meta.client && !pusherInstance && config.public.pusherKey && config.public.pusherCluster) {
     pusherInstance = new Pusher(config.public.pusherKey, {
       cluster: config.public.pusherCluster,
     });
