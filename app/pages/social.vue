@@ -219,10 +219,27 @@
               <div class="w-16 h-16 bg-zinc-925 rounded-full flex items-center justify-center mx-auto mb-4">
                 <Check class="w-8 h-8 text-white" />
               </div>
-              <h2 class="text-xl font-bold text-white mb-2">Request Sent!</h2>
+              <h2 class="text-xl font-bold text-white mb-2">{{ shareModalTitle }}</h2>
               <p class="text-zinc-500 text-sm">
-                Which habits would you like to share with <span class="text-zinc-200 font-medium">{{ userBeingSharedWith?.username }}</span> while you wait?
+                Which habits would you like to share with <span class="text-zinc-200 font-medium">{{ userBeingSharedWith?.username }}</span>?
               </p>
+            </div>
+            
+            <!-- Selection Controls -->
+            <div class="flex items-center justify-center gap-4 mb-4">
+              <button 
+                @click="selectAllHabits"
+                class="text-[10px] font-bold uppercase tracking-widest text-zinc-500 hover:text-white transition-colors cursor-pointer"
+              >
+                Select All
+              </button>
+              <div class="w-1 h-1 rounded-full bg-zinc-800"></div>
+              <button 
+                @click="deselectAllHabits"
+                class="text-[10px] font-bold uppercase tracking-widest text-zinc-500 hover:text-white transition-colors cursor-pointer"
+              >
+                Deselect All
+              </button>
             </div>
 
             <div class="max-h-[320px] overflow-y-auto pr-2 space-y-2 mb-8 scrollbar-thin scrollbar-thumb-zinc-800 scrollbar-track-transparent">
@@ -277,6 +294,7 @@ const showShareModal = ref(false);
 const myHabits = ref<any[]>([]);
 const selectedHabitIds = ref<string[]>([]);
 const userBeingSharedWith = ref<UserProfile | null>(null);
+const shareModalTitle = ref('Request Sent!');
 
 const pendingIncoming = computed(() => {
   if (!user.value?.id) return [];
@@ -427,6 +445,7 @@ const executeSendRequest = async () => {
   
   // Open share modal if user has habits
   if (habitsData.length > 0) {
+    shareModalTitle.value = 'Request Sent!';
     showShareModal.value = true;
   }
 };
@@ -435,6 +454,14 @@ const toggleHabitSelection = (id: string) => {
   const index = selectedHabitIds.value.indexOf(id);
   if (index === -1) selectedHabitIds.value.push(id);
   else selectedHabitIds.value.splice(index, 1);
+};
+
+const selectAllHabits = () => {
+  selectedHabitIds.value = myHabits.value.map(h => h.id);
+};
+
+const deselectAllHabits = () => {
+  selectedHabitIds.value = [];
 };
 
 const executeBatchShare = async () => {
@@ -452,8 +479,27 @@ const executeBatchShare = async () => {
 };
 
 const acceptRequest = async (fid: string) => {
+  const friendship = friendships.value.find(f => f.id === fid);
+  if (!friendship) return;
+  
+  const initiatorId = friendship.initiatorId;
+  const initiatorProfile = profilesMap.value[initiatorId];
+
   await $fetch(`/api/social/requests/${fid}`, { method: 'PUT' });
   await loadFriendships();
+
+  // Setup for share modal
+  if (initiatorProfile) {
+    userBeingSharedWith.value = initiatorProfile;
+    const habitsData = await $fetch<any[]>('/api/habits');
+    myHabits.value = habitsData;
+    selectedHabitIds.value = [];
+    
+    if (habitsData.length > 0) {
+      shareModalTitle.value = 'Request Accepted!';
+      showShareModal.value = true;
+    }
+  }
 };
 
 const declineRequest = async (fid: string) => {
