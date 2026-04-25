@@ -1,4 +1,4 @@
-import { ref, computed } from 'vue';
+import { ref, computed, watch } from 'vue';
 import { useRealtime } from './useRealtime';
 
 export interface UserProfile { 
@@ -16,11 +16,16 @@ export interface Friendship {
   status: 'pending' | 'accepted'; 
 }
 
+// Module-level state to ensure singleton behavior for the subscription
+let globalUnsubscribe: (() => void) | null = null;
+let globalStopWatch: (() => void) | null = null;
+let isInitialized = false;
+
 export const useSocial = () => {
   const { user } = useAuth();
   const { subscribeToSocials } = useRealtime();
 
-  // Global state using Nuxt's useState
+  // Global state using Nuxt's useState (shared across all instances)
   const friendships = useState<Friendship[]>('social-friendships', () => []);
   const profiles = useState<UserProfile[]>('social-profiles', () => []);
   const pendingCount = useState<number>('social-pending-count', () => 0);
@@ -52,11 +57,11 @@ export const useSocial = () => {
     if (!user.value) return;
     isLoading.value = true;
     try {
-      const data = await $fetch<{ friendships: Friendship[]; profiles: UserProfile[] }>('/api/social/friends');
+      // Use cache-busting timestamp to ensure fresh data
+      const data = await $fetch<{ friendships: Friendship[]; profiles: UserProfile[] }>(`/api/social/friends?t=${Date.now()}`);
       friendships.value = data.friendships;
       profiles.value = data.profiles;
       
-      // Update pending count (incoming only)
       const myId = String(user.value.id);
       pendingCount.value = data.friendships.filter(
         f => f.status === 'pending' && String(f.receiverId) === myId
@@ -68,38 +73,63 @@ export const useSocial = () => {
     }
   };
 
-  let unsubscribe: (() => void) | null = null;
-  let stopWatch: (() => void) | null = null;
-
   const init = () => {
-    if (import.meta.server) return;
+    if (import.meta.server || isInitialized) return;
     
-    // Initial refresh
+    console.log('[Social] Initializing global social state...');
+    isInitialized = true;
+    
+    // Initial fetch
     refresh();
 
-    // Watch for user ID to be available before subscribing
-    if (stopWatch) stopWatch();
-    stopWatch = watch(() => user.value?.id, (newId) => {
-      if (newId && !unsubscribe) {
-        console.log('[Social] Setting up realtime subscription for user:', newId);
-        unsubscribe = subscribeToSocials((eventName) => {
-          console.log('[Social] Realtime event received:', eventName);
-          // Refresh everything when any social event happens
+    // Setup singleton watcher and subscription
+    if (globalStopWatch) globalStopWatch();
+    globalStopWatch = watch(() => user.value?.id, (newId) => {
+      if (newId && !globalUnsubscribe) {
+        console.log('[Social] Subscribing to global realtime events for user:', newId);
+        globalUnsubscribe = subscribeToSocials((eventName, data) => {
+          console.log(`[Social] Realtime event [${eventName}] received:`, data);
+          
+          // Optimistic update for friendships
+          if (eventName === 'friend-request-accepted' || eventName === 'friend-request-received') {
+            const index = friendships.value.findIndex(f => f.id === data.id);
+            if (index !== -1) {
+              friendships.value[index] = { ...friendships.value[index], ...data };
+            } else {
+              friendships.value.push(data);
+            }
+          } else if (eventName === 'friendship-removed') {
+            friendships.value = friendships.value.filter(f => f.id !== data.id);
+          }
+
+          // Always refresh from source to ensure full profile data and consistency
           refresh();
         });
       }
     }, { immediate: true });
   };
 
+  // We expose a cleanup but typically we want to keep it alive 
+  // unless we explicitly want to kill the social features.
   const cleanup = () => {
-    if (stopWatch) {
-      stopWatch();
-      stopWatch = null;
+    // In a singleton pattern, we might choose NOT to cleanup on unmount
+    // so that the listener stays alive while navigating between pages.
+    // We only cleanup if explicitly requested or on logout.
+  };
+
+  const logoutCleanup = () => {
+    if (globalStopWatch) {
+      globalStopWatch();
+      globalStopWatch = null;
     }
-    if (unsubscribe) {
-      unsubscribe();
-      unsubscribe = null;
+    if (globalUnsubscribe) {
+      globalUnsubscribe();
+      globalUnsubscribe = null;
     }
+    isInitialized = false;
+    friendships.value = [];
+    profiles.value = [];
+    pendingCount.value = 0;
   };
 
   return {
@@ -111,6 +141,7 @@ export const useSocial = () => {
     isLoading,
     refresh,
     init,
-    cleanup
+    cleanup,
+    logoutCleanup
   };
 };

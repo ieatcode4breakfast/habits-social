@@ -187,7 +187,7 @@
 import { LogOut, LayoutDashboard, Users, User as UserIcon, Mail, Lock, X, Loader2, Eye, EyeOff } from 'lucide-vue-next';
 
 const { user, fetchUser } = useAuth();
-const { pendingCount, init: initSocial, cleanup: cleanupSocial } = useSocialNotifications();
+const { pendingCount, init: initSocial, cleanup: cleanupSocial, logoutCleanup } = useSocial();
 
 onMounted(() => {
   if (user.value) {
@@ -249,6 +249,7 @@ const route = useRoute();
 
 const logout = async () => {
   await $fetch('/api/auth/logout', { method: 'POST' });
+  logoutCleanup();
   await fetchUser();
   router.push('/login');
 };

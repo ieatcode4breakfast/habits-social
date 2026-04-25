@@ -1161,7 +1161,7 @@ let unsubscribeOwnHabits = () => {};
 
 onMounted(() => {
   console.log('[Dashboard] onMounted, user ID:', user.value?.id);
-  initSocial();
+  // Social state is now initialized globally in default.vue layout
   load();
   if (user.value?.id) {
     console.log('[Dashboard] Subscribing to own habit updates...');
@@ -1175,7 +1175,7 @@ onMounted(() => {
 });
 
 onUnmounted(() => {
-  cleanupSocial();
+  // cleanupSocial(); // Now a no-op singleton cleanup handled by logout
   unsubscribeOwnHabits();
   window.removeEventListener('resize', checkHeightOverflow);
   window.removeEventListener('popstate', handlePopState);

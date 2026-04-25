@@ -387,12 +387,12 @@ const { pendingCount } = useSocialNotifications();
 
 onMounted(() => {
   loadFriendships();
-  initSocial();
+  // Social state is now initialized globally in default.vue layout
   window.addEventListener('resize', checkHeightOverflow);
 });
 
 onUnmounted(() => {
-  cleanupSocial();
+  // cleanupSocial(); // Now a no-op singleton cleanup handled by logout
   window.removeEventListener('resize', checkHeightOverflow);
   if (typeof document !== 'undefined') {
     document.body.classList.remove('overflow-hidden');

@@ -4,7 +4,7 @@ let pusherInstance: Pusher | null = null;
 
 export const useRealtime = () => {
   const config = useRuntimeConfig();
-  const { user } = useAuth(); // assuming user auth gives us the user id
+  const { user } = useAuth();
   
   if (import.meta.client && !pusherInstance && config.public.pusherKey && config.public.pusherCluster) {
     console.log('[Realtime] Initializing Pusher...');
@@ -14,34 +14,28 @@ export const useRealtime = () => {
   }
 
   const subscribeToSocials = (callback: (eventName: string, data: any) => void) => {
-    if (!pusherInstance) {
-      console.warn('[Realtime] Cannot subscribe to socials: No pusherInstance');
-      return () => {};
-    }
-    if (!user.value?.id) {
-      console.warn('[Realtime] Cannot subscribe to socials: No user ID');
-      return () => {};
-    }
+    if (!pusherInstance || !user.value?.id) return () => {};
     
     const channelName = `user-${user.value.id}-social`;
-    console.log('[Realtime] Subscribing to channel:', channelName);
+    console.log('[Realtime] Subscribing to social channel:', channelName);
     const channel = pusherInstance.subscribe(channelName);
     
-    channel.bind('friend-request-received', (data: any) => {
-      console.log('[Realtime] friend-request-received', data);
-      callback('friend-request-received', data);
-    });
-    channel.bind('friend-request-accepted', (data: any) => {
-      console.log('[Realtime] friend-request-accepted', data);
-      callback('friend-request-accepted', data);
-    });
-    channel.bind('friendship-removed', (data: any) => {
-      console.log('[Realtime] friendship-removed', data);
-      callback('friendship-removed', data);
-    });
+    const onReceived = (data: any) => callback('friend-request-received', data);
+    const onAccepted = (data: any) => callback('friend-request-accepted', data);
+    const onRemoved = (data: any) => callback('friendship-removed', data);
+
+    channel.bind('friend-request-received', onReceived);
+    channel.bind('friend-request-accepted', onAccepted);
+    channel.bind('friendship-removed', onRemoved);
 
     return () => {
-      pusherInstance?.unsubscribe(channelName);
+      console.log('[Realtime] Unbinding social listeners from:', channelName);
+      channel.unbind('friend-request-received', onReceived);
+      channel.unbind('friend-request-accepted', onAccepted);
+      channel.unbind('friendship-removed', onRemoved);
+      
+      // We don't unsubscribe here because other components might still be using the channel
+      // Pusher will automatically clean up unused channels.
     };
   };
 
@@ -49,13 +43,19 @@ export const useRealtime = () => {
     if (!pusherInstance) return () => {};
     
     const channelName = `user-${friendId}-habits`;
+    console.log('[Realtime] Subscribing to habits channel:', channelName);
     const channel = pusherInstance.subscribe(channelName);
     
-    channel.bind('habit-updated', (data: any) => callback('habit-updated', data));
-    channel.bind('habit-deleted', (data: any) => callback('habit-deleted', data));
+    const onUpdated = (data: any) => callback('habit-updated', data);
+    const onDeleted = (data: any) => callback('habit-deleted', data);
+
+    channel.bind('habit-updated', onUpdated);
+    channel.bind('habit-deleted', onDeleted);
 
     return () => {
-      pusherInstance?.unsubscribe(channelName);
+      console.log('[Realtime] Unbinding habit listeners from:', channelName);
+      channel.unbind('habit-updated', onUpdated);
+      channel.unbind('habit-deleted', onDeleted);
     };
   };
 
