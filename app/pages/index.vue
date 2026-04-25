@@ -160,10 +160,11 @@
                 <div class="relative">
                   <textarea
                     v-model="newDescription"
-                    rows="5"
+                    rows="2"
                     maxlength="300"
                     placeholder=""
-                    class="w-full px-4 py-3 bg-black border border-zinc-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-zinc-600 text-white placeholder-zinc-700 transition-all resize-none"
+                    @input="autoExpand"
+                    class="w-full px-4 py-3 bg-black border border-zinc-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-zinc-600 text-white placeholder-zinc-700 transition-all resize-none overflow-hidden"
                   ></textarea>
                   <div class="absolute -bottom-5 right-1 text-[10px] font-bold text-zinc-600">
                     {{ newDescription.length }}/300
@@ -337,11 +338,13 @@
                 <label class="text-xs font-bold uppercase tracking-widest text-zinc-500">Description</label>
                 <div class="relative">
                   <textarea
+                    ref="editDescriptionRef"
                     v-model="editDescription"
-                    rows="5"
+                    rows="2"
                     maxlength="300"
                     placeholder=""
-                    class="w-full px-4 py-3 bg-black border border-zinc-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-zinc-600 text-white placeholder-zinc-700 transition-all resize-none"
+                    @input="autoExpand"
+                    class="w-full px-4 py-3 bg-black border border-zinc-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-zinc-600 text-white placeholder-zinc-700 transition-all resize-none overflow-hidden"
                   ></textarea>
                   <div class="absolute -bottom-5 right-1 text-[10px] font-bold text-zinc-600">
                     {{ editDescription.length }}/300
@@ -691,7 +694,15 @@ const editSharedWithWorking = ref<string[]>([]);
 const isEditingSharing = ref(false);
 const showSharingConfirmModal = ref(false);
 const reachedConfirmViaDone = ref(false);
+const editDescriptionRef = ref<HTMLTextAreaElement | null>(null);
 const currentCalendarDate = ref(new Date());
+
+const autoExpand = (e: Event | HTMLElement) => {
+  const el = (e instanceof Event ? e.target : e) as HTMLTextAreaElement;
+  if (!el) return;
+  el.style.height = 'auto';
+  el.style.height = el.scrollHeight + 'px';
+};
 
 const calendarDays = computed(() => {
   const start = startOfMonth(currentCalendarDate.value);
@@ -898,6 +909,9 @@ const openEditModal = (habit: Habit) => {
   nextTick(() => {
     isInitializingEdit = false;
     isDirty.value = false;
+    if (editDescriptionRef.value) {
+      autoExpand(editDescriptionRef.value);
+    }
   });
 };
 
