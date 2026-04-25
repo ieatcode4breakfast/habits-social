@@ -22,7 +22,7 @@
       </button>
 
       <div v-show="isRequestsExpanded" class="px-6 pb-6 pt-2">
-        <div class="space-y-3 max-h-[380px] overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-zinc-800 scrollbar-track-transparent">
+        <div class="space-y-2 max-h-[380px] overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-zinc-800 scrollbar-track-transparent">
           <div v-for="req in pendingIncoming" :key="req.id" class="flex items-center justify-between bg-black border border-zinc-925 p-4 rounded-xl">
             <NuxtLink :to="`/friends/${req.initiatorId}`" class="flex items-center gap-3 hover:opacity-80 transition-opacity">
               <div class="w-10 h-10 bg-zinc-925 rounded-full flex items-center justify-center overflow-hidden">
@@ -42,83 +42,86 @@
       </div>
     </div>
 
-    <!-- Add Friend -->
-    <div v-motion-fade class="bg-zinc-925/80 backdrop-blur-sm sm:rounded-2xl rounded-none p-6 shadow-2xl border-y border-x-0 sm:border border-zinc-800/80">
-      <h2 class="text-sm font-bold uppercase tracking-wider text-zinc-500 mb-4">Add Friend</h2>
-      <form @submit.prevent="handleSearch" class="flex gap-3">
-        <div class="relative w-full max-w-md">
-          <Search class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" />
-          <input v-model="searchQuery" type="text" placeholder="Search by username..."
-            class="w-full pl-10 pr-4 py-2.5 bg-black border border-zinc-925 rounded-xl focus:outline-none focus:ring-2 focus:ring-zinc-600 text-white placeholder-zinc-600 text-sm transition-all" />
-        </div>
-      </form>
-
-      <div v-if="searchResults.length > 0" class="mt-4 space-y-3 max-h-[380px] overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-zinc-800 scrollbar-track-transparent">
-        <div v-for="res in searchResults" :key="res.id" class="flex items-center justify-between bg-black border border-zinc-925 p-4 rounded-xl">
-          <NuxtLink :to="`/friends/${res.id}`" class="flex items-center gap-3 hover:opacity-80 transition-opacity">
-            <div class="w-10 h-10 bg-zinc-925 rounded-full flex items-center justify-center overflow-hidden">
-              <img v-if="res.photourl" :src="res.photourl" alt="" class="w-full h-full object-cover" />
-              <User v-else class="w-5 h-5 text-zinc-600" />
-            </div>
-            <div>
-              <div class="font-semibold text-zinc-200 text-sm">{{ res.username }}</div>
-            </div>
-          </NuxtLink>
-          <span v-if="getRelationship(res.id)" class="text-xs font-semibold text-zinc-500 bg-zinc-925 px-3 py-1.5 rounded-full">
-            {{ getRelationship(res.id) === 'accepted' ? 'Friends' : 'Pending' }}
-          </span>
-          <button v-else @click="confirmSendRequest(res)" class="flex items-center gap-2 px-4 py-2 bg-white hover:bg-zinc-200 text-black rounded-xl transition-colors font-semibold text-sm cursor-pointer">
-            <UserPlus class="w-4 h-4" /> Add
-          </button>
-        </div>
-      </div>
-    </div>
-
-    <!-- Friends List -->
-    <div v-motion-fade class="bg-zinc-925/80 backdrop-blur-sm sm:rounded-2xl rounded-none p-6 shadow-2xl border-y border-x-0 sm:border border-zinc-800/80">
-      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-        <h2 class="text-sm font-bold uppercase tracking-wider text-zinc-500">My Friends</h2>
-        <div class="relative w-full sm:max-w-[240px]">
-          <Search class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
-          <input 
-            v-model="friendsSearchQuery"
-            type="text" 
-            placeholder="Filter friends..." 
-            class="w-full pl-10 pr-4 py-2.5 bg-black border border-zinc-925 rounded-xl focus:outline-none focus:ring-2 focus:ring-zinc-600 text-white placeholder-zinc-600 text-sm transition-all"
-          />
-        </div>
-      </div>
-      
-      <p v-if="displayFriends.length === 0" class="text-zinc-600 text-sm italic">No friends yet. Search for people above!</p>
-      <p v-else-if="filteredDisplayFriends.length === 0" class="text-zinc-600 text-sm italic">No friends found matching your filter.</p>
-      <div v-else class="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-[480px] overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-zinc-800 scrollbar-track-transparent">
-        <div 
-          v-for="f in filteredDisplayFriends" :key="f.id"
-          @click="handleFriendClick(f)"
-          class="flex items-center gap-4 p-4 rounded-xl border border-zinc-925 bg-black transition-all group shadow-sm hover:border-zinc-700 hover:shadow-md cursor-pointer"
-        >
-          <div class="w-12 h-12 bg-zinc-925 rounded-full flex items-center justify-center overflow-hidden flex-shrink-0">
-            <img v-if="profilesMap[getFriendId(f)]?.photourl" :src="profilesMap[getFriendId(f)]?.photourl" alt="" class="w-full h-full object-cover" />
-            <User v-else class="w-6 h-6 text-zinc-600" />
+    <!-- Combined Social Sections -->
+    <div v-motion-fade class="bg-zinc-925/80 backdrop-blur-sm sm:rounded-2xl rounded-none shadow-2xl border-y border-x-0 sm:border border-zinc-800/80 overflow-hidden">
+      <!-- Add Friend -->
+      <div class="p-6 pb-0">
+        <h2 class="text-sm font-bold uppercase tracking-wider text-zinc-500 mb-2">Add Friend</h2>
+        <form @submit.prevent="handleSearch" class="flex gap-3">
+          <div class="relative w-full max-w-md">
+            <Search class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" />
+            <input v-model="searchQuery" type="text" placeholder="Search by username..."
+              class="w-full pl-10 pr-4 py-2.5 bg-black border border-zinc-925 rounded-xl focus:outline-none focus:ring-2 focus:ring-zinc-600 text-white placeholder-zinc-600 text-sm transition-all" />
           </div>
-          <div class="flex-1 min-w-0">
-            <div class="flex items-center gap-2">
-              <div class="font-semibold text-zinc-200 truncate transition-colors text-sm" :class="{ 'group-hover:text-white': f.status === 'accepted' }">
-                {{ profilesMap[getFriendId(f)]?.username || 'Unknown' }}
+        </form>
+
+        <div v-if="searchResults.length > 0" class="mt-4 space-y-2 max-h-[380px] overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-zinc-800 scrollbar-track-transparent pb-4">
+          <div v-for="res in searchResults" :key="res.id" class="flex items-center justify-between bg-black border border-zinc-925 p-4 rounded-xl">
+            <NuxtLink :to="`/friends/${res.id}`" class="flex items-center gap-3 hover:opacity-80 transition-opacity">
+              <div class="w-10 h-10 bg-zinc-925 rounded-full flex items-center justify-center overflow-hidden">
+                <img v-if="res.photourl" :src="res.photourl" alt="" class="w-full h-full object-cover" />
+                <User v-else class="w-5 h-5 text-zinc-600" />
               </div>
-              <span v-if="f.status === 'pending'" class="text-[10px] font-bold uppercase tracking-widest text-zinc-600 bg-zinc-925 px-2 py-0.5 rounded-md shrink-0">
-                Pending
-              </span>
-            </div>
-          </div>
-          <div class="flex items-center gap-1 flex-shrink-0">
-            <button 
-              @click.stop="confirmUnfriend(f)" 
-              class="p-2 text-zinc-600 hover:text-rose-500 hover:bg-rose-500/10 rounded-xl transition-all cursor-pointer"
-              :title="f.status === 'pending' ? 'Cancel Request' : 'Unfriend'"
-            >
-              <X class="w-4 h-4" />
+              <div>
+                <div class="font-semibold text-zinc-200 text-sm">{{ res.username }}</div>
+              </div>
+            </NuxtLink>
+            <span v-if="getRelationship(res.id)" class="text-xs font-semibold text-zinc-500 bg-zinc-925 px-3 py-1.5 rounded-full">
+              {{ getRelationship(res.id) === 'accepted' ? 'Friends' : 'Pending' }}
+            </span>
+            <button v-else @click="confirmSendRequest(res)" class="flex items-center gap-2 px-4 py-2 bg-white hover:bg-zinc-200 text-black rounded-xl transition-colors font-semibold text-sm cursor-pointer">
+              <UserPlus class="w-4 h-4" /> Add
             </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Friends List -->
+      <div class="px-6 pt-6 pb-6">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2 sm:pr-1">
+          <h2 class="text-sm font-bold uppercase tracking-wider text-zinc-500">My Friends</h2>
+          <div class="relative w-full sm:max-w-[240px]">
+            <Search class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
+            <input 
+              v-model="friendsSearchQuery"
+              type="text" 
+              placeholder="Filter friends..." 
+              class="w-full pl-10 pr-4 py-2.5 bg-black border border-zinc-925 rounded-xl focus:outline-none focus:ring-2 focus:ring-zinc-600 text-white placeholder-zinc-600 text-sm transition-all"
+            />
+          </div>
+        </div>
+        
+        <p v-if="displayFriends.length === 0" class="text-zinc-600 text-sm italic">No friends yet. Search for people above!</p>
+        <p v-else-if="filteredDisplayFriends.length === 0" class="text-zinc-600 text-sm italic">No friends found matching your filter.</p>
+        <div v-else class="grid grid-cols-1 md:grid-cols-2 gap-2 max-h-[480px] overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-zinc-800 scrollbar-track-transparent">
+          <div 
+            v-for="f in filteredDisplayFriends" :key="f.id"
+            @click="handleFriendClick(f)"
+            class="flex items-center gap-4 p-4 rounded-xl border border-zinc-925 bg-black transition-all group shadow-sm hover:border-zinc-700 hover:shadow-md cursor-pointer"
+          >
+            <div class="w-12 h-12 bg-zinc-925 rounded-full flex items-center justify-center overflow-hidden flex-shrink-0">
+              <img v-if="profilesMap[getFriendId(f)]?.photourl" :src="profilesMap[getFriendId(f)]?.photourl" alt="" class="w-full h-full object-cover" />
+              <User v-else class="w-6 h-6 text-zinc-600" />
+            </div>
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center gap-2">
+                <div class="font-semibold text-zinc-200 truncate transition-colors text-sm" :class="{ 'group-hover:text-white': f.status === 'accepted' }">
+                  {{ profilesMap[getFriendId(f)]?.username || 'Unknown' }}
+                </div>
+                <span v-if="f.status === 'pending'" class="text-[10px] font-bold uppercase tracking-widest text-zinc-600 bg-zinc-925 px-2 py-0.5 rounded-md shrink-0">
+                  Pending
+                </span>
+              </div>
+            </div>
+            <div class="flex items-center gap-1 flex-shrink-0">
+              <button 
+                @click.stop="confirmUnfriend(f)" 
+                class="p-2 text-zinc-600 hover:text-rose-500 hover:bg-rose-500/10 rounded-xl transition-all cursor-pointer"
+                :title="f.status === 'pending' ? 'Cancel Request' : 'Unfriend'"
+              >
+                <X class="w-4 h-4" />
+              </button>
+            </div>
           </div>
         </div>
       </div>
