@@ -10,6 +10,10 @@ routes = [
   { pattern = "www.habitssocial.com", custom_domain = true }
 ]
 
+[env.production.vars]
+# Production environment variables (public)
+NODE_ENV = "production"
+
 [assets]
 directory = ".output/public"
 binding = "ASSETS"
