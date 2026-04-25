@@ -8,7 +8,8 @@ export default defineEventHandler(async (event) => {
 
   const sharedHabits = await sql`
     SELECT * FROM habits 
-    WHERE ownerid = ${fId} AND ${String(userId)} = ANY(sharedwith)
+    WHERE ownerid = ${fId}::text 
+      AND ${String(userId)}::text = ANY(sharedwith)
     ORDER BY "sortOrder" ASC
   `;
 
@@ -23,7 +24,8 @@ export default defineEventHandler(async (event) => {
   if (habitIds.length > 0) {
     const rawLogs = await sql`
       SELECT * FROM habitlogs 
-      WHERE ownerid = ${fId} AND habitid = ANY(${habitIds}::uuid[])
+      WHERE ownerid = ${fId}::text 
+        AND habitid = ANY(${habitIds}::uuid[])
     `;
     
     logs = rawLogs.map((l: any) => ({
