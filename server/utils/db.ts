@@ -19,14 +19,15 @@ export const useDB = async (event?: H3Event): Promise<Db> => {
   // We use clientPromise to ensure multiple simultaneous requests don't start multiple connections.
   if (!clientPromise) {
     client = new MongoClient(uri, {
-      maxPoolSize: 10,
-      minPoolSize: 1,
+      maxPoolSize: 1,
+      minPoolSize: 0,
       connectTimeoutMS: 10000,
       serverSelectionTimeoutMS: 10000,
       socketTimeoutMS: 30000,
     });
     clientPromise = client.connect();
   }
+
 
   try {
     const connectedClient = await clientPromise;
