@@ -405,8 +405,10 @@ const executeSendRequest = async () => {
   searchResults.value = [];
   searchQuery.value = '';
   
-  // Open share modal
-  showShareModal.value = true;
+  // Open share modal if user has habits
+  if (habitsData.length > 0) {
+    showShareModal.value = true;
+  }
 };
 
 const toggleHabitSelection = (id: string) => {
