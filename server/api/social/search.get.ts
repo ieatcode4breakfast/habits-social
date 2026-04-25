@@ -10,6 +10,7 @@ export default defineEventHandler(async (event) => {
     SELECT id, username, email, photourl FROM users 
     WHERE username ILIKE ${'%' + String(username) + '%'} 
       AND id != ${userId}::uuid
+    LIMIT 25
   `;
 
   return results.map((u: any) => ({
