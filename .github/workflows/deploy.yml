@@ -26,8 +26,8 @@ jobs:
       - name: Build Nuxt app
         run: npm run build
         env:
-          NUXT_MONGODB_URI: ${{ secrets.NUXT_MONGODB_URI }}
-          NUXT_JWT_SECRET: ${{ secrets.NUXT_JWT_SECRET }}
+          MONGODB_URI: ${{ secrets.NUXT_MONGODB_URI }}
+          JWT_SECRET: ${{ secrets.NUXT_JWT_SECRET }}
 
       - name: Deploy to Cloudflare Workers
         run: npx wrangler@latest deploy
