@@ -120,7 +120,6 @@
             >
               <X class="w-4 h-4" />
             </button>
-            <ChevronRight v-if="f.status === 'accepted'" class="w-4 h-4 text-zinc-800 group-hover:text-zinc-500 transition-colors" />
           </div>
         </div>
       </div>
@@ -266,7 +265,7 @@
 </template>
 
 <script setup lang="ts">
-import { Search, UserPlus, UserMinus, Check, X, User, ChevronRight, Trash2, ChevronDown, CheckSquare } from 'lucide-vue-next';
+import { Search, UserPlus, UserMinus, Check, X, User, Trash2, ChevronDown, CheckSquare } from 'lucide-vue-next';
 import { useSocial } from '../composables/useSocial';
 
 definePageMeta({ middleware: 'auth' });
