@@ -8,8 +8,8 @@ export const useRealtime = () => {
   
   if (import.meta.client && !pusherInstance && config.public.pusherKey && config.public.pusherCluster) {
     console.log('[Realtime] Initializing Pusher...');
-    pusherInstance = new Pusher(config.public.pusherKey, {
-      cluster: config.public.pusherCluster,
+    pusherInstance = new Pusher(config.public.pusherKey as string, {
+      cluster: config.public.pusherCluster as string,
     });
   }
 

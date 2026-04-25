@@ -15,10 +15,10 @@ export function usePusher() {
   }
 
   pusherInstance = new Pusher({
-    appId: config.pusherAppId,
-    key: config.public.pusherKey,
-    secret: config.pusherSecret,
-    cluster: config.public.pusherCluster,
+    appId: config.pusherAppId as string,
+    key: config.public.pusherKey as string,
+    secret: config.pusherSecret as string,
+    cluster: config.public.pusherCluster as string,
     useTLS: true,
   });
 
