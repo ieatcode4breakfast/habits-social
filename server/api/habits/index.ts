@@ -14,7 +14,7 @@ export default defineEventHandler(async (event) => {
     const body = await readBody(event);
     
     const countResult = await sql`SELECT COUNT(*) FROM habits WHERE ownerid = ${userId}`;
-    const nextSortOrder = parseInt(countResult[0].count) || 0;
+    const nextSortOrder = parseInt(countResult[0]?.count) || 0;
 
     const title = body.title;
     const description = body.description || '';

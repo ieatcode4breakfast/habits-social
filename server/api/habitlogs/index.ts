@@ -35,7 +35,7 @@ export default defineEventHandler(async (event) => {
     `;
 
     if (existing.length > 0) {
-      const existingLog = existing[0];
+      const existingLog = existing[0]!;
       const newSharedwith = body.sharedwith && Array.isArray(body.sharedwith) ? body.sharedwith : existingLog.sharedwith;
       
       const result = await sql`
@@ -45,10 +45,7 @@ export default defineEventHandler(async (event) => {
         RETURNING *
       `;
       
-      return { 
-        ...result[0],
-        _id: result[0].id
-      };
+      return result[0];
     } else {
       const sharedwith = body.sharedwith && Array.isArray(body.sharedwith) ? body.sharedwith : [];
       const result = await sql`
