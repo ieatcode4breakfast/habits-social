@@ -664,6 +664,7 @@
 import { Plus, Trash2, Check, X, Minus, ChevronLeft, ChevronRight, User, ChevronUp, ChevronDown, Edit2, Save, CheckSquare, GripVertical, ArrowUpDown, Flame } from 'lucide-vue-next';
 import { format, subDays, isToday, startOfMonth, endOfMonth, eachDayOfInterval, addMonths, subMonths, isAfter, startOfDay, addDays, isSameWeek, isSameMonth, getDaysInMonth } from 'date-fns';
 import type { Habit, HabitLog } from '~/composables/useHabitsApi';
+import { useSocialNotifications } from '~/composables/useSocialNotifications';
 
 definePageMeta({ middleware: 'auth' });
 
@@ -1167,6 +1168,11 @@ watch(isAnyModalOpen, (isOpen, oldOpen) => {
 
 const { subscribeToFriendHabits } = useRealtime();
 let unsubscribeOwnHabits = () => {};
+
+useSocialNotifications({
+  onFriendRequestAccepted: () => load(),
+  onFriendshipRemoved: () => load(),
+});
 
 onMounted(() => {
   load();

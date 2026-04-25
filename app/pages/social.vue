@@ -226,19 +226,14 @@
             </div>
             
             <!-- Selection Controls -->
-            <div class="flex items-center justify-center gap-4 mb-4">
+            <div class="flex items-center justify-between mb-3 px-1">
+              <label class="text-[10px] font-bold uppercase tracking-widest text-zinc-500">My Habits</label>
               <button 
-                @click="selectAllHabits"
-                class="text-[10px] font-bold uppercase tracking-widest text-zinc-500 hover:text-white transition-colors cursor-pointer"
+                @click="toggleSelectAllHabits"
+                title="Select/Unselect All"
+                class="p-1 text-zinc-500 hover:text-white transition-colors cursor-pointer"
               >
-                Select All
-              </button>
-              <div class="w-1 h-1 rounded-full bg-zinc-800"></div>
-              <button 
-                @click="deselectAllHabits"
-                class="text-[10px] font-bold uppercase tracking-widest text-zinc-500 hover:text-white transition-colors cursor-pointer"
-              >
-                Deselect All
+                <CheckSquare class="w-4 h-4" />
               </button>
             </div>
 
@@ -271,7 +266,7 @@
 </template>
 
 <script setup lang="ts">
-import { Search, UserPlus, UserMinus, Check, X, User, ChevronRight, Trash2, ChevronDown } from 'lucide-vue-next';
+import { Search, UserPlus, UserMinus, Check, X, User, ChevronRight, Trash2, ChevronDown, CheckSquare } from 'lucide-vue-next';
 
 definePageMeta({ middleware: 'auth' });
 
@@ -456,12 +451,12 @@ const toggleHabitSelection = (id: string) => {
   else selectedHabitIds.value.splice(index, 1);
 };
 
-const selectAllHabits = () => {
-  selectedHabitIds.value = myHabits.value.map(h => h.id);
-};
-
-const deselectAllHabits = () => {
-  selectedHabitIds.value = [];
+const toggleSelectAllHabits = () => {
+  if (selectedHabitIds.value.length === myHabits.value.length) {
+    selectedHabitIds.value = [];
+  } else {
+    selectedHabitIds.value = myHabits.value.map(h => h.id);
+  }
 };
 
 const executeBatchShare = async () => {
