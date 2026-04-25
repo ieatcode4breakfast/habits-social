@@ -3,11 +3,11 @@
     <div class="w-full max-w-md">
       <!-- Logo -->
       <div class="flex flex-col items-center mb-8">
-        <div class="w-14 h-14 bg-white rounded-2xl flex items-center justify-center shadow-lg shadow-white/10 mb-4 overflow-hidden">
+        <div class="w-14 h-14 bg-transparent rounded-full flex items-center justify-center shadow-lg shadow-white/10 mb-4 overflow-hidden">
           <img src="/icons/icon-192.png" class="w-full h-full object-cover scale-[1.35] transform-gpu" alt="Logo" />
         </div>
         <h1 class="text-2xl font-bold text-white tracking-tight">Habits Social</h1>
-        <p class="text-zinc-500 text-sm mt-1">Track together, grow together</p>
+        <p class="text-zinc-500 text-sm mt-1">A social habit tracking app.</p>
       </div>
 
       <!-- Card -->

@@ -26,11 +26,15 @@ useHead({
   htmlAttrs: { class: 'dark' },
   title: 'Habits Social',
   meta: [
-    { name: 'description', content: 'Track together, grow together' },
+    { name: 'description', content: 'A social habit tracking app.' },
     { name: 'theme-color', content: '#080916' },
     { name: 'apple-mobile-web-app-capable', content: 'yes' },
     { name: 'apple-mobile-web-app-status-bar-style', content: 'default' },
-    { name: 'apple-mobile-web-app-title', content: 'Habits Social' }
+    { name: 'apple-mobile-web-app-title', content: 'Habits Social' },
+    { property: 'og:title', content: 'Habits Social' },
+    { property: 'og:description', content: 'A social habit tracking app.' },
+    { name: 'twitter:title', content: 'Habits Social' },
+    { name: 'twitter:description', content: 'A social habit tracking app.' }
   ],
   link: [
     { rel: 'manifest', href: '/manifest.json?v=15' },

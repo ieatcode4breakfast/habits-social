@@ -3,7 +3,7 @@
     <header class="sticky top-0 z-50 px-4 py-3 bg-black/50 backdrop-blur-md border-b border-white/5">
       <div class="max-w-5xl mx-auto flex items-center justify-between">
         <NuxtLink to="/" class="flex items-center gap-2 group">
-          <div class="w-8 h-8 rounded-xl bg-white flex items-center justify-center shadow-md shadow-white/10 group-hover:shadow-white/20 transition-shadow overflow-hidden">
+          <div class="w-8 h-8 rounded-full bg-transparent flex items-center justify-center shadow-md shadow-white/10 group-hover:shadow-white/20 transition-shadow overflow-hidden">
             <img src="/icons/icon-192.png" class="w-full h-full object-cover scale-[1.35] transform-gpu" alt="Logo" />
           </div>
           <span class="font-bold text-lg tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-zinc-200 to-zinc-400">
