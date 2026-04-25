@@ -669,11 +669,10 @@ import { useSocialNotifications } from '~/composables/useSocialNotifications';
 definePageMeta({ middleware: 'auth' });
 
 const api = useHabitsApi();
-const { user } = useAuth();
+const { friends, refresh: refreshSocial, init: initSocial, cleanup: cleanupSocial } = useSocial();
 
 const habits = ref<Habit[]>([]);
 const logs = ref<HabitLog[]>([]);
-const friends = ref<any[]>([]);
 
 const newTitle = ref('');
 const newDescription = ref('');
@@ -788,38 +787,14 @@ const getStreakTheme = (count: number) => {
 const load = async () => {
   console.log('[Dashboard] load() triggered');
   try {
-    const [h, l, socialData] = await Promise.all([
+    const [h, l] = await Promise.all([
       api.getHabits(), 
       api.getLogs(startDate, endDate),
-      $fetch<any>('/api/social/friends')
+      refreshSocial()
     ]);
     habits.value = h;
     logs.value = l;
-
-    const profilesMap = new Map(socialData.profiles.map((p: any) => [String(p.id), p]));
-    console.log('[Dashboard] Social data received:', socialData);
-    
-    friends.value = socialData.friendships
-      .filter((f: any) => f.status === 'accepted')
-      .map((f: any) => {
-        const myId = user.value?.id ? String(user.value.id) : null;
-        if (!myId) {
-          console.warn('[Dashboard] No user ID available during friends mapping');
-          return null;
-        }
-        const friendId = f.participants.find((p: string) => String(p) !== myId);
-        if (!friendId) {
-          console.warn('[Dashboard] Could not find friend ID in participants:', f.participants);
-          return null;
-        }
-        const profile = profilesMap.get(String(friendId));
-        if (!profile) {
-          console.warn('[Dashboard] Could not find profile for friend ID:', friendId);
-        }
-        return profile;
-      })
-      .filter(Boolean);
-    console.log('[Dashboard] Load complete. Friends count:', friends.value.length, friends.value);
+    console.log('[Dashboard] Load complete.');
   } catch (error) {
     console.error('[Dashboard] load() failed:', error);
   }
@@ -1180,11 +1155,8 @@ watch(isAnyModalOpen, (isOpen, oldOpen) => {
 
 const { subscribeToFriendHabits } = useRealtime();
 let unsubscribeOwnHabits = () => {};
-const { init: initSocial, cleanup: cleanupSocial } = useSocialNotifications({
-  onFriendRequestReceived: () => load(),
-  onFriendRequestAccepted: () => load(),
-  onFriendshipRemoved: () => load(),
-});
+
+// Social integration is now handled by useSocial
 
 onMounted(() => {
   console.log('[Dashboard] onMounted, user ID:', user.value?.id);

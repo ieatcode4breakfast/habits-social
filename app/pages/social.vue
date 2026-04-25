@@ -279,8 +279,13 @@ const searchQuery = ref('');
 const friendsSearchQuery = ref('');
 const isRequestsExpanded = ref(false);
 const searchResults = ref<UserProfile[]>([]);
-const friendships = ref<Friendship[]>([]);
-const profilesMap = ref<Record<string, UserProfile>>({});
+const { 
+  friendships, 
+  profilesMap, 
+  refresh: refreshSocial, 
+  init: initSocial, 
+  cleanup: cleanupSocial 
+} = useSocial();
 const showUnfriendModal = ref(false);
 const friendshipToUnfriend = ref<Friendship | null>(null);
 const unfriendDisplayName = ref('');
@@ -374,18 +379,10 @@ watch([showUnfriendModal, showAddModal, showShareModal], (newVal) => {
 });
 
 const loadFriendships = async () => {
-  const data = await $fetch<{ friendships: Friendship[]; profiles: UserProfile[] }>('/api/social/friends');
-  friendships.value = data.friendships;
-  const map: Record<string, UserProfile> = {};
-  data.profiles.forEach(p => { map[p.id] = p; });
-  profilesMap.value = map;
+  await refreshSocial();
 };
 
-const { init: initSocial, cleanup: cleanupSocial } = useSocialNotifications({
-  onFriendRequestReceived: () => loadFriendships(),
-  onFriendRequestAccepted: () => loadFriendships(),
-  onFriendshipRemoved: () => loadFriendships(),
-});
+const { pendingCount } = useSocialNotifications();
 
 onMounted(() => {
   loadFriendships();
