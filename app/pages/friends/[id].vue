@@ -341,15 +341,24 @@ const getStatus = (habitId: string, day: Date) => {
 const load = async () => {
   loading.value = true;
   try {
-    const [p, data] = await Promise.all([
-      $fetch<any>('/api/social/profile', { query: { friendId } }),
-      $fetch<{ habits: Habit[]; logs: HabitLog[] }>('/api/social/friend-data', { query: { friendId } })
+    console.log('Loading profile for friendId:', friendId);
+    const [profileData, sharedData] = await Promise.all([
+      $fetch('/api/social/profile', { query: { friendId } }),
+      $fetch('/api/social/friend-data', { query: { friendId } })
     ]);
-    profile.value = p;
-    habits.value = data.habits;
-    logs.value = data.logs;
-  } catch (e) {
-    console.error(e);
+    
+    console.log('Profile data received:', profileData);
+    console.log('Shared data received:', sharedData);
+
+    profile.value = profileData as any;
+    habits.value = (sharedData as any).habits || [];
+    logs.value = (sharedData as any).logs || [];
+  } catch (error: any) {
+    console.error('Error loading friend profile:', error);
+    // Check if it's a 404 or other specific error
+    if (error.statusCode === 400) {
+      console.error('Invalid ID format');
+    }
   } finally {
     loading.value = false;
   }

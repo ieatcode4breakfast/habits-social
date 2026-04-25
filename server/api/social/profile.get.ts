@@ -4,10 +4,18 @@ export default defineEventHandler(async (event) => {
   const sql = useDB(event);
   await requireAuth(event);
   const { friendId } = getQuery(event);
+
+  if (!friendId || typeof friendId !== 'string' || friendId === 'undefined') {
+    throw createError({
+      statusCode: 400,
+      statusMessage: 'Invalid friendId provided'
+    });
+  }
   
   const users = await sql`
-    SELECT id, email, username, photourl FROM users 
-    WHERE id = ${String(friendId)}::uuid
+    SELECT id, username, email, avatar_url, bio 
+    FROM users 
+    WHERE id = ${friendId}::uuid
   `;
   
   if (users.length === 0) throw createError({ statusCode: 404 });

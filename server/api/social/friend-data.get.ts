@@ -6,33 +6,32 @@ export default defineEventHandler(async (event) => {
   const { friendId } = getQuery(event);
   const fId = String(friendId);
 
-  const sharedHabits = await sql`
+  const habits = await sql`
     SELECT * FROM habits 
     WHERE ownerid = ${fId}::text 
-      AND ${String(userId)}::text = ANY(sharedwith)
+    AND (
+      sharedwith @> ARRAY[${String(userId)}::text]
+    )
     ORDER BY "sortOrder" ASC
   `;
 
-  const friendHabits = sharedHabits.map((h: any) => ({
+  const friendHabits = habits.map((h: any) => ({
     ...h,
     id: h.id
   }));
   
-  const habitIds = friendHabits.map((h: any) => h.id);
+  const habitIds = habits.map(h => String(h.id));
 
-  let logs: any[] = [];
-  if (habitIds.length > 0) {
-    const rawLogs = await sql`
-      SELECT * FROM habitlogs 
-      WHERE ownerid = ${fId}::text 
-        AND habitid = ANY(${habitIds}::uuid[])
-    `;
-    
-    logs = rawLogs.map((l: any) => ({
-      ...l,
-      id: l.id
-    }));
+  if (habitIds.length === 0) {
+    return { habits: [], logs: [] };
   }
+
+  const logs = await sql`
+    SELECT * FROM habitlogs 
+    WHERE logdate >= CURRENT_DATE - INTERVAL '30 days'
+    AND habitid = ANY(${habitIds}::text[])
+    ORDER BY logdate DESC
+  `;
 
   return {
     habits: friendHabits,
