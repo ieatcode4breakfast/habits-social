@@ -31,7 +31,7 @@ export default defineEventHandler(async (event) => {
 
     const existing = await sql`
       SELECT * FROM habitlogs 
-      WHERE habitid = ${habitId}::uuid AND ownerid = ${userId} AND date = ${dateStr}
+      WHERE habitid = ${habitId} AND ownerid = ${userId} AND date = ${dateStr}
     `;
 
     if (existing.length > 0) {
@@ -50,7 +50,7 @@ export default defineEventHandler(async (event) => {
       const sharedwith = body.sharedwith && Array.isArray(body.sharedwith) ? body.sharedwith : [];
       const result = await sql`
         INSERT INTO habitlogs (habitid, ownerid, date, status, sharedwith, updatedat)
-        VALUES (${habitId}::uuid, ${userId}, ${dateStr}, ${status}, ${sharedwith}, NOW())
+        VALUES (${habitId}, ${userId}, ${dateStr}, ${status}, ${sharedwith}, NOW())
         RETURNING *
       `;
       
@@ -65,7 +65,7 @@ export default defineEventHandler(async (event) => {
     
     await sql`
       DELETE FROM habitlogs 
-      WHERE habitid = ${habitId}::uuid AND ownerid = ${userId} AND date = ${dateStr}
+      WHERE habitid = ${habitId} AND ownerid = ${userId} AND date = ${dateStr}
     `;
     
     return { success: true };

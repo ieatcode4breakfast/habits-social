@@ -225,7 +225,7 @@
 </template>
 
 <script setup lang="ts">
-import { ArrowLeft, User, Flame, X, ChevronLeft, ChevronRight, Check } from 'lucide-vue-next';
+import { ArrowLeft, User, Flame, X, ChevronLeft, ChevronRight, Check, Minus } from 'lucide-vue-next';
 import { format, subDays, isToday, startOfMonth, endOfMonth, eachDayOfInterval, addMonths, subMonths, isAfter, startOfDay, addDays } from 'date-fns';
 import type { Habit, HabitLog } from '~/composables/useHabitsApi';
 

@@ -28,9 +28,9 @@ export default defineEventHandler(async (event) => {
 
   const logs = await sql`
     SELECT * FROM habitlogs 
-    WHERE logdate >= CURRENT_DATE - INTERVAL '30 days'
+    WHERE date >= TO_CHAR(CURRENT_DATE - INTERVAL '30 days', 'YYYY-MM-DD')
     AND habitid = ANY(${habitIds}::text[])
-    ORDER BY logdate DESC
+    ORDER BY date DESC
   `;
 
   return {
