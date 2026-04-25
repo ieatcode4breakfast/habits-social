@@ -298,11 +298,19 @@ const acceptedFriends = computed(() => {
 
 const displayFriends = computed(() => {
   const combined = [...acceptedFriends.value, ...pendingOutgoing.value];
-  return combined.sort((a, b) => {
-    const nameA = profilesMap.value[getFriendId(a)]?.username || '';
-    const nameB = profilesMap.value[getFriendId(b)]?.username || '';
-    return nameA.localeCompare(nameB);
-  });
+  if (!user.value?.id) return combined;
+  const myId = String(user.value.id);
+  
+  return combined
+    .filter(f => {
+      const friendId = getFriendId(f);
+      return friendId && friendId !== myId;
+    })
+    .sort((a, b) => {
+      const nameA = profilesMap.value[getFriendId(a)]?.username || '';
+      const nameB = profilesMap.value[getFriendId(b)]?.username || '';
+      return nameA.localeCompare(nameB);
+    });
 });
 
 const filteredDisplayFriends = computed(() => {
@@ -313,7 +321,11 @@ const filteredDisplayFriends = computed(() => {
     return username.includes(q);
   });
 });
-const getFriendId = (f: Friendship) => f.participants?.find(p => String(p) !== String(user.value?.id)) ?? '';
+const getFriendId = (f: Friendship) => {
+  if (!user.value?.id) return '';
+  const myId = String(user.value.id);
+  return f.participants?.find(p => String(p) !== myId) ?? '';
+};
 const getRelationship = (targetId: string) => friendships.value.find(f => f.participants?.includes(targetId))?.status;
 
 const handleFriendClick = (f: Friendship) => {

@@ -797,7 +797,9 @@ const load = async () => {
   friends.value = socialData.friendships
     .filter((f: any) => f.status === 'accepted')
     .map((f: any) => {
-      const friendId = f.participants.find((p: string) => p !== user.value?.id) || '';
+      const myId = user.value?.id ? String(user.value.id) : null;
+      if (!myId) return null;
+      const friendId = f.participants.find((p: string) => String(p) !== myId) || '';
       return profilesMap.get(friendId);
     })
     .filter(Boolean);

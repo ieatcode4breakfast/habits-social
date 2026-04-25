@@ -13,7 +13,7 @@ export default defineEventHandler(async (event) => {
     `;
     
     const friendIds = userFriendships.map((f: any) => 
-      f.initiatorId === userId ? f.receiverId : f.initiatorId
+      String(f.initiatorId) === String(userId) ? f.receiverId : f.initiatorId
     );
     
     let profiles: any[] = [];

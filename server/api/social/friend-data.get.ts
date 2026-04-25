@@ -8,7 +8,7 @@ export default defineEventHandler(async (event) => {
 
   const sharedHabits = await sql`
     SELECT * FROM habits 
-    WHERE ownerid = ${fId} AND ${userId} = ANY(sharedwith)
+    WHERE ownerid = ${fId} AND ${String(userId)} = ANY(sharedwith)
     ORDER BY "sortOrder" ASC
   `;
 
