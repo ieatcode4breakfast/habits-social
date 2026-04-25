@@ -4,6 +4,7 @@
   "name": "Habits Social",
   "description": "A social habit tracking app.",
   "start_url": "/?source=pwa",
+  "scope": "/",
   "display": "standalone",
   "background_color": "#080916",
   "theme_color": "#080916",
