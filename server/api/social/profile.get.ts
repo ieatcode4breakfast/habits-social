@@ -12,5 +12,6 @@ export default defineEventHandler(async (event) => {
   
   if (users.length === 0) throw createError({ statusCode: 404 });
   const user = users[0];
+  if (!user) throw createError({ statusCode: 404 });
   return { ...user, id: user.id };
 });
