@@ -33,9 +33,9 @@ useHead({
     { name: 'apple-mobile-web-app-title', content: 'Habits Social' }
   ],
   link: [
-    { rel: 'manifest', href: '/manifest.json?v=11' },
-    { rel: 'icon', type: 'image/svg+xml', href: '/favicon-rounded.svg?v=11' },
-    { rel: 'apple-touch-icon', href: '/icons/apple-touch-icon.png?v=11' }
+    { rel: 'manifest', href: '/manifest.json?v=14' },
+    { rel: 'icon', type: 'image/svg+xml', href: '/favicon-rounded.svg?v=14' },
+    { rel: 'apple-touch-icon', href: '/icons/apple-touch-icon.png?v=14' }
   ]
 });
 </script>
