@@ -13,7 +13,7 @@ export default defineNuxtConfig({
   modules: ['@vueuse/motion/nuxt'],
   ssr: true,
   nitro: {
-    preset: 'cloudflare',
+    preset: 'cloudflare-module',
     alias: {
       // MongoDB's optional integrations that we don't use.
       // Aliased to no-ops so Rollup doesn't crash bundling for Cloudflare Workers.
