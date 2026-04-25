@@ -664,11 +664,12 @@
 import { Plus, Trash2, Check, X, Minus, ChevronLeft, ChevronRight, User, ChevronUp, ChevronDown, Edit2, Save, CheckSquare, GripVertical, ArrowUpDown, Flame } from 'lucide-vue-next';
 import { format, subDays, isToday, startOfMonth, endOfMonth, eachDayOfInterval, addMonths, subMonths, isAfter, startOfDay, addDays, isSameWeek, isSameMonth, getDaysInMonth } from 'date-fns';
 import type { Habit, HabitLog } from '~/composables/useHabitsApi';
-import { useSocialNotifications } from '~/composables/useSocialNotifications';
 
 definePageMeta({ middleware: 'auth' });
+import { useSocial } from '../composables/useSocial';
 
 const api = useHabitsApi();
+const { user } = useAuth();
 const { friends, refresh: refreshSocial, init: initSocial, cleanup: cleanupSocial } = useSocial();
 
 const habits = ref<Habit[]>([]);
@@ -919,7 +920,7 @@ const toggleSelectAll = () => {
   if (editSharedWithWorking.value.length === friends.value.length) {
     editSharedWithWorking.value = [];
   } else {
-    editSharedWithWorking.value = friends.value.map(f => f.id);
+    editSharedWithWorking.value = friends.value.map((f: any) => f.id);
   }
 };
 

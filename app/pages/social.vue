@@ -267,6 +267,7 @@
 
 <script setup lang="ts">
 import { Search, UserPlus, UserMinus, Check, X, User, ChevronRight, Trash2, ChevronDown, CheckSquare } from 'lucide-vue-next';
+import { useSocial } from '../composables/useSocial';
 
 definePageMeta({ middleware: 'auth' });
 
@@ -300,17 +301,17 @@ const shareModalTitle = ref('Request Sent!');
 const pendingIncoming = computed(() => {
   if (!user.value?.id) return [];
   const myId = String(user.value.id);
-  return friendships.value.filter(f => f.status === 'pending' && String(f.receiverId) === myId);
+  return friendships.value.filter((f: any) => f.status === 'pending' && String(f.receiverId) === myId);
 });
 
 const pendingOutgoing = computed(() => {
   if (!user.value?.id) return [];
   const myId = String(user.value.id);
-  return friendships.value.filter(f => f.status === 'pending' && String(f.initiatorId) === myId);
+  return friendships.value.filter((f: any) => f.status === 'pending' && String(f.initiatorId) === myId);
 });
 
 const acceptedFriends = computed(() => {
-  return friendships.value.filter(f => f.status === 'accepted');
+  return friendships.value.filter((f: any) => f.status === 'accepted');
 });
 
 const displayFriends = computed(() => {
@@ -319,7 +320,7 @@ const displayFriends = computed(() => {
   const myId = String(user.value.id);
   
   return combined
-    .filter(f => {
+    .filter((f: any) => {
       const friendId = getFriendId(f);
       return friendId && friendId !== myId;
     })
@@ -333,7 +334,7 @@ const displayFriends = computed(() => {
 const filteredDisplayFriends = computed(() => {
   if (!friendsSearchQuery.value.trim()) return displayFriends.value;
   const q = friendsSearchQuery.value.toLowerCase().trim();
-  return displayFriends.value.filter(f => {
+  return displayFriends.value.filter((f: any) => {
     const username = profilesMap.value[getFriendId(f)]?.username.toLowerCase() || '';
     return username.includes(q);
   });
@@ -343,7 +344,7 @@ const getFriendId = (f: Friendship) => {
   const myId = String(user.value.id);
   return f.participants?.find(p => String(p) !== myId) ?? '';
 };
-const getRelationship = (targetId: string) => friendships.value.find(f => f.participants?.includes(targetId))?.status;
+const getRelationship = (targetId: string) => friendships.value.find((f: any) => f.participants?.includes(targetId))?.status;
 
 const handleFriendClick = (f: Friendship) => {
   if (f.status === 'accepted') {
@@ -451,7 +452,7 @@ const toggleSelectAllHabits = () => {
   if (selectedHabitIds.value.length === myHabits.value.length) {
     selectedHabitIds.value = [];
   } else {
-    selectedHabitIds.value = myHabits.value.map(h => h.id);
+    selectedHabitIds.value = myHabits.value.map((h: any) => h.id);
   }
 };
 
@@ -470,7 +471,7 @@ const executeBatchShare = async () => {
 };
 
 const acceptRequest = async (fid: string) => {
-  const friendship = friendships.value.find(f => f.id === fid);
+  const friendship = friendships.value.find((f: any) => f.id === fid);
   if (!friendship) return;
   
   const initiatorId = friendship.initiatorId;
