@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen antialiased font-sans select-none">
+  <div class="min-h-[100dvh] antialiased font-sans select-none">
     <NuxtRouteAnnouncer />
     <NuxtLayout>
       <NuxtPage />

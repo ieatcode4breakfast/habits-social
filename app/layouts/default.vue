@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen text-zinc-100 flex flex-col transition-colors duration-300">
+  <div class="min-h-[100dvh] text-zinc-100 flex flex-col transition-colors duration-300">
     <header class="sticky top-0 z-50 px-4 py-3 bg-black/50 backdrop-blur-md border-b border-white/5">
       <div class="max-w-5xl mx-auto flex items-center justify-between">
         <NuxtLink to="/" class="flex items-center gap-2 group">
@@ -34,11 +34,11 @@
       </div>
     </header>
 
-    <main class="flex-1 w-full max-w-5xl mx-auto px-0 sm:px-6 lg:px-8 py-8 pb-24 md:py-12">
+    <main class="flex-1 w-full max-w-5xl mx-auto px-0 sm:px-6 lg:px-8 py-8 pb-20 md:py-12">
       <slot />
     </main>
     <!-- Mobile Bottom Navigation -->
-    <nav v-if="user" class="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-black/60 backdrop-blur-xl border-t border-white/5 px-6 py-3 pb-[env(safe-area-inset-bottom,1.5rem)]">
+    <nav v-if="user" class="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-black/60 backdrop-blur-xl border-t border-white/5 px-6 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))]">
       <div class="flex items-center justify-around gap-8">
         <NuxtLink to="/" class="flex flex-col items-center gap-1 group transition-colors" :class="$route.path === '/' ? 'text-white' : 'text-zinc-500'">
           <div class="p-1 rounded-lg transition-colors" :class="$route.path === '/' ? 'bg-white/10' : 'group-hover:bg-white/5'">
