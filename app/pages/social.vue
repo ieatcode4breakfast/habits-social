@@ -24,7 +24,7 @@
       <div v-show="isRequestsExpanded" class="px-6 pb-6 pt-2">
         <div class="space-y-3 max-h-[380px] overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-zinc-800 scrollbar-track-transparent">
           <div v-for="req in pendingIncoming" :key="req.id" class="flex items-center justify-between bg-black border border-zinc-925 p-4 rounded-xl">
-            <div class="flex items-center gap-3">
+            <NuxtLink :to="`/friends/${req.initiatorId}`" class="flex items-center gap-3 hover:opacity-80 transition-opacity">
               <div class="w-10 h-10 bg-zinc-925 rounded-full flex items-center justify-center overflow-hidden">
                 <img v-if="profilesMap[req.initiatorId]?.photourl" :src="profilesMap[req.initiatorId]?.photourl" alt="" class="w-full h-full object-cover" />
                 <User v-else class="w-5 h-5 text-zinc-600" />
@@ -32,7 +32,7 @@
               <div>
                 <div class="font-semibold text-zinc-200 text-sm">{{ profilesMap[req.initiatorId]?.username || 'Unknown' }}</div>
               </div>
-            </div>
+            </NuxtLink>
             <div class="flex gap-2">
               <button @click="acceptRequest(req.id)" class="p-2 bg-white hover:bg-zinc-200 text-black rounded-lg transition-colors cursor-pointer"><Check class="w-4 h-4" /></button>
               <button @click="declineRequest(req.id)" class="p-2 bg-zinc-925 hover:bg-zinc-800 text-zinc-400 rounded-lg transition-colors cursor-pointer"><X class="w-4 h-4" /></button>
@@ -55,7 +55,7 @@
 
       <div v-if="searchResults.length > 0" class="mt-4 space-y-3 max-h-[380px] overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-zinc-800 scrollbar-track-transparent">
         <div v-for="res in searchResults" :key="res.id" class="flex items-center justify-between bg-black border border-zinc-925 p-4 rounded-xl">
-          <div class="flex items-center gap-3">
+          <NuxtLink :to="`/friends/${res.id}`" class="flex items-center gap-3 hover:opacity-80 transition-opacity">
             <div class="w-10 h-10 bg-zinc-925 rounded-full flex items-center justify-center overflow-hidden">
               <img v-if="res.photourl" :src="res.photourl" alt="" class="w-full h-full object-cover" />
               <User v-else class="w-5 h-5 text-zinc-600" />
@@ -63,7 +63,7 @@
             <div>
               <div class="font-semibold text-zinc-200 text-sm">{{ res.username }}</div>
             </div>
-          </div>
+          </NuxtLink>
           <span v-if="getRelationship(res.id)" class="text-xs font-semibold text-zinc-500 bg-zinc-925 px-3 py-1.5 rounded-full">
             {{ getRelationship(res.id) === 'accepted' ? 'Friends' : 'Pending' }}
           </span>
@@ -95,8 +95,7 @@
         <div 
           v-for="f in filteredDisplayFriends" :key="f.id"
           @click="handleFriendClick(f)"
-          class="flex items-center gap-4 p-4 rounded-xl border border-zinc-925 bg-black transition-all group shadow-sm"
-          :class="f.status === 'accepted' ? 'hover:border-zinc-700 hover:shadow-md cursor-pointer' : 'cursor-default'"
+          class="flex items-center gap-4 p-4 rounded-xl border border-zinc-925 bg-black transition-all group shadow-sm hover:border-zinc-700 hover:shadow-md cursor-pointer"
         >
           <div class="w-12 h-12 bg-zinc-925 rounded-full flex items-center justify-center overflow-hidden flex-shrink-0">
             <img v-if="profilesMap[getFriendId(f)]?.photourl" :src="profilesMap[getFriendId(f)]?.photourl" alt="" class="w-full h-full object-cover" />
@@ -346,9 +345,7 @@ const getFriendId = (f: Friendship) => {
 const getRelationship = (targetId: string) => friendships.value.find((f: any) => f.participants?.includes(targetId))?.status;
 
 const handleFriendClick = (f: Friendship) => {
-  if (f.status === 'accepted') {
-    navigateTo(`/friends/${getFriendId(f)}`);
-  }
+  navigateTo(`/friends/${getFriendId(f)}`);
 };
 
 // Modal Adaptive Logic

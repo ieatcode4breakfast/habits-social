@@ -34,6 +34,8 @@ export default defineEventHandler(async (event) => {
       const u2 = friendship.receiverId;
 
       await sql`UPDATE habits SET sharedwith = array_remove(sharedwith, ${u2}) WHERE ownerid = ${u1}`;
+      await sql`UPDATE habits SET sharedwith = array_remove(sharedwith, ${u1}) WHERE ownerid = ${u2}`;
+      await sql`UPDATE habitlogs SET sharedwith = array_remove(sharedwith, ${u2}) WHERE ownerid = ${u1}`;
       await sql`UPDATE habitlogs SET sharedwith = array_remove(sharedwith, ${u1}) WHERE ownerid = ${u2}`;
 
       await sql`DELETE FROM friendships WHERE id = ${id}::uuid`;

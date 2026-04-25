@@ -4,14 +4,28 @@
       <NuxtLink to="/social" class="inline-flex items-center justify-center w-10 h-10 rounded-xl bg-zinc-925/80 backdrop-blur-sm border border-zinc-800/80 hover:bg-zinc-800 transition-all shadow-xl flex-shrink-0">
         <ArrowLeft class="w-5 h-5 text-zinc-400 hover:text-white transition-colors" />
       </NuxtLink>
-      <div v-if="profile" class="flex items-center gap-4">
-        <div class="w-14 h-14 bg-zinc-925 rounded-2xl flex items-center justify-center overflow-hidden shadow-sm flex-shrink-0">
-          <img v-if="profile.photourl" :src="profile.photourl" alt="" class="w-full h-full object-cover" />
-          <User v-else class="w-7 h-7 text-zinc-600" />
+      <div class="flex items-center justify-between flex-1">
+        <div v-if="profile" class="flex items-center gap-4">
+          <div class="w-14 h-14 bg-zinc-925 rounded-2xl flex items-center justify-center overflow-hidden shadow-sm flex-shrink-0">
+            <img v-if="profile.photourl" :src="profile.photourl" alt="" class="w-full h-full object-cover" />
+            <User v-else class="w-7 h-7 text-zinc-600" />
+          </div>
+          <div>
+            <h1 class="text-2xl font-bold tracking-tight text-white">{{ profile.username }}'s Habits</h1>
+            <p class="text-zinc-400 text-sm">Habits shared with you</p>
+          </div>
         </div>
-        <div>
-          <h1 class="text-2xl font-bold tracking-tight text-white">{{ profile.username }}'s Habits</h1>
-          <p class="text-zinc-400 text-sm">Habits shared with you</p>
+
+        <div v-if="profile && !loading" class="flex items-center gap-2">
+          <button v-if="relationshipStatus === 'none'" @click="executeSendRequest" class="flex items-center gap-2 px-4 py-2 bg-white hover:bg-zinc-200 text-black rounded-xl transition-colors font-semibold text-sm cursor-pointer shadow-lg shadow-white/5">
+            <UserPlus class="w-4 h-4" /> Add
+          </button>
+          <button v-else-if="relationshipStatus === 'pending_incoming'" @click="executeAcceptRequest" class="flex items-center gap-2 px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl transition-colors font-semibold text-sm cursor-pointer shadow-lg shadow-emerald-500/20">
+            <Check class="w-4 h-4" /> Accept
+          </button>
+          <span v-else-if="relationshipStatus === 'pending_outgoing'" class="text-xs font-semibold text-zinc-500 bg-zinc-925 px-3 py-1.5 rounded-xl border border-zinc-800">
+            Pending
+          </span>
         </div>
       </div>
     </div>
@@ -221,18 +235,163 @@
         </div>
       </Transition>
     </Teleport>
+
+    <!-- Share Habits Modal -->
+    <Teleport to="body">
+      <Transition
+        enter-active-class="transition duration-300 ease-out"
+        enter-from-class="opacity-0 scale-95"
+        enter-to-class="opacity-100 scale-100"
+        leave-active-class="transition duration-200 ease-in"
+        leave-from-class="opacity-100 scale-100"
+        leave-to-class="opacity-0 scale-95"
+      >
+        <div v-if="showShareModal" 
+          class="fixed inset-0 z-[110] flex items-center justify-center sm:p-4 p-0"
+          :class="{ 'modal-parent-adaptive': isShareHeightOverflowing }"
+        >
+          <div class="absolute inset-0 bg-black/90 backdrop-blur-md" @click="showShareModal = false"></div>
+          <div 
+            ref="shareModalContent"
+            class="relative w-full h-full sm:h-auto sm:max-w-md max-w-none bg-zinc-925 border-x-0 sm:border border-zinc-800 sm:rounded-3xl rounded-none shadow-2xl p-8 overflow-y-auto transition-all duration-300"
+            :class="{ 'modal-adaptive-height': isShareHeightOverflowing }"
+          >
+            <div class="text-center mb-6">
+              <div class="w-16 h-16 bg-zinc-925 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Check class="w-8 h-8 text-white" />
+              </div>
+              <h2 class="text-xl font-bold text-white mb-2">{{ shareModalTitle }}</h2>
+              <p class="text-zinc-500 text-sm">
+                Which habits would you like to share with <span class="text-zinc-200 font-medium">{{ profile?.username }}</span>?
+              </p>
+            </div>
+            
+            <!-- Selection Controls -->
+            <div class="flex items-center justify-between mb-3 px-1">
+              <label class="text-[10px] font-bold uppercase tracking-widest text-zinc-500">My Habits</label>
+              <button 
+                @click="toggleSelectAllHabits"
+                title="Select/Unselect All"
+                class="p-1 text-zinc-500 hover:text-white transition-colors cursor-pointer"
+              >
+                <CheckSquare class="w-4 h-4" />
+              </button>
+            </div>
+
+            <div class="max-h-[320px] overflow-y-auto pr-2 space-y-2 mb-8 scrollbar-thin scrollbar-thumb-zinc-800 scrollbar-track-transparent">
+              <div v-for="habit in myHabits" :key="habit.id" 
+                @click="toggleHabitSelection(habit.id)"
+                class="flex items-center gap-3 p-3 rounded-xl border transition-all cursor-pointer group"
+                :class="selectedHabitIds.includes(habit.id) ? 'bg-white/5 border-white/20' : 'bg-black border-zinc-900 hover:border-zinc-700'"
+              >
+                <div class="flex-1 text-sm text-zinc-200 font-medium">{{ habit.title }}</div>
+                <div class="w-5 h-5 rounded-md border flex items-center justify-center transition-all"
+                  :class="selectedHabitIds.includes(habit.id) ? 'bg-white border-white text-black' : 'border-zinc-700 group-hover:border-zinc-500'"
+                >
+                  <Check v-if="selectedHabitIds.includes(habit.id)" class="w-3 h-3" />
+                </div>
+              </div>
+            </div>
+
+            <div class="flex flex-col gap-3">
+              <button @click="executeBatchShare" class="w-full px-5 py-3 bg-white hover:bg-zinc-200 text-black font-semibold rounded-xl transition-all shadow-lg shadow-white/5 cursor-pointer">
+                {{ selectedHabitIds.length > 0 ? `Share ${selectedHabitIds.length} Habits` : 'Continue' }}
+              </button>
+            </div>
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ArrowLeft, User, Flame, X, ChevronLeft, ChevronRight, Check, Minus } from 'lucide-vue-next';
+import { ArrowLeft, User, Flame, X, ChevronLeft, ChevronRight, Check, Minus, UserPlus, CheckSquare } from 'lucide-vue-next';
 import { format, subDays, isToday, startOfMonth, endOfMonth, eachDayOfInterval, addMonths, subMonths, isAfter, startOfDay, addDays } from 'date-fns';
 import type { Habit, HabitLog } from '~/composables/useHabitsApi';
+import { useSocial } from '~/composables/useSocial';
 
 definePageMeta({ middleware: 'auth' });
 
 const route = useRoute();
 const friendId = route.params.id as string;
+
+const { friendships, refresh: refreshSocial } = useSocial();
+const { user } = useAuth();
+
+const friendship = computed(() => {
+  return friendships.value.find(f => f.participants.includes(friendId));
+});
+
+const relationshipStatus = computed(() => {
+  if (!friendship.value) return 'none';
+  if (friendship.value.status === 'accepted') return 'friends';
+  if (friendship.value.initiatorId === String(user.value?.id)) return 'pending_outgoing';
+  return 'pending_incoming';
+});
+
+// Share Modal State
+const showShareModal = ref(false);
+const myHabits = ref<any[]>([]);
+const selectedHabitIds = ref<string[]>([]);
+const shareModalTitle = ref('Request Sent!');
+
+const toggleHabitSelection = (id: string) => {
+  const index = selectedHabitIds.value.indexOf(id);
+  if (index === -1) selectedHabitIds.value.push(id);
+  else selectedHabitIds.value.splice(index, 1);
+};
+
+const toggleSelectAllHabits = () => {
+  if (selectedHabitIds.value.length === myHabits.value.length) {
+    selectedHabitIds.value = [];
+  } else {
+    selectedHabitIds.value = myHabits.value.map((h: any) => h.id);
+  }
+};
+
+const executeSendRequest = async () => {
+  await $fetch('/api/social/friends', { method: 'POST', body: { targetUserId: friendId } });
+  await refreshSocial();
+  
+  const habitsData = await $fetch<any[]>('/api/habits');
+  myHabits.value = habitsData;
+  selectedHabitIds.value = [];
+  
+  if (habitsData.length > 0) {
+    shareModalTitle.value = 'Request Sent!';
+    showShareModal.value = true;
+  }
+};
+
+const executeAcceptRequest = async () => {
+  if (!friendship.value) return;
+  await $fetch(`/api/social/requests/${friendship.value.id}`, { method: 'PUT' });
+  await refreshSocial();
+
+  const habitsData = await $fetch<any[]>('/api/habits');
+  myHabits.value = habitsData;
+  selectedHabitIds.value = [];
+  
+  if (habitsData.length > 0) {
+    shareModalTitle.value = 'Request Accepted!';
+    showShareModal.value = true;
+  }
+};
+
+const executeBatchShare = async () => {
+  if (selectedHabitIds.value.length > 0) {
+    await $fetch('/api/social/share-habits', { 
+      method: 'POST', 
+      body: { 
+        targetUserId: friendId, 
+        habitIds: selectedHabitIds.value 
+      } 
+    });
+  }
+  showShareModal.value = false;
+  load(); // Reload friend data to see if anything changed
+};
 
 const profile = ref<any>(null);
 const habits = ref<Habit[]>([]);
@@ -375,9 +534,17 @@ const isCompleted = (habitId: string, day: Date) => {
 const modalContent = ref<HTMLElement | null>(null);
 const isHeightOverflowing = ref(false);
 
+const shareModalContent = ref<HTMLElement | null>(null);
+const isShareHeightOverflowing = ref(false);
+
 const checkHeightOverflow = () => {
   if (!modalContent.value) return;
   isHeightOverflowing.value = modalContent.value.scrollHeight > (window.innerHeight - 32);
+};
+
+const checkShareHeightOverflow = () => {
+  if (!shareModalContent.value) return;
+  isShareHeightOverflowing.value = shareModalContent.value.scrollHeight > (window.innerHeight - 32);
 };
 
 watch(showModal, async (isOpen) => {
@@ -431,14 +598,17 @@ onMounted(() => {
   unsubscribeHabits = subscribeToFriendHabits(friendId, () => {
     load();
   });
-  window.addEventListener('resize', checkHeightOverflow);
+  window.addEventListener('resize', () => {
+    checkHeightOverflow();
+    checkShareHeightOverflow();
+  });
   window.addEventListener('popstate', handlePopState);
 });
 // ─────────────────────────────────────────────────────────────────────────────
 
 // ── Scroll Lock ──────────────────────────────────────────────────────────────
 watch(
-  () => showModal.value,
+  () => showModal.value || showShareModal.value,
   (isOpen) => {
     if (typeof document === 'undefined') return;
     if (isOpen) {
