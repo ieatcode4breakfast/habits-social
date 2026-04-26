@@ -1,32 +1,38 @@
 <template>
   <div class="space-y-3">
-    <div class="flex items-center gap-1 px-4 sm:px-0" v-motion-slide-visible-once-left>
-      <NuxtLink to="/social" class="inline-flex items-center justify-center p-1 -ml-1 text-zinc-500 hover:text-white transition-all flex-shrink-0">
-        <ChevronLeft class="w-6 h-6" />
-      </NuxtLink>
-      <div class="flex items-center justify-between flex-1">
-        <div v-if="profile" class="flex items-center gap-4">
+    <!-- Responsive Header & Actions -->
+    <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-y-3 sm:gap-y-0">
+      <!-- Profile Header -->
+      <div class="flex items-center gap-1 px-4 sm:px-0" v-motion-slide-visible-once-left>
+        <NuxtLink to="/social" class="inline-flex items-center justify-center p-1 -ml-1 text-zinc-500 hover:text-white transition-all flex-shrink-0">
+          <ChevronLeft class="w-6 h-6" />
+        </NuxtLink>
+        <div v-if="profile" class="flex items-center gap-4 ml-1">
           <div class="w-12 h-12 bg-zinc-925 rounded-2xl flex items-center justify-center overflow-hidden shadow-sm flex-shrink-0">
             <img v-if="profile.photourl" :src="profile.photourl" alt="" class="w-full h-full object-cover" />
             <User v-else class="w-6 h-6 text-zinc-600" />
           </div>
           <div>
-            <h1 class="text-xl font-bold tracking-tight text-white">{{ profile.username }}'s habits</h1>
+            <h1 class="text-xl font-bold tracking-tight text-white mb-1">{{ profile.username }}'s habits</h1>
             <p class="text-zinc-400 text-xs">habits shared with you</p>
           </div>
         </div>
+      </div>
 
-        <div v-if="profile && !loading" class="flex items-center gap-2">
-          <button v-if="relationshipStatus === 'none'" @click="executeSendRequest" class="flex items-center gap-2 px-4 py-2 bg-white hover:bg-zinc-200 text-black rounded-xl transition-colors font-semibold text-sm cursor-pointer shadow-lg shadow-white/5">
-            <UserPlus class="w-4 h-4" /> Add
-          </button>
-          <button v-else-if="relationshipStatus === 'pending_incoming'" @click="executeAcceptRequest" class="flex items-center gap-2 px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl transition-colors font-semibold text-sm cursor-pointer shadow-lg shadow-emerald-500/20">
-            <Check class="w-4 h-4" /> Accept
-          </button>
-          <span v-else-if="relationshipStatus === 'pending_outgoing'" class="text-xs font-semibold text-zinc-500 bg-zinc-925 px-3 py-1.5 rounded-xl border border-zinc-800">
-            Pending
-          </span>
-        </div>
+      <!-- Action Row (Mobile: New Row, Desktop: Right Aligned) -->
+      <div v-if="profile && !loading" class="flex justify-end px-4 sm:px-0 -mt-2 sm:mt-0" v-motion-slide-visible-once-right>
+        <button v-if="relationshipStatus === 'friends'" @click="openShareModal" class="flex items-center gap-2 px-3 py-1.5 bg-zinc-925 hover:bg-zinc-800 text-zinc-200 rounded-xl transition-colors font-semibold text-xs border border-zinc-800 cursor-pointer">
+          <Share2 class="w-3.5 h-3.5" /> Share
+        </button>
+        <button v-if="relationshipStatus === 'none'" @click="executeSendRequest" class="flex items-center gap-2 px-4 py-2 bg-white hover:bg-zinc-200 text-black rounded-xl transition-colors font-semibold text-sm cursor-pointer shadow-lg shadow-white/5">
+          <UserPlus class="w-4 h-4" /> Add
+        </button>
+        <button v-else-if="relationshipStatus === 'pending_incoming'" @click="executeAcceptRequest" class="flex items-center gap-2 px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl transition-colors font-semibold text-sm cursor-pointer shadow-lg shadow-emerald-500/20">
+          <Check class="w-4 h-4" /> Accept
+        </button>
+        <span v-else-if="relationshipStatus === 'pending_outgoing'" class="text-xs font-semibold text-zinc-500 bg-zinc-925 px-3 py-1.5 rounded-xl border border-zinc-800">
+          Pending
+        </span>
       </div>
     </div>
 
@@ -102,10 +108,10 @@
                 {{ format(day, 'd') }}
               </div>
             </div>
-          </div>
-        </div>
       </div>
     </div>
+  </div>
+</div>
 
     <!-- View Habit Details Modal -->
     <Teleport to="body">
@@ -311,7 +317,7 @@
 </template>
 
 <script setup lang="ts">
-import { ChevronLeft, User, Flame, X, ChevronRight, Check, Minus, UserPlus, CheckSquare } from 'lucide-vue-next';
+import { ChevronLeft, User, Flame, X, ChevronRight, Check, Minus, UserPlus, CheckSquare, Share2 } from 'lucide-vue-next';
 import { format, subDays, isToday, startOfMonth, endOfMonth, eachDayOfInterval, addMonths, subMonths, isAfter, startOfDay, addDays } from 'date-fns';
 import type { Habit, HabitLog } from '~/composables/useHabitsApi';
 import { useSocial } from '~/composables/useSocial';
@@ -340,6 +346,18 @@ const showShareModal = ref(false);
 const myHabits = ref<any[]>([]);
 const selectedHabitIds = ref<string[]>([]);
 const shareModalTitle = ref('Request Sent!');
+
+const openShareModal = async () => {
+  const habitsData = await $fetch<any[]>('/api/habits');
+  myHabits.value = habitsData;
+  // Pre-select habits already shared with this friend
+  selectedHabitIds.value = habitsData
+    .filter((h: any) => h.sharedwith?.includes(friendId))
+    .map((h: any) => h.id);
+  
+  shareModalTitle.value = 'Share Habits';
+  showShareModal.value = true;
+};
 
 const toggleHabitSelection = (id: string) => {
   const index = selectedHabitIds.value.indexOf(id);
