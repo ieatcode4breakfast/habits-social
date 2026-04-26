@@ -213,6 +213,8 @@ const profileForm = reactive({
   confirmPassword: ''
 });
 
+useModalHistory(showProfileModal);
+
 const openProfileModal = () => {
   if (!user.value) return;
   profileForm.username = user.value.username || '';

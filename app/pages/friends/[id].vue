@@ -1,8 +1,8 @@
 <template>
   <div class="space-y-3">
-    <div class="flex items-center gap-4 px-4 sm:px-0" v-motion-slide-visible-once-left>
-      <NuxtLink to="/social" class="inline-flex items-center justify-center w-10 h-10 rounded-xl bg-zinc-925/80 backdrop-blur-sm border border-zinc-800/80 hover:bg-zinc-800 transition-all shadow-xl flex-shrink-0">
-        <ArrowLeft class="w-5 h-5 text-zinc-400 hover:text-white transition-colors" />
+    <div class="flex items-center gap-1 px-4 sm:px-0" v-motion-slide-visible-once-left>
+      <NuxtLink to="/social" class="inline-flex items-center justify-center p-1 -ml-1 text-zinc-500 hover:text-white transition-all flex-shrink-0">
+        <ChevronLeft class="w-6 h-6" />
       </NuxtLink>
       <div class="flex items-center justify-between flex-1">
         <div v-if="profile" class="flex items-center gap-4">
@@ -306,7 +306,7 @@
 </template>
 
 <script setup lang="ts">
-import { ArrowLeft, User, Flame, X, ChevronLeft, ChevronRight, Check, Minus, UserPlus, CheckSquare } from 'lucide-vue-next';
+import { ChevronLeft, User, Flame, X, ChevronRight, Check, Minus, UserPlus, CheckSquare } from 'lucide-vue-next';
 import { format, subDays, isToday, startOfMonth, endOfMonth, eachDayOfInterval, addMonths, subMonths, isAfter, startOfDay, addDays } from 'date-fns';
 import type { Habit, HabitLog } from '~/composables/useHabitsApi';
 import { useSocial } from '~/composables/useSocial';
@@ -405,6 +405,8 @@ const days = Array.from({ length: 7 }, (_, i) => subDays(today, 6 - i));
 const showModal = ref(false);
 const selectedHabit = ref<Habit | null>(null);
 const currentCalendarDate = ref(new Date());
+
+useModalHistory(showModal);
 
 const isFutureDay = (day: Date) => isAfter(startOfDay(day), startOfDay(today));
 
@@ -557,39 +559,6 @@ watch(showModal, async (isOpen) => {
   }
 });
 
-onUnmounted(() => {
-  unsubscribeHabits();
-  window.removeEventListener('resize', checkHeightOverflow);
-  window.removeEventListener('popstate', handlePopState);
-  if (typeof document !== 'undefined') {
-    document.body.classList.remove('overflow-hidden');
-  }
-});
-
-// ── Back Button / History API Logic ──────────────────────────────────────────
-let modalStatePushed = false;
-
-const handlePopState = () => {
-  if (showModal.value) {
-    showModal.value = false;
-    modalStatePushed = false;
-  }
-};
-
-watch(showModal, (isOpen, oldOpen) => {
-  if (typeof window === 'undefined') return;
-  
-  if (isOpen && !oldOpen) {
-    window.history.pushState({ modal: true }, '');
-    modalStatePushed = true;
-  } else if (!isOpen && oldOpen && modalStatePushed) {
-    if (window.history.state?.modal) {
-      window.history.back();
-    }
-    modalStatePushed = false;
-  }
-});
-
 const { subscribeToFriendHabits } = useRealtime();
 let unsubscribeHabits = () => {};
 
@@ -602,7 +571,14 @@ onMounted(() => {
     checkHeightOverflow();
     checkShareHeightOverflow();
   });
-  window.addEventListener('popstate', handlePopState);
+});
+
+onUnmounted(() => {
+  unsubscribeHabits();
+  window.removeEventListener('resize', checkHeightOverflow);
+  if (typeof document !== 'undefined') {
+    document.body.classList.remove('overflow-hidden');
+  }
 });
 // ─────────────────────────────────────────────────────────────────────────────
 

@@ -299,6 +299,16 @@ const selectedHabitIds = ref<string[]>([]);
 const userBeingSharedWith = ref<UserProfile | null>(null);
 const shareModalTitle = ref('Request Sent!');
 
+const isAnyModalOpen = ref(false);
+watch([showUnfriendModal, showAddModal, showShareModal], (vals) => {
+  isAnyModalOpen.value = vals.some(v => v);
+});
+useModalHistory(isAnyModalOpen, () => {
+  showUnfriendModal.value = false;
+  showAddModal.value = false;
+  showShareModal.value = false;
+});
+
 const pendingIncoming = computed(() => {
   if (!user.value?.id) return [];
   const myId = String(user.value.id);

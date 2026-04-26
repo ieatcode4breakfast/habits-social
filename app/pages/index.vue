@@ -1128,37 +1128,20 @@ watch([showModal, showEditModal, editDescription, newDescription, editFrequencyP
 
 
 
-// ── Back Button / History API Logic ──────────────────────────────────────────
 const isAnyModalOpen = computed(() => 
   showModal.value || showEditModal.value || showDeleteModal.value || showSharingConfirmModal.value || showReorderModal.value
 );
 
-let modalStatePushed = false;
-
-const handlePopState = () => {
-  if (isAnyModalOpen.value) {
-    showModal.value = false;
-    showEditModal.value = false;
-    showDeleteModal.value = false;
-    showSharingConfirmModal.value = false;
-    showReorderModal.value = false;
-    modalStatePushed = false;
-  }
-};
-
-watch(isAnyModalOpen, (isOpen, oldOpen) => {
-  if (typeof window === 'undefined') return;
-  
-  if (isOpen && !oldOpen) {
-    window.history.pushState({ modal: true }, '');
-    modalStatePushed = true;
-  } else if (!isOpen && oldOpen && modalStatePushed) {
-    if (window.history.state?.modal) {
-      window.history.back();
-    }
-    modalStatePushed = false;
-  }
+useModalHistory(isAnyModalOpen, () => {
+  showModal.value = false;
+  showEditModal.value = false;
+  showDeleteModal.value = false;
+  showSharingConfirmModal.value = false;
+  showReorderModal.value = false;
 });
+
+
+
 
 const { subscribeToFriendHabits } = useRealtime();
 let unsubscribeOwnHabits = () => {};
@@ -1177,14 +1160,13 @@ onMounted(() => {
     });
   }
   window.addEventListener('resize', checkHeightOverflow);
-  window.addEventListener('popstate', handlePopState);
 });
 
 onUnmounted(() => {
   // cleanupSocial(); // Now a no-op singleton cleanup handled by logout
   unsubscribeOwnHabits();
   window.removeEventListener('resize', checkHeightOverflow);
-  window.removeEventListener('popstate', handlePopState);
+
   if (typeof document !== 'undefined') {
     document.body.classList.remove('overflow-hidden');
   }
