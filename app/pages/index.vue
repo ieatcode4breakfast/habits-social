@@ -113,7 +113,7 @@
                 ]"
               >
                 <Check v-if="getStatus(habit.id, day) === 'completed'" class="w-4 h-4 text-white" />
-                <X v-else-if="getStatus(habit.id, day) === 'failed'" class="w-4 h-4 text-white" />
+                <XIcon v-else-if="getStatus(habit.id, day) === 'failed'" class="w-4 h-4 text-white" />
                 <Minus v-else-if="getStatus(habit.id, day) === 'skipped'" class="w-4 h-4 text-white" />
               </button>
 
@@ -450,7 +450,7 @@
                         ]"
                       >
                         <Check v-if="getStatus(editingHabit!.id, day) === 'completed'" class="w-3 h-3 text-white" />
-                        <X v-else-if="getStatus(editingHabit!.id, day) === 'failed'" class="w-3 h-3 text-white" />
+                        <XIcon v-else-if="getStatus(editingHabit!.id, day) === 'failed'" class="w-3 h-3 text-white" />
                         <span v-else-if="getStatus(editingHabit!.id, day) === 'skipped'" class="w-3 h-0.5 bg-white rounded-full"></span>
                       </button>
                       <div class="text-[9px] font-bold" :class="[
@@ -682,7 +682,7 @@
 </template>
 
 <script setup lang="ts">
-import { Plus, Trash2, Check, X, Minus, ChevronLeft, ChevronRight, User, ChevronUp, ChevronDown, Edit2, Save, CheckSquare, GripVertical, ArrowUpDown, Flame } from 'lucide-vue-next';
+import { Plus, Trash2, Check, X as XIcon, Minus, ChevronLeft, ChevronRight, User, ChevronUp, ChevronDown, Edit2, Save, CheckSquare, GripVertical, ArrowUpDown, Flame } from 'lucide-vue-next';
 import { format, subDays, isToday, startOfMonth, endOfMonth, eachDayOfInterval, addMonths, subMonths, isAfter, startOfDay, addDays, isSameWeek, isSameMonth, getDaysInMonth } from 'date-fns';
 import type { Habit, HabitLog } from '~/composables/useHabitsApi';
 

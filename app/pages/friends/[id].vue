@@ -108,7 +108,7 @@
                 ]"
               >
                 <Check v-if="getStatus(habit.id, day) === 'completed'" class="w-4 h-4 text-white" />
-                <X v-else-if="getStatus(habit.id, day) === 'failed'" class="w-4 h-4 text-white" />
+                <XIcon v-else-if="getStatus(habit.id, day) === 'failed'" class="w-4 h-4 text-white" />
                 <Minus v-else-if="getStatus(habit.id, day) === 'skipped'" class="w-4 h-4 text-white" />
               </div>
 
@@ -226,7 +226,7 @@
                       ]"
                     >
                       <Check v-if="getStatus(selectedHabit.id, day) === 'completed'" class="w-3 h-3 text-white" />
-                      <X v-else-if="getStatus(selectedHabit.id, day) === 'failed'" class="w-3 h-3 text-white" />
+                      <XIcon v-else-if="getStatus(selectedHabit.id, day) === 'failed'" class="w-3 h-3 text-white" />
                       <span v-else-if="getStatus(selectedHabit.id, day) === 'skipped'" class="w-3 h-0.5 bg-white rounded-full"></span>
                     </div>
                     <div class="text-[9px] font-bold" :class="[
@@ -328,7 +328,7 @@
 </template>
 
 <script setup lang="ts">
-import { ChevronLeft, User, Flame, X, ChevronRight, Check, Minus, UserPlus, CheckSquare, Share2 } from 'lucide-vue-next';
+import { ChevronLeft, User, Flame, X as XIcon, ChevronRight, Check, Minus, UserPlus, CheckSquare, Share2 } from 'lucide-vue-next';
 import { format, subDays, isToday, startOfMonth, endOfMonth, eachDayOfInterval, addMonths, subMonths, isAfter, startOfDay, addDays, isSameWeek, isSameMonth, getDaysInMonth } from 'date-fns';
 import type { Habit, HabitLog } from '~/composables/useHabitsApi';
 import { useSocial } from '~/composables/useSocial';

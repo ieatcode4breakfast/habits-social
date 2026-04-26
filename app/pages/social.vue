@@ -35,7 +35,7 @@
             </NuxtLink>
             <div class="flex gap-2">
               <button @click="acceptRequest(req.id)" class="p-2 bg-white hover:bg-zinc-200 text-black rounded-lg transition-colors cursor-pointer"><Check class="w-4 h-4" /></button>
-              <button @click="declineRequest(req.id)" class="p-2 bg-zinc-925 hover:bg-zinc-800 text-zinc-400 rounded-lg transition-colors cursor-pointer"><X class="w-4 h-4" /></button>
+              <button @click="declineRequest(req.id)" class="p-2 bg-zinc-925 hover:bg-zinc-800 text-zinc-400 rounded-lg transition-colors cursor-pointer"><XIcon class="w-4 h-4" /></button>
             </div>
           </div>
         </div>
@@ -119,7 +119,7 @@
                 class="p-2 text-zinc-600 hover:text-rose-500 hover:bg-rose-500/10 rounded-xl transition-all cursor-pointer"
                 :title="f.status === 'pending' ? 'Cancel Request' : 'Unfriend'"
               >
-                <X class="w-4 h-4" />
+                <XIcon class="w-4 h-4" />
               </button>
             </div>
           </div>
@@ -269,7 +269,7 @@
 </template>
 
 <script setup lang="ts">
-import { Search, UserPlus, UserMinus, Check, X, User, Trash2, ChevronDown, CheckSquare } from 'lucide-vue-next';
+import { Search, UserPlus, UserMinus, Check, X as XIcon, User, Trash2, ChevronDown, CheckSquare } from 'lucide-vue-next';
 import { useSocial } from '../composables/useSocial';
 
 definePageMeta({ middleware: 'auth' });

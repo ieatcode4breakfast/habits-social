@@ -77,7 +77,7 @@
                 <p class="text-zinc-500 text-sm">Update your account settings</p>
               </div>
               <button @click="showProfileModal = false" class="p-2 text-zinc-500 hover:text-white hover:bg-zinc-800 rounded-xl transition-all cursor-pointer">
-                <X class="w-5 h-5" />
+                <XIcon class="w-5 h-5" />
               </button>
             </div>
 
