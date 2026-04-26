@@ -172,7 +172,7 @@
                   class="flex-1 py-3 px-4 bg-white text-black font-bold rounded-xl hover:bg-zinc-200 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
                   <Loader2 v-if="isUpdating" class="w-4 h-4 animate-spin" />
-                  {{ isUpdating ? 'Saving...' : 'Save Changes' }}
+                  {{ isUpdating ? 'Saving...' : 'Save' }}
                 </button>
               </div>
             </form>
