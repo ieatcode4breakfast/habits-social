@@ -684,6 +684,7 @@ import { useSocial } from '../composables/useSocial';
 const api = useHabitsApi();
 const { user } = useAuth();
 const { friends, refresh: refreshSocial, init: initSocial, cleanup: cleanupSocial } = useSocial();
+const { showToast } = useToast();
 
 const habits = ref<Habit[]>([]);
 const logs = ref<HabitLog[]>([]);
@@ -877,9 +878,17 @@ const toggleLog = async (habit: Habit, day: Date) => {
     const idx = logs.value.findIndex(l => l.habitid === habit.id && l.date === dateStr);
     if (idx >= 0) logs.value[idx] = log;
     else logs.value.push(log);
+    
+    // Show toast feedback
+    if (nextStatus === 'completed') showToast('Completed', 'completed');
+    else if (nextStatus === 'failed') showToast('Failed', 'failed');
+    else if (nextStatus === 'skipped') showToast('Skipped', 'skipped');
   } else {
     await api.deleteLog(habit.id, dateStr);
     logs.value = logs.value.filter(l => !(l.habitid === habit.id && l.date === dateStr));
+    
+    // Show toast feedback for cleared
+    showToast('Cleared', 'cleared');
   }
 };
 

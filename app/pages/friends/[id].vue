@@ -432,7 +432,12 @@ const showModal = ref(false);
 const selectedHabit = ref<Habit | null>(null);
 const currentCalendarDate = ref(new Date());
 
-useModalHistory(showModal);
+const isAnyModalOpen = computed(() => showModal.value || showShareModal.value);
+
+useModalHistory(isAnyModalOpen, () => {
+  showModal.value = false;
+  showShareModal.value = false;
+});
 
 const isFutureDay = (day: Date) => isAfter(startOfDay(day), startOfDay(today));
 
