@@ -2,9 +2,15 @@
   <div class="space-y-3">
     <!-- Header -->
     <div v-motion-slide-visible-once-left class="px-4 sm:px-0 flex items-end justify-between gap-4">
-      <div>
-        <h1 class="text-3xl font-bold tracking-tight text-white mb-1">My Habits</h1>
-        <p class="text-zinc-400">Track your habits this week</p>
+      <div class="flex items-center gap-4">
+        <div v-if="user" class="w-12 h-12 bg-zinc-925 rounded-2xl flex items-center justify-center overflow-hidden shadow-sm flex-shrink-0">
+          <img v-if="user.photourl" :src="user.photourl" alt="" class="w-full h-full object-cover" />
+          <User v-else class="w-6 h-6 text-zinc-600" />
+        </div>
+        <div>
+          <h1 class="text-xl font-bold tracking-tight text-white mb-1">My habits</h1>
+          <p class="text-zinc-400 text-xs">Track your habits this week</p>
+        </div>
       </div>
       <div class="flex items-center gap-2">
         <button
@@ -615,7 +621,7 @@
             <!-- Header -->
             <div class="flex items-center justify-between px-5 py-4 border-b border-zinc-800/80 shrink-0">
               <div>
-                <h2 class="text-base font-bold text-white">Reorder Habits</h2>
+                <h2 class="text-base font-bold text-white">Reorder habits</h2>
                 <p class="text-[11px] text-zinc-500 mt-0.5">Drag to rearrange</p>
               </div>
               <button

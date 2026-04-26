@@ -6,13 +6,13 @@
       </NuxtLink>
       <div class="flex items-center justify-between flex-1">
         <div v-if="profile" class="flex items-center gap-4">
-          <div class="w-14 h-14 bg-zinc-925 rounded-2xl flex items-center justify-center overflow-hidden shadow-sm flex-shrink-0">
+          <div class="w-12 h-12 bg-zinc-925 rounded-2xl flex items-center justify-center overflow-hidden shadow-sm flex-shrink-0">
             <img v-if="profile.photourl" :src="profile.photourl" alt="" class="w-full h-full object-cover" />
-            <User v-else class="w-7 h-7 text-zinc-600" />
+            <User v-else class="w-6 h-6 text-zinc-600" />
           </div>
           <div>
-            <h1 class="text-2xl font-bold tracking-tight text-white">{{ profile.username }}'s Habits</h1>
-            <p class="text-zinc-400 text-sm">Habits shared with you</p>
+            <h1 class="text-xl font-bold tracking-tight text-white">{{ profile.username }}'s habits</h1>
+            <p class="text-zinc-400 text-xs">habits shared with you</p>
           </div>
         </div>
 
@@ -268,7 +268,7 @@
             
             <!-- Selection Controls -->
             <div class="flex items-center justify-between mb-3 px-1">
-              <label class="text-[10px] font-bold uppercase tracking-widest text-zinc-500">My Habits</label>
+              <label class="text-[10px] font-bold uppercase tracking-widest text-zinc-500">My habits</label>
               <button 
                 @click="toggleSelectAllHabits"
                 title="Select/Unselect All"
@@ -295,7 +295,7 @@
 
             <div class="flex flex-col gap-3">
               <button @click="executeBatchShare" class="w-full px-5 py-3 bg-white hover:bg-zinc-200 text-black font-semibold rounded-xl transition-all shadow-lg shadow-white/5 cursor-pointer">
-                {{ selectedHabitIds.length > 0 ? `Share ${selectedHabitIds.length} Habits` : 'Continue' }}
+                {{ selectedHabitIds.length > 0 ? `Share ${selectedHabitIds.length} habits` : 'Continue' }}
               </button>
             </div>
           </div>

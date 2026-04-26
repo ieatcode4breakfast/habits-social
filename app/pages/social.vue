@@ -1,8 +1,8 @@
 <template>
   <div class="space-y-3">
     <div v-motion-slide-visible-once-left class="px-4 sm:px-0">
-      <h1 class="text-3xl font-bold tracking-tight text-white mb-1">Social</h1>
-      <p class="text-zinc-400">Connect with friends and view their progress</p>
+      <h1 class="text-xl font-bold tracking-tight text-white mb-1">Social</h1>
+      <p class="text-zinc-400 text-xs">Connect with friends and view their progress</p>
     </div>
 
     <!-- Incoming Requests Accordion -->
@@ -228,7 +228,7 @@
             
             <!-- Selection Controls -->
             <div class="flex items-center justify-between mb-3 px-1">
-              <label class="text-[10px] font-bold uppercase tracking-widest text-zinc-500">My Habits</label>
+              <label class="text-[10px] font-bold uppercase tracking-widest text-zinc-500">My habits</label>
               <button 
                 @click="toggleSelectAllHabits"
                 title="Select/Unselect All"
@@ -255,7 +255,7 @@
 
             <div class="flex flex-col gap-3">
               <button @click="executeBatchShare" class="w-full px-5 py-3 bg-white hover:bg-zinc-200 text-black font-semibold rounded-xl transition-all shadow-lg shadow-white/5 cursor-pointer">
-                {{ selectedHabitIds.length > 0 ? `Share ${selectedHabitIds.length} Habits` : 'Continue' }}
+                {{ selectedHabitIds.length > 0 ? `Share ${selectedHabitIds.length} habits` : 'Continue' }}
               </button>
 
             </div>
