@@ -35,7 +35,11 @@ Your Dashboard (the Home tab) is your personal space to manage your daily goals.
 ### Completing Habits & Building Streaks
 - Every day, simply click the checkbox next to a habit to mark it as complete.
 - Missed a day? No problem! You can go back at any time and mark previous days you've missed, and the app will instantly update your streak to reflect your progress. 
-- The app automatically calculates your current **Streak** (how many days in a row you've completed it). Keep checking them off to watch your fire icon and streak count grow!
+- The app automatically calculates your current **Streak** (how many days in a row you've completed it). Keep checking them off to watch your fire icon and streak count grow! We even give you a one-day grace period, so your streak won't break if you occasionally slip up for a single day.
+
+### Habit Frequency & Progress
+- Habits aren't just daily—you can set custom frequency targets for different periods.
+- Progress badges on each habit will visually show your current completion state for that period, helping you track your longer-term goals.
 
 ### Organizing Your List
 You can easily reorder your habits to prioritize them. Just use the drag handles next to your habits to move them up or down your list.
@@ -55,8 +59,12 @@ If someone adds you, their request will appear in the **Friend Requests** sectio
 ### Viewing Friends' Progress
 Once you are friends with someone:
 - You will see them listed in your **Friends** section.
-- Click on a friend's profile to see the habits they have chosen to share.
+- Click on a friend's profile to see the habits they have chosen to share. You can also view their frequency progress badges here to see how they're keeping up with their targets.
 - You will see a live feed of your **Friends' Activity**, letting you know when they crush their goals for the day!
+
+### Sharing Habits
+- You can share individual habits when creating them, or you can manage your shared habits directly from your profile.
+- Use the **Bulk Share** feature in your profile to quickly select and share multiple habits with your friends all at once.
 
 ## 4. Real-time Notifications
 
