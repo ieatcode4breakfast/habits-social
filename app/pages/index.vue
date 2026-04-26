@@ -290,10 +290,14 @@
             class="relative w-full h-full sm:h-auto sm:max-w-lg max-w-none bg-zinc-925 border-x-0 sm:border border-zinc-800 sm:rounded-3xl rounded-none shadow-2xl p-8 overflow-y-auto transition-all duration-300"
             :class="{ 'modal-adaptive-height': isHeightOverflowing }"
           >
-            <div class="flex items-start justify-between mb-6">
+            <div class="flex items-center gap-1 mb-6 -ml-2">
+
+              <button @click="showEditModal = false" class="p-2 text-zinc-500 hover:text-white transition-all cursor-pointer flex-shrink-0">
+                <ChevronLeft class="w-6 h-6" />
+              </button>
               <div class="flex-1 min-w-0">
-                <div class="flex items-center gap-2 mb-1">
-                  <h2 class="text-2xl font-bold text-white truncate leading-none">{{ editTitle }}</h2>
+                <div class="flex items-center gap-2">
+                  <h2 class="text-xl font-bold text-white truncate leading-none">{{ editTitle }}</h2>
                   <!-- Streak Badge -->
                   <div 
                     v-if="(streakInfoMap.get(editingHabit?.id || '')?.count ?? 0) >= 2"
@@ -309,6 +313,7 @@
                     >
                       x{{ streakInfoMap.get(editingHabit?.id || '')?.count }} STREAK
                     </span>
+
                     <Flame 
                       v-if="(streakInfoMap.get(editingHabit?.id || '')?.count ?? 0) >= 7"
                       class="w-2.5 h-2.5" 
@@ -320,12 +325,11 @@
                   </div>
                 </div>
               </div>
-              <div class="flex items-center gap-2">
-                <button @click="showDeleteModal = true" class="p-2 text-zinc-500 hover:text-zinc-200 hover:bg-zinc-925 rounded-xl transition-all cursor-pointer">
-                  <Trash2 class="w-5 h-5" />
-                </button>
-              </div>
+              <button @click="showDeleteModal = true" class="p-2 text-zinc-500 hover:text-rose-500 transition-all cursor-pointer flex-shrink-0">
+                <Trash2 class="w-5 h-5" />
+              </button>
             </div>
+
             
             <div class="space-y-6">
               <div class="space-y-2">
@@ -504,19 +508,22 @@
                   </label>
                 </div>
               </div>
+            </div>
 
-              <div class="pt-4">
-                <button
-                  type="button"
-                  @click="handleDoneClick"
-                  class="w-full px-5 py-3 bg-white hover:bg-zinc-200 text-black font-semibold rounded-xl transition-all shadow-lg shadow-white/5 cursor-pointer"
-                >
-                  Done
-                </button>
-              </div>
+            <div class="pt-4">
+              <button
+                type="button"
+                @click="handleDoneClick"
+                class="w-full px-5 py-3 bg-white hover:bg-zinc-200 text-black font-semibold rounded-xl transition-all shadow-lg shadow-white/5 cursor-pointer"
+              >
+                Done
+              </button>
             </div>
           </div>
         </div>
+
+
+
       </Transition>
     </Teleport>
 
