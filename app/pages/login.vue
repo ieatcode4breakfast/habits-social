@@ -140,6 +140,13 @@ definePageMeta({
 const { user, fetchUser } = useAuth();
 const router = useRouter();
 
+useSeoMeta({
+  title: 'Log In or Sign Up - HabitsSocial',
+  ogTitle: 'HabitsSocial - Join the Community',
+  description: 'Join HabitsSocial to track your habits, stay accountable with friends, and build a better routine.',
+  ogDescription: 'Join HabitsSocial to track your habits, stay accountable with friends, and build a better routine.',
+})
+
 const tab = ref<'login' | 'signup'>('login');
 const email = ref('');
 const username = ref('');

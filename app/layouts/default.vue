@@ -216,6 +216,15 @@ const { user, fetchUser } = useAuth();
 const { pendingCount, init: initSocial, cleanup: cleanupSocial, logoutCleanup } = useSocial();
 const { isVisible, message, type } = useToast();
 
+useSeoMeta({
+  title: 'Dashboard - HabitsSocial',
+  ogTitle: 'HabitsSocial',
+  description: 'Track and build better habits with your friends on HabitsSocial.',
+  ogDescription: 'Track and build better habits with your friends on HabitsSocial.',
+  ogImage: '/icons/icon-512.png',
+  twitterCard: 'summary_large_image',
+})
+
 onMounted(() => {
   if (user.value) {
     initSocial();

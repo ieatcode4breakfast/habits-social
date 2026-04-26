@@ -4,7 +4,16 @@ import tailwindcss from '@tailwindcss/vite';
 export default defineNuxtConfig({
   compatibilityDate: '2024-11-01',
   devtools: { enabled: true },
-  modules: ['@vueuse/motion/nuxt'],
+  modules: [
+    '@vueuse/motion/nuxt',
+    '@nuxtjs/seo'
+  ],
+  site: {
+    url: 'https://www.habitssocial.com',
+    name: 'HabitsSocial',
+    description: 'The social platform for building better habits through accountability and community.',
+    defaultLocale: 'en',
+  },
   ssr: true,
   nitro: {
     preset: 'cloudflare-module',
