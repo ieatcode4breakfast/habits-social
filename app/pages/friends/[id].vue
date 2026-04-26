@@ -50,29 +50,37 @@
            @click="openHabitDetails(habit)"
            class="p-4 pt-14 sm:pt-4 flex flex-wrap items-center justify-between gap-x-8 gap-y-4 relative group cursor-pointer hover:bg-zinc-925/50 transition-colors">
         
-        <!-- Floating Streak Badge -->
-        <div 
-          v-if="(streakInfoMap.get(habit.id)?.count ?? 0) >= 2"
-          class="absolute top-3 left-0 sm:top-2 flex items-center gap-1.5 px-3 py-1 bg-black border border-l-0 rounded-r-full rounded-l-none z-20 transition-all duration-500"
-          :class="[
-            streakInfoMap.get(habit.id)?.faded ? 'opacity-30' : 'opacity-100',
-            getStreakTheme(streakInfoMap.get(habit.id)?.count ?? 0).border
-          ]"
-        >
-          <span 
-            class="text-[10px] font-black tracking-tight"
-            :class="getStreakTheme(streakInfoMap.get(habit.id)?.count ?? 0).text"
-          >
-            x{{ streakInfoMap.get(habit.id)?.count }} STREAK
-          </span>
-          <Flame 
-            v-if="(streakInfoMap.get(habit.id)?.count ?? 0) >= 7"
-            class="w-3.5 h-3.5" 
+        <!-- Top Left Badges Container -->
+        <div class="absolute top-3 left-0 sm:top-2 flex items-center gap-2 z-20 transition-all duration-500">
+          <!-- Floating Streak Badge -->
+          <div 
+            v-if="(streakInfoMap.get(habit.id)?.count ?? 0) >= 2"
+            class="flex items-center gap-1.5 px-3 py-1 bg-black border border-l-0 rounded-r-full rounded-l-none transition-all duration-500"
             :class="[
-              getStreakTheme(streakInfoMap.get(habit.id)?.count ?? 0).text,
-              getStreakTheme(streakInfoMap.get(habit.id)?.count ?? 0).fill
+              streakInfoMap.get(habit.id)?.faded ? 'opacity-30' : 'opacity-100',
+              getStreakTheme(streakInfoMap.get(habit.id)?.count ?? 0).border
             ]"
-          />
+          >
+            <span 
+              class="text-[10px] font-black tracking-tight"
+              :class="getStreakTheme(streakInfoMap.get(habit.id)?.count ?? 0).text"
+            >
+              x{{ streakInfoMap.get(habit.id)?.count }} STREAK
+            </span>
+            <Flame 
+              v-if="(streakInfoMap.get(habit.id)?.count ?? 0) >= 7"
+              class="w-3.5 h-3.5" 
+              :class="[
+                getStreakTheme(streakInfoMap.get(habit.id)?.count ?? 0).text,
+                getStreakTheme(streakInfoMap.get(habit.id)?.count ?? 0).fill
+              ]"
+            />
+          </div>
+
+          <!-- Frequency Progress Badge -->
+          <div class="flex items-center px-2 py-1 bg-zinc-925 border border-zinc-800 rounded-lg text-[10px] font-bold tracking-tight text-zinc-400 shadow-sm" :class="{'ml-3': (streakInfoMap.get(habit.id)?.count ?? 0) < 2}">
+            {{ getFrequencyText(habit) }}
+          </div>
         </div>
 
         <!-- Title Section -->
@@ -321,7 +329,7 @@
 
 <script setup lang="ts">
 import { ChevronLeft, User, Flame, X, ChevronRight, Check, Minus, UserPlus, CheckSquare, Share2 } from 'lucide-vue-next';
-import { format, subDays, isToday, startOfMonth, endOfMonth, eachDayOfInterval, addMonths, subMonths, isAfter, startOfDay, addDays } from 'date-fns';
+import { format, subDays, isToday, startOfMonth, endOfMonth, eachDayOfInterval, addMonths, subMonths, isAfter, startOfDay, addDays, isSameWeek, isSameMonth, getDaysInMonth } from 'date-fns';
 import type { Habit, HabitLog } from '~/composables/useHabitsApi';
 import { useSocial } from '~/composables/useSocial';
 
@@ -518,6 +526,70 @@ const getStreakTheme = (count: number) => {
     text: 'text-emerald-500', 
     fill: 'fill-emerald-500/80' 
   };
+};
+
+const getFrequencyText = (habit: Habit) => {
+  const period = habit.frequencyPeriod;
+  const count = habit.frequencyCount || 1;
+  const now = new Date();
+
+  if (period === 'daily') {
+    let completed = 0;
+    for (const l of logs.value) {
+      if (l.habitid === habit.id && isToday(new Date(l.date)) && l.status === 'completed') {
+        completed++;
+      }
+    }
+    return completed >= 1 ? 'Target completed' : 'Daily, no skips';
+  } else if (period === 'weekly') {
+    const target = count;
+    const maxSkips = 7 - target;
+    
+    let completed = 0;
+    let skipped = 0;
+    
+    for (const l of logs.value) {
+      if (l.habitid === habit.id && isSameWeek(new Date(l.date), now, { weekStartsOn: 0 })) {
+        if (l.status === 'completed') completed++;
+        else if (l.status === 'skipped') skipped++;
+      }
+    }
+    
+    if (completed >= target) return 'Weekly target completed';
+    
+    if (maxSkips === 0) {
+      return `Weekly, ${completed}/${target}, no skips`;
+    } else {
+      const remainingSkips = Math.max(0, maxSkips - skipped);
+      const skipText = remainingSkips === 1 ? '1 skip remaining' : `${remainingSkips} skips remaining`;
+      return `Weekly, ${completed}/${target}, ${skipText}`;
+    }
+  } else if (period === 'monthly') {
+    const daysInMonth = getDaysInMonth(now);
+    const target = Math.min(count, daysInMonth);
+    const maxSkips = daysInMonth - target;
+    
+    let completed = 0;
+    let skipped = 0;
+    
+    for (const l of logs.value) {
+      if (l.habitid === habit.id && isSameMonth(new Date(l.date), now)) {
+        if (l.status === 'completed') completed++;
+        else if (l.status === 'skipped') skipped++;
+      }
+    }
+    
+    if (completed >= target) return 'Monthly target completed';
+    
+    if (maxSkips === 0) {
+      return `Monthly, ${completed}/${target}, no skips`;
+    } else {
+      const remainingSkips = Math.max(0, maxSkips - skipped);
+      const skipText = remainingSkips === 1 ? '1 skip remaining' : `${remainingSkips} skips remaining`;
+      return `Monthly, ${completed}/${target}, ${skipText}`;
+    }
+  }
+  return '';
 };
 
 const openHabitDetails = (habit: Habit) => {
