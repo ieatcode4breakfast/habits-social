@@ -471,6 +471,7 @@ const streakInfoMap = computed(() => {
     let foundAnchor = false;
     let faded = false;
     const todayStr = format(new Date(), 'yyyy-MM-dd');
+    const yesterdayStr = format(subDays(new Date(), 1), 'yyyy-MM-dd');
 
     for (let i = 0; i < 365; i++) {
       const dateStr = format(currentDay, 'yyyy-MM-dd');
@@ -479,7 +480,7 @@ const streakInfoMap = computed(() => {
       if (!foundAnchor) {
         if (status === 'completed' || status === 'failed' || status === 'skipped') {
           foundAnchor = true;
-          if (dateStr !== todayStr) {
+          if (dateStr !== todayStr && dateStr !== yesterdayStr) {
             faded = true;
           }
         }
