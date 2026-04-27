@@ -14,6 +14,8 @@ export interface Friendship {
   initiatorId: string; 
   receiverId: string; 
   status: 'pending' | 'accepted'; 
+  initiatorFavorite?: boolean;
+  receiverFavorite?: boolean;
 }
 
 // Module-level state to ensure singleton behavior for the subscription
@@ -132,6 +134,22 @@ export const useSocial = () => {
     pendingCount.value = 0;
   };
 
+  const toggleFavorite = async (friendshipId: string, favorite: boolean) => {
+    try {
+      const updated = await $fetch<Friendship>('/api/social/friends/favorite', {
+        method: 'PUT',
+        body: { friendshipId, favorite }
+      });
+      
+      const idx = friendships.value.findIndex(f => f.id === friendshipId);
+      if (idx !== -1) {
+        friendships.value[idx] = { ...friendships.value[idx], ...updated };
+      }
+    } catch (e) {
+      console.error('[Social] Failed to toggle favorite', e);
+    }
+  };
+
   return {
     friendships,
     profiles,
@@ -142,6 +160,7 @@ export const useSocial = () => {
     refresh,
     init,
     cleanup,
-    logoutCleanup
+    logoutCleanup,
+    toggleFavorite
   };
 };

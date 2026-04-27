@@ -155,6 +155,15 @@
             </div>
             <div class="flex items-center gap-1 flex-shrink-0">
               <button 
+                v-if="f.status === 'accepted'"
+                @click.stop="handleToggleFavorite(f)" 
+                class="p-2 transition-all cursor-pointer rounded-xl"
+                :class="isFriendshipFavorite(f) ? 'text-amber-400 bg-amber-400/10' : 'text-zinc-600 hover:text-amber-400 hover:bg-amber-400/5'"
+                title="Favorite"
+              >
+                <Star class="w-4 h-4" :class="{ 'fill-amber-400': isFriendshipFavorite(f) }" />
+              </button>
+              <button 
                 @click.stop="confirmUnfriend(f)" 
                 class="p-2 text-zinc-600 hover:text-rose-500 hover:bg-rose-500/10 rounded-xl transition-all cursor-pointer"
                 :title="f.status === 'pending' ? 'Cancel Request' : 'Unfriend'"
@@ -310,7 +319,7 @@
 </template>
 
 <script setup lang="ts">
-import { Search, UserPlus, UserMinus, Check, X as XIcon, User, Trash2, ChevronDown, CheckSquare, Activity } from 'lucide-vue-next';
+import { Search, UserPlus, UserMinus, Check, X as XIcon, User, Trash2, ChevronDown, CheckSquare, Activity, Star } from 'lucide-vue-next';
 import { useSocial } from '../composables/useSocial';
 
 definePageMeta({ middleware: 'auth' });
@@ -323,7 +332,15 @@ const activeTab = computed({
 });
 
 interface UserProfile { id: string; email: string; username: string; photourl?: string; }
-interface Friendship { id: string; participants: string[]; initiatorId: string; receiverId: string; status: 'pending' | 'accepted'; }
+interface Friendship { 
+  id: string; 
+  participants: string[]; 
+  initiatorId: string; 
+  receiverId: string; 
+  status: 'pending' | 'accepted'; 
+  initiatorFavorite?: boolean;
+  receiverFavorite?: boolean;
+}
 
 const searchQuery = ref('');
 const friendsSearchQuery = ref('');
@@ -334,7 +351,8 @@ const {
   profilesMap, 
   refresh: refreshSocial, 
   init: initSocial, 
-  cleanup: cleanupSocial 
+  cleanup: cleanupSocial,
+  toggleFavorite
 } = useSocial();
 const showUnfriendModal = ref(false);
 const friendshipToUnfriend = ref<Friendship | null>(null);
@@ -346,6 +364,19 @@ const myHabits = ref<any[]>([]);
 const selectedHabitIds = ref<string[]>([]);
 const userBeingSharedWith = ref<UserProfile | null>(null);
 const shareModalTitle = ref('Request Sent!');
+
+const favoritedAtStart = ref<Set<string>>(new Set());
+
+// Refresh sort snapshot when entering the friends tab
+watch(activeTab, (newTab, oldTab) => {
+  if (newTab === 'friends' && oldTab !== 'friends') {
+    const myId = String(user.value?.id);
+    const favs = friendships.value
+      .filter((f: any) => f.status === 'accepted' && (String(f.initiatorId) === myId ? f.initiatorFavorite : f.receiverFavorite))
+      .map((f: any) => f.id);
+    favoritedAtStart.value = new Set(favs);
+  }
+});
 
 const isAnyModalOpen = ref(false);
 watch([showUnfriendModal, showAddModal, showShareModal], (vals) => {
@@ -384,6 +415,12 @@ const displayFriends = computed(() => {
       return friendId && friendId !== myId;
     })
     .sort((a, b) => {
+      const aFav = favoritedAtStart.value.has(a.id);
+      const bFav = favoritedAtStart.value.has(b.id);
+      
+      if (aFav && !bFav) return -1;
+      if (!aFav && bFav) return 1;
+
       const nameA = profilesMap.value[getFriendId(a)]?.username || '';
       const nameB = profilesMap.value[getFriendId(b)]?.username || '';
       return nameA.localeCompare(nameB);
@@ -404,6 +441,12 @@ const getFriendId = (f: Friendship) => {
   return f.participants?.find(p => String(p) !== myId) ?? '';
 };
 const getRelationship = (targetId: string) => friendships.value.find((f: any) => f.participants?.includes(targetId))?.status;
+
+const isFriendshipFavorite = (f: Friendship) => {
+  if (!user.value?.id) return false;
+  const myId = String(user.value.id);
+  return String(f.initiatorId) === myId ? f.initiatorFavorite : f.receiverFavorite;
+};
 
 const handleFriendClick = (f: Friendship) => {
   navigateTo(`/friends/${getFriendId(f)}`);
@@ -442,9 +485,16 @@ const loadFriendships = async () => {
 
 const { pendingCount } = useSocialNotifications();
 
-onMounted(() => {
-  loadFriendships();
-  // Social state is now initialized globally in default.vue layout
+onMounted(async () => {
+  await loadFriendships();
+  
+  // Capture snapshot of favorites for stable sorting during this visit
+  const myId = String(user.value?.id);
+  const favs = friendships.value
+    .filter((f: any) => f.status === 'accepted' && (String(f.initiatorId) === myId ? f.initiatorFavorite : f.receiverFavorite))
+    .map((f: any) => f.id);
+  favoritedAtStart.value = new Set(favs);
+
   window.addEventListener('resize', checkHeightOverflow);
 });
 
@@ -575,5 +625,9 @@ const executeUnfriend = async () => {
   // Clear reference after data is reloaded
   friendshipToUnfriend.value = null;
   unfriendDisplayName.value = '';
+};
+const handleToggleFavorite = async (f: Friendship) => {
+  const current = isFriendshipFavorite(f);
+  await toggleFavorite(f.id, !current);
 };
 </script>

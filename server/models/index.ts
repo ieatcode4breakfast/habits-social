@@ -39,6 +39,8 @@ export interface IFriendship {
   initiatorId: string;
   receiverId: string;
   status: string;
+  initiatorFavorite?: boolean;
+  receiverFavorite?: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
