@@ -32,9 +32,9 @@
     </div>
 
     <!-- Activity Tab Placeholder -->
-    <div v-if="activeTab === 'activity'" v-motion-fade class="px-4 sm:px-0">
-      <div class="bg-zinc-925/80 backdrop-blur-sm sm:rounded-2xl rounded-xl border border-zinc-800/80 p-10 text-center shadow-2xl flex flex-col items-center">
-        <div class="w-16 h-16 bg-black rounded-full flex items-center justify-center mx-auto mb-4 border border-zinc-800">
+    <div v-if="activeTab === 'activity'" v-motion-fade>
+      <div class="bg-zinc-925/80 backdrop-blur-sm sm:rounded-2xl rounded-none border-y border-x-0 sm:border border-zinc-800/80 p-10 text-center shadow-2xl flex flex-col items-center">
+        <div class="w-16 h-16 bg-zinc-950 rounded-full flex items-center justify-center mx-auto mb-4 border border-zinc-800">
           <Activity class="w-8 h-8 text-zinc-500" />
         </div>
         <h2 class="text-lg font-bold text-white mb-2">Activity Feed</h2>
@@ -61,11 +61,11 @@
         <ChevronDown class="w-4 h-4 text-zinc-600 transition-transform duration-300" :class="{ 'rotate-180': isRequestsExpanded }" />
       </button>
 
-      <div v-show="isRequestsExpanded" class="px-6 pb-6 pt-2">
-        <div class="space-y-2 max-h-[380px] overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-zinc-800 scrollbar-track-transparent">
-          <div v-for="req in pendingIncoming" :key="req.id" class="flex items-center justify-between bg-black border border-zinc-925 p-4 rounded-xl">
+      <div v-show="isRequestsExpanded" class="sm:px-6 px-0 pb-6 pt-2">
+        <div class="gap-0 flex flex-col max-h-[380px] overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-zinc-800 scrollbar-track-transparent">
+          <div v-for="req in pendingIncoming" :key="req.id" class="flex items-center justify-between bg-transparent border-none p-4 hover:bg-white/5 transition-colors rounded-none md:rounded-xl">
             <NuxtLink :to="`/friends/${req.initiatorId}`" class="flex items-center gap-3 hover:opacity-80 transition-opacity">
-              <div class="w-10 h-10 bg-zinc-925 rounded-full flex items-center justify-center overflow-hidden">
+              <div class="w-10 h-10 bg-zinc-950 rounded-full flex items-center justify-center overflow-hidden">
                 <img v-if="profilesMap[req.initiatorId]?.photourl" :src="profilesMap[req.initiatorId]?.photourl" alt="" class="w-full h-full object-cover" />
                 <User v-else class="w-5 h-5 text-zinc-600" />
               </div>
@@ -85,9 +85,9 @@
     <!-- Combined Social Sections -->
     <div v-motion-fade class="bg-zinc-925/80 backdrop-blur-sm sm:rounded-2xl rounded-none shadow-2xl border-y border-x-0 sm:border border-zinc-800/80 overflow-hidden">
       <!-- Add Friend -->
-      <div class="p-6 pb-0">
-        <h2 class="text-sm font-bold uppercase tracking-wider text-zinc-500 mb-2">Add Friend</h2>
-        <form @submit.prevent="handleSearch" class="flex gap-3">
+      <div class="sm:p-6 sm:pb-0 py-6 pb-0">
+        <h2 class="text-sm font-bold uppercase tracking-wider text-zinc-500 mb-2 px-6 sm:px-0">Add Friend</h2>
+        <form @submit.prevent="handleSearch" class="flex gap-3 px-6 sm:px-0">
           <div class="relative w-full max-w-md">
             <Search class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" />
             <input v-model="searchQuery" type="text" placeholder="Search by username..."
@@ -95,10 +95,10 @@
           </div>
         </form>
 
-        <div v-if="searchResults.length > 0" class="mt-4 space-y-2 max-h-[380px] overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-zinc-800 scrollbar-track-transparent pb-4">
-          <div v-for="res in searchResults" :key="res.id" class="flex items-center justify-between bg-black border border-zinc-925 p-4 rounded-xl">
+        <div v-if="searchResults.length > 0" class="mt-4 gap-0 flex flex-col max-h-[380px] overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-zinc-800 scrollbar-track-transparent pb-4">
+          <div v-for="res in searchResults" :key="res.id" class="flex items-center justify-between bg-transparent border-none p-4 hover:bg-white/5 transition-colors rounded-none md:rounded-xl">
             <NuxtLink :to="`/friends/${res.id}`" class="flex items-center gap-3 hover:opacity-80 transition-opacity">
-              <div class="w-10 h-10 bg-zinc-925 rounded-full flex items-center justify-center overflow-hidden">
+              <div class="w-10 h-10 bg-zinc-950 rounded-full flex items-center justify-center overflow-hidden">
                 <img v-if="res.photourl" :src="res.photourl" alt="" class="w-full h-full object-cover" />
                 <User v-else class="w-5 h-5 text-zinc-600" />
               </div>
@@ -117,8 +117,8 @@
       </div>
 
       <!-- Friends List -->
-      <div class="px-6 pt-6 pb-6">
-        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2 sm:pr-1">
+      <div class="sm:p-6 py-6">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2 sm:pr-1 px-6 sm:px-0">
           <h2 class="text-sm font-bold uppercase tracking-wider text-zinc-500">My Friends</h2>
           <div class="relative w-full sm:max-w-[240px]">
             <Search class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
@@ -131,15 +131,15 @@
           </div>
         </div>
         
-        <p v-if="displayFriends.length === 0" class="text-zinc-600 text-sm italic">No friends yet. Search for people above!</p>
-        <p v-else-if="filteredDisplayFriends.length === 0" class="text-zinc-600 text-sm italic">No friends found matching your filter.</p>
-        <div v-else class="grid grid-cols-1 md:grid-cols-2 gap-2 max-h-[480px] overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-zinc-800 scrollbar-track-transparent">
+        <p v-if="displayFriends.length === 0" class="text-zinc-600 text-sm italic px-6 sm:px-0">No friends yet. Search for people above!</p>
+        <p v-else-if="filteredDisplayFriends.length === 0" class="text-zinc-600 text-sm italic px-6 sm:px-0">No friends found matching your filter.</p>
+        <div v-else class="grid grid-cols-1 md:grid-cols-2 gap-0 max-h-[480px] overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-zinc-800 scrollbar-track-transparent">
           <div 
             v-for="f in filteredDisplayFriends" :key="f.id"
             @click="handleFriendClick(f)"
-            class="flex items-center gap-4 p-4 rounded-xl border border-zinc-925 bg-black transition-all group shadow-sm hover:border-zinc-700 hover:shadow-md cursor-pointer"
+            class="flex items-center gap-4 p-4 bg-transparent border-none transition-all group cursor-pointer hover:bg-white/5 rounded-none md:rounded-xl"
           >
-            <div class="w-12 h-12 bg-zinc-925 rounded-full flex items-center justify-center overflow-hidden flex-shrink-0">
+            <div class="w-12 h-12 bg-zinc-950 rounded-full flex items-center justify-center overflow-hidden flex-shrink-0">
               <img v-if="profilesMap[getFriendId(f)]?.photourl" :src="profilesMap[getFriendId(f)]?.photourl" alt="" class="w-full h-full object-cover" />
               <User v-else class="w-6 h-6 text-zinc-600" />
             </div>
