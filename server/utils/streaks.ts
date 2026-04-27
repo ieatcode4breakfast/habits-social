@@ -1,4 +1,4 @@
-import { parseISO, subDays, isAfter, startOfDay, differenceInDays, startOfWeek, subWeeks, isSameWeek, startOfMonth, subMonths, isSameMonth, isSameDay } from 'date-fns';
+import { parseISO, subDays, startOfDay, differenceInDays, startOfWeek, subWeeks, isSameWeek, startOfMonth, subMonths, isSameMonth, isSameDay } from 'date-fns';
 
 export async function recalculateHabitStreak(sql: any, habitId: string, userId: string) {
   const habitRes = await sql`SELECT "frequencyPeriod", "frequencyCount" FROM habits WHERE id = ${habitId}`;
@@ -21,13 +21,10 @@ export async function recalculateHabitStreak(sql: any, habitId: string, userId: 
     return;
   }
 
-  const today = startOfDay(new Date());
-  
-  // Find anchor: first log that is not in the future and has a valid status
+  // Find anchor: first log with a valid status
   let anchorIndex = -1;
   for (let i = 0; i < logs.length; i++) {
-    const logDate = startOfDay(parseISO(logs[i].date));
-    if (!isAfter(logDate, today) && ['completed', 'failed', 'skipped'].includes(logs[i].status)) {
+    if (['completed', 'failed', 'skipped'].includes(logs[i].status)) {
       anchorIndex = i;
       break;
     }
