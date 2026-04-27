@@ -866,45 +866,39 @@ const toggleLog = async (habit: Habit, day: Date) => {
   const frequencyCount = isEditingThis ? editFrequencyCount.value : (habit.frequencyCount || 1);
 
   let nextStatus: 'completed' | 'failed' | 'skipped' | null = null;
-  if (frequencyPeriod === 'daily') {
-    if (!currentStatus) nextStatus = 'completed';
-    else if (currentStatus === 'completed') nextStatus = 'failed';
-    else nextStatus = null;
-  } else if (frequencyPeriod === 'weekly') {
-    const maxSkips = 7 - (frequencyCount || 1);
-    const usedSkips = logs.value.filter(l => 
+  
+  // Calculate maxSkips and usedSkips based on period
+  let maxSkips = 0;
+  let usedSkips = 0;
+  
+  if (frequencyPeriod === 'weekly') {
+    maxSkips = 7 - (frequencyCount || 1);
+    usedSkips = logs.value.filter(l => 
       l.habitid === habit.id && 
       l.status === 'skipped' && 
       isSameWeek(new Date(l.date), day, { weekStartsOn: 0 })
     ).length;
-
-    if (!currentStatus) nextStatus = 'completed';
-    else if (currentStatus === 'completed') nextStatus = 'failed';
-    else if (currentStatus === 'failed') {
-      nextStatus = usedSkips < maxSkips ? 'skipped' : null;
-    } else {
-      nextStatus = null;
-    }
   } else if (frequencyPeriod === 'monthly') {
-    const maxSkips = Math.max(0, getDaysInMonth(day) - (frequencyCount || 1));
-    const usedSkips = logs.value.filter(l => 
+    maxSkips = Math.max(0, getDaysInMonth(day) - (frequencyCount || 1));
+    usedSkips = logs.value.filter(l => 
       l.habitid === habit.id && 
       l.status === 'skipped' && 
       isSameMonth(new Date(l.date), day)
     ).length;
-
-    if (!currentStatus) nextStatus = 'completed';
-    else if (currentStatus === 'completed') nextStatus = 'failed';
-    else if (currentStatus === 'failed') {
-      nextStatus = usedSkips < maxSkips ? 'skipped' : null;
+  }
+  
+  // Determine nextStatus based on currentStatus and skip availability
+  if (!currentStatus) {
+    nextStatus = 'completed';
+  } else if (currentStatus === 'completed') {
+    if (usedSkips < maxSkips) {
+      nextStatus = 'skipped';
     } else {
-      nextStatus = null;
+      nextStatus = 'failed';
     }
   } else {
-    if (!currentStatus) nextStatus = 'completed';
-    else if (currentStatus === 'completed') nextStatus = 'failed';
-    else if (currentStatus === 'failed') nextStatus = 'skipped';
-    else if (currentStatus === 'skipped') nextStatus = null;
+    // Current is skipped or failed, next is clear
+    nextStatus = null;
   }
 
   if (nextStatus) {

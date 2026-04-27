@@ -1,4 +1,4 @@
-# Streak Logic Refactor Plan
+# Streak Logic Refactor Plan (Stale - Do Not Use, Completed 2026-04-27)
 
 This document outlines the architectural shift from a "Thick Client" to a "Thin Client" approach for calculating habit streaks, alongside the detailed rationale for this migration.
 

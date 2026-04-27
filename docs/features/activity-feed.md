@@ -1,4 +1,4 @@
-# Habit Tracking Feed & Milestone Logic
+# Habit Tracking Feed & Milestone Logic (Not Yet Implemented in Codebase)
 
 This document outlines the logic, formatting rules, and trigger events for the habit tracking activity feed. It is designed to reward consistency, prevent notification fatigue, and clearly communicate habit progress between friends.
 
