@@ -2,7 +2,7 @@
 
 This report analyzes the failures in the current habit streak implementation following the architectural shift to server-side calculations. It identifies the root causes for incorrect streak counts and the requirement for manual page refreshes.
 
-## 1. Issue: Timezone Misalignment (Incorrect Streak Reset)
+## 1. Issue: Timezone Misalignment (Incorrect Streak Reset) - DONE
 
 ### The Problem
 
@@ -32,7 +32,7 @@ for (let i = 0; i < logs.length; i++) {
 
 Trust the frontend's timeline. Remove the server-side `today` check entirely. Since the database query returns logs ordered descending by date, the engine should anchor on the most recent log regardless of the server's local clock.
 
-## 2. Issue: Stale Frontend State (Manual Refresh Required)
+## 2. Issue: Stale Frontend State (Manual Refresh Required) - DONE
 
 ### The Problem
 
@@ -56,9 +56,7 @@ return newLog;
 
 Modify the endpoint to fetch the updated habit statistics from the `habits` table immediately after recalculation. Return this data in an augmented payload (`habitStats`) so the frontend can update its reactive state instantly.
 
-## 3. Issue: Viewer-Biased Social "Faded" Status
-
-### The Problem
+## 3. Issue: Viewer-Biased Social "Faded" Status - TOLERABLE / SKIPPED
 
 The "faded" UI state (indicating a streak is at risk) is calculated on the frontend using the viewer's local browser time (`new Date()`). If you view a friend's profile from a different timezone, the visual indicator is calculated against *your* "yesterday" rather than the *owner's* "yesterday," leading to inconsistent visual feedback in social views.
 
