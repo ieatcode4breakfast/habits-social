@@ -8,6 +8,9 @@ export interface Habit {
   color: string;
   sharedwith: string[];
   sortOrder?: number;
+  currentStreak?: number;
+  longestStreak?: number;
+  streakAnchorDate?: string | null;
 }
 
 export interface HabitLog {

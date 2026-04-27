@@ -1,5 +1,6 @@
 import type { IHabitLog } from '../../models';
 import { usePusher } from '../../utils/pusher';
+import { recalculateHabitStreak } from '../../utils/streaks';
 
 export default defineEventHandler(async (event) => {
   const sql = useDB(event);
@@ -47,6 +48,7 @@ export default defineEventHandler(async (event) => {
       `;
       
       const updatedLog = result[0];
+      await recalculateHabitStreak(sql, habitId, userId);
       const pusher = usePusher();
       if (pusher) {
         await pusher.trigger(`user-${userId}-habits`, 'habit-updated', updatedLog);
@@ -61,6 +63,7 @@ export default defineEventHandler(async (event) => {
       `;
       
       const newLog = result[0];
+      await recalculateHabitStreak(sql, habitId, userId);
       const pusher = usePusher();
       if (pusher) {
         await pusher.trigger(`user-${userId}-habits`, 'habit-updated', newLog);
@@ -78,6 +81,8 @@ export default defineEventHandler(async (event) => {
       DELETE FROM habitlogs 
       WHERE habitid = ${habitId} AND ownerid = ${userId} AND date = ${dateStr}
     `;
+    
+    await recalculateHabitStreak(sql, habitId, userId);
     
     const pusher = usePusher();
     if (pusher) {

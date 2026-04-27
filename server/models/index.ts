@@ -17,6 +17,9 @@ export interface IHabit {
   color: string;
   sharedwith: string[];
   sortOrder: number;
+  currentStreak: number;
+  longestStreak: number;
+  streakAnchorDate: Date | null;
   createdAt: Date;
   updatedat: Date;
 }
