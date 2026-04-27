@@ -1,7 +1,11 @@
-import { parseISO, subDays, isAfter, startOfDay, differenceInDays } from 'date-fns';
+import { parseISO, subDays, isAfter, startOfDay, differenceInDays, startOfWeek, subWeeks, isSameWeek, startOfMonth, subMonths, isSameMonth, isSameDay } from 'date-fns';
 
 export async function recalculateHabitStreak(sql: any, habitId: string, userId: string) {
-  // Fetch all logs for this habit, ordered newest first
+  const habitRes = await sql`SELECT "frequencyPeriod", "frequencyCount" FROM habits WHERE id = ${habitId}`;
+  if (!habitRes || habitRes.length === 0) return;
+  const period = habitRes[0].frequencyPeriod;
+  const count = habitRes[0].frequencyCount;
+
   const logs = await sql`
     SELECT * FROM habitlogs 
     WHERE habitid = ${habitId} AND ownerid = ${userId}
@@ -39,44 +43,33 @@ export async function recalculateHabitStreak(sql: any, habitId: string, userId: 
   }
 
   const anchorLog = logs[anchorIndex];
-  const streakAnchorDate = anchorLog.date;
+  let streakAnchorDate: string | null = anchorLog.date;
   let currentStreak = 0;
 
-  if (anchorLog.status === 'failed') {
+  let checkDate = startOfDay(parseISO(anchorLog.date));
+  
+  let logToday = logs.find((l: any) => isSameDay(parseISO(l.date), checkDate));
+  
+  if (logToday?.status === 'failed') {
     currentStreak = 0;
   } else {
-    if (anchorLog.status === 'completed') {
-      currentStreak = 1;
+    if (logToday?.status === 'completed') {
+      currentStreak++;
     }
     
-    let expectedNextDate = subDays(parseISO(anchorLog.date), 1);
-    
-    for (let i = anchorIndex + 1; i < logs.length; i++) {
-      const log = logs[i];
-      const logDate = startOfDay(parseISO(log.date));
+    while (true) {
+      checkDate = subDays(checkDate, 1);
+      let log = logs.find((l: any) => isSameDay(parseISO(l.date), checkDate));
       
-      // Skip duplicates for the same day
-      if (i > 0 && log.date === logs[i-1].date) continue;
-
-      const diff = differenceInDays(expectedNextDate, logDate);
-      
-      // If the log is older than we expect, there is a gap (missing days)
-      if (diff > 0) {
-        break; // Streak broken by gap
-      }
-      
-      if (diff < 0) {
-         continue; // Should not happen with DESC sort, but safe to skip
-      }
-
-      // Exact match for expected date
-      if (log.status === 'completed') {
+      if (log?.status === 'failed') {
+        break;
+      } else if (log?.status === 'skipped') {
+        continue; 
+      } else if (log?.status === 'completed') {
         currentStreak++;
-        expectedNextDate = subDays(expectedNextDate, 1);
-      } else if (log.status === 'skipped') {
-        expectedNextDate = subDays(expectedNextDate, 1);
-      } else if (log.status === 'failed') {
-        break; // Streak broken by explicit failure
+      } else {
+        // No log -> gap!
+        break;
       }
     }
   }
@@ -86,7 +79,7 @@ export async function recalculateHabitStreak(sql: any, habitId: string, userId: 
     UPDATE habits 
     SET 
       "currentStreak" = ${currentStreak}, 
-      "longestStreak" = GREATEST("longestStreak", ${currentStreak}),
+      "longestStreak" = GREATEST(COALESCE("longestStreak", 0), ${currentStreak}),
       "streakAnchorDate" = ${streakAnchorDate},
       updatedat = NOW()
     WHERE id = ${habitId} AND ownerid = ${userId}

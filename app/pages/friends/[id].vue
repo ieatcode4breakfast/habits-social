@@ -365,7 +365,7 @@
 
 <script setup lang="ts">
 import { ChevronLeft, User, Flame, X as XIcon, ChevronRight, Check, Minus, UserPlus, CheckSquare, Share2, UserMinus } from 'lucide-vue-next';
-import { format, subDays, isToday, startOfMonth, endOfMonth, eachDayOfInterval, addMonths, subMonths, isAfter, startOfDay, addDays, isSameWeek, isSameMonth, getDaysInMonth } from 'date-fns';
+import { format, subDays, isToday, startOfMonth, endOfMonth, eachDayOfInterval, addMonths, subMonths, isAfter, startOfDay, addDays, isSameWeek, isSameMonth, getDaysInMonth, parseISO, startOfWeek } from 'date-fns';
 import type { Habit, HabitLog } from '~/composables/useHabitsApi';
 import { useSocial } from '~/composables/useSocial';
 
@@ -510,13 +510,10 @@ const prevMonth = () => currentCalendarDate.value = subMonths(currentCalendarDat
 const nextMonth = () => currentCalendarDate.value = addMonths(currentCalendarDate.value, 1);
 
 const isFaded = (habit: Habit) => {
-  if (!habit.streakAnchorDate) return false;
-  const anchorStr = typeof habit.streakAnchorDate === 'string' 
-    ? habit.streakAnchorDate.split('T')[0] 
-    : format(new Date(habit.streakAnchorDate), 'yyyy-MM-dd');
-  const todayStr = format(new Date(), 'yyyy-MM-dd');
-  const yesterdayStr = format(subDays(new Date(), 1), 'yyyy-MM-dd');
-  return anchorStr !== todayStr && anchorStr !== yesterdayStr;
+  if (!habit || !habit.streakAnchorDate) return false;
+  const anchor = startOfDay(parseISO(habit.streakAnchorDate));
+  const yesterday = startOfDay(subDays(new Date(), 1));
+  return isAfter(yesterday, anchor);
 };
 
 const getStreakTheme = (count: number) => {

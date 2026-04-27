@@ -19,28 +19,30 @@ The streak state is persisted in the `habits` table with three primary fields:
 
 | Field | Type | Description |
 | :--- | :--- | :--- |
-| `currentStreak` | `Integer` | The number of consecutive periods the habit has been completed. |
+| `currentStreak` | `Integer` | The number of consecutive days the habit has been completed (ignoring skips). |
 | `longestStreak` | `Integer` | The historical record for the most consecutive completions. |
 | `streakAnchorDate` | `Date` | The date of the most recent log that contributed to or "anchored" the current streak. |
 
 ---
 
-## Calculation Engine
+## Unified Calculation Engine
+
+**CRITICAL RULE:** Streaks are ALWAYS calculated on a **daily, day-by-day basis**, regardless of whether the habit's goal frequency is Daily, Weekly, or Monthly. The `currentStreak` strictly counts consecutive days of logging activity. The frequency goals (e.g., "4 times a week") use a separate visual counter, but the streak pill badge is universally a daily measure.
 
 Streaks are recalculated automatically whenever a habit log is created, updated, or deleted via the `server/utils/streaks.ts` utility.
 
 ### The Recalculation Flow
 1.  **Trigger**: An API call to `/api/habitlogs` (POST or DELETE) finishes its database operation.
 2.  **Fetch Logs**: All logs for the specific habit are fetched, ordered by date descending.
-3.  **Anchor Identification**: The engine finds the most recent log that is not in the future.
-4.  **Status Check**:
+3.  **Anchor Identification**: The engine finds the most recent log that is not in the future. This is the `streakAnchorDate`.
+4.  **Status Check on Anchor**:
     *   If the anchor log is `failed`, the streak is immediately set to `0`.
     *   If the anchor log is `completed`, the streak starts at `1` and counts backwards.
     *   If the anchor log is `skipped`, the engine continues searching backwards without incrementing the count.
-5.  **Backwards Iteration**: The engine steps back day-by-day (or period-by-period) from the anchor.
-    *   **Completed**: Increment streak, continue.
-    *   **Skipped**: Continue (preserves streak, no increment).
-    *   **Failed / Missing**: Break iteration.
+5.  **Backwards Iteration**: The engine steps back strictly **day-by-day** from the anchor date.
+    *   **Completed Day**: Increment streak by 1, continue.
+    *   **Skipped Day (`-`)**: Ignore it and continue. This preserves the streak without adding to the count.
+    *   **Failed Day (`X`) or Missing Day (Gap)**: Break the iteration immediately. The streak ends here.
 
 ### SQL Persistence
 The final `currentStreak` is updated in the database. The `longestStreak` is updated using a `GREATEST` comparison to ensure it only increases if the new current streak exceeds the old record.
@@ -54,16 +56,20 @@ The Vue frontend remains lightweight, binding directly to the `habit.currentStre
 ### Visual "Faded" Status
 To provide real-time feedback without constant polling, the frontend uses the `streakAnchorDate` to determine if a streak is currently "at risk."
 
-- **Normal**: If `streakAnchorDate` is Today.
-- **Faded (`opacity-30`)**: If `streakAnchorDate` is yesterday or older. This indicates that while the streak hasn't "broken" (because the server only breaks it on a `failed` log or when a new day is logged), the user has not yet completed the habit for the current period.
+Because all streaks use the unified daily logic, the faded status is also calculated the same way for all habits:
+
+- **Normal**: If the `streakAnchorDate` is Today or Yesterday.
+- **Faded (`opacity-30`)**: If the `streakAnchorDate` is strictly older than Yesterday. This indicates that while the streak hasn't "broken" (because the server only breaks it on a `failed` log or when a new day is explicitly logged after a gap), the user is at risk of losing it if they log something new now.
 
 ```typescript
-// app/pages/index.vue logic
+// app/pages/index.vue and app/pages/friends/[id].vue logic
 const isFaded = (habit: Habit) => {
   if (!habit || !habit.streakAnchorDate) return false;
   const anchor = startOfDay(parseISO(habit.streakAnchorDate));
   const yesterday = startOfDay(subDays(new Date(), 1));
-  return isAfter(yesterday, anchor);
+  
+  // Faded if the anchor is strictly before yesterday
+  return isAfter(yesterday, anchor); 
 };
 ```
 

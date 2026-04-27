@@ -690,7 +690,7 @@
 
 <script setup lang="ts">
 import { Plus, Trash2, Check, X as XIcon, Minus, ChevronLeft, ChevronRight, User, ChevronUp, ChevronDown, Edit2, Save, CheckSquare, GripVertical, ArrowUpDown, Flame } from 'lucide-vue-next';
-import { format, subDays, isToday, startOfMonth, endOfMonth, eachDayOfInterval, addMonths, subMonths, isAfter, startOfDay, addDays, isSameWeek, isSameMonth, getDaysInMonth, parseISO } from 'date-fns';
+import { format, subDays, isToday, startOfMonth, endOfMonth, eachDayOfInterval, addMonths, subMonths, isAfter, startOfDay, addDays, isSameWeek, isSameMonth, getDaysInMonth, parseISO, startOfWeek } from 'date-fns';
 import type { Habit, HabitLog } from '~/composables/useHabitsApi';
 
 definePageMeta({ middleware: 'auth' });
@@ -1220,15 +1220,19 @@ onMounted(() => {
   console.log('[Dashboard] onMounted, user ID:', user.value?.id);
   // Social state is now initialized globally in default.vue layout
   load();
-  if (user.value?.id) {
+  window.addEventListener('resize', checkHeightOverflow);
+});
+
+watch(() => user.value?.id, (newId) => {
+  unsubscribeOwnHabits();
+  if (newId) {
     console.log('[Dashboard] Subscribing to own habit updates...');
-    unsubscribeOwnHabits = subscribeToFriendHabits(String(user.value.id), () => {
+    unsubscribeOwnHabits = subscribeToFriendHabits(String(newId), () => {
       console.log('[Dashboard] Own habit update received, reloading...');
       load();
     });
   }
-  window.addEventListener('resize', checkHeightOverflow);
-});
+}, { immediate: true });
 
 onUnmounted(() => {
   // cleanupSocial(); // Now a no-op singleton cleanup handled by logout
