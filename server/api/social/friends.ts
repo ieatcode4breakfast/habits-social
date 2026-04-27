@@ -1,14 +1,9 @@
 import type { IFriendship, IUser } from '../../models';
 import { usePusher } from '../../utils/pusher';
-import { isDummyUsername } from '../../utils/isolation';
 
 export default defineEventHandler(async (event) => {
   const sql = useDB(event);
   const userId = await requireAuth(event);
-
-  // Get current user status once
-  const [me] = await sql`SELECT username FROM users WHERE id = ${userId}::uuid`;
-  const isMeDummy = isDummyUsername(me?.username);
 
   if (event.method === 'GET') {
     setResponseHeader(event, 'Cache-Control', 'no-cache, no-store, must-revalidate');
@@ -30,16 +25,7 @@ export default defineEventHandler(async (event) => {
       `;
     }
 
-    // Filter profiles and friendships to respect isolation
-    const filteredProfiles = profiles.filter((p: any) => isDummyUsername(p.username) === isMeDummy);
-    const validProfileIds = new Set(filteredProfiles.map((p: any) => String(p.id)));
-
-    const filteredFriendships = userFriendships.filter((f: any) => {
-      const otherId = String(f.initiatorId) === String(userId) ? String(f.receiverId) : String(f.initiatorId);
-      return validProfileIds.has(otherId);
-    });
-
-    const mappedFriendships = filteredFriendships.map((f: any) => ({
+    const mappedFriendships = userFriendships.map((f: any) => ({
       ...f,
       id: f.id,
       initiatorId: f.initiatorId,
@@ -47,7 +33,7 @@ export default defineEventHandler(async (event) => {
       participants: [f.initiatorId, f.receiverId]
     }));
 
-    const mappedProfiles = filteredProfiles.map((p: any) => ({
+    const mappedProfiles = profiles.map((p: any) => ({
       ...p,
       id: p.id
     }));
@@ -61,16 +47,8 @@ export default defineEventHandler(async (event) => {
   if (event.method === 'POST') {
     const { targetUserId } = await readBody(event);
     
-    // Check isolation for friend requests
     const [target] = await sql`SELECT username FROM users WHERE id = ${targetUserId}::uuid`;
     if (!target) throw createError({ statusCode: 404 });
-
-    if (isMeDummy !== isDummyUsername(target.username)) {
-      throw createError({ 
-        statusCode: 403, 
-        statusMessage: 'You can only send friend requests to users in your own group.' 
-      });
-    }
 
     const existing = await sql`
       SELECT * FROM friendships 

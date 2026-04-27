@@ -1,6 +1,3 @@
-import type { IUser } from '../../models';
-import { isDummyUsername } from '../../utils/isolation';
-
 export default defineEventHandler(async (event) => {
   const sql = useDB(event);
   const userId = await requireAuth(event);
@@ -13,21 +10,9 @@ export default defineEventHandler(async (event) => {
     });
   }
   
-  // Get current user and target user to check isolation
-  const [me] = await sql`SELECT username FROM users WHERE id = ${userId}::uuid`;
   const [target] = await sql`SELECT id, username, email, photourl FROM users WHERE id = ${friendId}::uuid`;
   
   if (!target) throw createError({ statusCode: 404 });
-
-  const isMeDummy = isDummyUsername(me?.username);
-  const isTargetDummy = isDummyUsername(target?.username);
-
-  if (isMeDummy !== isTargetDummy) {
-    throw createError({ 
-      statusCode: 403, 
-      statusMessage: 'You do not have permission to view this profile.' 
-    });
-  }
 
   return { ...target, id: target.id };
 });
