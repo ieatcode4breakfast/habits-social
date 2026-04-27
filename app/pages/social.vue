@@ -316,7 +316,11 @@ import { useSocial } from '../composables/useSocial';
 definePageMeta({ middleware: 'auth' });
 
 const { user } = useAuth();
-const activeTab = ref<'activity' | 'friends'>('activity');
+const route = useRoute();
+const activeTab = computed({
+  get: () => (route.query.tab as 'activity' | 'friends') || 'activity',
+  set: (val) => navigateTo({ query: { ...route.query, tab: val } }, { replace: true })
+});
 
 interface UserProfile { id: string; email: string; username: string; photourl?: string; }
 interface Friendship { id: string; participants: string[]; initiatorId: string; receiverId: string; status: 'pending' | 'accepted'; }

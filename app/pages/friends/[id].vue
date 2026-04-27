@@ -4,7 +4,7 @@
     <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-y-3 sm:gap-y-0">
       <!-- Profile Header -->
       <div class="flex items-center gap-1 px-4 sm:px-0" v-motion-slide-visible-once-left>
-        <NuxtLink to="/social" class="inline-flex items-center justify-center p-1 -ml-1 text-zinc-500 hover:text-white transition-all flex-shrink-0">
+        <NuxtLink to="/social?tab=friends" class="inline-flex items-center justify-center p-1 -ml-1 text-zinc-500 hover:text-white transition-all flex-shrink-0">
           <ChevronLeft class="w-6 h-6" />
         </NuxtLink>
         <div v-if="profile" class="flex items-center gap-4 ml-1">
