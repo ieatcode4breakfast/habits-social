@@ -5,8 +5,48 @@
       <p class="text-zinc-400 text-xs">Connect with friends and view their progress</p>
     </div>
 
-    <!-- Incoming Requests Accordion -->
-    <div v-if="pendingIncoming.length > 0" v-motion-fade class="bg-zinc-925/80 backdrop-blur-sm sm:rounded-2xl rounded-none border-y border-x-0 sm:border border-zinc-800/80 overflow-hidden shadow-2xl">
+    <!-- Tab Navigation -->
+    <div class="px-4 sm:px-0 pt-2">
+      <div class="flex p-1 bg-zinc-925 border border-zinc-800 rounded-xl relative">
+        <button 
+          @click="activeTab = 'activity'"
+          class="flex-1 py-2.5 text-[11px] font-bold tracking-widest uppercase rounded-lg transition-all relative z-10 cursor-pointer"
+          :class="activeTab === 'activity' ? 'text-white' : 'text-zinc-500 hover:text-zinc-300'"
+        >
+          Activity
+        </button>
+        <button 
+          @click="activeTab = 'friends'"
+          class="flex-1 py-2.5 text-[11px] font-bold tracking-widest uppercase rounded-lg transition-all relative z-10 cursor-pointer flex items-center justify-center gap-2"
+          :class="activeTab === 'friends' ? 'text-white' : 'text-zinc-500 hover:text-zinc-300'"
+        >
+          Friends
+          <span v-if="pendingIncoming.length > 0 && activeTab !== 'friends'" class="flex w-2 h-2 bg-rose-500 rounded-full"></span>
+        </button>
+        <!-- Sliding Indicator -->
+        <div 
+          class="absolute top-1 bottom-1 w-[calc(50%-6px)] bg-zinc-800 rounded-lg transition-all duration-300 ease-out z-0 shadow-sm"
+          :class="activeTab === 'activity' ? 'left-1' : 'left-[calc(50%+2px)]'"
+        ></div>
+      </div>
+    </div>
+
+    <!-- Activity Tab Placeholder -->
+    <div v-if="activeTab === 'activity'" v-motion-fade class="px-4 sm:px-0">
+      <div class="bg-zinc-925/80 backdrop-blur-sm sm:rounded-2xl rounded-xl border border-zinc-800/80 p-10 text-center shadow-2xl flex flex-col items-center">
+        <div class="w-16 h-16 bg-black rounded-full flex items-center justify-center mx-auto mb-4 border border-zinc-800">
+          <Activity class="w-8 h-8 text-zinc-500" />
+        </div>
+        <h2 class="text-lg font-bold text-white mb-2">Activity Feed</h2>
+        <p class="text-zinc-500 text-sm max-w-sm mx-auto leading-relaxed">
+          Coming soon! Here you will be able to see your friends' habit streaks, milestones, and share your own progress.
+        </p>
+      </div>
+    </div>
+
+    <div v-if="activeTab === 'friends'" class="space-y-3">
+      <!-- Incoming Requests Accordion -->
+      <div v-if="pendingIncoming.length > 0" v-motion-fade class="bg-zinc-925/80 backdrop-blur-sm sm:rounded-2xl rounded-none border-y border-x-0 sm:border border-zinc-800/80 overflow-hidden shadow-2xl">
       <button @click="isRequestsExpanded = !isRequestsExpanded" 
         class="w-full flex items-center justify-between p-6 hover:bg-white/5 transition-colors cursor-pointer group"
       >
@@ -125,6 +165,7 @@
           </div>
         </div>
       </div>
+    </div>
     </div>
 
     <!-- Unfriend Confirmation Modal -->
@@ -269,12 +310,13 @@
 </template>
 
 <script setup lang="ts">
-import { Search, UserPlus, UserMinus, Check, X as XIcon, User, Trash2, ChevronDown, CheckSquare } from 'lucide-vue-next';
+import { Search, UserPlus, UserMinus, Check, X as XIcon, User, Trash2, ChevronDown, CheckSquare, Activity } from 'lucide-vue-next';
 import { useSocial } from '../composables/useSocial';
 
 definePageMeta({ middleware: 'auth' });
 
 const { user } = useAuth();
+const activeTab = ref<'activity' | 'friends'>('activity');
 
 interface UserProfile { id: string; email: string; username: string; photourl?: string; }
 interface Friendship { id: string; participants: string[]; initiatorId: string; receiverId: string; status: 'pending' | 'accepted'; }
