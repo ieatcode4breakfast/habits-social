@@ -926,18 +926,30 @@ const toggleLog = async (habit: Habit, day: Date) => {
   }
 
   if (nextStatus) {
-    const log = await api.upsertLog({ habitid: habit.id, date: dateStr, status: nextStatus, sharedwith: habit.sharedwith });
+    const { log, habit: updatedHabit } = await api.upsertLog({ habitid: habit.id, date: dateStr, status: nextStatus, sharedwith: habit.sharedwith });
+    
+    // Update log
     const idx = logs.value.findIndex(l => l.habitid === habit.id && l.date === dateStr);
     if (idx >= 0) logs.value[idx] = log;
     else logs.value.push(log);
+
+    // Update habit stats (streak, anchor)
+    const habitIdx = habits.value.findIndex(h => h.id === habit.id);
+    if (habitIdx >= 0) habits.value[habitIdx] = updatedHabit;
     
     // Show toast feedback
     if (nextStatus === 'completed') showToast('Completed', 'completed');
     else if (nextStatus === 'failed') showToast('Failed', 'failed');
     else if (nextStatus === 'skipped') showToast('Skipped', 'skipped');
   } else {
-    await api.deleteLog(habit.id, dateStr);
+    const { habit: updatedHabit } = await api.deleteLog(habit.id, dateStr);
+    
+    // Update logs
     logs.value = logs.value.filter(l => !(l.habitid === habit.id && l.date === dateStr));
+
+    // Update habit stats (streak, anchor)
+    const habitIdx = habits.value.findIndex(h => h.id === habit.id);
+    if (habitIdx >= 0) habits.value[habitIdx] = updatedHabit;
     
     // Show toast feedback for cleared
     showToast('Cleared', 'cleared');

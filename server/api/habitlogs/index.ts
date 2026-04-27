@@ -48,12 +48,12 @@ export default defineEventHandler(async (event) => {
       `;
       
       const updatedLog = result[0];
-      await recalculateHabitStreak(sql, habitId, userId);
+      const updatedHabit = await recalculateHabitStreak(sql, habitId, userId);
       const pusher = usePusher();
       if (pusher) {
-        await pusher.trigger(`user-${userId}-habits`, 'habit-updated', updatedLog);
+        await pusher.trigger(`user-${userId}-habits`, 'habit-updated', { log: updatedLog, habit: updatedHabit });
       }
-      return updatedLog;
+      return { log: updatedLog, habit: updatedHabit };
     } else {
       const sharedwith = body.sharedwith && Array.isArray(body.sharedwith) ? body.sharedwith : [];
       const result = await sql`
@@ -63,12 +63,12 @@ export default defineEventHandler(async (event) => {
       `;
       
       const newLog = result[0];
-      await recalculateHabitStreak(sql, habitId, userId);
+      const updatedHabit = await recalculateHabitStreak(sql, habitId, userId);
       const pusher = usePusher();
       if (pusher) {
-        await pusher.trigger(`user-${userId}-habits`, 'habit-updated', newLog);
+        await pusher.trigger(`user-${userId}-habits`, 'habit-updated', { log: newLog, habit: updatedHabit });
       }
-      return newLog;
+      return { log: newLog, habit: updatedHabit };
     }
   }
 
@@ -82,12 +82,12 @@ export default defineEventHandler(async (event) => {
       WHERE habitid = ${habitId} AND ownerid = ${userId} AND date = ${dateStr}
     `;
     
-    await recalculateHabitStreak(sql, habitId, userId);
+    const updatedHabit = await recalculateHabitStreak(sql, habitId, userId);
     
     const pusher = usePusher();
     if (pusher) {
-      await pusher.trigger(`user-${userId}-habits`, 'habit-deleted', { habitid: habitId, date: dateStr });
+      await pusher.trigger(`user-${userId}-habits`, 'habit-deleted', { habitid: habitId, date: dateStr, habit: updatedHabit });
     }
-    return { success: true };
+    return { success: true, habit: updatedHabit };
   }
 });

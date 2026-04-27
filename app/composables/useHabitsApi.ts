@@ -38,10 +38,10 @@ export const useHabitsApi = () => {
     $fetch<HabitLog[]>('/api/habitlogs', { query: { startDate, endDate } });
 
   const upsertLog = (data: { habitid: string; date: string; status: string; sharedwith?: string[] }) =>
-    $fetch<HabitLog>('/api/habitlogs', { method: 'POST', body: data });
+    $fetch<{ log: HabitLog, habit: Habit }>('/api/habitlogs', { method: 'POST', body: data });
 
   const deleteLog = (habitid: string, date: string) =>
-    $fetch('/api/habitlogs', { method: 'DELETE', query: { habitid, date } });
+    $fetch<{ success: boolean, habit: Habit }>('/api/habitlogs', { method: 'DELETE', query: { habitid, date } });
 
   const reorderHabits = (ids: string[]) =>
     $fetch('/api/habits/reorder', { method: 'POST', body: { ids } });

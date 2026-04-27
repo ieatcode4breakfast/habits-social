@@ -13,12 +13,13 @@ export async function recalculateHabitStreak(sql: any, habitId: string, userId: 
   `;
 
   if (!logs || logs.length === 0) {
-    await sql`
+    const result = await sql`
       UPDATE habits 
       SET "currentStreak" = 0, "streakAnchorDate" = NULL, updatedat = NOW()
       WHERE id = ${habitId} AND ownerid = ${userId}
+      RETURNING *
     `;
-    return;
+    return result[0];
   }
 
   // Find anchor: first log with a valid status
@@ -31,12 +32,13 @@ export async function recalculateHabitStreak(sql: any, habitId: string, userId: 
   }
 
   if (anchorIndex === -1) {
-    await sql`
+    const result = await sql`
       UPDATE habits 
       SET "currentStreak" = 0, "streakAnchorDate" = NULL, updatedat = NOW()
       WHERE id = ${habitId} AND ownerid = ${userId}
+      RETURNING *
     `;
-    return;
+    return result[0];
   }
 
   const anchorLog = logs[anchorIndex];
@@ -72,7 +74,7 @@ export async function recalculateHabitStreak(sql: any, habitId: string, userId: 
   }
 
   // Update habit with new streak data
-  await sql`
+  const result = await sql`
     UPDATE habits 
     SET 
       "currentStreak" = ${currentStreak}, 
@@ -80,5 +82,7 @@ export async function recalculateHabitStreak(sql: any, habitId: string, userId: 
       "streakAnchorDate" = ${streakAnchorDate},
       updatedat = NOW()
     WHERE id = ${habitId} AND ownerid = ${userId}
+    RETURNING *
   `;
+  return result[0];
 }
