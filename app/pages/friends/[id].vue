@@ -54,31 +54,31 @@
         <div class="absolute top-3 left-0 sm:top-2 flex items-center gap-2 z-20 transition-all duration-500">
           <!-- Floating Streak Badge -->
           <div 
-            v-if="(streakInfoMap.get(habit.id)?.count ?? 0) >= 2"
+            v-if="(habit.currentStreak ?? 0) >= 2"
             class="flex items-center gap-1.5 px-3 py-1 bg-black border border-l-0 rounded-r-full rounded-l-none transition-all duration-500"
             :class="[
-              streakInfoMap.get(habit.id)?.faded ? 'opacity-30' : 'opacity-100',
-              getStreakTheme(streakInfoMap.get(habit.id)?.count ?? 0).border
+              isFaded(habit) ? 'opacity-30' : 'opacity-100',
+              getStreakTheme(habit.currentStreak ?? 0).border
             ]"
           >
             <span 
               class="text-[10px] font-black tracking-tight"
-              :class="getStreakTheme(streakInfoMap.get(habit.id)?.count ?? 0).text"
+              :class="getStreakTheme(habit.currentStreak ?? 0).text"
             >
-              x{{ streakInfoMap.get(habit.id)?.count }} STREAK
+              x{{ habit.currentStreak }} STREAK
             </span>
             <Flame 
-              v-if="(streakInfoMap.get(habit.id)?.count ?? 0) >= 7"
+              v-if="(habit.currentStreak ?? 0) >= 7"
               class="w-3.5 h-3.5" 
               :class="[
-                getStreakTheme(streakInfoMap.get(habit.id)?.count ?? 0).text,
-                getStreakTheme(streakInfoMap.get(habit.id)?.count ?? 0).fill
+                getStreakTheme(habit.currentStreak ?? 0).text,
+                getStreakTheme(habit.currentStreak ?? 0).fill
               ]"
             />
           </div>
 
           <!-- Frequency Progress Badge -->
-          <div class="flex items-center px-2 py-1 bg-zinc-925 border border-zinc-800 rounded-lg text-[10px] font-bold tracking-tight text-zinc-400 shadow-sm" :class="{'ml-3': (streakInfoMap.get(habit.id)?.count ?? 0) < 2}">
+          <div class="flex items-center px-2 py-1 bg-zinc-925 border border-zinc-800 rounded-lg text-[10px] font-bold tracking-tight text-zinc-400 shadow-sm" :class="{'ml-3': (habit.currentStreak ?? 0) < 2}">
             {{ getFrequencyText(habit) }}
           </div>
         </div>
@@ -154,26 +154,26 @@
                   <h2 class="text-xl font-bold text-white truncate leading-none">{{ selectedHabit.title }}</h2>
                   <!-- Streak Badge -->
                   <div 
-                    v-if="(streakInfoMap.get(selectedHabit.id)?.count ?? 0) >= 2"
+                    v-if="(selectedHabit.currentStreak ?? 0) >= 2"
                     class="flex items-center gap-1 px-2 py-0.5 bg-black border rounded-full shrink-0"
                     :class="[
-                      streakInfoMap.get(selectedHabit.id)?.faded ? 'opacity-30' : 'opacity-100',
-                      getStreakTheme(streakInfoMap.get(selectedHabit.id)?.count ?? 0).border
+                      isFaded(selectedHabit) ? 'opacity-30' : 'opacity-100',
+                      getStreakTheme(selectedHabit.currentStreak ?? 0).border
                     ]"
                   >
                     <span 
                       class="text-[9px] font-black tracking-tight"
-                      :class="getStreakTheme(streakInfoMap.get(selectedHabit.id)?.count ?? 0).text"
+                      :class="getStreakTheme(selectedHabit.currentStreak ?? 0).text"
                     >
-                      x{{ streakInfoMap.get(selectedHabit.id)?.count }} STREAK
+                      x{{ selectedHabit.currentStreak }} STREAK
                     </span>
 
                     <Flame 
-                      v-if="(streakInfoMap.get(selectedHabit.id)?.count ?? 0) >= 7"
+                      v-if="(selectedHabit.currentStreak ?? 0) >= 7"
                       class="w-2.5 h-2.5" 
                       :class="[
-                        getStreakTheme(streakInfoMap.get(selectedHabit.id)?.count ?? 0).text,
-                        getStreakTheme(streakInfoMap.get(selectedHabit.id)?.count ?? 0).fill
+                        getStreakTheme(selectedHabit.currentStreak ?? 0).text,
+                        getStreakTheme(selectedHabit.currentStreak ?? 0).fill
                       ]"
                     />
                   </div>
@@ -463,52 +463,15 @@ const calendarDays = computed(() => {
 const prevMonth = () => currentCalendarDate.value = subMonths(currentCalendarDate.value, 1);
 const nextMonth = () => currentCalendarDate.value = addMonths(currentCalendarDate.value, 1);
 
-// Streak Logic
-const streakInfoMap = computed(() => {
-  const map = new Map<string, { count: number, faded: boolean }>();
-  for (const habit of habits.value) {
-    const logMap = new Map<string, string>();
-    for (const l of logs.value) {
-      if (l.habitid === habit.id) {
-        logMap.set(l.date, l.status);
-      }
-    }
-
-    let currentDay = new Date();
-    let streakCount = 0;
-    let foundAnchor = false;
-    let faded = false;
-    const todayStr = format(new Date(), 'yyyy-MM-dd');
-    const yesterdayStr = format(subDays(new Date(), 1), 'yyyy-MM-dd');
-
-    for (let i = 0; i < 365; i++) {
-      const dateStr = format(currentDay, 'yyyy-MM-dd');
-      const status = logMap.get(dateStr);
-
-      if (!foundAnchor) {
-        if (status === 'completed' || status === 'failed' || status === 'skipped') {
-          foundAnchor = true;
-          if (dateStr !== todayStr && dateStr !== yesterdayStr) {
-            faded = true;
-          }
-        }
-      }
-
-      if (foundAnchor) {
-        if (status === 'completed') {
-          streakCount++;
-        } else if (status === 'skipped') {
-          // freeze
-        } else {
-          break;
-        }
-      }
-      currentDay = subDays(currentDay, 1);
-    }
-    map.set(habit.id, { count: streakCount, faded });
-  }
-  return map;
-});
+const isFaded = (habit: Habit) => {
+  if (!habit.streakAnchorDate) return false;
+  const anchorStr = typeof habit.streakAnchorDate === 'string' 
+    ? habit.streakAnchorDate.split('T')[0] 
+    : format(new Date(habit.streakAnchorDate), 'yyyy-MM-dd');
+  const todayStr = format(new Date(), 'yyyy-MM-dd');
+  const yesterdayStr = format(subDays(new Date(), 1), 'yyyy-MM-dd');
+  return anchorStr !== todayStr && anchorStr !== yesterdayStr;
+};
 
 const getStreakTheme = (count: number) => {
   if (count >= 30) return { 
