@@ -499,7 +499,7 @@
                     class="space-y-2 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar transition-all duration-300"
                     :class="!isEditingSharing ? 'opacity-40 grayscale' : 'opacity-100'"
                   >
-                    <label v-for="friend in friends" :key="friend.id" class="flex items-center justify-between p-3 bg-black border border-zinc-925 rounded-xl transition-colors" :class="isEditingSharing ? 'cursor-pointer hover:border-zinc-800' : 'cursor-default pointer-events-none'">
+                    <label v-for="friend in sortedFriendsForEdit" :key="friend.id" class="flex items-center justify-between p-3 bg-black border border-zinc-925 rounded-xl transition-colors" :class="isEditingSharing ? 'cursor-pointer hover:border-zinc-800' : 'cursor-default pointer-events-none'">
                       <div class="flex items-center gap-3">
                         <div class="w-8 h-8 bg-zinc-925 rounded-full flex items-center justify-center overflow-hidden">
                           <img v-if="friend.photourl" :src="friend.photourl" class="w-full h-full object-cover" />
@@ -698,7 +698,24 @@ import { useSocial } from '../composables/useSocial';
 
 const api = useHabitsApi();
 const { user } = useAuth();
-const { friends, refresh: refreshSocial, init: initSocial, cleanup: cleanupSocial } = useSocial();
+const { friends: rawFriends, refresh: refreshSocial, init: initSocial, cleanup: cleanupSocial } = useSocial();
+
+const friends = computed(() => {
+  const list = [...(rawFriends.value || [])];
+  return list.sort((a, b) => (a.username || '').localeCompare(b.username || ''));
+});
+
+const sortedFriendsForEdit = computed(() => {
+  if (!editingHabit.value) return friends.value;
+  const sharedIds = new Set(editingHabit.value.sharedwith || []);
+  return [...friends.value].sort((a, b) => {
+    const aShared = sharedIds.has(a.id);
+    const bShared = sharedIds.has(b.id);
+    if (aShared && !bShared) return -1;
+    if (!aShared && bShared) return 1;
+    return 0; // friends is already sorted alphabetically
+  });
+});
 const { showToast } = useToast();
 
 const habits = ref<Habit[]>([]);
