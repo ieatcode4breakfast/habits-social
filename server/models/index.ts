@@ -30,6 +30,7 @@ export interface IHabitLog {
   ownerid: string;
   date: string;
   status: string;
+  streakCount: number;
   sharedwith: string[];
   updatedat: Date;
 }

@@ -1,15 +1,15 @@
-import { parseISO, subDays, startOfDay, differenceInDays, startOfWeek, subWeeks, isSameWeek, startOfMonth, subMonths, isSameMonth, isSameDay } from 'date-fns';
+import { parseISO, startOfDay, differenceInDays } from 'date-fns';
 
 export async function recalculateHabitStreak(sql: any, habitId: string, userId: string) {
+  // 1. Fetch habit info
   const habitRes = await sql`SELECT "frequencyPeriod", "frequencyCount" FROM habits WHERE id = ${habitId}`;
   if (!habitRes || habitRes.length === 0) return;
-  const period = habitRes[0].frequencyPeriod;
-  const count = habitRes[0].frequencyCount;
 
+  // 2. Fetch all logs for this habit in ascending order to process timeline
   const logs = await sql`
     SELECT * FROM habitlogs 
     WHERE habitid = ${habitId} AND ownerid = ${userId}
-    ORDER BY date DESC
+    ORDER BY date ASC
   `;
 
   if (!logs || logs.length === 0) {
@@ -22,67 +22,59 @@ export async function recalculateHabitStreak(sql: any, habitId: string, userId: 
     return result[0];
   }
 
-  // Find anchor: first log with a valid status
-  let anchorIndex = -1;
-  for (let i = 0; i < logs.length; i++) {
-    if (['completed', 'failed', 'skipped'].includes(logs[i].status)) {
-      anchorIndex = i;
-      break;
-    }
-  }
+  // 3. The Cascading Update: Iterate through timeline and stamp streakCount
+  let runningStreak = 0;
+  let maxStreak = 0;
+  let lastDate: Date | null = null;
+  let streakAnchorDate: string | null = null;
 
-  if (anchorIndex === -1) {
-    const result = await sql`
-      UPDATE habits 
-      SET "currentStreak" = 0, "streakAnchorDate" = NULL, updatedat = NOW()
-      WHERE id = ${habitId} AND ownerid = ${userId}
-      RETURNING *
-    `;
-    return result[0];
-  }
-
-  const anchorLog = logs[anchorIndex];
-  let streakAnchorDate: string | null = anchorLog.date;
-  let currentStreak = 0;
-
-  let checkDate = startOfDay(parseISO(anchorLog.date));
-  
-  let logToday = logs.find((l: any) => isSameDay(parseISO(l.date), checkDate));
-  
-  if (logToday?.status === 'failed') {
-    currentStreak = 0;
-  } else {
-    if (logToday?.status === 'completed') {
-      currentStreak++;
-    }
+  for (const log of logs) {
+    const currentDate = startOfDay(parseISO(log.date));
     
-    while (true) {
-      checkDate = subDays(checkDate, 1);
-      let log = logs.find((l: any) => isSameDay(parseISO(l.date), checkDate));
-      
-      if (log?.status === 'failed') {
-        break;
-      } else if (log?.status === 'skipped') {
-        continue; 
-      } else if (log?.status === 'completed') {
-        currentStreak++;
-      } else {
-        // No log -> gap!
-        break;
+    // Check for gap (more than 1 day between logs)
+    if (lastDate) {
+      const diff = differenceInDays(currentDate, lastDate);
+      if (diff > 1) {
+        runningStreak = 0; // Gap detected, reset streak
       }
     }
+    
+    if (log.status === 'completed') {
+      runningStreak++;
+    } else if (log.status === 'failed') {
+      runningStreak = 0;
+    } else if (log.status === 'skipped') {
+      // Streak remains intact (protected)
+    }
+
+    maxStreak = Math.max(maxStreak, runningStreak);
+    
+    // The anchor is always the most recent log date with a valid status
+    if (['completed', 'failed', 'skipped'].includes(log.status)) {
+      streakAnchorDate = log.date;
+    }
+
+    // Update the specific log with its historical streakCount
+    await sql`
+      UPDATE habitlogs 
+      SET "streakCount" = ${runningStreak}, updatedat = NOW()
+      WHERE id = ${log.id}
+    `;
+    
+    lastDate = currentDate;
   }
 
-  // Update habit with new streak data
+  // 4. Final Habit Update: Set current and longest streak
   const result = await sql`
     UPDATE habits 
     SET 
-      "currentStreak" = ${currentStreak}, 
-      "longestStreak" = GREATEST(COALESCE("longestStreak", 0), ${currentStreak}),
+      "currentStreak" = ${runningStreak}, 
+      "longestStreak" = GREATEST(COALESCE("longestStreak", 0), ${maxStreak}),
       "streakAnchorDate" = ${streakAnchorDate},
       updatedat = NOW()
     WHERE id = ${habitId} AND ownerid = ${userId}
     RETURNING *
   `;
+  
   return result[0];
 }
