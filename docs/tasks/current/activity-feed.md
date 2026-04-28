@@ -20,74 +20,73 @@ Everything starting at 365 days must be explicitly formatted to show the years a
 
 ## 2. Activity Feed Triggers
 
-### CATEGORY 1: INITIAL & ISOLATED LOGS
+### CATEGORY 1: INITIAL & ISOLATED LOGS [COMPLETED]
 Triggers for the first log of a potential streak (Day 1) or actions taken when no active streak exists.
 
-* **Trigger 1.1: Initial Completion (Day 1)**
+* **Trigger 1.1: Initial Completion (Day 1)** [COMPLETED]
     * **Content:** The very first completion for a habit that has no prior streak history.
     * **Your Activity:** You completed Morning Workout for Apr 27.
     * **Friend Activity:** Alex completed Morning Workout for Apr 27.
-* **Trigger 1.2: Initial Skip**
+* **Trigger 1.2: Initial Skip** [COMPLETED]
     * **Content:** Marking a habit as skipped when no active streak exists.
     * **Your Activity:** You skipped No Sugar for Apr 27.
     * **Friend Activity:** Taylor skipped No Sugar for Apr 27.
-* **Trigger 1.3: Initial Failure**
+* **Trigger 1.3: Initial Failure** [COMPLETED]
     * **Content:** Marking a habit as failed when no active streak exists.
     * **Your Activity:** You failed Cold Shower for Apr 27.
     * **Friend Activity:** Morgan failed Cold Shower for Apr 27.
 
-### CATEGORY 2: SOCIAL & SHARING
-Triggers for visibility and network actions.
-
-* **Trigger 2.1: Public Commitment (New Habit)**
-    * **Content:** Triggered only when a user creates a new habit and selects specific friends to share it with.
-    * **Your Activity:** You committed to a new habit: Morning Workout on Apr 27.
-    * **Friend Activity:** Alex committed to a new habit: Morning Workout on Apr 27.
-* **Trigger 2.2: Shared a habit with you**
-    * **Content:** A user grants visibility into one of their existing habits.
-    * **Your Activity:** You shared Morning Workout with Morgan on Apr 27.
-    * **Friend Activity:** Alex shared Morning Workout with you on Apr 27.
-
-### CATEGORY 3: STREAK DYNAMICS
+### CATEGORY 2: STREAK DYNAMICS
 Chronological triggers for building, maintaining, or losing momentum from Day 2 onwards.
 
-* **Trigger 3.1: Started a Streak (Day 2)**
+* **Trigger 2.1: Started a Streak (Day 2)**
     * **Content:** The transition from an isolated log to a streak. (Skipped under the Veteran Habit Rule).
     * **Your Activity:** You started a streak by completing Morning Workout for Apr 27. That’s 2 in row!
     * **Friend Activity:** Alex started a streak by completing Morning Workout for Apr 27. That’s 2 in row!
-* **Trigger 3.2: Day 3 & Day 4 Completion**
+* **Trigger 2.2: Day 3 & Day 4 Completion**
     * **Content:** Reaching the 3-day or 4-day mark with a neutral tone (ends in a period). (Skipped under the Veteran Habit Rule).
     * **Your Activity:** You hit a 3-day streak by completing Morning Workout for Apr 27.
     * **Friend Activity:** Alex hit a 4-day streak by completing Morning Workout for Apr 27.
-* **Trigger 3.3: Streak Milestone Reached**
-    * **Content:** Hitting a major threshold from the list (5, 7, 14, 21, 30, 60, 90, 100, 180, 300). (Day 5 is skipped under the Veteran Habit Rule).
-    * **Your Activity:** You hit a 100-day streak by completing Read 20 Pages for Apr 27!
-    * **Friend Activity:** Jordan hit a 300-day streak by completing Read 20 Pages for Apr 27!
-* **Trigger 3.4: Annual Anniversary**
-    * **Content:** Reaching exactly 365 days or any multiple thereof, formatted to show years and total days in parentheses.
-    * **Your Activity:** You hit a 1-year streak (365 days) by completing Morning Workout for Apr 27!
-    * **Friend Activity:** Jordan hit a 2-year streak (730 days) by completing Read 20 Pages for Apr 27!
-* **Trigger 3.5: Post-Year Milestone Reached**
-    * **Content:** Hitting a standard milestone after an annual anniversary. Formatted to show years, days, and total days in parentheses.
-    * **Your Activity:** You hit a 2-year and 90-day streak (820 days) by completing Morning Workout for Apr 27!
-    * **Friend Activity:** Jordan hit a 1-year and 180-day streak (545 days) by completing Read 20 Pages for Apr 27!
-* **Trigger 3.6: Standard Streak Extension**
-    * **Content:** Ongoing completions on non-milestone days (e.g., Day 10).
-    * **Your Activity:** You completed Morning Workout for Apr 27—extending your streak to 10 days!
-    * **Friend Activity:** Alex completed Morning Workout for Apr 27—extending their streak to 10 days!
-* **Trigger 3.7: Post-Year Standard Streak Extension**
-    * **Content:** Ongoing completions on non-milestone days after the first year.
-    * **Your Activity:** You completed Morning Workout for Apr 27—extending your streak to 1-year and 12 days (377 days)!
-    * **Friend Activity:** Alex completed Morning Workout for Apr 27—extending their streak to 1-year and 12 days (377 days)!
-* **Trigger 3.8: Streak Maintained (Skip)**
-    * **Content:** Skipping a habit while a streak is active (the streak is paused and protected).
-    * **Your Activity:** You skipped No Sugar for Apr 26; your 5-day streak remains intact.
-    * **Friend Activity:** Taylor skipped No Sugar for Apr 26; their 1-year and 20-day streak (385 days) remains intact.
-* **Trigger 3.9: Streak Broken (Fail/Miss)**
+* **Trigger 2.3: Streak Broken (Fail/Miss)**
     * **Content:** A failure or missed day that resets an active streak to zero.
     * **Your Activity:** You failed Cold Shower for Apr 27, bringing your 60-day streak to an end.
     * **Friend Activity:** Morgan failed Cold Shower for Apr 27, bringing a 1-year and 20-day streak (385 days) to an end.
-to an end.
+* **Trigger 2.4: Streak Milestone Reached**
+    * **Content:** Hitting a major threshold from the list (5, 7, 14, 21, 30, 60, 90, 100, 180, 300).
+    * **Your Activity:** You hit a 100-day streak by completing Read 20 Pages for Apr 27!
+    * **Friend Activity:** Jordan hit a 300-day streak by completing Read 20 Pages for Apr 27!
+* **Trigger 2.5: Annual Anniversary**
+    * **Content:** Reaching exactly 365 days or any multiple thereof, formatted to show years and total days in parentheses.
+    * **Your Activity:** You hit a 1-year streak (365 days) by completing Morning Workout for Apr 27!
+    * **Friend Activity:** Jordan hit a 2-year streak (730 days) by completing Read 20 Pages for Apr 27!
+* **Trigger 2.6: Post-Year Milestone Reached**
+    * **Content:** Hitting a standard milestone after an annual anniversary. Formatted to show years, days, and total days in parentheses.
+    * **Your Activity:** You hit a 2-year and 90-day streak (820 days) by completing Morning Workout for Apr 27!
+    * **Friend Activity:** Jordan hit a 1-year and 180-day streak (545 days) by completing Read 20 Pages for Apr 27!
+* **Trigger 2.7: Standard Streak Extension**
+    * **Content:** Ongoing completions on non-milestone days (e.g., Day 10).
+    * **Your Activity:** You completed Morning Workout for Apr 27—extending your streak to 10 days!
+    * **Friend Activity:** Alex completed Morning Workout for Apr 27—extending their streak to 10 days!
+* **Trigger 2.8: Post-Year Standard Streak Extension**
+    * **Content:** Ongoing completions on non-milestone days after the first year.
+    * **Your Activity:** You completed Morning Workout for Apr 27—extending your streak to 1-year and 12 days (377 days)!
+    * **Friend Activity:** Alex completed Morning Workout for Apr 27—extending their streak to 1-year and 12 days (377 days)!
+* **Trigger 2.9: Streak Maintained (Skip)**
+    * **Content:** Skipping a habit while a streak is active (the streak is paused and protected).
+    * **Your Activity:** You skipped No Sugar for Apr 26; your 5-day streak remains intact.
+    * **Friend Activity:** Taylor skipped No Sugar for Apr 26; their 1-year and 20-day streak (385 days) remains intact.
+
+### CATEGORY 3: SOCIAL & SHARING
+Triggers for visibility and network actions.
+
+* **Trigger 3.1: Public Commitment (New Habit)**
+    * **Content:** Triggered only when a user creates a new habit and selects specific friends to share it with.
+    * **Your Activity:** You committed to a new habit: Morning Workout on Apr 27.
+    * **Friend Activity:** Alex committed to a new habit: Morning Workout on Apr 27.
+* **Trigger 3.2: Shared a habit with you**
+    * **Content:** A user grants visibility into one of their existing habits.
+    * **Your Activity:** You shared Morning Workout with Morgan on Apr 27.
+    * **Friend Activity:** Alex shared Morning Workout with you on Apr 27.
 
 # Habits Social: Activity Feed Implementation Plan
 
@@ -116,8 +115,3 @@ The frontend consumes the feed and handles layout, routing, and styling.
 * **Action [x]:** Implement conditional routing on Avatar & Name: Navigate to the friend's profile only if the activity belongs to a friend (preventing self-routing).
 * **Action [x]:** Implement inline details: Clicking a feed card opens the **Habit Details Modal** (`openHabitDetails`), instead of routing to a specific habit view page.
 * **Action [x]:** Apply dynamic styling based on the event `type` (e.g., an emerald Check for `INITIAL_COMPLETION`, a rose X icon for `INITIAL_FAILURE`, etc.).
-
-## **TODO: INCREMENTAL IMPLEMENTATION**
-    - [x] Category 1 Initial & Isolated Logs
-    - [ ] Category 2 Social & Sharing Events
-    - [ ] Category 3 Milestones & Veteran Rule

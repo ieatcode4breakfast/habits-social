@@ -59,7 +59,20 @@ export default defineEventHandler(async (event) => {
       message = `failed ${log.habitTitle} for ${dateFormatted}.`;
     }
 
-    // Only return if it matched a Category 1 trigger (for now)
+    // --- CATEGORY 2: STREAK DYNAMICS ---
+
+    // Trigger 2.1: Started a Streak (Day 2)
+    else if (log.status === 'completed' && log.streakCount === 2) {
+      type = 'STREAK_STARTED';
+      message = `started a streak by completing ${log.habitTitle} for ${dateFormatted}. That’s 2 in row!`;
+    }
+    // Trigger 2.2: Day 3 & Day 4 Completion
+    else if (log.status === 'completed' && (log.streakCount === 3 || log.streakCount === 4)) {
+      type = 'STREAK_CONTINUED';
+      message = `hit a ${log.streakCount}-day streak by completing ${log.habitTitle} for ${dateFormatted}.`;
+    }
+
+    // Only return if it matched a trigger
     if (type) {
       return {
         id: log.id,

@@ -101,11 +101,13 @@
                   :class="[
                     item.type === 'INITIAL_COMPLETION' ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-500' :
                     item.type === 'INITIAL_FAILURE' ? 'bg-rose-500/10 border-rose-500/20 text-rose-500' :
+                    item.type === 'STREAK_STARTED' || item.type === 'STREAK_CONTINUED' ? 'bg-amber-500/10 border-amber-500/20 text-amber-500' :
                     'bg-zinc-500/10 border-zinc-500/20 text-zinc-500'
                   ]"
                 >
                   <Check v-if="item.type === 'INITIAL_COMPLETION'" class="w-4 h-4" />
                   <XIcon v-else-if="item.type === 'INITIAL_FAILURE'" class="w-4 h-4" />
+                  <Flame v-else-if="item.type === 'STREAK_STARTED' || item.type === 'STREAK_CONTINUED'" class="w-4 h-4" />
                   <Minus v-else class="w-4 h-4" />
                 </div>
               </div>
