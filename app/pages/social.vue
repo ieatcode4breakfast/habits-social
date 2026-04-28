@@ -74,15 +74,15 @@
 
               <!-- Content -->
               <div class="flex-1 min-w-0">
-                <div class="flex items-baseline flex-wrap gap-x-1.5">
+                <div class="text-sm leading-relaxed min-w-0">
                   <span 
                     @click="String(item.user.id) !== String(user?.id) ? ($event.stopPropagation(), navigateTo(`/friends/${item.user.id}?from=${activeTab}`)) : null"
-                    class="font-bold text-sm text-zinc-100 transition-colors cursor-pointer"
+                    class="font-bold text-zinc-100 transition-colors cursor-pointer mr-1.5"
                     :class="{ 'hover:text-zinc-400': String(item.user.id) !== String(user?.id) }"
                   >
                     {{ item.user.name }}
                   </span>
-                  <span class="text-sm text-zinc-400 leading-relaxed">
+                  <span class="text-zinc-400">
                     {{ item.message }}
                   </span>
                 </div>
