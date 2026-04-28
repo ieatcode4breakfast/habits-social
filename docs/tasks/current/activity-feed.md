@@ -92,41 +92,32 @@ to an end.
 # Habits Social: Activity Feed Implementation Plan
 
 ## Phase 1: Database Schema and Model Updates [COMPLETED]
-To support Category 3 milestone triggers without recalculating history on every feed load, a new data point must be introduced to individual log entries.
-* **Action [x]:** Add a `streakCount` (number) property to the `IHabitLog` interface in `server/models/index.ts`.
-* **Action [x]:** Create and run a database migration to add the `streakCount` integer column to the `habitlogs` PostgreSQL table.
+To support milestone triggers without recalculating history on every feed load, new data points were introduced to individual log entries.
+* **Action [x]:** Add a `streakCount` (number) and `brokenStreakCount` (number) property to the `IHabitLog` interface in `server/models/index.ts`.
+* **Action [x]:** Create and run a database migration to add the `streakCount` and `brokenStreakCount` integer columns to the `habitlogs` PostgreSQL table.
 
-## Phase 2: Upgrading the Streak Calculation Engine
-The backend currently calculates the streak in memory whenever a log is modified. This engine must be upgraded to stamp and maintain the specific log's historical streak number directly in the database.
-* **Action [x]:** Add a `streakCount` (number) property to the `IHabitLog` interface in `server/models/index.ts`.
-* **Action [x]:** Create and run a database migration to add the `streakCount` integer column to the `habitlogs` PostgreSQL table.
-* **Action [x]:** Update `server/utils/streaks.ts` so that when it determines the streak count for a specific calendar date, it executes an `UPDATE` query to save that integer into the new `streakCount` column of that specific log.
-* **Action [x]:** Implement Cascading Update Logic. When a user retroactively logs, modifies, or deletes a past entry, the engine will fetch all historical logs. As it recalculates the timeline, it will execute an `UPDATE` on the `habitlogs` table to continuously overwrite and restamp the `streakCount` column for **every subsequent log** that occurred after the changed date. This ensures that a modified past action instantly corrects the mathematical reality of the entire historical chain.
-* **Action [x]:** Add `brokenStreakCount` to the `IHabitLog` interface and database table to capture the streak value immediately before a failure.
-* **Action [x]:** Update the cascading logic in `recalculateHabitStreak` to stamp `brokenStreakCount` on logs with a `failed` status.
+## Phase 2: Upgrading the Streak Calculation Engine [COMPLETED]
+The backend calculates the streak and stamps it directly into the database logs.
+* **Action [x]:** Implement Cascading Update Logic in `server/utils/streaks.ts`. When a user logs or modifies an entry, the engine fetches all historical logs in ascending order. It continuously overwrites the `streakCount` column for every subsequent log, correcting the mathematical reality of the entire chain.
+* **Action [x]:** Calculate failures. Update the cascading logic to stamp `brokenStreakCount` on logs with a `failed` status, capturing the streak value immediately before the failure.
+* **Action [x]:** Update parent habit metadata. The engine concludes by executing an `UPDATE` on the `habits` table to recalculate and store the `longestStreak` and the new `streakAnchorDate`.
+* **Core Architectural Rule:** The cascading engine uses a strict daily consecutive check. This is an intentional design choice to reward daily accountability and continuity. A gap of >1 day between logs breaks the streak, but the system is "forgiving" as it allows users to retroactively log missed days to mend the chain. Frequency settings (weekly/monthly) are for visual progress only and must NOT be incorporated into the streak engine.
 
-## Phase 3: The Feed Aggregation & Narrative API
-The backend will transition from serving raw logs to delivering "Ready-to-Render" activity events. This centralizes the milestone logic and rule-set in one place.
-* **Action:** Create a new endpoint `/api/social/feed`.
-* **Action:** Query the database for `habitlogs` belonging to active friends, filtering by the `sharedwith` visibility array.
-* **Action:** Join with the `habits` and `users` tables to hydrate each event with metadata (`username`, `photourl`, `longestStreak`, `habitTitle`, `color`).
-* **Action:** Implement the **"Narrator" Utility** on the backend:
-    - Iterate through the logs and apply the **Milestone Logic** and **Veteran Habit Rule**.
-    - Generate a pre-formatted `message` string for each log (e.g., *"hit a 100-day streak!"*).
-    - Capture Category 1 (Initial) and Category 3 (Dynamics) triggers.
-* **Action:** Apply multi-tier sorting: `ORDER BY date DESC, updatedat DESC, id DESC`.
-* **Action:** Dynamically inject Category 2 (Social & Sharing) events into the payload with consistent sorting fields.
+## Phase 3: The Feed Aggregation API [COMPLETED - Category 1]
+The backend provides "Ready-to-Render" activity events via the `/api/social/feed` endpoint.
+* **Action [x]:** Query the database for `habitlogs` belonging to active friends (where `sharedwith` includes the user) **AND** the user's own logs, allowing personal activity to appear in the feed.
+* **Action [x]:** Hydrate events with `username` and `photourl` by joining with the `users` and `habits` tables. Apply a `LIMIT 100` to the query.
+* **Action [x]:** Implement the "Narrator" logic to structure the payload. Drop raw schema output in favor of nested `user` and `habit` objects. Explicitly convert the username to 'You' if the log belongs to the authenticated user.
+* **Action [x]:** Apply multi-tier sorting: `ORDER BY date DESC, updatedat DESC, id DESC`.
 
-## Phase 4: Frontend UI and Interactive Feed
-With the backend providing the narratives, the frontend focuses on layout, grouping, and navigation.
-* **Action:** Build the UI Feed component that iterates through the API payload.
-* **Action:** Implement **Click Routing**:
-    - **Avatar & Name:** Links to the friend's profile.
-    - **Card Body:** Links to the specific habit view.
-* **Action:** Group items visually by their assigned `date` property.
-* **Action:** Ensure the UI correctly handles different activity types (logs vs. social events) using the backend-provided `type` and `message`.
+## Phase 4: Frontend UI and Interactive Feed [COMPLETED - Category 1]
+The frontend consumes the feed and handles layout, routing, and styling.
+* **Action [x]:** Build the UI Feed component that iterates through the API payload and groups items visually by their assigned `date` property.
+* **Action [x]:** Implement conditional routing on Avatar & Name: Navigate to the friend's profile only if the activity belongs to a friend (preventing self-routing).
+* **Action [x]:** Implement inline details: Clicking a feed card opens the **Habit Details Modal** (`openHabitDetails`), instead of routing to a specific habit view page.
+* **Action [x]:** Apply dynamic styling based on the event `type` (e.g., an emerald Check for `INITIAL_COMPLETION`, a rose X icon for `INITIAL_FAILURE`, etc.).
 
-## **TODO: PHASE 3 AND 4 INCREMENTAL IMPLEMENTATION**
-    - [ ] Category 1 Initial & Isolated Logs (In Progress)
+## **TODO: INCREMENTAL IMPLEMENTATION**
+    - [x] Category 1 Initial & Isolated Logs
     - [ ] Category 2 Social & Sharing Events
     - [ ] Category 3 Milestones & Veteran Rule

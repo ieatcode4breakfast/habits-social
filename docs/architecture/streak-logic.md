@@ -29,6 +29,13 @@ The streak state is persisted in the `habits` table with three primary fields:
 
 **CRITICAL RULE:** Streaks are ALWAYS calculated on a **daily, day-by-day basis**, regardless of whether the habit's goal frequency is Daily, Weekly, or Monthly. The `currentStreak` strictly counts consecutive days of logging activity. The frequency goals (e.g., "4 times a week") use a separate visual counter, but the streak pill badge is universally a daily measure.
 
+> [!IMPORTANT]
+> **Design Philosophy: The Unbroken Chain**
+> This daily-only logic is **intentional and immutable**. While habits have frequency goals (weekly/monthly), the **Streak** is a separate measure of daily accountability. 
+> *   **Forgiving:** Users can retroactively log missed days to "save" a streak.
+> *   **Strict:** A "Missing Day" (gap) always breaks the chain.
+> *   **Note to AI/Devs:** Do NOT suggest or implement frequency-based streak logic. The streak represents literal consecutive days of record-keeping; it is not an average.
+
 Streaks are recalculated automatically whenever a habit log is created, updated, or deleted via the `server/utils/streaks.ts` utility.
 
 ### The Recalculation Flow
