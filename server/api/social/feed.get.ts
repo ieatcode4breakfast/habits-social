@@ -53,6 +53,15 @@ export default defineEventHandler(async (event) => {
       if (rem === 0) return `${yt} streak (${days} days)`;
       return `${yt} and ${rem}-day streak (${days} days)`;
     };
+    const formatExtensionDuration = (days: number) => {
+      if (days < 365) return `${days} days`;
+      const years = Math.floor(days / 365);
+      const rem = days % 365;
+      const yt = years === 1 ? '1-year' : `${years}-year`;
+      if (rem === 0) return `${yt} (${days} days)`;
+      const dt = rem === 1 ? '1 day' : `${rem} days`;
+      return `${yt} and ${dt} (${days} days)`;
+    };
     const pronoun = log.ownerid === userId ? 'your' : 'their';
     const isVeteran = (log.longestStreak || 0) >= 365;
     const milestones = [5, 7, 14, 21, 30, 60, 90, 100, 180, 300];
@@ -61,12 +70,12 @@ export default defineEventHandler(async (event) => {
     if (log.status === 'completed' && log.streakCount === 1) {
       type = 'INITIAL_COMPLETION';
       message = `completed ${log.habitTitle} for ${dateFormatted}.`;
-    } 
+    }
     // Rule 1.2: Initial Skip
     else if (log.status === 'skipped' && log.streakCount === 0) {
       type = 'INITIAL_SKIP';
       message = `skipped ${log.habitTitle} for ${dateFormatted}.`;
-    } 
+    }
     // Rule 1.3: Initial Failure
     else if (log.status === 'failed' && log.streakCount === 0 && (log.brokenStreakCount || 0) === 0) {
       type = 'INITIAL_FAILURE';
@@ -77,7 +86,7 @@ export default defineEventHandler(async (event) => {
     else if (log.status === 'completed' && log.streakCount > 1) {
       const isAnnual = log.streakCount % 365 === 0;
       const rem = log.streakCount % 365;
-      
+
       // Trigger 2.1: Started a Streak (Day 2)
       if (log.streakCount === 2 && !isVeteran) {
         type = 'STREAK_STARTED';
@@ -110,7 +119,7 @@ export default defineEventHandler(async (event) => {
         if (log.streakCount > 365) {
           // Trigger 2.8: Post-Year Standard Streak Extension
           type = 'POST_YEAR_EXTENSION';
-          message = `completed ${log.habitTitle} for ${dateFormatted}—extending ${pronoun} streak to ${formatStreak(log.streakCount)}!`;
+          message = `completed ${log.habitTitle} for ${dateFormatted}—extending ${pronoun} streak to ${formatExtensionDuration(log.streakCount)}!`;
         } else {
           // Trigger 2.7: Standard Streak Extension
           type = 'STREAK_EXTENSION';
@@ -134,14 +143,14 @@ export default defineEventHandler(async (event) => {
       return {
         id: log.id,
         type,
-        user: { 
-          id: log.ownerid, 
-          name: log.ownerid === userId ? 'You' : log.username, 
-          photoUrl: log.photourl 
+        user: {
+          id: log.ownerid,
+          name: log.ownerid === userId ? 'You' : log.username,
+          photoUrl: log.photourl
         },
-        habit: { 
-          id: log.habitid, 
-          title: log.habitTitle 
+        habit: {
+          id: log.habitid,
+          title: log.habitTitle
         },
         message,
         date: log.date,
