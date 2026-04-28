@@ -34,18 +34,26 @@ Streaks are recalculated automatically whenever a habit log is created, updated,
 ### The Recalculation Flow
 1.  **Trigger**: An API call to `/api/habitlogs` (POST or DELETE) finishes its database operation.
 2.  **Fetch Logs**: All logs for the specific habit are fetched, ordered by date descending.
-3.  **Anchor Identification**: The engine finds the most recent log that is not in the future. This is the `streakAnchorDate`.
+3.  **Anchor Identification**: The engine finds the most recent log with a valid status. To prevent timezone misalignment, the server trusts the timeline provided by the frontend and does not filter out "future" dates relative to the server's UTC clock. This is the `streakAnchorDate`.
 4.  **Status Check on Anchor**:
-    *   If the anchor log is `failed`, the streak is immediately set to `0`.
-    *   If the anchor log is `completed`, the streak starts at `1` and counts backwards.
-    *   If the anchor log is `skipped`, the engine continues searching backwards without incrementing the count.
+    * If the anchor log is `failed`, the streak is immediately set to `0`.
+    * If the anchor log is `completed`, the streak starts at `1` and counts backwards.
+    * If the anchor log is `skipped`, the engine continues searching backwards without incrementing the count.
 5.  **Backwards Iteration**: The engine steps back strictly **day-by-day** from the anchor date.
-    *   **Completed Day**: Increment streak by 1, continue.
-    *   **Skipped Day (`-`)**: Ignore it and continue. This preserves the streak without adding to the count.
-    *   **Failed Day (`X`) or Missing Day (Gap)**: Break the iteration immediately. The streak ends here.
+    * **Completed Day**: Increment streak by 1, continue.
+    * **Skipped Day (`-`)**: Ignore it and continue. This preserves the streak without adding to the count.
+    * **Failed Day (`X`) or Missing Day (Gap)**: Break the iteration immediately. The streak ends here.
 
 ### SQL Persistence
 The final `currentStreak` is updated in the database. The `longestStreak` is updated using a `GREATEST` comparison to ensure it only increases if the new current streak exceeds the old record.
+
+---
+
+## Synchronization and Real-Time State
+
+To prevent stale data on the frontend and eliminate the need for manual page refreshes:
+- **API Payload Augmentation**: Whenever a log is mutated, the backend recalculates the streak and immediately returns both the affected `log` and the updated `habit` statistics in the HTTP response.
+- **Pusher WebSockets**: The backend automatically triggers a Pusher event (`habit-updated` or `habit-deleted`) containing the recalculated state to the `user-[id]-habits` channel, ensuring real-time synchronization across all of the user's active devices.
 
 ---
 
@@ -61,6 +69,8 @@ Because all streaks use the unified daily logic, the faded status is also calcul
 - **Normal**: If the `streakAnchorDate` is Today or Yesterday.
 - **Faded (`opacity-30`)**: If the `streakAnchorDate` is strictly older than Yesterday. This indicates that while the streak hasn't "broken" (because the server only breaks it on a `failed` log or when a new day is explicitly logged after a gap), the user is at risk of losing it if they log something new now.
 
+*(Note on Timezones: The faded visual status is calculated dynamically using the viewer's local browser clock. When viewing a friend's profile from a significantly different timezone, the visual fade indicator reflects the viewer's timeline, not strictly the owner's timeline. This is an accepted tolerance for frontend simplicity.)*
+
 ```typescript
 // app/pages/index.vue and app/pages/friends/[id].vue logic
 const isFaded = (habit: Habit) => {
@@ -71,14 +81,3 @@ const isFaded = (habit: Habit) => {
   // Faded if the anchor is strictly before yesterday
   return isAfter(yesterday, anchor); 
 };
-```
-
----
-
-## Trigger Events
-
-Streaks are **Action-Driven**. Time passing alone does not update the database. The streak only shifts when:
-- A user logs a completion.
-- A user logs a failure.
-- A user logs a skip.
-- A previously existing log is deleted.
