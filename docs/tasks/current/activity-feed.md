@@ -102,14 +102,14 @@ The backend calculates the streak and stamps it directly into the database logs.
 * **Action [x]:** Update parent habit metadata. The engine concludes by executing an `UPDATE` on the `habits` table to recalculate and store the `longestStreak` and the new `streakAnchorDate`.
 * **Core Architectural Rule:** The cascading engine uses a strict daily consecutive check. This is an intentional design choice to reward daily accountability and continuity. A gap of >1 day between logs breaks the streak, but the system is "forgiving" as it allows users to retroactively log missed days to mend the chain. Frequency settings (weekly/monthly) are for visual progress only and must NOT be incorporated into the streak engine.
 
-## Phase 3: The Feed Aggregation API [COMPLETED - Category 1]
+## Phase 3: The Feed Aggregation API [COMPLETED - Categories 1 & 2]
 The backend provides "Ready-to-Render" activity events via the `/api/social/feed` endpoint.
 * **Action [x]:** Query the database for `habitlogs` belonging to active friends (where `sharedwith` includes the user) **AND** the user's own logs, allowing personal activity to appear in the feed.
 * **Action [x]:** Hydrate events with `username` and `photourl` by joining with the `users` and `habits` tables. Apply a `LIMIT 100` to the query.
 * **Action [x]:** Implement the "Narrator" logic to structure the payload. Drop raw schema output in favor of nested `user` and `habit` objects. Explicitly convert the username to 'You' if the log belongs to the authenticated user.
 * **Action [x]:** Apply multi-tier sorting: `ORDER BY date DESC, updatedat DESC, id DESC`.
 
-## Phase 4: Frontend UI and Interactive Feed [COMPLETED - Category 1]
+## Phase 4: Frontend UI and Interactive Feed [COMPLETED - Categories 1 & 2]
 The frontend consumes the feed and handles layout, routing, and styling.
 * **Action [x]:** Build the UI Feed component that iterates through the API payload and groups items visually by their assigned `date` property.
 * **Action [x]:** Implement conditional routing on Avatar & Name: Navigate to the friend's profile only if the activity belongs to a friend (preventing self-routing).
