@@ -4,9 +4,9 @@
     <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-y-3 sm:gap-y-0">
       <!-- Profile Header -->
       <div class="flex items-center gap-1 px-4 sm:px-0" v-motion-slide-visible-once-left>
-        <NuxtLink to="/social?tab=friends" class="inline-flex items-center justify-center p-1 -ml-1 text-zinc-500 hover:text-white transition-all flex-shrink-0">
+        <button @click="handleBack" class="inline-flex items-center justify-center p-1 -ml-1 text-zinc-500 hover:text-white transition-all flex-shrink-0 cursor-pointer">
           <ChevronLeft class="w-6 h-6" />
-        </NuxtLink>
+        </button>
         <div v-if="profile" class="flex items-center gap-4 ml-1">
           <div class="w-12 h-12 bg-zinc-925 rounded-2xl flex items-center justify-center overflow-hidden shadow-sm flex-shrink-0">
             <img v-if="profile.photourl" :src="profile.photourl" alt="" class="w-full h-full object-cover" />
@@ -380,6 +380,23 @@ const { user } = useAuth();
 const friendship = computed(() => {
   return friendships.value.find(f => f.participants.includes(friendId));
 });
+
+const backLink = computed(() => {
+  const from = route.query.from as string;
+  if (from) return `/social?tab=${from}`;
+  return '/social?tab=friends';
+});
+
+const router = useRouter();
+const handleBack = () => {
+  // If we have a 'from' query param, it's highly likely we just came from the social page.
+  // router.back() is better for preserving scroll position in KeepAlive scenarios.
+  if (route.query.from) {
+    router.back();
+  } else {
+    navigateTo(backLink.value);
+  }
+};
 
 const relationshipStatus = computed(() => {
   if (!friendship.value) return 'none';

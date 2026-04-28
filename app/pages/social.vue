@@ -62,8 +62,9 @@
             >
               <!-- Avatar -->
               <div 
-                @click.stop="navigateTo(`/friends/${item.user.id}`)"
-                class="w-10 h-10 rounded-full bg-zinc-950 border border-zinc-800 overflow-hidden flex-shrink-0 transition-transform active:scale-95"
+                @click="String(item.user.id) !== String(user?.id) ? ($event.stopPropagation(), navigateTo(`/friends/${item.user.id}?from=${activeTab}`)) : null"
+                class="w-10 h-10 rounded-full bg-zinc-950 border border-zinc-800 overflow-hidden flex-shrink-0 transition-transform cursor-pointer"
+                :class="{ 'active:scale-95': String(item.user.id) !== String(user?.id) }"
               >
                 <img v-if="item.user.photoUrl" :src="item.user.photoUrl" class="w-full h-full object-cover" />
                 <div v-else class="w-full h-full flex items-center justify-center">
@@ -75,8 +76,9 @@
               <div class="flex-1 min-w-0">
                 <div class="flex items-baseline flex-wrap gap-x-1.5">
                   <span 
-                    @click.stop="navigateTo(`/friends/${item.user.id}`)"
-                    class="font-bold text-sm text-zinc-100 hover:text-zinc-400 transition-colors"
+                    @click="String(item.user.id) !== String(user?.id) ? ($event.stopPropagation(), navigateTo(`/friends/${item.user.id}?from=${activeTab}`)) : null"
+                    class="font-bold text-sm text-zinc-100 transition-colors cursor-pointer"
+                    :class="{ 'hover:text-zinc-400': String(item.user.id) !== String(user?.id) }"
                   >
                     {{ item.user.name }}
                   </span>
@@ -133,7 +135,7 @@
       <div v-show="isRequestsExpanded" class="sm:px-6 px-0 pb-6 pt-2">
         <div class="gap-0 flex flex-col max-h-[380px] overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-zinc-800 scrollbar-track-transparent">
           <div v-for="req in pendingIncoming" :key="req.id" class="flex items-center justify-between bg-transparent border-none p-4 hover:bg-white/5 transition-colors rounded-none md:rounded-xl">
-            <NuxtLink :to="`/friends/${req.initiatorId}`" class="flex items-center gap-3 hover:opacity-80 transition-opacity">
+            <NuxtLink :to="`/friends/${req.initiatorId}?from=${activeTab}`" class="flex items-center gap-3 hover:opacity-80 transition-opacity">
               <div class="w-10 h-10 bg-zinc-950 rounded-full flex items-center justify-center overflow-hidden">
                 <img v-if="profilesMap[req.initiatorId]?.photourl" :src="profilesMap[req.initiatorId]?.photourl" alt="" class="w-full h-full object-cover" />
                 <User v-else class="w-5 h-5 text-zinc-600" />
@@ -166,7 +168,7 @@
 
         <div v-if="searchResults.length > 0" class="mt-4 gap-0 flex flex-col max-h-[380px] overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-zinc-800 scrollbar-track-transparent pb-4">
           <div v-for="res in searchResults" :key="res.id" class="flex items-center justify-between bg-transparent border-none p-4 hover:bg-white/5 transition-colors rounded-none md:rounded-xl">
-            <NuxtLink :to="`/friends/${res.id}`" class="flex items-center gap-3 hover:opacity-80 transition-opacity">
+            <NuxtLink :to="`/friends/${res.id}?from=${activeTab}`" class="flex items-center gap-3 hover:opacity-80 transition-opacity">
               <div class="w-10 h-10 bg-zinc-950 rounded-full flex items-center justify-center overflow-hidden">
                 <img v-if="res.photourl" :src="res.photourl" alt="" class="w-full h-full object-cover" />
                 <User v-else class="w-5 h-5 text-zinc-600" />
@@ -522,6 +524,7 @@
 </template>
 
 <script setup lang="ts">
+defineOptions({ name: 'social' });
 import { Search, UserPlus, UserMinus, Check, X as XIcon, User, Trash2, ChevronDown, CheckSquare, Activity, Star, Minus, ChevronLeft, ChevronRight, Flame } from 'lucide-vue-next';
 import { format, parseISO, isToday, addDays, startOfMonth, endOfMonth, eachDayOfInterval, subDays, isAfter, startOfDay, subMonths, addMonths } from 'date-fns';
 import { useSocial } from '../composables/useSocial';
@@ -746,7 +749,7 @@ const isFriendshipFavorite = (f: Friendship) => {
 };
 
 const handleFriendClick = (f: Friendship) => {
-  navigateTo(`/friends/${getFriendId(f)}` as any);
+  navigateTo(`/friends/${getFriendId(f)}?from=${activeTab.value}` as any);
 };
 
 // Modal Adaptive Logic
@@ -811,6 +814,24 @@ onUnmounted(() => {
   if (typeof document !== 'undefined') {
     document.body.classList.remove('overflow-hidden');
   }
+});
+
+// Preserve scroll position across KeepAlive navigation (fallback for router savedPosition)
+const savedScrollY = ref(0);
+
+onDeactivated(() => {
+  savedScrollY.value = window.scrollY;
+});
+
+onActivated(async () => {
+  // Wait for DOM to be fully updated after keepalive re-activation,
+  // then restore scroll position as a fallback if the router's savedPosition didn't fire
+  await nextTick();
+  requestAnimationFrame(() => {
+    if (savedScrollY.value > 0) {
+      window.scrollTo({ top: savedScrollY.value, behavior: 'instant' });
+    }
+  });
 });
 
 const handleSearch = async () => {

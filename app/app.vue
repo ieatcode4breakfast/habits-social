@@ -2,7 +2,7 @@
   <div class="min-h-[100dvh] antialiased font-sans select-none">
     <NuxtRouteAnnouncer />
     <NuxtLayout>
-      <NuxtPage />
+      <NuxtPage :keepalive="{ include: ['social'] }" />
     </NuxtLayout>
   </div>
 </template>
