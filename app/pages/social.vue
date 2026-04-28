@@ -31,16 +31,85 @@
       </div>
     </div>
 
-    <!-- Activity Tab Placeholder -->
-    <div v-if="activeTab === 'activity'" v-motion-fade>
-      <div class="bg-zinc-925/80 backdrop-blur-sm sm:rounded-2xl rounded-none border-y border-x-0 sm:border border-zinc-800/80 p-10 text-center shadow-2xl flex flex-col items-center">
+    <!-- Activity Feed Tab -->
+    <div v-if="activeTab === 'activity'" v-motion-fade class="space-y-6">
+      <div v-if="feedLoading" class="flex justify-center p-12">
+        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
+      </div>
+
+      <div v-else-if="!feed || feed.length === 0" class="bg-zinc-925/80 backdrop-blur-sm sm:rounded-2xl rounded-none border-y border-x-0 sm:border border-zinc-800/80 p-10 text-center shadow-2xl flex flex-col items-center">
         <div class="w-16 h-16 bg-zinc-950 rounded-full flex items-center justify-center mx-auto mb-4 border border-zinc-800">
           <Activity class="w-8 h-8 text-zinc-500" />
         </div>
-        <h2 class="text-lg font-bold text-white mb-2">Activity Feed</h2>
+        <h2 class="text-lg font-bold text-white mb-2">No Activity Yet</h2>
         <p class="text-zinc-500 text-sm max-w-sm mx-auto leading-relaxed">
-          Coming soon! Here you will be able to see your friends' habit streaks, milestones, and share your own progress.
+          Follow friends and share habits to see their progress here!
         </p>
+      </div>
+
+      <div v-else class="space-y-8 px-0 sm:px-0">
+        <div v-for="(group, date) in groupedFeed" :key="date" class="space-y-0">
+          <h3 class="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-600 px-4 sm:px-1 py-3 mt-2">
+            {{ formatFeedDate(String(date)) }}
+          </h3>
+          
+          <div class="space-y-0">
+            <div 
+              v-for="item in group" 
+              :key="item.id"
+              @click="openHabitDetails(item.habit.id)"
+              class="group bg-zinc-925/50 hover:bg-zinc-900/80 border-b border-zinc-800/50 last:border-b-0 sm:border sm:border-zinc-800/50 sm:rounded-2xl p-4 transition-all duration-300 cursor-pointer flex items-center gap-4 shadow-sm"
+            >
+              <!-- Avatar -->
+              <div 
+                @click.stop="navigateTo(`/friends/${item.user.id}`)"
+                class="w-10 h-10 rounded-full bg-zinc-950 border border-zinc-800 overflow-hidden flex-shrink-0 transition-transform active:scale-95"
+              >
+                <img v-if="item.user.photoUrl" :src="item.user.photoUrl" class="w-full h-full object-cover" />
+                <div v-else class="w-full h-full flex items-center justify-center">
+                  <User class="w-5 h-5 text-zinc-700" />
+                </div>
+              </div>
+
+              <!-- Content -->
+              <div class="flex-1 min-w-0">
+                <div class="flex items-baseline flex-wrap gap-x-1.5">
+                  <span 
+                    @click.stop="navigateTo(`/friends/${item.user.id}`)"
+                    class="font-bold text-sm text-zinc-100 hover:text-zinc-400 transition-colors"
+                  >
+                    {{ item.user.name }}
+                  </span>
+                  <span class="text-sm text-zinc-400 leading-relaxed">
+                    {{ item.message }}
+                  </span>
+                </div>
+                <div class="flex items-center gap-2 mt-1">
+
+                  <span class="text-[10px] font-bold uppercase tracking-wider text-zinc-500">
+                    {{ item.habit.title }}
+                  </span>
+                </div>
+              </div>
+
+              <!-- Habit Color/Status Indicator -->
+              <div class="flex-shrink-0">
+                <div 
+                  class="w-8 h-8 rounded-xl flex items-center justify-center border-2"
+                  :class="[
+                    item.type === 'INITIAL_COMPLETION' ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-500' :
+                    item.type === 'INITIAL_FAILURE' ? 'bg-rose-500/10 border-rose-500/20 text-rose-500' :
+                    'bg-zinc-500/10 border-zinc-500/20 text-zinc-500'
+                  ]"
+                >
+                  <Check v-if="item.type === 'INITIAL_COMPLETION'" class="w-4 h-4" />
+                  <XIcon v-else-if="item.type === 'INITIAL_FAILURE'" class="w-4 h-4" />
+                  <Minus v-else class="w-4 h-4" />
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -145,7 +214,7 @@
             </div>
             <div class="flex-1 min-w-0">
               <div class="flex items-center gap-2">
-                <div class="font-semibold text-zinc-200 truncate transition-colors text-sm" :class="{ 'group-hover:text-white': f.status === 'accepted' }">
+                <div class="font-semibold text-zinc-200 truncate transition-colors text-sm" :class="{ 'group-hover:text-zinc-400': f.status === 'accepted' }">
                   {{ profilesMap[getFriendId(f)]?.username || 'Unknown' }}
                 </div>
                 <span v-if="f.status === 'pending'" class="text-[10px] font-bold uppercase tracking-widest text-zinc-600 bg-zinc-925 px-2 py-0.5 rounded-md shrink-0">
@@ -315,11 +384,146 @@
         </div>
       </Transition>
     </Teleport>
+    <!-- View Habit Details Modal -->
+    <Teleport to="body">
+      <Transition
+        enter-active-class="transition duration-300 ease-out"
+        enter-from-class="opacity-0 scale-95"
+        enter-to-class="opacity-100 scale-100"
+        leave-active-class="transition duration-200 ease-in"
+        leave-from-class="opacity-100 scale-100"
+        leave-to-class="opacity-0 scale-95"
+      >
+        <div v-if="showHabitModal && selectedHabit" 
+          class="fixed inset-0 z-[100] flex items-center justify-center sm:p-4 p-0"
+          :class="{ 'modal-parent-adaptive': isHabitHeightOverflowing }"
+        >
+          <!-- Backdrop -->
+          <div class="absolute inset-0 bg-black/80 backdrop-blur-md" @click="showHabitModal = false"></div>
+          
+          <!-- Modal Content -->
+          <div 
+            ref="habitModalContent"
+            class="relative w-full h-full sm:h-auto sm:max-w-md max-w-none bg-zinc-925 border-x-0 sm:border border-zinc-800 sm:rounded-3xl rounded-none shadow-2xl p-8 overflow-y-auto transition-all duration-300"
+            :class="{ 'modal-adaptive-height': isHabitHeightOverflowing }"
+          >
+            <div v-if="habitLoading" class="flex justify-center p-12">
+              <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
+            </div>
+            
+            <template v-else>
+              <div class="flex items-center gap-1 mb-6 -ml-2">
+                <button @click="showHabitModal = false" class="p-2 text-zinc-500 hover:text-white transition-all cursor-pointer flex-shrink-0">
+                  <ChevronLeft class="w-6 h-6" />
+                </button>
+                <div class="flex-1 min-w-0">
+                  <div class="flex items-center gap-2">
+                    <h2 class="text-xl font-bold text-white truncate leading-none">{{ selectedHabit.title }}</h2>
+                    <!-- Streak Badge -->
+                    <div 
+                      v-if="(selectedHabit.currentStreak ?? 0) >= 2"
+                      class="flex items-center gap-1 px-2 py-0.5 bg-black border rounded-full shrink-0"
+                      :class="[
+                        isFaded(selectedHabit) ? 'opacity-30' : 'opacity-100',
+                        getStreakTheme(selectedHabit.currentStreak ?? 0).border
+                      ]"
+                    >
+                      <span 
+                        class="text-[9px] font-black tracking-tight"
+                        :class="getStreakTheme(selectedHabit.currentStreak ?? 0).text"
+                      >
+                        x{{ selectedHabit.currentStreak }} STREAK
+                      </span>
+                      <Flame 
+                        v-if="(selectedHabit.currentStreak ?? 0) >= 7"
+                        class="w-2.5 h-2.5" 
+                        :class="[
+                          getStreakTheme(selectedHabit.currentStreak ?? 0).text,
+                          getStreakTheme(selectedHabit.currentStreak ?? 0).fill
+                        ]"
+                      />
+                    </div>
+                  </div>
+                  <div class="text-[10px] font-bold uppercase tracking-widest text-zinc-500">
+                    <span class="capitalize">{{ selectedHabit.frequencyPeriod }}</span><template v-if="selectedHabit.frequencyPeriod !== 'daily'">, {{ selectedHabit.frequencyCount }} {{ selectedHabit.frequencyCount === 1 ? 'time' : 'times' }}</template>
+                  </div>
+                </div>
+              </div>
+
+              <p v-if="selectedHabit.description" class="text-zinc-400 text-sm mb-4 italic break-words whitespace-pre-wrap">
+                {{ selectedHabit.description }}
+              </p>
+              <div v-else class="mb-6"></div>
+
+              <!-- Monthly Calendar View -->
+              <div class="space-y-4">
+                <div class="flex items-center justify-between px-2">
+                  <h3 class="text-sm font-bold uppercase tracking-widest text-white">
+                    {{ format(currentCalendarDate, 'MMMM yyyy') }}
+                  </h3>
+                  <div class="flex gap-2">
+                    <button type="button" @click="prevMonth" class="p-2 hover:bg-zinc-800 rounded-lg text-zinc-400 hover:text-zinc-200 transition-colors cursor-pointer">
+                      <ChevronLeft class="w-4 h-4" />
+                    </button>
+                    <button type="button" @click="nextMonth" class="p-2 hover:bg-zinc-800 rounded-lg text-zinc-400 hover:text-zinc-200 transition-colors cursor-pointer">
+                      <ChevronRight class="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+
+                <div class="bg-black rounded-2xl p-4 border border-zinc-800">
+                  <div class="grid grid-cols-7 gap-y-4 gap-x-1">
+                    <!-- Day Headers -->
+                    <div v-for="dayName in ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']" :key="dayName" class="text-[10px] text-center font-black uppercase tracking-tighter text-zinc-600 mb-1">
+                      {{ dayName }}
+                    </div>
+
+                    <!-- Calendar Grid -->
+                    <div v-for="(day, i) in calendarDays" :key="i" class="flex flex-col items-center gap-1">
+                      <div
+                        class="w-8 h-8 rounded-lg flex items-center justify-center transition-all border-2 relative"
+                        :class="[
+                          (day.getMonth() !== currentCalendarDate.getMonth() || isFutureDay(day)) ? 'opacity-30 border-transparent' : '',
+                          getStatus(selectedHabit.id, day) === 'completed' ? 'bg-emerald-500 border-emerald-500 shadow-md shadow-emerald-500/20' :
+                          getStatus(selectedHabit.id, day) === 'failed' ? 'bg-rose-500 border-rose-500 shadow-md shadow-rose-500/20' :
+                          getStatus(selectedHabit.id, day) === 'skipped' ? 'bg-zinc-500 border-zinc-500 shadow-none' :
+                          'border-dashed border-zinc-800 bg-transparent'
+                        ]"
+                      >
+                        <Check v-if="getStatus(selectedHabit.id, day) === 'completed'" class="w-3 h-3 text-white" />
+                        <XIcon v-else-if="getStatus(selectedHabit.id, day) === 'failed'" class="w-3 h-3 text-white" />
+                        <span v-else-if="getStatus(selectedHabit.id, day) === 'skipped'" class="w-3 h-0.5 bg-white rounded-full"></span>
+                      </div>
+                      <div class="text-[9px] font-bold" :class="[
+                        isToday(day) ? 'text-white' : 'text-zinc-600',
+                        (day.getMonth() !== currentCalendarDate.getMonth() || isFutureDay(day)) ? 'opacity-30' : ''
+                      ]">
+                        {{ format(day, 'd') }}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <div class="mt-5">
+                <button
+                  @click="showHabitModal = false"
+                  class="w-full py-3 px-4 bg-white text-black font-semibold rounded-xl hover:bg-zinc-200 transition-all cursor-pointer shadow-sm"
+                >
+                  Close
+                </button>
+              </div>
+            </template>
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
   </div>
 </template>
 
 <script setup lang="ts">
-import { Search, UserPlus, UserMinus, Check, X as XIcon, User, Trash2, ChevronDown, CheckSquare, Activity, Star } from 'lucide-vue-next';
+import { Search, UserPlus, UserMinus, Check, X as XIcon, User, Trash2, ChevronDown, CheckSquare, Activity, Star, Minus, ChevronLeft, ChevronRight, Flame } from 'lucide-vue-next';
+import { format, parseISO, isToday, addDays, startOfMonth, endOfMonth, eachDayOfInterval, subDays, isAfter, startOfDay, subMonths, addMonths } from 'date-fns';
 import { useSocial } from '../composables/useSocial';
 
 definePageMeta({ middleware: 'auth' });
@@ -328,7 +532,7 @@ const { user } = useAuth();
 const route = useRoute();
 const activeTab = computed({
   get: () => (route.query.tab as 'activity' | 'friends') || 'activity',
-  set: (val) => navigateTo({ query: { ...route.query, tab: val } }, { replace: true })
+  set: (val) => navigateTo({ query: { ...route.query, tab: val } } as any, { replace: true })
 });
 
 interface UserProfile { id: string; email: string; username: string; photourl?: string; }
@@ -367,8 +571,100 @@ const shareModalTitle = ref('Request Sent!');
 
 const favoritedAtStart = ref<Set<string>>(new Set());
 
+// --- Habit Details Modal Logic ---
+const showHabitModal = ref(false);
+const habitLoading = ref(false);
+const selectedHabit = ref<any>(null);
+const selectedHabitLogs = ref<any[]>([]);
+const currentCalendarDate = ref(new Date());
+
+const openHabitDetails = async (habitId: string) => {
+  showHabitModal.value = true;
+  habitLoading.value = true;
+  try {
+    const data = await $fetch<any>(`/api/social/habit-details`, { query: { habitId } });
+    selectedHabit.value = data.habit;
+    selectedHabitLogs.value = data.logs;
+    currentCalendarDate.value = new Date();
+  } catch (err) {
+    console.error('Error fetching habit details:', err);
+    showHabitModal.value = false;
+  } finally {
+    habitLoading.value = false;
+  }
+};
+
+const calendarDays = computed(() => {
+  const start = startOfMonth(currentCalendarDate.value);
+  const end = endOfMonth(currentCalendarDate.value);
+  const daysInMonth = eachDayOfInterval({ start, end });
+  const firstDay = start.getDay();
+  const paddingStart = Array.from({ length: firstDay }, (_, i) => subDays(start, firstDay - i));
+  const lastDay = end.getDay();
+  const paddingEnd = Array.from({ length: 6 - lastDay }, (_, i) => addDays(end, i + 1));
+  return [...paddingStart, ...daysInMonth, ...paddingEnd];
+});
+
+const prevMonth = () => currentCalendarDate.value = subMonths(currentCalendarDate.value, 1);
+const nextMonth = () => currentCalendarDate.value = addMonths(currentCalendarDate.value, 1);
+const isFutureDay = (day: Date) => isAfter(startOfDay(day), startOfDay(new Date()));
+
+const getStatus = (habitId: string, day: Date) => {
+  const dateStr = format(day, 'yyyy-MM-dd');
+  return selectedHabitLogs.value.find(l => l.habitid === habitId && l.date === dateStr)?.status;
+};
+
+const isFaded = (habit: any) => {
+  if (!habit || !habit.streakAnchorDate) return false;
+  const anchor = startOfDay(parseISO(habit.streakAnchorDate));
+  const yesterday = startOfDay(subDays(new Date(), 1));
+  return isAfter(yesterday, anchor);
+};
+
+const getStreakTheme = (count: number) => {
+  if (count >= 30) return { border: 'border-yellow-400/50 shadow-lg shadow-yellow-400/10', text: 'text-yellow-400', fill: 'fill-yellow-400/80' };
+  if (count >= 7) return { border: 'border-violet-400/50 shadow-lg shadow-violet-400/10', text: 'text-violet-400', fill: 'fill-violet-400/80' };
+  return { border: 'border-emerald-500/50', text: 'text-emerald-500', fill: 'fill-emerald-500/80' };
+};
+
+// --- Activity Feed Logic ---
+const feed = ref<any[]>([]);
+const feedLoading = ref(false);
+
+const loadFeed = async () => {
+  if (activeTab.value !== 'activity') return;
+  feedLoading.value = true;
+  try {
+    feed.value = await $fetch<any[]>('/api/social/feed' as any);
+  } catch (err) {
+    console.error('Error fetching feed:', err);
+  } finally {
+    feedLoading.value = false;
+  }
+};
+
+const groupedFeed = computed(() => {
+  if (!feed.value) return {};
+  return feed.value.reduce((acc: any, item: any) => {
+    const date = item.date;
+    if (!acc[date]) acc[date] = [];
+    acc[date].push(item);
+    return acc;
+  }, {});
+});
+
+const formatFeedDate = (dateStr: string) => {
+  const d = parseISO(dateStr);
+  if (isToday(d)) return 'Today';
+  if (isToday(addDays(d, 1))) return 'Yesterday';
+  return format(d, 'MMMM d, yyyy');
+};
+
 // Refresh sort snapshot when entering the friends tab
 watch(activeTab, (newTab, oldTab) => {
+  if (newTab === 'activity') {
+    loadFeed();
+  }
   if (newTab === 'friends' && oldTab !== 'friends') {
     const myId = String(user.value?.id);
     const favs = friendships.value
@@ -379,13 +675,14 @@ watch(activeTab, (newTab, oldTab) => {
 });
 
 const isAnyModalOpen = ref(false);
-watch([showUnfriendModal, showAddModal, showShareModal], (vals) => {
+watch([showUnfriendModal, showAddModal, showShareModal, showHabitModal], (vals) => {
   isAnyModalOpen.value = vals.some(v => v);
 });
 useModalHistory(isAnyModalOpen, () => {
   showUnfriendModal.value = false;
   showAddModal.value = false;
   showShareModal.value = false;
+  showHabitModal.value = false;
 });
 
 const pendingIncoming = computed(() => {
@@ -449,30 +746,37 @@ const isFriendshipFavorite = (f: Friendship) => {
 };
 
 const handleFriendClick = (f: Friendship) => {
-  navigateTo(`/friends/${getFriendId(f)}`);
+  navigateTo(`/friends/${getFriendId(f)}` as any);
 };
 
 // Modal Adaptive Logic
 const modalContent = ref<HTMLElement | null>(null);
+const habitModalContent = ref<HTMLElement | null>(null);
 const isHeightOverflowing = ref(false);
+const isHabitHeightOverflowing = ref(false);
 
 const checkHeightOverflow = () => {
-  if (!modalContent.value) return;
-  isHeightOverflowing.value = modalContent.value.scrollHeight > (window.innerHeight - 32);
+  if (modalContent.value) {
+    isHeightOverflowing.value = modalContent.value.scrollHeight > (window.innerHeight - 32);
+  }
+  if (habitModalContent.value) {
+    isHabitHeightOverflowing.value = habitModalContent.value.scrollHeight > (window.innerHeight - 32);
+  }
 };
 
-watch([showShareModal, myHabits], async () => {
-  if (showShareModal.value) {
+watch([showShareModal, myHabits, showHabitModal], async () => {
+  if (showShareModal.value || showHabitModal.value) {
     await nextTick();
     checkHeightOverflow();
     setTimeout(checkHeightOverflow, 350);
   } else {
     isHeightOverflowing.value = false;
+    isHabitHeightOverflowing.value = false;
   }
 });
 
 // Scroll Lock
-watch([showUnfriendModal, showAddModal, showShareModal], (newVal) => {
+watch([showUnfriendModal, showAddModal, showShareModal, showHabitModal], (newVal) => {
   if (typeof document === 'undefined') return;
   const isAnyOpen = newVal.some(v => v);
   if (isAnyOpen) document.body.classList.add('overflow-hidden');
@@ -487,6 +791,9 @@ const { pendingCount } = useSocialNotifications();
 
 onMounted(async () => {
   await loadFriendships();
+  if (activeTab.value === 'activity') {
+    loadFeed();
+  }
   
   // Capture snapshot of favorites for stable sorting during this visit
   const myId = String(user.value?.id);

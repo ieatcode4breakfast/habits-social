@@ -31,6 +31,7 @@ export interface IHabitLog {
   date: string;
   status: string;
   streakCount: number;
+  brokenStreakCount?: number;
   sharedwith: string[];
   updatedat: Date;
 }

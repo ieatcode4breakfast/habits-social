@@ -39,9 +39,11 @@ export async function recalculateHabitStreak(sql: any, habitId: string, userId: 
       }
     }
     
+    let brokenStreakCount = 0;
     if (log.status === 'completed') {
       runningStreak++;
     } else if (log.status === 'failed') {
+      brokenStreakCount = runningStreak;
       runningStreak = 0;
     } else if (log.status === 'skipped') {
       // Streak remains intact (protected)
@@ -57,7 +59,7 @@ export async function recalculateHabitStreak(sql: any, habitId: string, userId: 
     // Update the specific log with its historical streakCount
     await sql`
       UPDATE habitlogs 
-      SET "streakCount" = ${runningStreak}, updatedat = NOW()
+      SET "streakCount" = ${runningStreak}, "brokenStreakCount" = ${brokenStreakCount}, updatedat = NOW()
       WHERE id = ${log.id}
     `;
     
