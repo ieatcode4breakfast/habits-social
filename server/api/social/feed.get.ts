@@ -72,12 +72,12 @@ export default defineEventHandler(async (event) => {
       message = `completed ${log.habitTitle} for ${dateFormatted}.`;
     }
     // Rule 1.2: Initial Skip
-    else if (log.status === 'skipped' && log.streakCount === 0) {
+    else if (log.status === 'skipped' && log.streakCount <= 1) {
       type = 'INITIAL_SKIP';
       message = `skipped ${log.habitTitle} for ${dateFormatted}.`;
     }
     // Rule 1.3: Initial Failure
-    else if (log.status === 'failed' && log.streakCount === 0 && (log.brokenStreakCount || 0) === 0) {
+    else if (log.status === 'failed' && log.streakCount === 0 && (log.brokenStreakCount || 0) <= 1) {
       type = 'INITIAL_FAILURE';
       message = `failed ${log.habitTitle} for ${dateFormatted}.`;
     }
@@ -128,12 +128,12 @@ export default defineEventHandler(async (event) => {
       }
     }
     // Trigger 2.3: Streak Broken (Fail/Miss)
-    else if (log.status === 'failed' && (log.brokenStreakCount || 0) > 0) {
+    else if (log.status === 'failed' && (log.brokenStreakCount || 0) > 1) {
       type = 'STREAK_BROKEN';
       message = `failed ${log.habitTitle} for ${dateFormatted}, bringing ${pronoun} ${formatStreak(log.brokenStreakCount as number)} to an end.`;
     }
     // Trigger 2.9: Streak Maintained (Skip)
-    else if (log.status === 'skipped' && log.streakCount > 0) {
+    else if (log.status === 'skipped' && log.streakCount > 1) {
       type = 'STREAK_MAINTAINED';
       message = `skipped ${log.habitTitle} for ${dateFormatted}; ${pronoun} ${formatStreak(log.streakCount)} remains intact.`;
     }

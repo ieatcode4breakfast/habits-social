@@ -1,3 +1,4 @@
+import { parseISO, startOfDay, subDays, isAfter, isBefore } from 'date-fns';
 import type { IHabitLog } from '../../models';
 import { usePusher } from '../../utils/pusher';
 import { recalculateHabitStreak } from '../../utils/streaks';
@@ -5,6 +6,34 @@ import { recalculateHabitStreak } from '../../utils/streaks';
 export default defineEventHandler(async (event) => {
   const sql = useDB(event);
   const userId = await requireAuth(event);
+
+  // Validation: Only allow updates for the last 14 days
+  if (event.method === 'POST' || event.method === 'DELETE') {
+    let dateStr = '';
+    if (event.method === 'POST') {
+      const body = await readBody(event);
+      dateStr = String(body.date);
+      // Re-read body later if needed, or just use the parsed one.
+      // Nitro's readBody can be called multiple times if cached, but let's be safe.
+      event.context.body = body; 
+    } else {
+      const query = getQuery(event);
+      dateStr = String(query.date);
+    }
+
+    if (dateStr) {
+      const logDate = startOfDay(parseISO(dateStr));
+      const today = startOfDay(new Date());
+      const limitDate = startOfDay(subDays(today, 13));
+
+      if (isBefore(logDate, limitDate) || isAfter(logDate, today)) {
+        throw createError({
+          statusCode: 400,
+          statusMessage: 'Habit updates are only allowed for the last 14 days.'
+        });
+      }
+    }
+  }
 
   if (event.method === 'GET') {
     setResponseHeader(event, 'Cache-Control', 'no-cache, no-store, must-revalidate');
@@ -48,7 +77,7 @@ export default defineEventHandler(async (event) => {
       `;
       
       const updatedLog = result[0];
-      const updatedHabit = await recalculateHabitStreak(sql, habitId, userId);
+      const updatedHabit = await recalculateHabitStreak(sql, habitId, userId, dateStr);
       const pusher = usePusher();
       if (pusher) {
         await pusher.trigger(`user-${userId}-habits`, 'habit-updated', { log: updatedLog, habit: updatedHabit });
@@ -63,7 +92,7 @@ export default defineEventHandler(async (event) => {
       `;
       
       const newLog = result[0];
-      const updatedHabit = await recalculateHabitStreak(sql, habitId, userId);
+      const updatedHabit = await recalculateHabitStreak(sql, habitId, userId, dateStr);
       const pusher = usePusher();
       if (pusher) {
         await pusher.trigger(`user-${userId}-habits`, 'habit-updated', { log: newLog, habit: updatedHabit });
@@ -82,7 +111,7 @@ export default defineEventHandler(async (event) => {
       WHERE habitid = ${habitId} AND ownerid = ${userId} AND date = ${dateStr}
     `;
     
-    const updatedHabit = await recalculateHabitStreak(sql, habitId, userId);
+    const updatedHabit = await recalculateHabitStreak(sql, habitId, userId, dateStr);
     
     const pusher = usePusher();
     if (pusher) {

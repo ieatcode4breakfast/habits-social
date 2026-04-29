@@ -444,11 +444,11 @@
                       <div v-for="(day, i) in calendarDays" :key="i" class="flex flex-col items-center gap-1">
                         <button
                           type="button"
-                          @click="day.getMonth() === currentCalendarDate.getMonth() && !isFutureDay(day) && toggleLog(editingHabit!, day)"
-                          :disabled="day.getMonth() !== currentCalendarDate.getMonth() || isFutureDay(day)"
+                          @click="toggleLog(editingHabit!, day)"
                           class="w-8 h-8 rounded-lg flex items-center justify-center transition-all border-2 relative"
                           :class="[
-                            (day.getMonth() !== currentCalendarDate.getMonth() || isFutureDay(day)) ? 'opacity-30 cursor-not-allowed border-transparent' : 'cursor-pointer',
+                            (day.getMonth() !== currentCalendarDate.getMonth()) ? 'opacity-30 cursor-not-allowed border-transparent' : 'cursor-pointer',
+                            !isMarkable(day) && day.getMonth() === currentCalendarDate.getMonth() ? 'opacity-50' : '',
                             getStatus(editingHabit!.id, day) === 'completed' ? 'bg-emerald-500 border-emerald-500 shadow-md shadow-emerald-500/20' :
                             getStatus(editingHabit!.id, day) === 'failed' ? 'bg-rose-500 border-rose-500 shadow-md shadow-rose-500/20' :
                             getStatus(editingHabit!.id, day) === 'skipped' ? 'bg-zinc-500 border-zinc-500 shadow-none' :
@@ -690,7 +690,7 @@
 
 <script setup lang="ts">
 import { Plus, Trash2, Check, X as XIcon, Minus, ChevronLeft, ChevronRight, User, ChevronUp, ChevronDown, Edit2, Save, CheckSquare, GripVertical, ArrowUpDown, Flame } from 'lucide-vue-next';
-import { format, subDays, isToday, startOfMonth, endOfMonth, eachDayOfInterval, addMonths, subMonths, isAfter, startOfDay, addDays, isSameWeek, isSameMonth, getDaysInMonth, parseISO, startOfWeek } from 'date-fns';
+import { format, subDays, isToday, startOfMonth, endOfMonth, eachDayOfInterval, addMonths, subMonths, isAfter, startOfDay, addDays, isSameWeek, isSameMonth, getDaysInMonth, parseISO, startOfWeek, isBefore } from 'date-fns';
 import type { Habit, HabitLog } from '~/composables/useHabitsApi';
 
 definePageMeta({ middleware: 'auth' });
@@ -764,6 +764,12 @@ const calendarDays = computed(() => {
 
 const today = new Date();
 const isFutureDay = (day: Date) => isAfter(startOfDay(day), startOfDay(today));
+const isMarkable = (day: Date) => {
+  const d = startOfDay(day);
+  const t = startOfDay(today);
+  const limit = subDays(t, 13); // Last 14 days including today
+  return !isBefore(d, limit) && !isAfter(d, t);
+};
 const days = Array.from({ length: 7 }, (_, i) => subDays(today, 6 - i));
 const startDate = format(startOfMonth(subMonths(today, 1)), 'yyyy-MM-dd');
 const endDate = format(endOfMonth(addMonths(today, 1)), 'yyyy-MM-dd');
@@ -881,6 +887,10 @@ const getStatus = (habitId: string, day: Date) => {
 };
 
 const toggleLog = async (habit: Habit, day: Date) => {
+  if (!isMarkable(day)) {
+    showToast('You can only update habits for the last 14 days', 'failed');
+    return;
+  }
   const dateStr = format(day, 'yyyy-MM-dd');
   const currentStatus = getStatus(habit.id, day);
 
