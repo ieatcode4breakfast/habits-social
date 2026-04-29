@@ -20,16 +20,22 @@ export default defineEventHandler(async (event) => {
 
   const habitIdSet = new Set(habits.map((h: any) => String(h.id)));
 
-  // Fetch logs for this friend's habits in the last 30 days
-  // Query by ownerid to avoid array parameter issues, filter in JS
-  const cutoff = new Date();
-  cutoff.setDate(cutoff.getDate() - 30);
-  const cutoffStr = cutoff.toISOString().slice(0, 10); // 'YYYY-MM-DD'
+  // Fetch logs for this friend's habits. Default to last 30 days if no range provided.
+  const query = getQuery(event);
+  let startDateStr = String(query.startDate || '');
+  let endDateStr = String(query.endDate || '');
+
+  if (!startDateStr) {
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - 30);
+    startDateStr = cutoff.toISOString().slice(0, 10);
+  }
 
   const allLogs = await sql`
     SELECT * FROM habitlogs 
     WHERE ownerid = ${fId}
-    AND date >= ${cutoffStr}
+    AND date >= ${startDateStr}
+    ${endDateStr ? sql`AND date <= ${endDateStr}` : sql``}
     ORDER BY date DESC
   `;
 

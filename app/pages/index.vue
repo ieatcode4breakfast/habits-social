@@ -462,7 +462,20 @@
                     </div>
                   </div>
 
-                  <div class="bg-black rounded-2xl p-4 border border-zinc-925">
+                  <div class="bg-black rounded-2xl p-4 border border-zinc-925 relative overflow-hidden">
+                    <!-- Loading Overlay -->
+                    <Transition
+                      enter-active-class="transition duration-200 ease-out"
+                      enter-from-class="opacity-0"
+                      enter-to-class="opacity-100"
+                      leave-active-class="transition duration-300 ease-in"
+                      leave-from-class="opacity-100"
+                      leave-to-class="opacity-0"
+                    >
+                      <div v-if="calendarLoading" class="absolute inset-0 z-10 bg-black/40 backdrop-blur-[2px] flex items-center justify-center">
+                        <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-white"></div>
+                      </div>
+                    </Transition>
                     <div class="grid grid-cols-7 gap-y-4 gap-x-1">
                       <!-- Day Headers -->
                       <div v-for="dayName in ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']" :key="dayName" class="text-[10px] text-center font-black uppercase tracking-tighter text-zinc-600 mb-1">
@@ -801,6 +814,7 @@ const showSharingConfirmModal = ref(false);
 const reachedConfirmViaDone = ref(false);
 const editDescriptionRef = ref<HTMLTextAreaElement | null>(null);
 const currentCalendarDate = ref(new Date());
+const calendarLoading = ref(false);
 
 const autoExpand = (e: Event | HTMLElement) => {
   const el = (e instanceof Event ? e.target : e) as HTMLTextAreaElement;
@@ -1287,6 +1301,31 @@ const handleDelete = async () => {
   showDeleteModal.value = false;
   showEditModal.value = false;
 };
+
+// --- Dynamic Log Fetching ---
+watch(currentCalendarDate, async (newDate) => {
+  if (showEditModal.value) {
+    const start = format(startOfMonth(newDate), 'yyyy-MM-dd');
+    const end = format(endOfMonth(newDate), 'yyyy-MM-dd');
+    calendarLoading.value = true;
+    try {
+      const newLogs = await api.getLogs(start, end);
+      newLogs.forEach(newLog => {
+        const idx = logs.value.findIndex(l => l.id === newLog.id);
+        if (idx >= 0) {
+          logs.value[idx] = newLog;
+        } else {
+          logs.value.push(newLog);
+        }
+      });
+    } catch (err) {
+      console.error('[Dashboard] Failed to fetch historical logs:', err);
+    } finally {
+      calendarLoading.value = false;
+    }
+  }
+});
+// ----------------------------
 
 const removeHabit = async (id: string) => {
   await api.deleteHabit(id);

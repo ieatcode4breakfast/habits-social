@@ -23,15 +23,22 @@ export default defineEventHandler(async (event) => {
 
   const habit = habits[0];
 
-  // 2. Fetch logs for the last 60 days
-  const cutoff = new Date();
-  cutoff.setDate(cutoff.getDate() - 60);
-  const cutoffStr = cutoff.toISOString().slice(0, 10);
+  // 2. Fetch logs. Default to last 60 days if no range provided.
+  const query = getQuery(event);
+  let startDateStr = String(query.startDate || '');
+  let endDateStr = String(query.endDate || '');
+
+  if (!startDateStr) {
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - 60);
+    startDateStr = cutoff.toISOString().slice(0, 10);
+  }
 
   const logs = await sql`
     SELECT * FROM habitlogs 
     WHERE habitid = ${hIdStr}
-    AND date >= ${cutoffStr}
+    AND date >= ${startDateStr}
+    ${endDateStr ? sql`AND date <= ${endDateStr}` : sql``}
     ORDER BY date DESC
   `;
 

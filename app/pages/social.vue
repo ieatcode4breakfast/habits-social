@@ -480,7 +480,20 @@
                   </div>
                 </div>
 
-                <div class="bg-black rounded-2xl p-4 border border-zinc-800">
+                <div class="bg-black rounded-2xl p-4 border border-zinc-800 relative overflow-hidden">
+                  <!-- Loading Overlay -->
+                  <Transition
+                    enter-active-class="transition duration-200 ease-out"
+                    enter-from-class="opacity-0"
+                    enter-to-class="opacity-100"
+                    leave-active-class="transition duration-300 ease-in"
+                    leave-from-class="opacity-100"
+                    leave-to-class="opacity-0"
+                  >
+                    <div v-if="calendarLoading" class="absolute inset-0 z-10 bg-black/40 backdrop-blur-[2px] flex items-center justify-center">
+                      <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-white"></div>
+                    </div>
+                  </Transition>
                   <div class="grid grid-cols-7 gap-y-4 gap-x-1">
                     <!-- Day Headers -->
                     <div v-for="dayName in ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']" :key="dayName" class="text-[10px] text-center font-black uppercase tracking-tighter text-zinc-600 mb-1">
@@ -587,6 +600,7 @@ const habitLoading = ref(false);
 const selectedHabit = ref<any>(null);
 const selectedHabitLogs = ref<any[]>([]);
 const currentCalendarDate = ref(new Date());
+const calendarLoading = ref(false);
 
 const openHabitDetails = async (habitId: string) => {
   showHabitModal.value = true;
@@ -683,6 +697,39 @@ watch(activeTab, (newTab, oldTab) => {
     favoritedAtStart.value = new Set(favs);
   }
 });
+
+// --- Dynamic Log Fetching ---
+watch(currentCalendarDate, async (newDate) => {
+  if (showHabitModal.value && selectedHabit.value) {
+    const start = format(startOfMonth(newDate), 'yyyy-MM-dd');
+    const end = format(endOfMonth(newDate), 'yyyy-MM-dd');
+    calendarLoading.value = true;
+    try {
+      const data = await $fetch<any>('/api/social/habit-details', { 
+        query: { 
+          habitId: selectedHabit.value.id,
+          startDate: start,
+          endDate: end
+        } 
+      });
+      if (data.logs) {
+        data.logs.forEach((newLog: any) => {
+          const idx = selectedHabitLogs.value.findIndex(l => l.id === newLog.id);
+          if (idx >= 0) {
+            selectedHabitLogs.value[idx] = newLog;
+          } else {
+            selectedHabitLogs.value.push(newLog);
+          }
+        });
+      }
+    } catch (err) {
+      console.error('Failed to fetch historical social logs:', err);
+    } finally {
+      calendarLoading.value = false;
+    }
+  }
+});
+// ----------------------------
 
 const isAnyModalOpen = ref(false);
 watch([showUnfriendModal, showAddModal, showShareModal, showHabitModal], (vals) => {
