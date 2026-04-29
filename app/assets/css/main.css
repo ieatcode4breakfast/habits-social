@@ -38,6 +38,17 @@ html, body {
   background: rgba(148, 163, 184, 0.4);
 }
 
+/* Hide scrollbars for mobile and tablet */
+@media (max-width: 1024px) {
+  *::-webkit-scrollbar {
+    display: none;
+  }
+  * {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}
+
 * {
   -webkit-user-select: none;
   -moz-user-select: none;
