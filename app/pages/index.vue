@@ -298,9 +298,16 @@
               <button
                 type="submit"
                 form="addHabitForm"
-                class="flex-1 px-5 py-3 bg-white hover:bg-zinc-200 text-black font-semibold rounded-xl transition-all shadow-lg shadow-white/5 cursor-pointer"
+                :disabled="isAddingHabit"
+                class="flex-1 px-5 py-3 bg-white hover:bg-zinc-200 text-black font-semibold rounded-xl transition-all shadow-lg shadow-white/5 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
               >
-                Add Habit
+                <template v-if="isAddingHabit">
+                  <div class="w-4 h-4 border-2 border-black/20 border-t-black rounded-full animate-spin"></div>
+                  Adding...
+                </template>
+                <template v-else>
+                  Add Habit
+                </template>
               </button>
             </div>
           </div>
@@ -462,7 +469,7 @@
                     </div>
                   </div>
 
-                  <div class="bg-black rounded-2xl p-4 border border-zinc-925 relative overflow-hidden">
+                  <div class="bg-black rounded-2xl p-4 border border-zinc-925 relative">
                     <!-- Loading Overlay -->
                     <Transition
                       enter-active-class="transition duration-200 ease-out"
@@ -472,7 +479,7 @@
                       leave-from-class="opacity-100"
                       leave-to-class="opacity-0"
                     >
-                      <div v-if="calendarLoading" class="absolute inset-0 z-10 bg-black/40 backdrop-blur-[2px] flex items-center justify-center">
+                      <div v-if="calendarLoading" class="absolute inset-0 z-10 bg-black/40 backdrop-blur-[2px] flex items-center justify-center rounded-2xl">
                         <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-white"></div>
                       </div>
                     </Transition>
@@ -640,9 +647,16 @@
             <div class="flex flex-col gap-3">
               <button
                 @click="handleDelete"
-                class="w-full px-5 py-3 bg-white hover:bg-zinc-200 text-black font-semibold rounded-xl transition-all shadow-lg shadow-white/5 cursor-pointer"
+                :disabled="isDeletingHabit"
+                class="w-full px-5 py-3 bg-white hover:bg-zinc-200 text-black font-semibold rounded-xl transition-all shadow-lg shadow-white/5 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
               >
-                Delete Permanently
+                <template v-if="isDeletingHabit">
+                  <div class="w-4 h-4 border-2 border-black/20 border-t-black rounded-full animate-spin"></div>
+                  Deleting...
+                </template>
+                <template v-else>
+                  Delete Permanently
+                </template>
               </button>
               <button
                 @click="showDeleteModal = false"
@@ -679,9 +693,16 @@
             <div class="flex flex-col gap-3">
               <button
                 @click="confirmSharingSave"
-                class="w-full px-5 py-3 bg-white hover:bg-zinc-200 text-black font-semibold rounded-xl transition-all shadow-lg shadow-white/5 cursor-pointer"
+                :disabled="isUpdatingHabit"
+                class="w-full px-5 py-3 bg-white hover:bg-zinc-200 text-black font-semibold rounded-xl transition-all shadow-lg shadow-white/5 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
               >
-                Confirm Changes
+                <template v-if="isUpdatingHabit">
+                  <div class="w-4 h-4 border-2 border-black/20 border-t-black rounded-full animate-spin"></div>
+                  Saving...
+                </template>
+                <template v-else>
+                  Confirm Changes
+                </template>
               </button>
               <button
                 @click="cancelSharingSave"
@@ -815,6 +836,9 @@ const reachedConfirmViaDone = ref(false);
 const editDescriptionRef = ref<HTMLTextAreaElement | null>(null);
 const currentCalendarDate = ref(new Date());
 const calendarLoading = ref(false);
+const isAddingHabit = ref(false);
+const isDeletingHabit = ref(false);
+const isUpdatingHabit = ref(false);
 
 const autoExpand = (e: Event | HTMLElement) => {
   const el = (e instanceof Event ? e.target : e) as HTMLTextAreaElement;
@@ -1007,7 +1031,7 @@ const getLogOptions = (habit: Habit, day: Date) => {
 
   if (currentStatus !== 'completed') {
     options.push({ 
-      label: 'Check', 
+      label: 'Complete', 
       status: 'completed', 
       icon: Check, 
       color: 'text-white', 
@@ -1118,22 +1142,31 @@ const toggleLog = async (habit: Habit, day: Date) => {
 };
 
 const addHabit = async () => {
-  if (!newTitle.value.trim()) return;
-  const habit = await api.createHabit({ 
-    title: newTitle.value.trim(), 
-    description: newDescription.value.trim(),
-    frequencyCount: newFrequencyCount.value,
-    frequencyPeriod: newFrequencyPeriod.value,
-    sharedwith: newSharedWith.value,
-    color: '#6366f1' 
-  });
-  habits.value.push(habit);
-  newTitle.value = '';
-  newDescription.value = '';
-  newFrequencyCount.value = 1;
-  newFrequencyPeriod.value = 'daily';
-  newSharedWith.value = [];
-  showModal.value = false;
+  if (!newTitle.value.trim() || isAddingHabit.value) return;
+  
+  isAddingHabit.value = true;
+  try {
+    const habit = await api.createHabit({ 
+      title: newTitle.value.trim(), 
+      description: newDescription.value.trim(),
+      frequencyCount: newFrequencyCount.value,
+      frequencyPeriod: newFrequencyPeriod.value,
+      sharedwith: newSharedWith.value,
+      color: '#6366f1' 
+    });
+    habits.value.push(habit);
+    newTitle.value = '';
+    newDescription.value = '';
+    newFrequencyCount.value = 1;
+    newFrequencyPeriod.value = 'daily';
+    newSharedWith.value = [];
+    showModal.value = false;
+  } catch (error) {
+    console.error('[Dashboard] Failed to add habit:', error);
+    showToast('Failed to create habit', 'failed');
+  } finally {
+    isAddingHabit.value = false;
+  }
 };
 
 let isInitializingEdit = false;
@@ -1295,22 +1328,31 @@ watch(
 );
 
 const updateHabit = async () => {
-  if (!editingHabit.value || !editTitle.value.trim()) return;
+  if (!editingHabit.value || !editTitle.value.trim() || isUpdatingHabit.value) return;
+  
+  isUpdatingHabit.value = true;
   isDirty.value = false;
   if (autosaveTimeout) {
     clearTimeout(autosaveTimeout);
     autosaveTimeout = null;
   }
-  const updated = await api.updateHabit(editingHabit.value.id, { 
-    title: editTitle.value.trim(),
-    description: editDescription.value.trim(),
-    frequencyCount: editFrequencyCount.value,
-    frequencyPeriod: editFrequencyPeriod.value,
-    sharedwith: editSharedWith.value,
-  });
-  const idx = habits.value.findIndex(h => h.id === editingHabit.value?.id);
-  if (idx >= 0) {
-    habits.value[idx] = updated;
+  try {
+    const updated = await api.updateHabit(editingHabit.value.id, { 
+      title: editTitle.value.trim(),
+      description: editDescription.value.trim(),
+      frequencyCount: editFrequencyCount.value,
+      frequencyPeriod: editFrequencyPeriod.value,
+      sharedwith: editSharedWith.value,
+    });
+    const idx = habits.value.findIndex(h => h.id === editingHabit.value?.id);
+    if (idx >= 0) {
+      habits.value[idx] = updated;
+    }
+  } catch (error) {
+    console.error('[Dashboard] Failed to update habit:', error);
+    showToast('Failed to save changes', 'failed');
+  } finally {
+    isUpdatingHabit.value = false;
   }
 };
 
@@ -1332,11 +1374,20 @@ const cancelSharingSave = () => {
 };
 
 const handleDelete = async () => {
-  if (!editingHabit.value) return;
-  await api.deleteHabit(editingHabit.value.id);
-  habits.value = habits.value.filter(h => h.id !== editingHabit.value?.id);
-  showDeleteModal.value = false;
-  showEditModal.value = false;
+  if (!editingHabit.value || isDeletingHabit.value) return;
+  
+  isDeletingHabit.value = true;
+  try {
+    await api.deleteHabit(editingHabit.value.id);
+    habits.value = habits.value.filter(h => h.id !== editingHabit.value?.id);
+    showDeleteModal.value = false;
+    showEditModal.value = false;
+  } catch (error) {
+    console.error('[Dashboard] Failed to delete habit:', error);
+    showToast('Failed to delete habit', 'failed');
+  } finally {
+    isDeletingHabit.value = false;
+  }
 };
 
 // --- Dynamic Log Fetching ---
