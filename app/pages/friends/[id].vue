@@ -319,7 +319,7 @@
                 class="flex items-center gap-3 p-3 rounded-xl border transition-all cursor-pointer group"
                 :class="selectedHabitIds.includes(habit.id) ? 'bg-white/5 border-white/20' : 'bg-black border-zinc-900 hover:border-zinc-700'"
               >
-                <div class="flex-1 text-sm text-zinc-200 font-medium">{{ habit.title }}</div>
+                <div class="flex-1 text-sm text-zinc-200 font-medium truncate min-w-0">{{ habit.title }}</div>
                 <div class="w-5 h-5 rounded-md border flex items-center justify-center transition-all"
                   :class="selectedHabitIds.includes(habit.id) ? 'bg-white border-white text-black' : 'border-zinc-700 group-hover:border-zinc-500'"
                 >
@@ -481,15 +481,14 @@ const executeAcceptRequest = async () => {
 };
 
 const executeBatchShare = async () => {
-  if (selectedHabitIds.value.length > 0) {
-    await $fetch('/api/social/share-habits', { 
-      method: 'POST', 
-      body: { 
-        targetUserId: friendId, 
-        habitIds: selectedHabitIds.value 
-      } 
-    });
-  }
+  await $fetch('/api/social/share-habits', { 
+    method: 'POST', 
+    body: { 
+      targetUserId: friendId, 
+      habitIds: selectedHabitIds.value,
+      user_date: format(new Date(), 'yyyy-MM-dd')
+    } 
+  });
   showShareModal.value = false;
   load(); // Reload friend data to see if anything changed
 };
