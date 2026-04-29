@@ -63,7 +63,7 @@ export default defineEventHandler(async (event) => {
       return `${yt} and ${dt} (${days} days)`;
     };
     const pronoun = log.ownerid === userId ? 'your' : 'their';
-    const isVeteran = (log.longestStreak || 0) >= 365;
+    const isVeteran = (log.streakCount || 0) >= 365;
     const milestones = [5, 7, 14, 21, 30, 60, 90, 100, 180, 300];
 
     // Rule 1.1: Initial Completion (Day 1)
@@ -110,7 +110,7 @@ export default defineEventHandler(async (event) => {
         }
       }
       // Trigger 2.6: Post-Year Milestone Reached
-      else if (log.streakCount > 365 && milestones.includes(rem)) {
+      else if (log.streakCount > 365 && rem >= 7 && milestones.includes(rem)) {
         type = 'POST_YEAR_MILESTONE';
         message = `hit a ${formatStreak(log.streakCount)} by completing ${log.habitTitle} for ${dateFormatted}!`;
       }

@@ -10,7 +10,7 @@ This document outlines the logic, formatting rules, and trigger events for the h
 Milestones are triggered on the following streak days: **2, 3, 4, 5, 7, 14, 21, 30, 60, 90, 100, 180, 300, Annual (every 365 days).**
 
 ### The Veteran Habit Rule
-For habits that have previously reached a 365-day streak, any new streaks will skip the early milestones (2, 3, 4, and 5 days) to prevent spam. The first milestone notification for these habits will start at 7 days.
+A habit is considered a "veteran" only while its **current active streak** is 365 days or longer. If a streak breaks, the habit returns to "rookie" status, ensuring that starting a fresh streak still triggers early milestones (2, 3, 4, and 5 days) for encouragement. Veteran status (and the skipping of early milestones) only applies once the current streak has surpassed those milestones.
 
 ### Post-Year Formatting Rule
 Everything starting at 365 days must be explicitly formatted to show the years and days, followed by the total days in parentheses.
@@ -40,11 +40,11 @@ Triggers for the first log of a potential streak (Day 1) or actions taken when n
 Chronological triggers for building, maintaining, or losing momentum from Day 2 onwards.
 
 * **Trigger 2.1: Started a Streak (Day 2)**
-    * **Content:** The transition from an isolated log to a streak. (Skipped under the Veteran Habit Rule).
+    * **Content:** The transition from an isolated log to a streak.
     * **Your Activity:** You started a streak by completing Morning Workout for Apr 27. That’s 2 in row!
     * **Friend Activity:** Alex started a streak by completing Morning Workout for Apr 27. That’s 2 in row!
 * **Trigger 2.2: Day 3 & Day 4 Completion**
-    * **Content:** Reaching the 3-day or 4-day mark with a neutral tone (ends in a period). (Skipped under the Veteran Habit Rule).
+    * **Content:** Reaching the 3-day or 4-day mark with a neutral tone (ends in a period).
     * **Your Activity:** You hit a 3-day streak by completing Morning Workout for Apr 27.
     * **Friend Activity:** Alex hit a 4-day streak by completing Morning Workout for Apr 27.
 * **Trigger 2.3: Streak Broken (Fail/Miss)**
