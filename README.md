@@ -83,7 +83,7 @@ The Activity tab is your central hub for social motivation. It provides a real-t
 * **Daily Logs:** See when friends complete, skip, or fail their shared habits.
 * **Streak Milestones:** Celebrate together when you or a friend hits major streak milestones (like 7, 30, 100 days, or annual anniversaries).
 * **Momentum Updates:** Watch as friends build and extend their streaks day by day. 
-
+* **Commitments & Shares:** Stay in the loop when friends start new habits or share their existing journey with you.
 Clicking on any event in the feed brings up the detailed history of that specific habit, so you can see exactly how much work went into that milestone.
 
 ---
@@ -111,7 +111,6 @@ For the best experience, install Habits Social directly to your device. It feels
 We are constantly evolving. Here is what our team is currently building:
 
 * **Buckets:** Create a bucket of your own personal habits to group them together, or link up with friends to build shared buckets where a bucket is only marked complete once everyone in your group has completed their habits.
-* **Public Commitments:** Broadcast when you start a brand new habit to your friends to lock in that day-one accountability.
 
 ---
 
