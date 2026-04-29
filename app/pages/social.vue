@@ -123,7 +123,11 @@
     </div>
 
     <div v-if="activeTab === 'friends'" class="space-y-3">
-      <!-- Incoming Requests Accordion -->
+      <div v-if="isLoading" class="flex justify-center p-12">
+        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
+      </div>
+      <template v-else>
+        <!-- Incoming Requests Accordion -->
       <div v-if="pendingIncoming.length > 0" v-motion-fade class="bg-zinc-925/80 backdrop-blur-sm sm:rounded-2xl rounded-none border-y border-x-0 sm:border border-zinc-800/80 overflow-hidden shadow-2xl">
       <button @click="isRequestsExpanded = !isRequestsExpanded" 
         class="w-full flex items-center justify-between p-6 hover:bg-white/5 transition-colors cursor-pointer group"
@@ -253,7 +257,8 @@
         </div>
       </div>
     </div>
-    </div>
+  </template>
+</div>
 
     <!-- Unfriend Confirmation Modal -->
     <Teleport to="body">
@@ -426,8 +431,8 @@
                   <ChevronLeft class="w-6 h-6" />
                 </button>
                 <div class="flex-1 min-w-0">
-                  <div class="flex items-center gap-2">
-                    <h2 class="text-xl font-bold text-white truncate leading-none">{{ selectedHabit.title }}</h2>
+                  <div class="flex items-center gap-2 min-w-0">
+                    <h2 class="text-xl font-bold text-white truncate leading-none min-w-0">{{ selectedHabit.title }}</h2>
                     <!-- Streak Badge -->
                     <div 
                       v-if="(selectedHabit.currentStreak ?? 0) >= 2"
@@ -579,7 +584,8 @@ const {
   refresh: refreshSocial, 
   init: initSocial, 
   cleanup: cleanupSocial,
-  toggleFavorite
+  toggleFavorite,
+  isLoading
 } = useSocial();
 const showUnfriendModal = ref(false);
 const friendshipToUnfriend = ref<Friendship | null>(null);

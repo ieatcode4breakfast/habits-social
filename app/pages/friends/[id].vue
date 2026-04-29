@@ -153,8 +153,8 @@
                 <ChevronLeft class="w-6 h-6" />
               </button>
               <div class="flex-1 min-w-0">
-                <div class="flex items-center gap-2">
-                  <h2 class="text-xl font-bold text-white truncate leading-none">{{ selectedHabit.title }}</h2>
+                <div class="flex items-center gap-2 min-w-0">
+                  <h2 class="text-xl font-bold text-white truncate leading-none min-w-0">{{ selectedHabit.title }}</h2>
                   <!-- Streak Badge -->
                   <div 
                     v-if="(selectedHabit.currentStreak ?? 0) >= 2"

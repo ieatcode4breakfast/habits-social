@@ -35,9 +35,13 @@
 
     <!-- Habit List (Single Card) -->
     <div v-motion-fade class="bg-zinc-925/80 backdrop-blur-md sm:rounded-2xl rounded-none shadow-2xl border-y border-x-0 sm:border border-zinc-800/80 divide-y divide-zinc-800/80 overflow-x-auto custom-scrollbar">
-      <div v-if="habits.length === 0" class="p-10 text-center text-zinc-500 italic text-sm">
-        No habits yet. Add one above!
+      <div v-if="loading" class="flex justify-center p-12">
+        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
       </div>
+      <template v-else>
+        <div v-if="habits.length === 0" class="p-10 text-center text-zinc-500 italic text-sm">
+          No habits yet. Add one above!
+        </div>
       
       <div 
         v-for="habit in habits" :key="habit.id"
@@ -104,7 +108,7 @@
               
               <div class="relative">
                 <button
-                  @click.stop="openLogMenu(habit, day)"
+                  @click.stop="openLogMenu(habit, day, $event)"
                   class="w-9 h-9 rounded-lg flex items-center justify-center transition-all border-2 cursor-pointer relative"
                   :class="[
                     getStatus(habit.id, day) === 'completed' ? 'bg-emerald-500 border-emerald-500 shadow-md shadow-emerald-500/20' :
@@ -119,17 +123,22 @@
                 </button>
 
                 <!-- Status Dropdown -->
-                <Transition
-                  enter-active-class="transition duration-200 ease-out"
-                  enter-from-class="opacity-0 scale-95 -translate-y-2"
-                  enter-to-class="opacity-100 scale-100 translate-y-0"
-                  leave-active-class="transition duration-150 ease-in"
-                  leave-from-class="opacity-100 scale-100 translate-y-0"
-                  leave-to-class="opacity-0 scale-95 -translate-y-2"
-                >
+                <Teleport to="body">
+                  <Transition
+                    enter-active-class="transition duration-200 ease-out"
+                    enter-from-class="opacity-0 scale-95 -translate-y-2"
+                    enter-to-class="opacity-100 scale-100 translate-y-0"
+                    leave-active-class="transition duration-150 ease-in"
+                    leave-from-class="opacity-100 scale-100 translate-y-0"
+                    leave-to-class="opacity-0 scale-95 -translate-y-2"
+                  >
                     <div 
                       v-if="activeLogMenu && activeLogMenu.habitId === habit.id && isSameDay(activeLogMenu.date, day)"
-                      class="absolute top-full left-1/2 -translate-x-1/2 mt-2 z-[100] bg-zinc-900/95 backdrop-blur-xl border border-zinc-800 rounded-2xl shadow-2xl p-1.5 flex flex-col gap-1.5"
+                      class="fixed z-[200] bg-zinc-900/95 backdrop-blur-xl border border-zinc-800 rounded-2xl shadow-2xl p-1.5 flex flex-col gap-1.5 -translate-x-1/2"
+                      :style="{ 
+                        top: `${menuPosition.top + 8}px`, 
+                        left: `${menuPosition.left}px` 
+                      }"
                       @click.stop
                     >
                       <button
@@ -143,7 +152,8 @@
                         <component :is="opt.icon" class="w-3.5 h-3.5" :class="opt.color" />
                       </button>
                     </div>
-                </Transition>
+                  </Transition>
+                </Teleport>
               </div>
 
               <div class="text-[10px] font-bold" :class="isToday(day) ? 'text-white' : 'text-zinc-500'">
@@ -155,6 +165,7 @@
         </div>
 
       </div>
+      </template>
     </div>
 
 
@@ -345,9 +356,9 @@
                 <button @click="showEditModal = false" class="p-2 text-zinc-500 hover:text-white transition-all cursor-pointer flex-shrink-0">
                   <ChevronLeft class="w-6 h-6" />
                 </button>
-                <div class="flex-1 min-0">
-                  <div class="flex items-center gap-2">
-                    <h2 class="text-xl font-bold text-white truncate leading-none">{{ editTitle }}</h2>
+                <div class="flex-1 min-w-0">
+                  <div class="flex items-center gap-2 min-w-0">
+                    <h2 class="text-xl font-bold text-white truncate leading-none min-w-0">{{ editTitle }}</h2>
                     <!-- Streak Badge -->
                     <div 
                       v-if="(editingHabit?.currentStreak ?? 0) >= 2"
@@ -494,7 +505,7 @@
                         <div class="relative">
                           <button
                             type="button"
-                            @click.stop="openLogMenu(editingHabit!, day)"
+                            @click.stop="openLogMenu(editingHabit!, day, $event)"
                             class="w-8 h-8 rounded-lg flex items-center justify-center transition-all border-2 relative"
                             :class="[
                               (day.getMonth() !== currentCalendarDate.getMonth()) ? 'opacity-30 cursor-not-allowed border-transparent' : 'cursor-pointer',
@@ -511,31 +522,37 @@
                           </button>
 
                           <!-- Status Dropdown (Calendar) -->
-                          <Transition
-                            enter-active-class="transition duration-200 ease-out"
-                            enter-from-class="opacity-0 scale-95 -translate-y-2"
-                            enter-to-class="opacity-100 scale-100 translate-y-0"
-                            leave-active-class="transition duration-150 ease-in"
-                            leave-from-class="opacity-100 scale-100 translate-y-0"
-                            leave-to-class="opacity-0 scale-95 -translate-y-2"
-                          >
-                            <div 
-                              v-if="activeLogMenu && activeLogMenu.habitId === editingHabit?.id && isSameDay(activeLogMenu.date, day)"
-                              class="absolute top-full left-1/2 -translate-x-1/2 mt-2 z-[100] bg-zinc-900/95 backdrop-blur-xl border border-zinc-800 rounded-2xl shadow-2xl p-1 flex flex-col gap-1"
-                              @click.stop
+                          <Teleport to="body">
+                            <Transition
+                              enter-active-class="transition duration-200 ease-out"
+                              enter-from-class="opacity-0 scale-95 -translate-y-2"
+                              enter-to-class="opacity-100 scale-100 translate-y-0"
+                              leave-active-class="transition duration-150 ease-in"
+                              leave-from-class="opacity-100 scale-100 translate-y-0"
+                              leave-to-class="opacity-0 scale-95 -translate-y-2"
                             >
-                              <button
-                                v-for="opt in getLogOptions(editingHabit!, day)"
-                                :key="opt.label"
-                                @click.stop="setLogStatus(editingHabit!, day, opt.status)"
-                                class="w-7 h-7 rounded-lg flex items-center justify-center transition-all border-2 cursor-pointer relative"
-                                :class="opt.bgColor"
-                                :title="opt.label"
+                              <div 
+                                v-if="activeLogMenu && activeLogMenu.habitId === editingHabit?.id && isSameDay(activeLogMenu.date, day)"
+                                class="fixed z-[200] bg-zinc-900/95 backdrop-blur-xl border border-zinc-800 rounded-2xl shadow-2xl p-1 flex flex-col gap-1 -translate-x-1/2"
+                                :style="{ 
+                                  top: `${menuPosition.top + 8}px`, 
+                                  left: `${menuPosition.left}px` 
+                                }"
+                                @click.stop
                               >
-                                <component :is="opt.icon" class="w-3 h-3" :class="opt.color" />
-                              </button>
-                            </div>
-                          </Transition>
+                                <button
+                                  v-for="opt in getLogOptions(editingHabit!, day)"
+                                  :key="opt.label"
+                                  @click.stop="setLogStatus(editingHabit!, day, opt.status)"
+                                  class="w-7 h-7 rounded-lg flex items-center justify-center transition-all border-2 cursor-pointer relative"
+                                  :class="opt.bgColor"
+                                  :title="opt.label"
+                                >
+                                  <component :is="opt.icon" class="w-3 h-3" :class="opt.color" />
+                                </button>
+                              </div>
+                            </Transition>
+                          </Teleport>
                         </div>
                         <div class="text-[9px] font-bold" :class="[
                           isToday(day) ? 'text-white' : 'text-zinc-600',
@@ -812,6 +829,7 @@ const { showToast } = useToast();
 
 const habits = ref<Habit[]>([]);
 const logs = ref<HabitLog[]>([]);
+const loading = ref(true);
 
 const newTitle = ref('');
 const newDescription = ref('');
@@ -959,8 +977,9 @@ const getFrequencyText = (habit: Habit) => {
   return '';
 };
 
-const load = async () => {
-  console.log('[Dashboard] load() triggered');
+const load = async (silent = false) => {
+  console.log('[Dashboard] load() triggered', silent ? '(silent)' : '');
+  if (!silent) loading.value = true;
   try {
     const [h, l] = await Promise.all([
       api.getHabits(), 
@@ -972,6 +991,8 @@ const load = async () => {
     console.log('[Dashboard] Load complete.');
   } catch (error) {
     console.error('[Dashboard] load() failed:', error);
+  } finally {
+    loading.value = false;
   }
 };
 
@@ -983,8 +1004,8 @@ const getStatus = (habitId: string, day: Date) => {
 };
 
 const activeLogMenu = ref<{ habitId: string, date: Date } | null>(null);
-
-const openLogMenu = (habit: Habit, day: Date) => {
+const menuPosition = ref({ top: 0, left: 0 });
+const openLogMenu = (habit: Habit, day: Date, event: MouseEvent) => {
   if (!isMarkable(day)) {
     showToast('You can only update habits for the last 14 days', 'failed');
     return;
@@ -992,6 +1013,11 @@ const openLogMenu = (habit: Habit, day: Date) => {
   if (activeLogMenu.value?.habitId === habit.id && isSameDay(activeLogMenu.value.date, day)) {
     activeLogMenu.value = null;
   } else {
+    const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
+    menuPosition.value = {
+      top: rect.bottom,
+      left: rect.left + rect.width / 2
+    };
     activeLogMenu.value = { habitId: habit.id, date: day };
   }
 };
@@ -1477,9 +1503,41 @@ watch(() => user.value?.id, (newId) => {
   unsubscribeOwnHabits();
   if (newId) {
     console.log('[Dashboard] Subscribing to own habit updates...');
-    unsubscribeOwnHabits = subscribeToFriendHabits(String(newId), () => {
-      console.log('[Dashboard] Own habit update received, reloading...');
-      load();
+    unsubscribeOwnHabits = subscribeToFriendHabits(String(newId), (eventName, data) => {
+      console.log('[Dashboard] Own habit update received:', eventName, data);
+      
+      if (eventName === 'habit-updated' && data?.log && data?.habit) {
+        // Update specific log
+        const logIdx = logs.value.findIndex(l => 
+          l.id === data.log.id || 
+          (l.habitid === data.log.habitid && l.date === data.log.date)
+        );
+        if (logIdx >= 0) logs.value[logIdx] = data.log;
+        else logs.value.push(data.log);
+
+        // Update specific habit (for streaks)
+        const habitIdx = habits.value.findIndex(h => h.id === data.habit.id);
+        if (habitIdx >= 0) habits.value[habitIdx] = data.habit;
+      } else if (eventName === 'habit-deleted') {
+        const hid = data?.habitId || data?.habitid;
+        if (hid && data?.date) {
+          // Specific log was deleted
+          logs.value = logs.value.filter(l => !(l.habitid === hid && l.date === data.date));
+          if (data.habit) {
+            const habitIdx = habits.value.findIndex(h => h.id === data.habit.id);
+            if (habitIdx >= 0) habits.value[habitIdx] = data.habit;
+          }
+        } else if (hid) {
+          // Entire habit was deleted
+          habits.value = habits.value.filter(h => h.id !== hid);
+          logs.value = logs.value.filter(l => l.habitid !== hid);
+        } else {
+          load(true);
+        }
+      } else {
+        // Generic fallback for reorder or other updates
+        load(true);
+      }
     });
   }
 }, { immediate: true });

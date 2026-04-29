@@ -36,54 +36,54 @@ Triggers for the first log of a potential streak (Day 1) or actions taken when n
     * **Your Activity:** You failed Cold Shower for Apr 27.
     * **Friend Activity:** Morgan failed Cold Shower for Apr 27.
 
-### CATEGORY 2: STREAK DYNAMICS
+### CATEGORY 2: STREAK DYNAMICS [COMPLETED]
 Chronological triggers for building, maintaining, or losing momentum from Day 2 onwards.
 
-* **Trigger 2.1: Started a Streak (Day 2)**
+* **Trigger 2.1: Started a Streak (Day 2)** [COMPLETED]
     * **Content:** The transition from an isolated log to a streak.
     * **Your Activity:** You started a streak by completing Morning Workout for Apr 27. That’s 2 in row!
     * **Friend Activity:** Alex started a streak by completing Morning Workout for Apr 27. That’s 2 in row!
-* **Trigger 2.2: Day 3 & Day 4 Completion**
+* **Trigger 2.2: Day 3 & Day 4 Completion** [COMPLETED]
     * **Content:** Reaching the 3-day or 4-day mark with a neutral tone (ends in a period).
     * **Your Activity:** You hit a 3-day streak by completing Morning Workout for Apr 27.
     * **Friend Activity:** Alex hit a 4-day streak by completing Morning Workout for Apr 27.
-* **Trigger 2.3: Streak Broken (Fail/Miss)**
+* **Trigger 2.3: Streak Broken (Fail/Miss)** [COMPLETED]
     * **Content:** A failure or missed day that resets an active streak to zero.
     * **Your Activity:** You failed Cold Shower for Apr 27, bringing your 60-day streak to an end.
     * **Friend Activity:** Morgan failed Cold Shower for Apr 27, bringing a 1-year and 20-day streak (385 days) to an end.
-* **Trigger 2.4: Streak Milestone Reached**
+* **Trigger 2.4: Streak Milestone Reached** [COMPLETED]
     * **Content:** Hitting a major threshold from the list (5, 7, 14, 21, 30, 60, 90, 100, 180, 300).
     * **Your Activity:** You hit a 100-day streak by completing Read 20 Pages for Apr 27!
     * **Friend Activity:** Jordan hit a 300-day streak by completing Read 20 Pages for Apr 27!
-* **Trigger 2.5: Annual Anniversary**
+* **Trigger 2.5: Annual Anniversary** [COMPLETED]
     * **Content:** Reaching exactly 365 days or any multiple thereof, formatted to show years and total days in parentheses.
     * **Your Activity:** You hit a 1-year streak (365 days) by completing Morning Workout for Apr 27!
     * **Friend Activity:** Jordan hit a 2-year streak (730 days) by completing Read 20 Pages for Apr 27!
-* **Trigger 2.6: Post-Year Milestone Reached**
+* **Trigger 2.6: Post-Year Milestone Reached** [COMPLETED]
     * **Content:** Hitting a standard milestone after an annual anniversary. Formatted to show years, days, and total days in parentheses.
     * **Your Activity:** You hit a 2-year and 90-day streak (820 days) by completing Morning Workout for Apr 27!
     * **Friend Activity:** Jordan hit a 1-year and 180-day streak (545 days) by completing Read 20 Pages for Apr 27!
-* **Trigger 2.7: Standard Streak Extension**
+* **Trigger 2.7: Standard Streak Extension** [COMPLETED]
     * **Content:** Ongoing completions on non-milestone days (e.g., Day 10).
     * **Your Activity:** You completed Morning Workout for Apr 27—extending your streak to 10 days!
     * **Friend Activity:** Alex completed Morning Workout for Apr 27—extending their streak to 10 days!
-* **Trigger 2.8: Post-Year Standard Streak Extension**
+* **Trigger 2.8: Post-Year Standard Streak Extension** [COMPLETED]
     * **Content:** Ongoing completions on non-milestone days after the first year.
     * **Your Activity:** You completed Morning Workout for Apr 27—extending your streak to 1-year and 12 days (377 days)!
     * **Friend Activity:** Alex completed Morning Workout for Apr 27—extending their streak to 1-year and 12 days (377 days)!
-* **Trigger 2.9: Streak Maintained (Skip)**
+* **Trigger 2.9: Streak Maintained (Skip)** [COMPLETED]
     * **Content:** Skipping a habit while a streak is active (the streak is paused and protected).
     * **Your Activity:** You skipped No Sugar for Apr 26; your 5-day streak remains intact.
     * **Friend Activity:** Taylor skipped No Sugar for Apr 26; their 1-year and 20-day streak (385 days) remains intact.
 
-### CATEGORY 3: SOCIAL & SHARING
-Triggers for visibility and network actions.
+### CATEGORY 3: SOCIAL & SHARING [PENDING]
+Triggers for visibility and network actions. *(Note: Currently pending architectural expansion, as the feed strictly queries `habitlogs` which does not record social sharing events).*
 
-* **Trigger 3.1: Public Commitment (New Habit)**
+* **Trigger 3.1: Public Commitment (New Habit)** [PENDING]
     * **Content:** Triggered only when a user creates a new habit and selects specific friends to share it with.
     * **Your Activity:** You committed to a new habit: Morning Workout on Apr 27.
     * **Friend Activity:** Alex committed to a new habit: Morning Workout on Apr 27.
-* **Trigger 3.2: Shared a habit with you**
+* **Trigger 3.2: Shared a habit with you** [PENDING]
     * **Content:** A user grants visibility into one of their existing habits.
     * **Your Activity:** You shared Morning Workout with Morgan on Apr 27.
     * **Friend Activity:** Alex shared Morning Workout with you on Apr 27.
@@ -106,12 +106,18 @@ The backend calculates the streak and stamps it directly into the database logs.
 The backend provides "Ready-to-Render" activity events via the `/api/social/feed` endpoint.
 * **Action [x]:** Query the database for `habitlogs` belonging to active friends (where `sharedwith` includes the user) **AND** the user's own logs, allowing personal activity to appear in the feed.
 * **Action [x]:** Hydrate events with `username` and `photourl` by joining with the `users` and `habits` tables. Apply a `LIMIT 100` to the query.
-* **Action [x]:** Implement the "Narrator" logic to structure the payload. Drop raw schema output in favor of nested `user` and `habit` objects. Explicitly convert the username to 'You' if the log belongs to the authenticated user.
+* **Action [x]:** Implement the "Narrator" logic to structure the payload into distinct types (`INITIAL_COMPLETION`, `STREAK_STARTED`, `STREAK_BROKEN`, `ANNUAL_ANNIVERSARY`, etc.). Explicitly convert the username to 'You' if the log belongs to the authenticated user.
 * **Action [x]:** Apply multi-tier sorting: `ORDER BY date DESC, updatedat DESC, id DESC`.
 
 ## Phase 4: Frontend UI and Interactive Feed [COMPLETED - Categories 1 & 2]
-The frontend consumes the feed and handles layout, routing, and styling.
+The frontend consumes the feed and handles layout, routing, and styling (`app/pages/social.vue`).
 * **Action [x]:** Build the UI Feed component that iterates through the API payload and groups items visually by their assigned `date` property.
 * **Action [x]:** Implement conditional routing on Avatar & Name: Navigate to the friend's profile only if the activity belongs to a friend (preventing self-routing).
 * **Action [x]:** Implement inline details: Clicking a feed card opens the **Habit Details Modal** (`openHabitDetails`), instead of routing to a specific habit view page.
-* **Action [x]:** Apply dynamic styling based on the event `type` (e.g., an emerald Check for `INITIAL_COMPLETION`, a rose X icon for `INITIAL_FAILURE`, etc.).
+* **Action [x]:** Apply dynamic styling mapping to the event `type` generated by the backend:
+    * Emerald `Check` icon for `INITIAL_COMPLETION`
+    * Rose `XIcon` for `INITIAL_FAILURE`
+    * Rose `HeartCrack` icon for `STREAK_BROKEN`
+    * Violet `Trophy` icon for Milestones and Anniversaries
+    * Amber `Flame` icon for streak continuations/extensions
+    * Zinc `Shield` icon for `STREAK_MAINTAINED` (Skips)
