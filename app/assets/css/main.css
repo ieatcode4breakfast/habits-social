@@ -10,12 +10,14 @@
   --color-card-bg: rgba(16, 16, 19, 0.8);
 }
 
-body {
+html, body {
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   background-color: var(--color-app-bg);
   color: #F8FAFC;
+  touch-action: manipulation;
+  overflow-x: hidden;
 }
 
 ::-webkit-scrollbar {
@@ -48,6 +50,11 @@ input, textarea {
   -moz-user-select: text;
   -ms-user-select: text;
   user-select: text;
+}
+
+/* Global 16px font size for form elements to prevent auto-zoom and ensure readability */
+input, textarea, select {
+  font-size: 16px !important;
 }
 
 /* Adaptive Height Modals: Triggered via JS when content overflows window height */

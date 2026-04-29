@@ -8,6 +8,11 @@ export default defineNuxtConfig({
     '@vueuse/motion/nuxt',
     '@nuxtjs/seo'
   ],
+  app: {
+    head: {
+      viewport: 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0',
+    }
+  },
   site: {
     url: 'https://www.habitssocial.com',
     name: 'HabitsSocial',

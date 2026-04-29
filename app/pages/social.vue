@@ -74,7 +74,7 @@
 
               <!-- Content -->
               <div class="flex-1 min-w-0">
-                <div class="text-sm leading-relaxed min-w-0">
+                <div class="text-sm leading-relaxed min-w-0 break-all">
                   <span 
                     @click="String(item.user.id) !== String(user?.id) ? ($event.stopPropagation(), navigateTo(`/friends/${item.user.id}?from=${activeTab}`)) : null"
                     class="font-bold text-zinc-100 transition-colors cursor-pointer mr-1.5"
@@ -88,7 +88,7 @@
                 </div>
                 <div class="flex items-center gap-2 mt-1">
 
-                  <span class="text-[10px] font-bold uppercase tracking-wider text-zinc-500">
+                  <span class="text-[10px] font-bold uppercase tracking-wider text-zinc-500 break-all">
                     {{ item.habit.title }}
                   </span>
                 </div>
