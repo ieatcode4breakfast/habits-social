@@ -57,7 +57,7 @@
             <div 
               v-for="item in group" 
               :key="item.id"
-              @click="openHabitDetails(item.habit.id)"
+              @click="item.habit?.id ? openHabitDetails(item.habit.id) : null"
               class="group bg-zinc-925/50 hover:bg-zinc-900/80 border-b border-zinc-800/50 last:border-b-0 sm:border sm:border-zinc-800/50 sm:rounded-2xl p-4 transition-all duration-300 cursor-pointer flex items-center gap-4 shadow-sm"
             >
               <!-- Avatar -->
@@ -104,6 +104,8 @@
                     ['STREAK_STARTED', 'STREAK_MILESTONE', 'ANNUAL_ANNIVERSARY', 'POST_YEAR_MILESTONE'].includes(item.type) ? 'bg-violet-500/10 border-violet-500/20 text-violet-500 shadow-lg shadow-violet-500/20' :
                     ['STREAK_CONTINUED', 'STREAK_EXTENSION', 'POST_YEAR_EXTENSION'].includes(item.type) ? 'bg-amber-500/10 border-amber-500/20 text-amber-500' :
                     item.type === 'STREAK_MAINTAINED' ? 'bg-zinc-500/10 border-zinc-500/20 text-zinc-400' :
+                    item.type === 'COMMITMENT' ? 'bg-indigo-500/10 border-indigo-500/20 text-indigo-500' :
+                    item.type === 'SHARE' ? 'bg-sky-500/10 border-sky-500/20 text-sky-500' :
                     'bg-zinc-500/10 border-zinc-500/20 text-zinc-500'
                   ]"
                 >
@@ -113,6 +115,8 @@
                   <Trophy v-else-if="['STREAK_STARTED', 'STREAK_MILESTONE', 'ANNUAL_ANNIVERSARY', 'POST_YEAR_MILESTONE'].includes(item.type)" class="w-4 h-4" />
                   <Flame v-else-if="['STREAK_CONTINUED', 'STREAK_EXTENSION', 'POST_YEAR_EXTENSION'].includes(item.type)" class="w-4 h-4" />
                   <Shield v-else-if="item.type === 'STREAK_MAINTAINED'" class="w-4 h-4" />
+                  <Target v-else-if="item.type === 'COMMITMENT'" class="w-4 h-4" />
+                  <Share2 v-else-if="item.type === 'SHARE'" class="w-4 h-4" />
                   <Minus v-else class="w-4 h-4" />
                 </div>
               </div>
@@ -550,7 +554,7 @@
 
 <script setup lang="ts">
 defineOptions({ name: 'social' });
-import { Search, UserPlus, UserMinus, Check, X as XIcon, User, Trash2, ChevronDown, CheckSquare, Activity, Star, Minus, ChevronLeft, ChevronRight, Flame, HeartCrack, Trophy, Shield } from 'lucide-vue-next';
+import { Search, UserPlus, UserMinus, Check, X as XIcon, User, Trash2, ChevronDown, CheckSquare, Activity, Star, Minus, ChevronLeft, ChevronRight, Flame, HeartCrack, Trophy, Shield, Target, Share2 } from 'lucide-vue-next';
 import { format, parseISO, isToday, addDays, startOfMonth, endOfMonth, eachDayOfInterval, subDays, isAfter, startOfDay, subMonths, addMonths } from 'date-fns';
 import { useSocial } from '../composables/useSocial';
 
@@ -958,7 +962,8 @@ const executeBatchShare = async () => {
       method: 'POST', 
       body: { 
         targetUserId: userBeingSharedWith.value.id, 
-        habitIds: selectedHabitIds.value 
+        habitIds: selectedHabitIds.value,
+        user_date: format(new Date(), 'yyyy-MM-dd')
       } 
     });
   }

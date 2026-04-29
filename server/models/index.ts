@@ -20,8 +20,18 @@ export interface IHabit {
   currentStreak: number;
   longestStreak: number;
   streakAnchorDate: Date | null;
+  user_date?: string;
   createdAt: Date;
   updatedat: Date;
+}
+
+export interface IShareEvent {
+  id?: string;
+  ownerid: string;
+  recipientid: string;
+  habitids: string[];
+  user_date: string;
+  created_at: Date;
 }
 
 export interface IHabitLog {

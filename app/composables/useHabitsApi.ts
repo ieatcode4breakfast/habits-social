@@ -11,6 +11,7 @@ export interface Habit {
   currentStreak?: number;
   longestStreak?: number;
   streakAnchorDate?: string | null;
+  user_date?: string;
 }
 
 export interface HabitLog {

@@ -1178,7 +1178,8 @@ const addHabit = async () => {
       frequencyCount: newFrequencyCount.value,
       frequencyPeriod: newFrequencyPeriod.value,
       sharedwith: newSharedWith.value,
-      color: '#6366f1' 
+      color: '#6366f1',
+      user_date: format(new Date(), 'yyyy-MM-dd')
     });
     habits.value.push(habit);
     newTitle.value = '';
@@ -1369,6 +1370,7 @@ const updateHabit = async () => {
       frequencyCount: editFrequencyCount.value,
       frequencyPeriod: editFrequencyPeriod.value,
       sharedwith: editSharedWith.value,
+      user_date: format(new Date(), 'yyyy-MM-dd'),
     });
     const idx = habits.value.findIndex(h => h.id === editingHabit.value?.id);
     if (idx >= 0) {

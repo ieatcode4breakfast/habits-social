@@ -76,17 +76,19 @@ Chronological triggers for building, maintaining, or losing momentum from Day 2 
     * **Your Activity:** You skipped No Sugar for Apr 26; your 5-day streak remains intact.
     * **Friend Activity:** Taylor skipped No Sugar for Apr 26; their 1-year and 20-day streak (385 days) remains intact.
 
-### CATEGORY 3: SOCIAL & SHARING [PENDING]
-Triggers for visibility and network actions. *(Note: Currently pending architectural expansion, as the feed strictly queries `habitlogs` which does not record social sharing events).*
+### CATEGORY 3: SOCIAL & SHARING [COMPLETED]
+Triggers for visibility and network actions.
 
-* **Trigger 3.1: Public Commitment (New Habit)** [PENDING]
+* **Trigger 3.1: Public Commitment (New Habit)** [COMPLETED]
     * **Content:** Triggered only when a user creates a new habit and selects specific friends to share it with.
     * **Your Activity:** You committed to a new habit: Morning Workout on Apr 27.
     * **Friend Activity:** Alex committed to a new habit: Morning Workout on Apr 27.
-* **Trigger 3.2: Shared a habit with you** [PENDING]
-    * **Content:** A user grants visibility into one of their existing habits.
-    * **Your Activity:** You shared Morning Workout with Morgan on Apr 27.
-    * **Friend Activity:** Alex shared Morning Workout with you on Apr 27.
+* **Trigger 3.2: Shared a habit with you** [COMPLETED]
+    * **Content:** A user grants visibility into one or more habits. Grouped: if multiple habits are shared at once, a single event is produced.
+    * **Your Activity (1 habit):** You shared Morning Workout with Morgan on Apr 27.
+    * **Your Activity (N habits):** You shared 3 habits with Morgan on Apr 27.
+    * **Friend Activity (1 habit):** Alex shared Morning Workout with you on Apr 27.
+    * **Friend Activity (N habits):** Alex shared 3 habits with you on Apr 27.
 
 # Habits Social: Activity Feed Implementation Plan
 
@@ -121,3 +123,14 @@ The frontend consumes the feed and handles layout, routing, and styling (`app/pa
     * Violet `Trophy` icon for Milestones and Anniversaries
     * Amber `Flame` icon for streak continuations/extensions
     * Zinc `Shield` icon for `STREAK_MAINTAINED` (Skips)
+    * Indigo `Target` icon for `COMMITMENT` (New Habit)
+    * Sky `Share2` icon for `SHARE` (Shared Habits)
+
+## Phase 5: Category 3 — Social & Sharing [COMPLETED]
+The backend records social events in dedicated tables and the feed aggregates them alongside habit logs.
+* **Action [x]:** Add `user_date` column to `habits` table to capture the user's local date on creation.
+* **Action [x]:** Create `share_events` table to record grouped share actions (`ownerid`, `recipientid`, `habitids UUID[]`, `user_date`).
+* **Action [x]:** Update habit creation to store `user_date`.
+* **Action [x]:** Update all three sharing entry points (`share-habits.post.ts`, `habits/[id].ts`, `social.vue`) to record `share_events`.
+* **Action [x]:** Expand the feed aggregation API to query `habits` (for commitments) and `share_events` (for shares), merge with habit logs, and apply multi-tier sorting.
+* **Action [x]:** Add frontend icon/color mapping for `COMMITMENT` and `SHARE` event types.

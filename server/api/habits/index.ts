@@ -23,10 +23,11 @@ export default defineEventHandler(async (event) => {
     const frequencyPeriod = body.frequencyPeriod || 'daily';
     const color = body.color || '#6366f1';
     const sharedwith = body.sharedwith && Array.isArray(body.sharedwith) ? body.sharedwith : [];
+    const user_date = body.user_date || null;
 
     const result = await sql`
-      INSERT INTO habits (ownerid, title, description, "frequencyCount", "frequencyPeriod", color, sharedwith, "sortOrder", "createdAt", updatedat)
-      VALUES (${userId}, ${title}, ${description}, ${frequencyCount}, ${frequencyPeriod}, ${color}, ${sharedwith}, ${nextSortOrder}, NOW(), NOW())
+      INSERT INTO habits (ownerid, title, description, "frequencyCount", "frequencyPeriod", color, sharedwith, "sortOrder", user_date, "createdAt", updatedat)
+      VALUES (${userId}, ${title}, ${description}, ${frequencyCount}, ${frequencyPeriod}, ${color}, ${sharedwith}, ${nextSortOrder}, ${user_date}, NOW(), NOW())
       RETURNING *
     `;
 

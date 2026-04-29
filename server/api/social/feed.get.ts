@@ -14,13 +14,11 @@ export default defineEventHandler(async (event) => {
 
   const friendIds = friendships.map(f => f.initiatorId === userId ? f.receiverId : f.initiatorId);
 
-  // If no friends, return empty feed (or just user's own activity? For now, following plan: friends only)
-  if (friendIds.length === 0) return [];
+  // If no friends, only show user's own activity
+  const hasFriends = friendIds.length > 0;
 
-  // 2. Query logs with metadata and visibility filtering
-  // We join with habits to check current visibility (sharedwith) and get title/color
-  // We join with users to get actor details
-  const logs = await sql`
+  // 2. Query habit logs (Categories 1 & 2)
+  const logs = hasFriends ? await sql`
     SELECT 
       l.*, 
       h.title as "habitTitle", 
@@ -34,17 +32,92 @@ export default defineEventHandler(async (event) => {
       OR (l.ownerid::text = ${userId}::text)
     ORDER BY l.date DESC, l.updatedat DESC, l.id DESC
     LIMIT 100
+  ` : await sql`
+    SELECT 
+      l.*, 
+      h.title as "habitTitle", 
+      h."longestStreak",
+      u.username, 
+      u.photourl
+    FROM habitlogs l
+    JOIN habits h ON l.habitid::uuid = h.id
+    JOIN users u ON l.ownerid::uuid = u.id
+    WHERE l.ownerid::text = ${userId}::text
+    ORDER BY l.date DESC, l.updatedat DESC, l.id DESC
+    LIMIT 100
   `;
 
-  // 3. The "Narrator" Logic (Category 1: Initial & Isolated Logs)
-  // For now, we only filter and map Category 1 triggers as requested.
-  const feed = logs.map(log => {
+  // 3. Query habit commitments (Category 3 - Trigger 3.1)
+  const commitments = hasFriends ? await sql`
+    SELECT h.id, h.ownerid, h.user_date as date, h."createdAt" as updatedat,
+           h.title as "habitTitle", h.sharedwith,
+           u.username, u.photourl
+    FROM habits h
+    JOIN users u ON h.ownerid::uuid = u.id
+    WHERE h.user_date IS NOT NULL
+      AND (
+        (h.ownerid::text = ANY(${friendIds}) AND ${userId}::text = ANY(h.sharedwith))
+        OR h.ownerid::text = ${userId}::text
+      )
+    ORDER BY h.user_date DESC, h."createdAt" DESC
+    LIMIT 100
+  ` : await sql`
+    SELECT h.id, h.ownerid, h.user_date as date, h."createdAt" as updatedat,
+           h.title as "habitTitle", h.sharedwith,
+           u.username, u.photourl
+    FROM habits h
+    JOIN users u ON h.ownerid::uuid = u.id
+    WHERE h.user_date IS NOT NULL
+      AND h.ownerid::text = ${userId}::text
+    ORDER BY h.user_date DESC, h."createdAt" DESC
+    LIMIT 100
+  `;
+
+  // 4. Query share events (Category 3 - Trigger 3.2)
+  const shareEvents = hasFriends ? await sql`
+    SELECT se.id, se.ownerid, se.recipientid, se.habitids,
+           se.user_date as date, se.created_at as updatedat,
+           u.username, u.photourl,
+           ru.username as recipient_username
+    FROM share_events se
+    JOIN users u ON se.ownerid::uuid = u.id
+    JOIN users ru ON se.recipientid::uuid = ru.id
+    WHERE (
+        (se.ownerid::text = ANY(${friendIds}) AND se.recipientid::text = ${userId}::text)
+        OR se.ownerid::text = ${userId}::text
+      )
+    ORDER BY se.user_date DESC, se.created_at DESC
+    LIMIT 100
+  ` : await sql`
+    SELECT se.id, se.ownerid, se.recipientid, se.habitids,
+           se.user_date as date, se.created_at as updatedat,
+           u.username, u.photourl,
+           ru.username as recipient_username
+    FROM share_events se
+    JOIN users u ON se.ownerid::uuid = u.id
+    JOIN users ru ON se.recipientid::uuid = ru.id
+    WHERE se.ownerid::text = ${userId}::text
+    ORDER BY se.user_date DESC, se.created_at DESC
+    LIMIT 100
+  `;
+
+  // 5. Resolve habit titles for share events
+  const allShareHabitIds = shareEvents.flatMap((se: any) => se.habitids || []);
+  let shareHabitTitles: Record<string, string> = {};
+  if (allShareHabitIds.length > 0) {
+    const habitRows = await sql`
+      SELECT id, title FROM habits WHERE id = ANY(${allShareHabitIds}::uuid[])
+    `;
+    shareHabitTitles = Object.fromEntries(habitRows.map((r: any) => [String(r.id), r.title]));
+  }
+
+  // 6. The "Narrator" Logic — Categories 1 & 2 (habit logs)
+  const feedFromLogs = logs.map((log: any) => {
     let type = '';
     let message = '';
 
     const dateFormatted = format(parseISO(log.date), 'MMM d');
 
-    // Helper functions and constants for Category 2
     const formatStreak = (days: number) => {
       if (days < 365) return `${days}-day streak`;
       const years = Math.floor(days / 365);
@@ -90,7 +163,7 @@ export default defineEventHandler(async (event) => {
       // Trigger 2.1: Started a Streak (Day 2)
       if (log.streakCount === 2 && !isVeteran) {
         type = 'STREAK_STARTED';
-        message = `started a streak by completing ${log.habitTitle} for ${dateFormatted}. That’s 2 in row!`;
+        message = `started a streak by completing ${log.habitTitle} for ${dateFormatted}. That's 2 in row!`;
       }
       // Trigger 2.2: Day 3 & Day 4 Completion
       else if ((log.streakCount === 3 || log.streakCount === 4) && !isVeteran) {
@@ -138,7 +211,6 @@ export default defineEventHandler(async (event) => {
       message = `skipped ${log.habitTitle} for ${dateFormatted}; ${pronoun} ${formatStreak(log.streakCount)} remains intact.`;
     }
 
-    // Only return if it matched a trigger
     if (type) {
       return {
         id: log.id,
@@ -160,5 +232,74 @@ export default defineEventHandler(async (event) => {
     return null;
   }).filter(Boolean);
 
-  return feed;
+  // 7. Narrator Logic — Category 3: Commitments (Trigger 3.1)
+  const feedFromCommitments = commitments.map((c: any) => {
+    const dateFormatted = format(parseISO(c.date), 'MMM d');
+    return {
+      id: `commitment-${c.id}`,
+      type: 'COMMITMENT',
+      user: {
+        id: c.ownerid,
+        name: c.ownerid === userId ? 'You' : c.username,
+        photoUrl: c.photourl
+      },
+      habit: {
+        id: c.id,
+        title: c.habitTitle
+      },
+      message: `committed to a new habit: ${c.habitTitle} on ${dateFormatted}.`,
+      date: c.date,
+      timestamp: c.updatedat
+    };
+  });
+
+  // 8. Narrator Logic — Category 3: Share Events (Trigger 3.2)
+  const feedFromShares = shareEvents.map((se: any) => {
+    const dateFormatted = format(parseISO(se.date), 'MMM d');
+    const habitIds = (se.habitids || []).map(String);
+    const habits = habitIds.map((hid: string) => ({
+      id: hid,
+      title: shareHabitTitles[hid] || 'Unknown Habit'
+    }));
+
+    const isOwner = se.ownerid === userId;
+    const recipientLabel = se.recipientid === userId ? 'you' : se.recipient_username;
+
+    let message: string;
+    if (habits.length === 1) {
+      message = `shared ${habits[0].title} with ${recipientLabel} on ${dateFormatted}.`;
+    } else {
+      message = `shared ${habits.length} habits with ${recipientLabel} on ${dateFormatted}.`;
+    }
+
+    return {
+      id: `share-${se.id}`,
+      type: 'SHARE',
+      user: {
+        id: se.ownerid,
+        name: isOwner ? 'You' : se.username,
+        photoUrl: se.photourl
+      },
+      habit: habits.length === 1 ? habits[0] : { id: habits[0]?.id || '', title: habits.map((h: any) => h.title).join(', ') },
+      habits,
+      message,
+      date: se.date,
+      timestamp: se.updatedat
+    };
+  });
+
+  // 9. Merge all sources & sort by date DESC, timestamp DESC, id DESC
+  const allFeed = [...feedFromLogs, ...feedFromCommitments, ...feedFromShares];
+  allFeed.sort((a: any, b: any) => {
+    // Primary: date descending
+    if (a.date !== b.date) return a.date > b.date ? -1 : 1;
+    // Secondary: timestamp descending
+    const tsA = new Date(a.timestamp).getTime();
+    const tsB = new Date(b.timestamp).getTime();
+    if (tsA !== tsB) return tsB - tsA;
+    // Tertiary: id descending (string compare)
+    return String(b.id).localeCompare(String(a.id));
+  });
+
+  return allFeed.slice(0, 100);
 });
