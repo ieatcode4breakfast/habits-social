@@ -57,7 +57,7 @@
             <div 
               v-for="item in group" 
               :key="item.id"
-              @click="item.habit?.id ? openHabitDetails(item.habit.id) : null"
+              @click="item.habit?.id ? openHabitDetails(item.habit.id) : (String(item.user.id) !== String(user?.id) ? navigateTo(`/friends/${item.user.id}?from=${activeTab}`) : null)"
               class="group bg-zinc-925/50 hover:bg-zinc-900/80 border-b border-zinc-800/50 last:border-b-0 sm:border sm:border-zinc-800/50 sm:rounded-2xl p-4 transition-all duration-300 cursor-pointer flex items-center gap-4 shadow-sm"
             >
               <!-- Avatar -->
@@ -557,10 +557,12 @@ defineOptions({ name: 'social' });
 import { Search, UserPlus, UserMinus, Check, X as XIcon, User, Trash2, ChevronDown, CheckSquare, Activity, Star, Minus, ChevronLeft, ChevronRight, Flame, HeartCrack, Trophy, Shield, Target, Share2 } from 'lucide-vue-next';
 import { format, parseISO, isToday, addDays, startOfMonth, endOfMonth, eachDayOfInterval, subDays, isAfter, startOfDay, subMonths, addMonths } from 'date-fns';
 import { useSocial } from '../composables/useSocial';
+import { useToast } from '../composables/useToast';
 
 definePageMeta({ middleware: 'auth' });
 
 const { user } = useAuth();
+const { showToast } = useToast();
 const route = useRoute();
 const activeTab = computed({
   get: () => (route.query.tab as 'activity' | 'friends') || 'activity',
@@ -613,16 +615,18 @@ const currentCalendarDate = ref(new Date());
 const calendarLoading = ref(false);
 
 const openHabitDetails = async (habitId: string) => {
-  showHabitModal.value = true;
   habitLoading.value = true;
   try {
     const data = await $fetch<any>(`/api/social/habit-details`, { query: { habitId } });
     selectedHabit.value = data.habit;
     selectedHabitLogs.value = data.logs;
     currentCalendarDate.value = new Date();
-  } catch (err) {
+    showHabitModal.value = true;
+  } catch (err: any) {
     console.error('Error fetching habit details:', err);
-    showHabitModal.value = false;
+    if (err.statusCode === 404) {
+      showToast('This habit is no longer shared with you', 'failed');
+    }
   } finally {
     habitLoading.value = false;
   }

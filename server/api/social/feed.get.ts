@@ -280,7 +280,7 @@ export default defineEventHandler(async (event) => {
         name: isOwner ? 'You' : se.username,
         photoUrl: se.photourl
       },
-      habit: habits.length === 1 ? habits[0] : { id: habits[0]?.id || '', title: habits.map((h: any) => h.title).join(', ') },
+      habit: habits.length === 1 ? habits[0] : { id: null, title: habits.map((h: any) => h.title).join(', ') },
       habits,
       message,
       date: se.date,
