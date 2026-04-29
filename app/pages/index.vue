@@ -1050,29 +1050,66 @@ const getLogOptions = (habit: Habit, day: Date) => {
 
 const setLogStatus = async (habit: Habit, day: Date, nextStatus: 'completed' | 'failed' | 'skipped' | null) => {
   const dateStr = format(day, 'yyyy-MM-dd');
+  const originalLogs = JSON.parse(JSON.stringify(logs.value));
+  const originalHabits = JSON.parse(JSON.stringify(habits.value));
 
+  // 1. Optimistic UI Update
   if (nextStatus) {
-    const { log, habit: updatedHabit } = await api.upsertLog({ habitid: habit.id, date: dateStr, status: nextStatus, sharedwith: habit.sharedwith });
-    
     const idx = logs.value.findIndex(l => l.habitid === habit.id && l.date === dateStr);
-    if (idx >= 0) logs.value[idx] = log;
-    else logs.value.push(log);
-
-    const habitIdx = habits.value.findIndex(h => h.id === habit.id);
-    if (habitIdx >= 0) habits.value[habitIdx] = updatedHabit;
+    const existingLog = logs.value[idx];
+    if (existingLog) {
+      existingLog.status = nextStatus;
+    } else {
+      logs.value.push({
+        id: `temp-${Date.now()}`,
+        habitid: habit.id,
+        ownerid: user.value?.id || '',
+        date: dateStr,
+        status: nextStatus,
+        sharedwith: habit.sharedwith || []
+      });
+    }
     
     if (nextStatus === 'completed') showToast('Completed', 'completed');
     else if (nextStatus === 'failed') showToast('Failed', 'failed');
     else if (nextStatus === 'skipped') showToast('Skipped', 'skipped');
   } else {
-    const { habit: updatedHabit } = await api.deleteLog(habit.id, dateStr);
     logs.value = logs.value.filter(l => !(l.habitid === habit.id && l.date === dateStr));
-    const habitIdx = habits.value.findIndex(h => h.id === habit.id);
-    if (habitIdx >= 0) habits.value[habitIdx] = updatedHabit;
     showToast('Cleared', 'cleared');
   }
 
   activeLogMenu.value = null;
+
+  // 2. Background Sync
+  try {
+    if (nextStatus) {
+      const { log, habit: updatedHabit } = await api.upsertLog({ 
+        habitid: habit.id, 
+        date: dateStr, 
+        status: nextStatus, 
+        sharedwith: habit.sharedwith 
+      });
+      
+      // Update with real server data (ensures correct IDs and recalculated streaks)
+      const idx = logs.value.findIndex(l => l.habitid === habit.id && l.date === dateStr);
+      if (idx >= 0) logs.value[idx] = log;
+      
+      const habitIdx = habits.value.findIndex(h => h.id === habit.id);
+      if (habitIdx >= 0) habits.value[habitIdx] = updatedHabit;
+    } else {
+      const { habit: updatedHabit } = await api.deleteLog(habit.id, dateStr);
+      
+      // Update habits array with returned habit (updated streaks)
+      const habitIdx = habits.value.findIndex(h => h.id === habit.id);
+      if (habitIdx >= 0) habits.value[habitIdx] = updatedHabit;
+    }
+  } catch (error) {
+    console.error('[Optimistic Update] Sync failed:', error);
+    // 3. Revert on failure
+    logs.value = originalLogs;
+    habits.value = originalHabits;
+    showToast('Failed to sync. Reverting...', 'failed');
+  }
 };
 
 const toggleLog = async (habit: Habit, day: Date) => {
