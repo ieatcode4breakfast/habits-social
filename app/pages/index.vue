@@ -102,20 +102,49 @@
                 {{ format(day, 'EEE') }}
               </div>
               
-              <button
-                @click.stop="toggleLog(habit, day)"
-                class="w-9 h-9 rounded-lg flex items-center justify-center transition-all border-2 cursor-pointer relative"
-                :class="[
-                  getStatus(habit.id, day) === 'completed' ? 'bg-emerald-500 border-emerald-500 shadow-md shadow-emerald-500/20' :
-                  getStatus(habit.id, day) === 'failed' ? 'bg-rose-500 border-rose-500 shadow-md shadow-rose-500/20' :
-                  getStatus(habit.id, day) === 'skipped' ? 'bg-zinc-500 border-zinc-500 shadow-none' :
-                  'bg-transparent hover:bg-zinc-925 border-dashed border-zinc-800'
-                ]"
-              >
-                <Check v-if="getStatus(habit.id, day) === 'completed'" class="w-4 h-4 text-white" />
-                <XIcon v-else-if="getStatus(habit.id, day) === 'failed'" class="w-4 h-4 text-white" />
-                <Minus v-else-if="getStatus(habit.id, day) === 'skipped'" class="w-4 h-4 text-white" />
-              </button>
+              <div class="relative">
+                <button
+                  @click.stop="openLogMenu(habit, day)"
+                  class="w-9 h-9 rounded-lg flex items-center justify-center transition-all border-2 cursor-pointer relative"
+                  :class="[
+                    getStatus(habit.id, day) === 'completed' ? 'bg-emerald-500 border-emerald-500 shadow-md shadow-emerald-500/20' :
+                    getStatus(habit.id, day) === 'failed' ? 'bg-rose-500 border-rose-500 shadow-md shadow-rose-500/20' :
+                    getStatus(habit.id, day) === 'skipped' ? 'bg-zinc-500 border-zinc-500 shadow-none' :
+                    'bg-transparent hover:bg-zinc-925 border-dashed border-zinc-800'
+                  ]"
+                >
+                  <Check v-if="getStatus(habit.id, day) === 'completed'" class="w-4 h-4 text-white" />
+                  <XIcon v-else-if="getStatus(habit.id, day) === 'failed'" class="w-4 h-4 text-white" />
+                  <Minus v-else-if="getStatus(habit.id, day) === 'skipped'" class="w-4 h-4 text-white" />
+                </button>
+
+                <!-- Status Dropdown -->
+                <Transition
+                  enter-active-class="transition duration-200 ease-out"
+                  enter-from-class="opacity-0 scale-95 -translate-y-2"
+                  enter-to-class="opacity-100 scale-100 translate-y-0"
+                  leave-active-class="transition duration-150 ease-in"
+                  leave-from-class="opacity-100 scale-100 translate-y-0"
+                  leave-to-class="opacity-0 scale-95 -translate-y-2"
+                >
+                    <div 
+                      v-if="activeLogMenu && activeLogMenu.habitId === habit.id && isSameDay(activeLogMenu.date, day)"
+                      class="absolute top-full left-1/2 -translate-x-1/2 mt-2 z-[100] bg-zinc-900/95 backdrop-blur-xl border border-zinc-800 rounded-2xl shadow-2xl p-1.5 flex flex-col gap-1.5"
+                      @click.stop
+                    >
+                      <button
+                        v-for="opt in getLogOptions(habit, day)"
+                        :key="opt.label"
+                        @click.stop="setLogStatus(habit, day, opt.status)"
+                        class="w-8 h-8 rounded-lg flex items-center justify-center transition-all border-2 cursor-pointer relative"
+                        :class="opt.bgColor"
+                        :title="opt.label"
+                      >
+                        <component :is="opt.icon" class="w-3.5 h-3.5" :class="opt.color" />
+                      </button>
+                    </div>
+                </Transition>
+              </div>
 
               <div class="text-[10px] font-bold" :class="isToday(day) ? 'text-white' : 'text-zinc-500'">
                 {{ format(day, 'd') }}
@@ -442,23 +471,52 @@
 
                       <!-- Calendar Grid -->
                       <div v-for="(day, i) in calendarDays" :key="i" class="flex flex-col items-center gap-1">
-                        <button
-                          type="button"
-                          @click="toggleLog(editingHabit!, day)"
-                          class="w-8 h-8 rounded-lg flex items-center justify-center transition-all border-2 relative"
-                          :class="[
-                            (day.getMonth() !== currentCalendarDate.getMonth()) ? 'opacity-30 cursor-not-allowed border-transparent' : 'cursor-pointer',
-                            !isMarkable(day) && day.getMonth() === currentCalendarDate.getMonth() ? 'opacity-50' : '',
-                            getStatus(editingHabit!.id, day) === 'completed' ? 'bg-emerald-500 border-emerald-500 shadow-md shadow-emerald-500/20' :
-                            getStatus(editingHabit!.id, day) === 'failed' ? 'bg-rose-500 border-rose-500 shadow-md shadow-rose-500/20' :
-                            getStatus(editingHabit!.id, day) === 'skipped' ? 'bg-zinc-500 border-zinc-500 shadow-none' :
-                            'border-dashed border-zinc-800 bg-transparent hover:bg-zinc-925'
-                          ]"
-                        >
-                          <Check v-if="getStatus(editingHabit!.id, day) === 'completed'" class="w-3 h-3 text-white" />
-                          <XIcon v-else-if="getStatus(editingHabit!.id, day) === 'failed'" class="w-3 h-3 text-white" />
-                          <span v-else-if="getStatus(editingHabit!.id, day) === 'skipped'" class="w-3 h-0.5 bg-white rounded-full"></span>
-                        </button>
+                        <div class="relative">
+                          <button
+                            type="button"
+                            @click.stop="openLogMenu(editingHabit!, day)"
+                            class="w-8 h-8 rounded-lg flex items-center justify-center transition-all border-2 relative"
+                            :class="[
+                              (day.getMonth() !== currentCalendarDate.getMonth()) ? 'opacity-30 cursor-not-allowed border-transparent' : 'cursor-pointer',
+                              !isMarkable(day) && day.getMonth() === currentCalendarDate.getMonth() ? 'opacity-50' : '',
+                              getStatus(editingHabit!.id, day) === 'completed' ? 'bg-emerald-500 border-emerald-500 shadow-md shadow-emerald-500/20' :
+                              getStatus(editingHabit!.id, day) === 'failed' ? 'bg-rose-500 border-rose-500 shadow-md shadow-rose-500/20' :
+                              getStatus(editingHabit!.id, day) === 'skipped' ? 'bg-zinc-500 border-zinc-500 shadow-none' :
+                              'border-dashed border-zinc-800 bg-transparent hover:bg-zinc-925'
+                            ]"
+                          >
+                            <Check v-if="getStatus(editingHabit!.id, day) === 'completed'" class="w-3 h-3 text-white" />
+                            <XIcon v-else-if="getStatus(editingHabit!.id, day) === 'failed'" class="w-3 h-3 text-white" />
+                            <span v-else-if="getStatus(editingHabit!.id, day) === 'skipped'" class="w-3 h-0.5 bg-white rounded-full"></span>
+                          </button>
+
+                          <!-- Status Dropdown (Calendar) -->
+                          <Transition
+                            enter-active-class="transition duration-200 ease-out"
+                            enter-from-class="opacity-0 scale-95 -translate-y-2"
+                            enter-to-class="opacity-100 scale-100 translate-y-0"
+                            leave-active-class="transition duration-150 ease-in"
+                            leave-from-class="opacity-100 scale-100 translate-y-0"
+                            leave-to-class="opacity-0 scale-95 -translate-y-2"
+                          >
+                            <div 
+                              v-if="activeLogMenu && activeLogMenu.habitId === editingHabit?.id && isSameDay(activeLogMenu.date, day)"
+                              class="absolute top-full left-1/2 -translate-x-1/2 mt-2 z-[100] bg-zinc-900/95 backdrop-blur-xl border border-zinc-800 rounded-2xl shadow-2xl p-1 flex flex-col gap-1"
+                              @click.stop
+                            >
+                              <button
+                                v-for="opt in getLogOptions(editingHabit!, day)"
+                                :key="opt.label"
+                                @click.stop="setLogStatus(editingHabit!, day, opt.status)"
+                                class="w-7 h-7 rounded-lg flex items-center justify-center transition-all border-2 cursor-pointer relative"
+                                :class="opt.bgColor"
+                                :title="opt.label"
+                              >
+                                <component :is="opt.icon" class="w-3 h-3" :class="opt.color" />
+                              </button>
+                            </div>
+                          </Transition>
+                        </div>
                         <div class="text-[9px] font-bold" :class="[
                           isToday(day) ? 'text-white' : 'text-zinc-600',
                           (day.getMonth() !== currentCalendarDate.getMonth() || isFutureDay(day)) ? 'opacity-30' : ''
@@ -690,7 +748,7 @@
 
 <script setup lang="ts">
 import { Plus, Trash2, Check, X as XIcon, Minus, ChevronLeft, ChevronRight, User, ChevronUp, ChevronDown, Edit2, Save, CheckSquare, GripVertical, ArrowUpDown, Flame } from 'lucide-vue-next';
-import { format, subDays, isToday, startOfMonth, endOfMonth, eachDayOfInterval, addMonths, subMonths, isAfter, startOfDay, addDays, isSameWeek, isSameMonth, getDaysInMonth, parseISO, startOfWeek, isBefore } from 'date-fns';
+import { format, subDays, isToday, startOfMonth, endOfMonth, eachDayOfInterval, addMonths, subMonths, isAfter, startOfDay, addDays, isSameWeek, isSameMonth, getDaysInMonth, parseISO, startOfWeek, isBefore, isSameDay } from 'date-fns';
 import type { Habit, HabitLog } from '~/composables/useHabitsApi';
 
 definePageMeta({ middleware: 'auth' });
@@ -886,22 +944,32 @@ const getStatus = (habitId: string, day: Date) => {
   return logs.value.find(l => l.habitid === habitId && l.date === dateStr)?.status;
 };
 
-const toggleLog = async (habit: Habit, day: Date) => {
+const activeLogMenu = ref<{ habitId: string, date: Date } | null>(null);
+
+const openLogMenu = (habit: Habit, day: Date) => {
   if (!isMarkable(day)) {
     showToast('You can only update habits for the last 14 days', 'failed');
     return;
   }
-  const dateStr = format(day, 'yyyy-MM-dd');
-  const currentStatus = getStatus(habit.id, day);
+  if (activeLogMenu.value?.habitId === habit.id && isSameDay(activeLogMenu.value.date, day)) {
+    activeLogMenu.value = null;
+  } else {
+    activeLogMenu.value = { habitId: habit.id, date: day };
+  }
+};
 
+const closeLogMenu = () => {
+  activeLogMenu.value = null;
+};
+
+const getLogOptions = (habit: Habit, day: Date) => {
+  const currentStatus = getStatus(habit.id, day);
+  
   // Use modal values if currently editing this habit to enforce rules immediately
   const isEditingThis = showEditModal.value && editingHabit.value?.id === habit.id;
   const frequencyPeriod = isEditingThis ? editFrequencyPeriod.value : habit.frequencyPeriod;
   const frequencyCount = isEditingThis ? editFrequencyCount.value : (habit.frequencyCount || 1);
 
-  let nextStatus: 'completed' | 'failed' | 'skipped' | null = null;
-  
-  // Calculate maxSkips and usedSkips based on period
   let maxSkips = 0;
   let usedSkips = 0;
   
@@ -920,50 +988,82 @@ const toggleLog = async (habit: Habit, day: Date) => {
       isSameMonth(new Date(l.date), day)
     ).length;
   }
-  
-  // Determine nextStatus based on currentStatus and skip availability
-  if (!currentStatus) {
-    nextStatus = 'completed';
-  } else if (currentStatus === 'completed') {
-    if (usedSkips < maxSkips) {
-      nextStatus = 'skipped';
-    } else {
-      nextStatus = 'failed';
-    }
-  } else {
-    // Current is skipped or failed, next is clear
-    nextStatus = null;
+
+  const options: Array<{ label: string, status: 'completed' | 'failed' | 'skipped' | null, icon: any, color: string, bgColor: string }> = [];
+
+  if (currentStatus !== 'completed') {
+    options.push({ 
+      label: 'Check', 
+      status: 'completed', 
+      icon: Check, 
+      color: 'text-white', 
+      bgColor: 'bg-emerald-500 border-emerald-500 shadow-md shadow-emerald-500/20' 
+    });
   }
+
+  if (currentStatus !== 'skipped' && usedSkips < maxSkips) {
+    options.push({ 
+      label: 'Skip', 
+      status: 'skipped', 
+      icon: Minus, 
+      color: 'text-white', 
+      bgColor: 'bg-zinc-500 border-zinc-500 shadow-none' 
+    });
+  }
+
+  if (currentStatus !== 'failed') {
+    options.push({ 
+      label: 'Fail', 
+      status: 'failed', 
+      icon: XIcon, 
+      color: 'text-white', 
+      bgColor: 'bg-rose-500 border-rose-500 shadow-md shadow-rose-500/20' 
+    });
+  }
+
+  if (currentStatus) {
+    options.push({ 
+      label: 'Clear', 
+      status: null, 
+      icon: Trash2, 
+      color: 'text-zinc-400', 
+      bgColor: 'bg-zinc-800 border-zinc-700' 
+    });
+  }
+
+  return options;
+};
+
+const setLogStatus = async (habit: Habit, day: Date, nextStatus: 'completed' | 'failed' | 'skipped' | null) => {
+  const dateStr = format(day, 'yyyy-MM-dd');
 
   if (nextStatus) {
     const { log, habit: updatedHabit } = await api.upsertLog({ habitid: habit.id, date: dateStr, status: nextStatus, sharedwith: habit.sharedwith });
     
-    // Update log
     const idx = logs.value.findIndex(l => l.habitid === habit.id && l.date === dateStr);
     if (idx >= 0) logs.value[idx] = log;
     else logs.value.push(log);
 
-    // Update habit stats (streak, anchor)
     const habitIdx = habits.value.findIndex(h => h.id === habit.id);
     if (habitIdx >= 0) habits.value[habitIdx] = updatedHabit;
     
-    // Show toast feedback
     if (nextStatus === 'completed') showToast('Completed', 'completed');
     else if (nextStatus === 'failed') showToast('Failed', 'failed');
     else if (nextStatus === 'skipped') showToast('Skipped', 'skipped');
   } else {
     const { habit: updatedHabit } = await api.deleteLog(habit.id, dateStr);
-    
-    // Update logs
     logs.value = logs.value.filter(l => !(l.habitid === habit.id && l.date === dateStr));
-
-    // Update habit stats (streak, anchor)
     const habitIdx = habits.value.findIndex(h => h.id === habit.id);
     if (habitIdx >= 0) habits.value[habitIdx] = updatedHabit;
-    
-    // Show toast feedback for cleared
     showToast('Cleared', 'cleared');
   }
+
+  activeLogMenu.value = null;
+};
+
+const toggleLog = async (habit: Habit, day: Date) => {
+  // Legacy toggleLog kept for internal use or removed. 
+  // Switching to openLogMenu and setLogStatus.
 };
 
 const addHabit = async () => {
@@ -1243,6 +1343,7 @@ onMounted(() => {
   // Social state is now initialized globally in default.vue layout
   load();
   window.addEventListener('resize', checkHeightOverflow);
+  window.addEventListener('click', closeLogMenu);
 });
 
 watch(() => user.value?.id, (newId) => {
@@ -1260,6 +1361,7 @@ onUnmounted(() => {
   // cleanupSocial(); // Now a no-op singleton cleanup handled by logout
   unsubscribeOwnHabits();
   window.removeEventListener('resize', checkHeightOverflow);
+  window.removeEventListener('click', closeLogMenu);
 
   if (typeof document !== 'undefined') {
     document.body.classList.remove('overflow-hidden');
