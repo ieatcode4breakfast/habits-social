@@ -143,6 +143,7 @@ definePageMeta({
 });
 
 const { user, fetchUser } = useAuth();
+const { showToast } = useToast();
 const router = useRouter();
 
 useSeoMeta({
@@ -197,6 +198,9 @@ const handleSubmit = async () => {
     
     // Set user state immediately to avoid middleware race conditions
     user.value = response.user;
+    
+    // Show success toast
+    showToast(tab.value === 'login' ? 'Logged in successfully!' : 'Account created successfully!');
     
     // Brief delay for signup success feedback if needed, then navigate
     await navigateTo('/', { replace: true });
