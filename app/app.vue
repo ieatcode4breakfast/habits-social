@@ -8,8 +8,6 @@
 </template>
 
 <script setup lang="ts">
-const { fetchUser } = useAuth();
-await fetchUser();
 
 onMounted(() => {
   // Nuclear option: Unregister any stale service workers that might be causing the redirect crash

@@ -3,7 +3,7 @@ import type { IUser } from '../../models';
 
 export default defineEventHandler(async (event) => {
   const sql = useDB(event);
-  const { email, password, username } = await readBody(event);
+  const { email, password, username, photourl } = await readBody(event);
   
   if (!email || !password || !username)
     throw createError({ statusCode: 400, statusMessage: 'Email, password and username are required' });
@@ -23,8 +23,8 @@ export default defineEventHandler(async (event) => {
   const passwordHash = await hash(password, 10);
   
   const result = await sql`
-    INSERT INTO users (email, username, "passwordHash", "createdAt") 
-    VALUES (${email}, ${username}, ${passwordHash}, NOW()) 
+    INSERT INTO users (email, username, "passwordHash", "createdAt", photourl) 
+    VALUES (${email}, ${username}, ${passwordHash}, NOW(), ${photourl || null}) 
     RETURNING id
   `;
 
@@ -34,5 +34,5 @@ export default defineEventHandler(async (event) => {
   const token = await generateToken(insertedId, event);
   setCookie(event, 'auth_token', token, { httpOnly: true, maxAge: 60 * 60 * 24 * 7, path: '/', sameSite: 'strict' });
 
-  return { user: { id: insertedId, email, username } };
+  return { user: { id: insertedId, email, username, photourl } };
 });

@@ -25,27 +25,11 @@
             </div>
 
             <form @submit.prevent="triggerProfileUpdate" class="space-y-4">
-              <!-- Avatar Selection Preview -->
-              <div class="space-y-4 flex flex-col items-center pb-2">
-                <label class="text-xs font-bold text-zinc-500 uppercase tracking-widest">Profile Avatar</label>
-                
-                <div class="flex flex-col items-center gap-4">
-                  <UserAvatar 
-                    :src="profileForm.photourl" 
-                    container-class="w-24 h-24 rounded-3xl bg-black border-2 border-zinc-800 shadow-inner"
-                    icon-class="w-10 h-10 text-zinc-800"
-                  />
-
-                  <button 
-                    type="button" 
-                    @click="openAvatarModal"
-                    class="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-white text-xs font-bold rounded-xl transition-all cursor-pointer flex items-center gap-2"
-                  >
-                    <RefreshCw class="w-3.5 h-3.5" />
-                    Change Avatar
-                  </button>
-                </div>
-              </div>
+              <!-- Avatar Selection -->
+              <AvatarPicker 
+                v-model="profileForm.photourl" 
+                label="Profile Avatar"
+              />
 
               <div class="space-y-1.5">
                 <label class="text-xs font-bold text-zinc-500 uppercase tracking-widest ml-1">Username</label>
@@ -56,7 +40,13 @@
                     type="text"
                     required
                     placeholder="Username"
-                    class="w-full bg-black border border-zinc-800 rounded-xl py-3 pl-10 pr-4 text-white placeholder-zinc-700 focus:outline-none focus:ring-2 focus:ring-white/10 focus:border-zinc-700 transition-all text-sm"
+                    @input="profileError = ''"
+                    class="w-full bg-black border rounded-xl py-3 pl-10 pr-4 text-white placeholder-zinc-700 focus:outline-none focus:ring-2 transition-all text-sm"
+                    :class="[
+                      profileError && (profileError.includes('username') || profileError.includes('taken')) 
+                        ? 'border-rose-500/50 focus:ring-rose-500/10 focus:border-rose-500' 
+                        : 'border-zinc-800 focus:ring-white/10 focus:border-zinc-700'
+                    ]"
                   />
                 </div>
               </div>
@@ -70,7 +60,13 @@
                     type="email"
                     required
                     placeholder="email@example.com"
-                    class="w-full bg-black border border-zinc-800 rounded-xl py-3 pl-10 pr-4 text-white placeholder-zinc-700 focus:outline-none focus:ring-2 focus:ring-white/10 focus:border-zinc-700 transition-all text-sm"
+                    @input="profileError = ''"
+                    class="w-full bg-black border rounded-xl py-3 pl-10 pr-4 text-white placeholder-zinc-700 focus:outline-none focus:ring-2 transition-all text-sm"
+                    :class="[
+                      profileError && profileError.includes('email')
+                        ? 'border-rose-500/50 focus:ring-rose-500/10 focus:border-rose-500' 
+                        : 'border-zinc-800 focus:ring-white/10 focus:border-zinc-700'
+                    ]"
                   />
                 </div>
               </div>
@@ -83,7 +79,13 @@
                     v-model="profileForm.password"
                     :type="showPassword ? 'text' : 'password'"
                     placeholder="••••••••"
-                    class="w-full bg-black border border-zinc-800 rounded-xl py-3 pl-10 pr-12 text-white placeholder-zinc-700 focus:outline-none focus:ring-2 focus:ring-white/10 focus:border-zinc-700 transition-all text-sm"
+                    @input="profileError = ''"
+                    class="w-full bg-black border rounded-xl py-3 pl-10 pr-12 text-white placeholder-zinc-700 focus:outline-none focus:ring-2 transition-all text-sm"
+                    :class="[
+                      profileError && profileError.includes('Password')
+                        ? 'border-rose-500/50 focus:ring-rose-500/10 focus:border-rose-500' 
+                        : 'border-zinc-800 focus:ring-white/10 focus:border-zinc-700'
+                    ]"
                   />
                   <button 
                     type="button"
@@ -104,7 +106,13 @@
                     v-model="profileForm.confirmPassword"
                     :type="showPassword ? 'text' : 'password'"
                     placeholder="••••••••"
-                    class="w-full bg-black border border-zinc-800 rounded-xl py-3 pl-10 pr-12 text-white placeholder-zinc-700 focus:outline-none focus:ring-2 focus:ring-white/10 focus:border-zinc-700 transition-all text-sm"
+                    @input="profileError = ''"
+                    class="w-full bg-black border rounded-xl py-3 pl-10 pr-12 text-white placeholder-zinc-700 focus:outline-none focus:ring-2 transition-all text-sm"
+                    :class="[
+                      profileError && profileError.includes('match')
+                        ? 'border-rose-500/50 focus:ring-rose-500/10 focus:border-rose-500' 
+                        : 'border-zinc-800 focus:ring-white/10 focus:border-zinc-700'
+                    ]"
                   />
                   <button 
                     type="button"
@@ -186,76 +194,6 @@
       </Transition>
     </Teleport>
 
-    <!-- Avatar Selection Modal -->
-    <Teleport to="body">
-      <Transition
-        enter-active-class="transition duration-300 ease-out"
-        enter-from-class="opacity-0 scale-95"
-        enter-to-class="opacity-100 scale-100"
-        leave-active-class="transition duration-200 ease-in"
-        leave-from-class="opacity-100 scale-100"
-        leave-to-class="opacity-0 scale-95"
-      >
-        <div v-if="showAvatarModal" class="fixed inset-0 z-[110] flex items-center justify-center p-4">
-          <div class="absolute inset-0 bg-black/90 backdrop-blur-xl" @click="showAvatarModal = false"></div>
-          
-          <div class="relative w-full max-w-lg bg-zinc-925 border border-zinc-800 rounded-3xl shadow-2xl p-8">
-            <div class="flex items-center justify-between mb-8">
-              <div>
-                <h2 class="text-2xl font-bold text-white">Choose Avatar</h2>
-                <p class="text-zinc-500 text-sm">Pick a style that fits you</p>
-              </div>
-              <div class="flex items-center gap-2">
-                <button 
-                  @click="generateAvatars"
-                  class="p-2 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded-xl transition-all cursor-pointer flex items-center gap-2 text-sm font-bold"
-                >
-                  <RefreshCw class="w-4 h-4" />
-                  Refresh
-                </button>
-                <button @click="showAvatarModal = false" class="p-2 text-zinc-500 hover:text-white hover:bg-zinc-800 rounded-xl transition-all cursor-pointer">
-                  <XIcon class="w-5 h-5" />
-                </button>
-              </div>
-            </div>
-
-            <div class="grid grid-cols-3 sm:grid-cols-4 gap-4 max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar">
-              <!-- Clear/Default Option -->
-              <button 
-                @click="selectAvatar('')"
-                class="aspect-square rounded-2xl bg-zinc-950 border-2 border-zinc-800 flex flex-col items-center justify-center hover:border-white transition-all cursor-pointer group relative overflow-hidden"
-              >
-                <div class="w-10 h-10 rounded-full bg-zinc-900 flex items-center justify-center mb-1 group-hover:scale-110 transition-transform">
-                  <UserIcon class="w-5 h-5 text-zinc-500" />
-                </div>
-                <span class="text-[10px] font-bold text-zinc-500 uppercase tracking-tighter">Default</span>
-                <div class="absolute inset-0 bg-white/0 group-hover:bg-white/5 transition-colors"></div>
-              </button>
-
-              <UserAvatar 
-                v-for="(avatar, index) in suggestedAvatars" 
-                :key="index"
-                :src="avatar"
-                container-class="aspect-square rounded-2xl bg-zinc-950 border-2 border-zinc-800 hover:border-white transition-all cursor-pointer group relative"
-                img-class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                @click="selectAvatar(avatar)"
-                @error="handleAvatarError"
-              />
-            </div>
-
-            <div class="mt-8">
-              <button 
-                @click="showAvatarModal = false"
-                class="w-full py-4 bg-zinc-900 text-white font-bold rounded-2xl hover:bg-zinc-800 transition-all cursor-pointer"
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        </div>
-      </Transition>
-    </Teleport>
-
     <!-- Confirm Profile Update Modal -->
     <Teleport to="body">
       <Transition
@@ -323,13 +261,11 @@ const isOpen = computed({
 });
 
 // Profile Modal State
-const showAvatarModal = ref(false);
 const showConfirmModal = ref(false);
 const showUnsavedChangesModal = ref(false);
 const isUpdating = ref(false);
 const showPassword = ref(false);
 const profileError = ref('');
-const avatarLoadError = ref(false);
 const profileForm = reactive({
   username: '',
   email: '',
@@ -350,26 +286,6 @@ const hasUnsavedChanges = computed(() => {
     profileForm.photourl !== initialProfileSnapshot.value.photourl
   );
 });
-
-const suggestedAvatars = ref<string[]>([]);
-
-const generateAvatars = () => {
-  avatarLoadError.value = false;
-  const styles = ['avataaars', 'big-smile', 'bottts-neutral', 'notionists-neutral'];
-  const bgColors = [
-    'b6e3f4', 'c0aede', 'd1d4f9', 'ffd5dc', 'ffdfbf', 
-    'f1f4f9', 'e2e8f0', 'fce7f3', 'ffedd5', 'dcfce7'
-  ];
-  
-  const newAvatars = [];
-  for (let i = 0; i < 12; i++) {
-    const style = styles[Math.floor(Math.random() * styles.length)];
-    const seed = Math.random().toString(36).substring(7);
-    const bg = bgColors[Math.floor(Math.random() * bgColors.length)];
-    newAvatars.push(`https://api.dicebear.com/9.x/${style}/svg?seed=${seed}&backgroundColor=${bg}`);
-  }
-  suggestedAvatars.value = newAvatars;
-};
 
 const handleProfileCloseAttempt = () => {
   if (isUpdating.value) return false;
@@ -407,30 +323,26 @@ watch(() => props.modelValue, (open) => {
 });
 
 useModalHistory(isOpen, handleProfileCloseAttempt);
-useModalHistory(showAvatarModal);
-
-const openAvatarModal = () => {
-  generateAvatars();
-  showAvatarModal.value = true;
-};
-
-const selectAvatar = (url: string) => {
-  profileForm.photourl = url;
-  showAvatarModal.value = false;
-};
-
-const handleAvatarError = () => {
-  if (!avatarLoadError.value) {
-    avatarLoadError.value = true;
-    showToast('Failed to load some avatars. Please check your connection.', 'failed');
-  }
-};
 
 const triggerProfileUpdate = () => {
-  if (profileForm.password && profileForm.password !== profileForm.confirmPassword) {
-    profileError.value = 'Passwords do not match';
+  // Username validation
+  if (profileForm.username.length < 3 || profileForm.username.length > 20) {
+    profileError.value = 'Username must be between 3 and 20 characters';
     return;
   }
+
+  // Password validation (only if provided)
+  if (profileForm.password) {
+    if (profileForm.password.length < 8) {
+      profileError.value = 'Password must be at least 8 characters long';
+      return;
+    }
+    if (profileForm.password !== profileForm.confirmPassword) {
+      profileError.value = 'Passwords do not match';
+      return;
+    }
+  }
+
   profileError.value = '';
   showConfirmModal.value = true;
 };

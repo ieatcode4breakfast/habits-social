@@ -43,6 +43,11 @@
           </p>
 
           <form @submit.prevent="handleSubmit" class="space-y-4">
+            <!-- Avatar Selection -->
+            <div v-if="tab === 'signup'" class="pb-2" v-motion-slide-top>
+              <AvatarPicker v-model="photourl" />
+            </div>
+
             <!-- Username -->
             <div v-if="tab === 'signup'" class="relative" v-motion-slide-top>
               <User class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
@@ -109,7 +114,7 @@
             <div class="flex items-center gap-3 pt-2">
               <button
                 type="button"
-                @click="email = ''; username = ''; password = ''; confirmPassword = ''; error = ''"
+                @click="email = ''; username = ''; password = ''; confirmPassword = ''; photourl = ''; error = ''"
                 class="flex-1 py-3 text-sm font-semibold text-zinc-400 bg-transparent hover:bg-zinc-925 rounded-xl transition-colors cursor-pointer"
               >
                 Reset
@@ -152,6 +157,7 @@ const email = ref('');
 const username = ref('');
 const password = ref('');
 const confirmPassword = ref('');
+const photourl = ref('');
 const showPassword = ref(false);
 const loading = ref(false);
 const error = ref('');
@@ -185,7 +191,7 @@ const handleSubmit = async () => {
       body: { 
         email: email.value, 
         password: password.value,
-        ...(tab.value === 'signup' ? { username: username.value } : {})
+        ...(tab.value === 'signup' ? { username: username.value, photourl: photourl.value } : {})
       } 
     });
     
@@ -200,4 +206,3 @@ const handleSubmit = async () => {
   }
 };
 </script>
-

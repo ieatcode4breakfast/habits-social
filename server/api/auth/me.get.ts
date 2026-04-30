@@ -2,7 +2,11 @@ import type { IUser } from '../../models';
 
 export default defineEventHandler(async (event) => {
   const sql = useDB(event);
-  const userId = await requireAuth(event);
+  const userId = await getUserFromEvent(event);
+
+  if (!userId) {
+    return { user: null };
+  }
 
   const users = await sql`SELECT * FROM users WHERE id = ${userId}::uuid`;
   const user = users[0] as IUser | undefined;
