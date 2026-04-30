@@ -30,12 +30,11 @@
                 <label class="text-xs font-bold text-zinc-500 uppercase tracking-widest">Profile Avatar</label>
                 
                 <div class="flex flex-col items-center gap-4">
-                  <div class="relative">
-                    <div class="w-24 h-24 rounded-3xl bg-black border-2 border-zinc-800 overflow-hidden shadow-inner flex items-center justify-center">
-                      <img v-if="profileForm.photourl" :src="profileForm.photourl" class="w-full h-full object-cover" />
-                      <UserIcon v-else class="w-10 h-10 text-zinc-800" />
-                    </div>
-                  </div>
+                  <UserAvatar 
+                    :src="profileForm.photourl" 
+                    container-class="w-24 h-24 rounded-3xl bg-black border-2 border-zinc-800 shadow-inner"
+                    icon-class="w-10 h-10 text-zinc-800"
+                  />
 
                   <button 
                     type="button" 
@@ -233,15 +232,15 @@
                 <div class="absolute inset-0 bg-white/0 group-hover:bg-white/5 transition-colors"></div>
               </button>
 
-              <button 
+              <UserAvatar 
                 v-for="(avatar, index) in suggestedAvatars" 
                 :key="index"
+                :src="avatar"
+                container-class="aspect-square rounded-2xl bg-zinc-950 border-2 border-zinc-800 hover:border-white transition-all cursor-pointer group relative"
+                img-class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                 @click="selectAvatar(avatar)"
-                class="aspect-square rounded-2xl bg-zinc-950 border-2 border-zinc-800 overflow-hidden hover:border-white transition-all cursor-pointer group relative"
-              >
-                <img :src="avatar" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
-                <div class="absolute inset-0 bg-white/0 group-hover:bg-white/5 transition-colors"></div>
-              </button>
+                @error="handleAvatarError"
+              />
             </div>
 
             <div class="mt-8">
@@ -271,9 +270,11 @@
           <div class="absolute inset-0 bg-black/95 backdrop-blur-2xl" @click="showConfirmModal = false"></div>
           
           <div class="relative w-full max-w-sm bg-zinc-925 border border-zinc-800 rounded-3xl shadow-2xl p-8 text-center">
-            <div class="w-24 h-24 rounded-3xl bg-white/5 border-2 border-zinc-800 mx-auto mb-6 overflow-hidden flex items-center justify-center">
-              <img :src="profileForm.photourl" class="w-full h-full object-cover" />
-            </div>
+            <UserAvatar 
+              :src="profileForm.photourl" 
+              container-class="w-24 h-24 rounded-3xl bg-white/5 border-2 border-zinc-800 mx-auto mb-6"
+              icon-class="w-10 h-10 text-zinc-500"
+            />
             
             <h3 class="text-xl font-bold text-white mb-2">Update Profile?</h3>
             <p class="text-zinc-500 text-sm mb-8 leading-relaxed">
@@ -313,6 +314,7 @@ const props = defineProps<{
 const emit = defineEmits(['update:modelValue']);
 
 const { user, fetchUser } = useAuth();
+const { showToast } = useToast();
 
 // Internal visibility ref linked to prop
 const isOpen = computed({
@@ -327,6 +329,7 @@ const showUnsavedChangesModal = ref(false);
 const isUpdating = ref(false);
 const showPassword = ref(false);
 const profileError = ref('');
+const avatarLoadError = ref(false);
 const profileForm = reactive({
   username: '',
   email: '',
@@ -351,6 +354,7 @@ const hasUnsavedChanges = computed(() => {
 const suggestedAvatars = ref<string[]>([]);
 
 const generateAvatars = () => {
+  avatarLoadError.value = false;
   const styles = ['avataaars', 'big-smile', 'bottts-neutral', 'notionists-neutral'];
   const bgColors = [
     'b6e3f4', 'c0aede', 'd1d4f9', 'ffd5dc', 'ffdfbf', 
@@ -413,6 +417,13 @@ const openAvatarModal = () => {
 const selectAvatar = (url: string) => {
   profileForm.photourl = url;
   showAvatarModal.value = false;
+};
+
+const handleAvatarError = () => {
+  if (!avatarLoadError.value) {
+    avatarLoadError.value = true;
+    showToast('Failed to load some avatars. Please check your connection.', 'failed');
+  }
 };
 
 const triggerProfileUpdate = () => {

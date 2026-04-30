@@ -8,10 +8,11 @@
           <ChevronLeft class="w-6 h-6" />
         </button>
         <div v-if="profile" class="flex items-center gap-4 ml-1">
-          <div class="w-12 h-12 bg-zinc-925 rounded-2xl flex items-center justify-center overflow-hidden shadow-sm flex-shrink-0">
-            <img v-if="profile.photourl" :src="profile.photourl" alt="" class="w-full h-full object-cover" />
-            <User v-else class="w-6 h-6 text-zinc-600" />
-          </div>
+          <UserAvatar 
+            :src="profile.photourl" 
+            container-class="w-12 h-12 bg-zinc-925 shadow-sm"
+            icon-class="w-6 h-6 text-zinc-600"
+          />
           <div>
             <h1 class="text-xl font-bold tracking-tight text-white mb-1">{{ profile.username }}'s habits</h1>
             <p class="text-zinc-400 text-xs">habits shared with you</p>

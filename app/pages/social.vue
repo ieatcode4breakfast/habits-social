@@ -61,16 +61,13 @@
               class="group bg-zinc-925/50 hover:bg-zinc-900/80 border-b border-zinc-800/50 last:border-b-0 sm:border sm:border-zinc-800/50 sm:rounded-2xl p-4 transition-all duration-300 cursor-pointer flex items-center gap-4 shadow-sm"
             >
               <!-- Avatar -->
-              <div 
+              <UserAvatar 
                 @click="String(item.user.id) !== String(user?.id) ? ($event.stopPropagation(), navigateTo(`/friends/${item.user.id}?from=${activeTab}`)) : null"
-                class="w-10 h-10 rounded-full bg-zinc-950 border border-zinc-800 overflow-hidden flex-shrink-0 transition-transform cursor-pointer"
+                :src="item.user.photoUrl" 
+                container-class="w-10 h-10 bg-zinc-950 border border-zinc-800 transition-transform cursor-pointer"
                 :class="{ 'active:scale-95': String(item.user.id) !== String(user?.id) }"
-              >
-                <img v-if="item.user.photoUrl" :src="item.user.photoUrl" class="w-full h-full object-cover" />
-                <div v-else class="w-full h-full flex items-center justify-center">
-                  <User class="w-5 h-5 text-zinc-700" />
-                </div>
-              </div>
+                icon-class="w-5 h-5 text-zinc-700"
+              />
 
               <!-- Content -->
               <div class="flex-1 min-w-0">
@@ -151,10 +148,11 @@
         <div class="gap-0 flex flex-col max-h-[380px] overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-zinc-800 scrollbar-track-transparent">
           <div v-for="req in pendingIncoming" :key="req.id" class="flex items-center justify-between bg-transparent border-none p-4 hover:bg-white/5 transition-colors rounded-none md:rounded-xl">
             <NuxtLink :to="`/friends/${req.initiatorId}?from=${activeTab}`" class="flex items-center gap-3 hover:opacity-80 transition-opacity">
-              <div class="w-10 h-10 bg-zinc-950 rounded-full flex items-center justify-center overflow-hidden">
-                <img v-if="profilesMap[req.initiatorId]?.photourl" :src="profilesMap[req.initiatorId]?.photourl" alt="" class="w-full h-full object-cover" />
-                <User v-else class="w-5 h-5 text-zinc-600" />
-              </div>
+              <UserAvatar 
+                :src="profilesMap[req.initiatorId]?.photourl" 
+                container-class="w-10 h-10 bg-zinc-950"
+                icon-class="w-5 h-5 text-zinc-600"
+              />
               <div>
                 <div class="font-semibold text-zinc-200 text-sm">{{ profilesMap[req.initiatorId]?.username || 'Unknown' }}</div>
               </div>
@@ -184,10 +182,11 @@
         <div v-if="searchResults.length > 0" class="mt-4 gap-0 flex flex-col max-h-[380px] overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-zinc-800 scrollbar-track-transparent pb-4">
           <div v-for="res in searchResults" :key="res.id" class="flex items-center justify-between bg-transparent border-none p-4 hover:bg-white/5 transition-colors rounded-none md:rounded-xl">
             <NuxtLink :to="`/friends/${res.id}?from=${activeTab}`" class="flex items-center gap-3 hover:opacity-80 transition-opacity">
-              <div class="w-10 h-10 bg-zinc-950 rounded-full flex items-center justify-center overflow-hidden">
-                <img v-if="res.photourl" :src="res.photourl" alt="" class="w-full h-full object-cover" />
-                <User v-else class="w-5 h-5 text-zinc-600" />
-              </div>
+              <UserAvatar 
+                :src="res.photourl" 
+                container-class="w-10 h-10 bg-zinc-950"
+                icon-class="w-5 h-5 text-zinc-600"
+              />
               <div>
                 <div class="font-semibold text-zinc-200 text-sm">{{ res.username }}</div>
               </div>
@@ -225,10 +224,11 @@
             @click="handleFriendClick(f)"
             class="flex items-center gap-4 p-4 bg-transparent border-none transition-all group cursor-pointer hover:bg-white/5 rounded-none md:rounded-xl"
           >
-            <div class="w-12 h-12 bg-zinc-950 rounded-full flex items-center justify-center overflow-hidden flex-shrink-0">
-              <img v-if="profilesMap[getFriendId(f)]?.photourl" :src="profilesMap[getFriendId(f)]?.photourl" alt="" class="w-full h-full object-cover" />
-              <User v-else class="w-6 h-6 text-zinc-600" />
-            </div>
+            <UserAvatar 
+              :src="profilesMap[getFriendId(f)]?.photourl" 
+              container-class="w-12 h-12 bg-zinc-950"
+              icon-class="w-6 h-6 text-zinc-600"
+            />
             <div class="flex-1 min-w-0">
               <div class="flex items-center gap-2">
                 <div class="font-semibold text-zinc-200 truncate transition-colors text-sm" :class="{ 'group-hover:text-zinc-400': f.status === 'accepted' }">

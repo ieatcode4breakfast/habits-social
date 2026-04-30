@@ -3,10 +3,12 @@
     <!-- Header -->
     <div v-motion-slide-visible-once-left class="px-4 sm:px-0 flex items-end justify-between gap-4">
       <div class="flex items-center gap-4">
-        <div v-if="user" class="w-12 h-12 bg-zinc-925 rounded-2xl flex items-center justify-center overflow-hidden shadow-sm flex-shrink-0">
-          <img v-if="user.photourl" :src="user.photourl" alt="" class="w-full h-full object-cover" />
-          <User v-else class="w-6 h-6 text-zinc-600" />
-        </div>
+        <UserAvatar 
+          v-if="user"
+          :src="user.photourl" 
+          container-class="w-12 h-12 bg-zinc-925 rounded-2xl shadow-sm"
+          icon-class="w-6 h-6 text-zinc-600"
+        />
         <div>
           <h1 class="text-xl font-bold tracking-tight text-white mb-1">My habits</h1>
           <p class="text-zinc-400 text-xs">Track your habits this week</p>
@@ -274,10 +276,11 @@
                   <div class="space-y-2 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
                     <label v-for="friend in friends" :key="friend.id" class="flex items-center justify-between p-3 bg-black border border-zinc-925 rounded-xl cursor-pointer hover:border-zinc-800 transition-colors">
                       <div class="flex items-center gap-3">
-                        <div class="w-8 h-8 bg-zinc-925 rounded-full flex items-center justify-center overflow-hidden">
-                          <img v-if="friend.photourl" :src="friend.photourl" class="w-full h-full object-cover" />
-                          <User v-else class="w-4 h-4 text-zinc-600" />
-                        </div>
+                        <UserAvatar 
+                          :src="friend.photourl" 
+                          container-class="w-8 h-8 bg-zinc-925"
+                          icon-class="w-4 h-4 text-zinc-600"
+                        />
                         <span class="text-sm font-semibold text-zinc-200">{{ friend.username || 'Unknown' }}</span>
                       </div>
                       <div 
@@ -596,10 +599,11 @@
                   >
                     <label v-for="friend in sortedFriendsForEdit" :key="friend.id" class="flex items-center justify-between p-3 bg-black border border-zinc-925 rounded-xl transition-colors" :class="isEditingSharing ? 'cursor-pointer hover:border-zinc-800' : 'cursor-default pointer-events-none'">
                       <div class="flex items-center gap-3">
-                        <div class="w-8 h-8 bg-zinc-925 rounded-full flex items-center justify-center overflow-hidden">
-                          <img v-if="friend.photourl" :src="friend.photourl" class="w-full h-full object-cover" />
-                          <User v-else class="w-4 h-4 text-zinc-600" />
-                        </div>
+                        <UserAvatar 
+                          :src="friend.photourl" 
+                          container-class="w-8 h-8 bg-zinc-925"
+                          icon-class="w-4 h-4 text-zinc-600"
+                        />
                         <span class="text-sm font-semibold text-zinc-200">{{ friend.username || 'Unknown' }}</span>
                       </div>
                       <div 

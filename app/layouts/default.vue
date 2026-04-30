@@ -24,12 +24,11 @@
             @click="showProfileModal = true"
             class="flex items-center gap-2 group text-sm font-medium text-zinc-400 hover:text-white transition-colors cursor-pointer px-1 py-1 rounded-lg hover:bg-zinc-900"
           >
-            <div class="w-6 h-6 rounded-full bg-zinc-800 border border-zinc-700 overflow-hidden flex-shrink-0">
-              <img v-if="user.photourl" :src="user.photourl" class="w-full h-full object-cover" />
-              <div v-else class="w-full h-full flex items-center justify-center">
-                <UserIcon class="w-3.5 h-3.5 text-zinc-500" />
-              </div>
-            </div>
+            <UserAvatar 
+              :src="user.photourl" 
+              container-class="w-6 h-6 bg-zinc-800 border border-zinc-700"
+              icon-class="w-3.5 h-3.5 text-zinc-500"
+            />
             Hi, {{ user.username }}!
           </button>
           <div class="w-px h-6 bg-zinc-800 mx-2 shrink-0"></div>
