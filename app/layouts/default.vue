@@ -407,6 +407,7 @@ onUnmounted(() => {
 });
 
 const router = useRouter();
+const route = useRoute();
 
 // Profile Modal State
 const showProfileModal = ref(false);
@@ -460,20 +461,21 @@ const generateAvatars = () => {
 const handleProfileCloseAttempt = () => {
   if (hasUnsavedChanges.value) {
     showUnsavedChangesModal.value = true;
-  } else {
-    showProfileModal.value = false;
+    return false; // Veto the close in useModalHistory
   }
+  showProfileModal.value = false;
+  return true; // Allow the close
 };
 
 const discardChangesAndClose = () => {
   showUnsavedChangesModal.value = false;
+  // Reset the snapshot so no other guard triggers
+  initialProfileSnapshot.value = null;
   showProfileModal.value = false;
 };
 
 useModalHistory(showProfileModal, handleProfileCloseAttempt);
 useModalHistory(showAvatarModal);
-useModalHistory(showConfirmModal);
-useModalHistory(showUnsavedChangesModal);
 
 const openProfileModal = () => {
   if (!user.value) return;
@@ -531,6 +533,7 @@ const handleUpdateProfile = async () => {
       }
     });
     await fetchUser();
+    initialProfileSnapshot.value = null;
     showProfileModal.value = false;
   } catch (err: any) {
     profileError.value = err.data?.message || 'Failed to update profile';
@@ -538,8 +541,6 @@ const handleUpdateProfile = async () => {
     isUpdating.value = false;
   }
 };
-
-const route = useRoute();
 
 const logout = async () => {
   await $fetch('/api/auth/logout', { method: 'POST' });

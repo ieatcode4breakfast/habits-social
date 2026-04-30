@@ -1,32 +1,31 @@
 import { watch, onMounted, onUnmounted, type Ref } from 'vue';
 
-const modalStack: string[] = [];
-
 /**
  * Intercepts the browser back button to close a modal instead of navigating away.
- * @param isOpen A ref or computed representing whether the modal is open.
- * @param onClose An optional callback to close the modal(s). If not provided, it will attempt to set isOpen.value to false.
+ * Uses history.pushState to create a dummy entry that can be popped.
  */
-export const useModalHistory = (isOpen: Ref<boolean>, onClose?: () => void) => {
+export const useModalHistory = (isOpen: Ref<boolean>, onClose?: () => boolean | void) => {
   if (import.meta.server) return;
 
-  const modalId = Math.random().toString(36).substring(2, 9);
+  const modalKey = `modal-${Math.random().toString(36).substring(2, 9)}`;
   let modalStatePushed = false;
 
   const handlePopState = (event: PopStateEvent) => {
-    // If the modal is open and the state we landed on doesn't match this modal's ID,
-    // it means the user pressed back (or history.back() was called for a nested modal)
-    if (isOpen.value && event.state?.modalId !== modalId) {
-      modalStatePushed = false;
-      
-      const index = modalStack.indexOf(modalId);
-      if (index > -1) {
-        modalStack.splice(index, 1);
-      }
+    // If the modal is open and the state we landed on doesn't have OUR specific key,
+    // it means the user pressed back (or history.back() was called).
+    if (isOpen.value && modalStatePushed && !event.state?.[modalKey]) {
+      // If onClose returns false, it means the close was vetoed (e.g., unsaved changes)
+      const canClose = onClose ? onClose() : true;
 
-      if (onClose) {
-        onClose();
+      if (canClose === false) {
+        // Re-push the state to restore history and keep the modal open.
+        // Use a small delay to ensure the browser has finished processing the current popstate.
+        setTimeout(() => {
+          const currentState = window.history.state || {};
+          window.history.pushState({ ...currentState, [modalKey]: true }, '');
+        }, 10);
       } else {
+        modalStatePushed = false;
         isOpen.value = false;
       }
     }
@@ -34,22 +33,18 @@ export const useModalHistory = (isOpen: Ref<boolean>, onClose?: () => void) => {
 
   watch(isOpen, (open, wasOpen) => {
     if (open && !wasOpen) {
-      // Modal opened: push a unique state for this modal, preserving router state
+      // Modal opened: push a unique key for this modal, preserving other state
       const currentState = window.history.state || {};
-      window.history.pushState({ ...currentState, modalId }, '');
+      window.history.pushState({ ...currentState, [modalKey]: true }, '');
       modalStatePushed = true;
-      modalStack.push(modalId);
     } else if (!open && wasOpen && modalStatePushed) {
-      // Modal closed manually: pop back to clean up history state
       modalStatePushed = false;
-      const index = modalStack.indexOf(modalId);
-      if (index > -1) {
-        modalStack.splice(index, 1);
+      // Only pop if the current top state still belongs to us
+      if (window.history.state?.[modalKey]) {
         window.history.back();
       }
     }
   });
-
 
   onMounted(() => {
     window.addEventListener('popstate', handlePopState);
@@ -57,14 +52,9 @@ export const useModalHistory = (isOpen: Ref<boolean>, onClose?: () => void) => {
 
   onUnmounted(() => {
     window.removeEventListener('popstate', handlePopState);
-    // Cleanup: only pop if this specific modal was responsible for a state
-    if (modalStatePushed) {
+    if (modalStatePushed && window.history.state?.[modalKey]) {
       modalStatePushed = false;
-      const index = modalStack.indexOf(modalId);
-      if (index > -1) {
-        modalStack.splice(index, 1);
-        window.history.back();
-      }
+      window.history.back();
     }
   });
 };
