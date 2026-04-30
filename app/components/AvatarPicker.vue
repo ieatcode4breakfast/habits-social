@@ -33,11 +33,17 @@
           <div class="absolute inset-0 bg-black/90 backdrop-blur-xl" @click="showAvatarModal = false"></div>
           
           <div class="relative w-full max-w-lg bg-zinc-925 border border-zinc-800 rounded-3xl shadow-2xl p-8">
-            <div class="flex items-center justify-between mb-8">
-              <div>
-                <h2 class="text-2xl font-bold text-white">Choose Avatar</h2>
-                <p class="text-zinc-500 text-sm">Pick a style that fits you</p>
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between mb-8 gap-4">
+              <div class="flex items-start justify-between w-full sm:w-auto">
+                <div>
+                  <h2 class="text-2xl font-bold text-white leading-tight">Choose Avatar</h2>
+                  <p class="text-zinc-500 text-sm">Pick a style that fits you</p>
+                </div>
+                <button @click="showAvatarModal = false" class="p-2 text-zinc-500 hover:text-white hover:bg-zinc-800 rounded-xl transition-all cursor-pointer sm:hidden">
+                  <XIcon class="w-5 h-5" />
+                </button>
               </div>
+              
               <div class="flex items-center gap-2">
                 <button 
                   @click="generateAvatars"
@@ -46,7 +52,7 @@
                   <RefreshCw class="w-4 h-4" />
                   Refresh
                 </button>
-                <button @click="showAvatarModal = false" class="p-2 text-zinc-500 hover:text-white hover:bg-zinc-800 rounded-xl transition-all cursor-pointer">
+                <button @click="showAvatarModal = false" class="hidden sm:block p-2 text-zinc-500 hover:text-white hover:bg-zinc-800 rounded-xl transition-all cursor-pointer">
                   <XIcon class="w-5 h-5" />
                 </button>
               </div>
