@@ -19,6 +19,10 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: 'Username must be between 3 and 20 characters' });
   }
 
+  if (email && !isValidEmail(email)) {
+    throw createError({ statusCode: 400, statusMessage: 'Please provide a valid email address' });
+  }
+
   if (password && password.length < 8) {
     throw createError({ statusCode: 400, statusMessage: 'Password must be at least 8 characters long' });
   }
