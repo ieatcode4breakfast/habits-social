@@ -37,10 +37,11 @@ export default defineEventHandler(async (event) => {
     const oldShared = new Set((habit.sharedwith || []).map(String));
     const newRecipients = (sharedwith as string[]).filter((rid: string) => !oldShared.has(String(rid)));
     if (newRecipients.length > 0 && body.user_date) {
+      const now = new Date();
       for (const recipientId of newRecipients) {
         await sql`
           INSERT INTO share_events (ownerid, recipientid, habitids, user_date, created_at)
-          VALUES (${userId}, ${recipientId}, ARRAY[${id}::uuid], ${body.user_date}, NOW())
+          VALUES (${userId}, ${recipientId}, ARRAY[${id}::uuid], ${body.user_date}, ${now})
         `;
       }
     }

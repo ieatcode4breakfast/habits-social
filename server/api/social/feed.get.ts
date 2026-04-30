@@ -254,7 +254,41 @@ export default defineEventHandler(async (event) => {
   });
 
   // 8. Narrator Logic — Category 3: Share Events (Trigger 3.2)
-  const feedFromShares = shareEvents.map((se: any) => {
+  // Group share events by (ownerid, user_date, habitids, timestamp) for the owner
+  const groupedShares: any[] = [];
+  const shareGroups = new Map<string, any[]>();
+
+  for (const se of shareEvents) {
+    const isOwner = se.ownerid === userId;
+    if (isOwner) {
+      const habitKey = (se.habitids || []).map(String).sort().join(',');
+      const ts = new Date(se.updatedat).getTime();
+      const groupKey = `${se.ownerid}-${se.date}-${habitKey}-${ts}`;
+      
+      if (!shareGroups.has(groupKey)) {
+        shareGroups.set(groupKey, []);
+      }
+      shareGroups.get(groupKey)!.push(se);
+    } else {
+      groupedShares.push(se);
+    }
+  }
+
+  // Process groups
+  for (const group of shareGroups.values()) {
+    if (group.length === 1) {
+      groupedShares.push(group[0]);
+    } else {
+      const first = group[0];
+      groupedShares.push({
+        ...first,
+        recipientCount: group.length,
+        isGroupedAction: true
+      });
+    }
+  }
+
+  const feedFromShares = groupedShares.map((se: any) => {
     const dateFormatted = format(parseISO(se.date), 'MMM d');
     const habitIds = (se.habitids || []).map(String);
     const habits = habitIds.map((hid: string) => ({
@@ -266,7 +300,11 @@ export default defineEventHandler(async (event) => {
     const recipientLabel = se.recipientid === userId ? 'you' : se.recipient_username;
 
     let message: string;
-    if (habits.length === 1) {
+    const habitText = habits.length === 1 ? habits[0].title : `${habits.length} habits`;
+
+    if (se.isGroupedAction) {
+      message = `shared ${habitText} with ${se.recipientCount} friends on ${dateFormatted}.`;
+    } else if (habits.length === 1) {
       message = `shared ${habits[0].title} with ${recipientLabel} on ${dateFormatted}.`;
     } else {
       message = `shared ${habits.length} habits with ${recipientLabel} on ${dateFormatted}.`;
