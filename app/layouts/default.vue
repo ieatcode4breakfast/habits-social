@@ -22,8 +22,14 @@
           <div class="w-px h-6 bg-zinc-800 hidden md:block mx-2 shrink-0"></div>
           <button 
             @click="openProfileModal"
-            class="text-sm font-medium text-zinc-400 hover:text-white transition-colors cursor-pointer px-1 py-1 rounded-lg hover:bg-zinc-900"
+            class="flex items-center gap-2 group text-sm font-medium text-zinc-400 hover:text-white transition-colors cursor-pointer px-1 py-1 rounded-lg hover:bg-zinc-900"
           >
+            <div class="w-6 h-6 rounded-full bg-zinc-800 border border-zinc-700 overflow-hidden flex-shrink-0">
+              <img v-if="user.photourl" :src="user.photourl" class="w-full h-full object-cover" />
+              <div v-else class="w-full h-full flex items-center justify-center">
+                <UserIcon class="w-3.5 h-3.5 text-zinc-500" />
+              </div>
+            </div>
             Hi, {{ user.username }}!
           </button>
           <div class="w-px h-6 bg-zinc-800 mx-2 shrink-0"></div>
@@ -68,7 +74,7 @@
         leave-to-class="opacity-0 scale-95"
       >
         <div v-if="showProfileModal" class="fixed inset-0 z-[100] flex items-center justify-center p-4">
-          <div class="absolute inset-0 bg-black/80 backdrop-blur-md" @click="showProfileModal = false"></div>
+          <div class="absolute inset-0 bg-black/80 backdrop-blur-md" @click="handleProfileCloseAttempt"></div>
           
           <div class="relative w-full max-w-md bg-zinc-925 border border-zinc-800 rounded-3xl shadow-2xl p-8 overflow-y-auto">
             <div class="flex items-center justify-between mb-6">
@@ -76,13 +82,34 @@
                 <h2 class="text-2xl font-bold text-white">Edit Profile</h2>
                 <p class="text-zinc-500 text-sm">Update your account settings</p>
               </div>
-              <button @click="showProfileModal = false" class="p-2 text-zinc-500 hover:text-white hover:bg-zinc-800 rounded-xl transition-all cursor-pointer">
+              <button @click="handleProfileCloseAttempt" class="p-2 text-zinc-500 hover:text-white hover:bg-zinc-800 rounded-xl transition-all cursor-pointer">
                 <XIcon class="w-5 h-5" />
               </button>
             </div>
 
-            <form @submit.prevent="handleUpdateProfile" class="space-y-4">
+            <form @submit.prevent="triggerProfileUpdate" class="space-y-4">
+              <!-- Avatar Selection Preview -->
+              <div class="space-y-4 flex flex-col items-center pb-2">
+                <label class="text-xs font-bold text-zinc-500 uppercase tracking-widest">Profile Avatar</label>
+                
+                <div class="flex flex-col items-center gap-4">
+                  <div class="relative">
+                    <div class="w-24 h-24 rounded-3xl bg-black border-2 border-zinc-800 overflow-hidden shadow-inner flex items-center justify-center">
+                      <img v-if="profileForm.photourl" :src="profileForm.photourl" class="w-full h-full object-cover" />
+                      <UserIcon v-else class="w-10 h-10 text-zinc-800" />
+                    </div>
+                  </div>
 
+                  <button 
+                    type="button" 
+                    @click="openAvatarModal"
+                    class="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-white text-xs font-bold rounded-xl transition-all cursor-pointer flex items-center gap-2"
+                  >
+                    <RefreshCw class="w-3.5 h-3.5" />
+                    Change Avatar
+                  </button>
+                </div>
+              </div>
 
               <div class="space-y-1.5">
                 <label class="text-xs font-bold text-zinc-500 uppercase tracking-widest ml-1">Username</label>
@@ -161,7 +188,7 @@
               <div class="pt-4 flex gap-3">
                 <button 
                   type="button"
-                  @click="showProfileModal = false"
+                  @click="handleProfileCloseAttempt"
                   class="flex-1 py-3 px-4 bg-zinc-900 text-white font-semibold rounded-xl hover:bg-zinc-800 transition-all cursor-pointer"
                 >
                   Cancel
@@ -176,6 +203,150 @@
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
+
+    <!-- Unsaved Changes Warning Modal -->
+    <Teleport to="body">
+      <Transition
+        enter-active-class="transition duration-300 ease-out"
+        enter-from-class="opacity-0 scale-95"
+        enter-to-class="opacity-100 scale-100"
+        leave-active-class="transition duration-200 ease-in"
+        leave-from-class="opacity-100 scale-100"
+        leave-to-class="opacity-0 scale-95"
+      >
+        <div v-if="showUnsavedChangesModal" class="fixed inset-0 z-[130] flex items-center justify-center p-4">
+          <div class="absolute inset-0 bg-black/95 backdrop-blur-2xl" @click="showUnsavedChangesModal = false"></div>
+          
+          <div class="relative w-full max-w-sm bg-zinc-925 border border-zinc-800 rounded-3xl shadow-2xl p-8 text-center">
+            <div class="w-16 h-16 rounded-2xl bg-amber-500/10 border-2 border-amber-500/20 mx-auto mb-6 flex items-center justify-center">
+              <RefreshCw class="w-8 h-8 text-amber-500" />
+            </div>
+            
+            <h3 class="text-xl font-bold text-white mb-2">Unsaved Changes</h3>
+            <p class="text-zinc-500 text-sm mb-8 leading-relaxed">
+              You have unsaved changes. Are you sure you want to discard them and exit?
+            </p>
+
+            <div class="flex flex-col gap-3">
+              <button 
+                @click="discardChangesAndClose"
+                class="w-full py-4 bg-rose-500 text-white font-bold rounded-2xl hover:bg-rose-600 transition-all cursor-pointer"
+              >
+                Yes, Discard Changes
+              </button>
+              <button 
+                @click="showUnsavedChangesModal = false"
+                class="w-full py-4 bg-zinc-900 text-zinc-400 font-bold rounded-2xl hover:bg-zinc-800 hover:text-white transition-all cursor-pointer"
+              >
+                Continue Editing
+              </button>
+            </div>
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
+
+    <!-- Avatar Selection Modal -->
+    <Teleport to="body">
+      <Transition
+        enter-active-class="transition duration-300 ease-out"
+        enter-from-class="opacity-0 scale-95"
+        enter-to-class="opacity-100 scale-100"
+        leave-active-class="transition duration-200 ease-in"
+        leave-from-class="opacity-100 scale-100"
+        leave-to-class="opacity-0 scale-95"
+      >
+        <div v-if="showAvatarModal" class="fixed inset-0 z-[110] flex items-center justify-center p-4">
+          <div class="absolute inset-0 bg-black/90 backdrop-blur-xl" @click="showAvatarModal = false"></div>
+          
+          <div class="relative w-full max-w-lg bg-zinc-925 border border-zinc-800 rounded-3xl shadow-2xl p-8">
+            <div class="flex items-center justify-between mb-8">
+              <div>
+                <h2 class="text-2xl font-bold text-white">Choose Avatar</h2>
+                <p class="text-zinc-500 text-sm">Pick a style that fits you</p>
+              </div>
+              <div class="flex items-center gap-2">
+                <button 
+                  @click="generateAvatars"
+                  class="p-2 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded-xl transition-all cursor-pointer flex items-center gap-2 text-sm font-bold"
+                >
+                  <RefreshCw class="w-4 h-4" />
+                  Refresh
+                </button>
+                <button @click="showAvatarModal = false" class="p-2 text-zinc-500 hover:text-white hover:bg-zinc-800 rounded-xl transition-all cursor-pointer">
+                  <XIcon class="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-3 sm:grid-cols-4 gap-4 max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar">
+              <button 
+                v-for="(avatar, index) in suggestedAvatars" 
+                :key="index"
+                @click="selectAvatar(avatar)"
+                class="aspect-square rounded-2xl bg-zinc-950 border-2 border-zinc-800 overflow-hidden hover:border-white transition-all cursor-pointer group relative"
+              >
+                <img :src="avatar" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                <div class="absolute inset-0 bg-white/0 group-hover:bg-white/5 transition-colors"></div>
+              </button>
+            </div>
+
+            <div class="mt-8">
+              <button 
+                @click="showAvatarModal = false"
+                class="w-full py-4 bg-zinc-900 text-white font-bold rounded-2xl hover:bg-zinc-800 transition-all cursor-pointer"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
+
+    <!-- Confirm Profile Update Modal -->
+    <Teleport to="body">
+      <Transition
+        enter-active-class="transition duration-300 ease-out"
+        enter-from-class="opacity-0 scale-95"
+        enter-to-class="opacity-100 scale-100"
+        leave-active-class="transition duration-200 ease-in"
+        leave-from-class="opacity-100 scale-100"
+        leave-to-class="opacity-0 scale-95"
+      >
+        <div v-if="showConfirmModal" class="fixed inset-0 z-[120] flex items-center justify-center p-4">
+          <div class="absolute inset-0 bg-black/95 backdrop-blur-2xl" @click="showConfirmModal = false"></div>
+          
+          <div class="relative w-full max-w-sm bg-zinc-925 border border-zinc-800 rounded-3xl shadow-2xl p-8 text-center">
+            <div class="w-24 h-24 rounded-3xl bg-white/5 border-2 border-zinc-800 mx-auto mb-6 overflow-hidden flex items-center justify-center">
+              <img :src="profileForm.photourl" class="w-full h-full object-cover" />
+            </div>
+            
+            <h3 class="text-xl font-bold text-white mb-2">Update Profile?</h3>
+            <p class="text-zinc-500 text-sm mb-8 leading-relaxed">
+              Are you sure you want to save these changes?
+            </p>
+
+            <div class="flex flex-col gap-3">
+              <button 
+                @click="confirmProfileUpdate"
+                :disabled="isUpdating"
+                class="w-full py-4 bg-white text-black font-bold rounded-2xl hover:bg-zinc-200 transition-all cursor-pointer flex items-center justify-center gap-2"
+              >
+                <Loader2 v-if="isUpdating" class="w-4 h-4 animate-spin" />
+                {{ isUpdating ? 'Saving...' : 'Yes, Update Profile' }}
+              </button>
+              <button 
+                @click="showConfirmModal = false"
+                class="w-full py-4 bg-zinc-900 text-zinc-400 font-bold rounded-2xl hover:bg-zinc-800 hover:text-white transition-all cursor-pointer"
+              >
+                Cancel
+              </button>
+            </div>
           </div>
         </div>
       </Transition>
@@ -210,7 +381,7 @@
 </template>
 
 <script setup lang="ts">
-import { LogOut, LayoutDashboard, Users, User as UserIcon, Mail, Lock, X as XIcon, Loader2, Eye, EyeOff, Check as CheckIcon, Minus as MinusIcon } from 'lucide-vue-next';
+import { LogOut, LayoutDashboard, Users, User as UserIcon, Mail, Lock, X as XIcon, Loader2, Eye, EyeOff, Check as CheckIcon, Minus as MinusIcon, RefreshCw } from 'lucide-vue-next';
 
 const { user, fetchUser } = useAuth();
 const { pendingCount, init: initSocial, cleanup: cleanupSocial, logoutCleanup } = useSocial();
@@ -239,6 +410,9 @@ const router = useRouter();
 
 // Profile Modal State
 const showProfileModal = ref(false);
+const showAvatarModal = ref(false);
+const showConfirmModal = ref(false);
+const showUnsavedChangesModal = ref(false);
 const isUpdating = ref(false);
 const showPassword = ref(false);
 const profileError = ref('');
@@ -246,10 +420,60 @@ const profileForm = reactive({
   username: '',
   email: '',
   password: '',
-  confirmPassword: ''
+  confirmPassword: '',
+  photourl: ''
 });
 
-useModalHistory(showProfileModal);
+const initialProfileSnapshot = ref<any>(null);
+
+const hasUnsavedChanges = computed(() => {
+  if (!initialProfileSnapshot.value) return false;
+  return (
+    profileForm.username !== initialProfileSnapshot.value.username ||
+    profileForm.email !== initialProfileSnapshot.value.email ||
+    profileForm.password !== '' ||
+    profileForm.confirmPassword !== '' ||
+    profileForm.photourl !== initialProfileSnapshot.value.photourl
+  );
+});
+
+const suggestedAvatars = ref<string[]>([]);
+
+const generateAvatars = () => {
+  // Using more colorful styles and vibrant backgrounds
+  const styles = ['avataaars', 'big-smile', 'bottts-neutral', 'notionists-neutral'];
+  const bgColors = [
+    'b6e3f4', 'c0aede', 'd1d4f9', 'ffd5dc', 'ffdfbf', 
+    'f1f4f9', 'e2e8f0', 'fce7f3', 'ffedd5', 'dcfce7'
+  ];
+  
+  const newAvatars = [];
+  for (let i = 0; i < 12; i++) {
+    const style = styles[Math.floor(Math.random() * styles.length)];
+    const seed = Math.random().toString(36).substring(7);
+    const bg = bgColors[Math.floor(Math.random() * bgColors.length)];
+    newAvatars.push(`https://api.dicebear.com/9.x/${style}/svg?seed=${seed}&backgroundColor=${bg}`);
+  }
+  suggestedAvatars.value = newAvatars;
+};
+
+const handleProfileCloseAttempt = () => {
+  if (hasUnsavedChanges.value) {
+    showUnsavedChangesModal.value = true;
+  } else {
+    showProfileModal.value = false;
+  }
+};
+
+const discardChangesAndClose = () => {
+  showUnsavedChangesModal.value = false;
+  showProfileModal.value = false;
+};
+
+useModalHistory(showProfileModal, handleProfileCloseAttempt);
+useModalHistory(showAvatarModal);
+useModalHistory(showConfirmModal);
+useModalHistory(showUnsavedChangesModal);
 
 const openProfileModal = () => {
   if (!user.value) return;
@@ -257,22 +481,54 @@ const openProfileModal = () => {
   profileForm.email = user.value.email || '';
   profileForm.password = '';
   profileForm.confirmPassword = '';
+  profileForm.photourl = user.value.photourl || '';
   profileError.value = '';
+
+  initialProfileSnapshot.value = {
+    username: profileForm.username,
+    email: profileForm.email,
+    photourl: profileForm.photourl
+  };
+
   showProfileModal.value = true;
 };
 
-const handleUpdateProfile = async () => {
+const openAvatarModal = () => {
+  generateAvatars();
+  showAvatarModal.value = true;
+};
+
+const selectAvatar = (url: string) => {
+  profileForm.photourl = url;
+  showAvatarModal.value = false;
+};
+
+const triggerProfileUpdate = () => {
   if (profileForm.password && profileForm.password !== profileForm.confirmPassword) {
     profileError.value = 'Passwords do not match';
     return;
   }
+  profileError.value = '';
+  showConfirmModal.value = true;
+};
 
+const confirmProfileUpdate = async () => {
+  showConfirmModal.value = false;
+  await handleUpdateProfile();
+};
+
+const handleUpdateProfile = async () => {
   isUpdating.value = true;
   profileError.value = '';
   try {
     await $fetch('/api/auth/profile', {
       method: 'PUT',
-      body: profileForm
+      body: {
+        username: profileForm.username,
+        email: profileForm.email,
+        password: profileForm.password || undefined,
+        photourl: profileForm.photourl
+      }
     });
     await fetchUser();
     showProfileModal.value = false;
