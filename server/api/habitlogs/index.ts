@@ -1,4 +1,4 @@
-import { parseISO, startOfDay, subDays, isAfter, isBefore } from 'date-fns';
+import { parseISO, startOfDay, subDays, addDays, isAfter, isBefore } from 'date-fns';
 import type { IHabitLog } from '../../models';
 import { usePusher } from '../../utils/pusher';
 import { recalculateHabitStreak } from '../../utils/streaks';
@@ -25,8 +25,10 @@ export default defineEventHandler(async (event) => {
       const logDate = startOfDay(parseISO(dateStr));
       const today = startOfDay(new Date());
       const limitDate = startOfDay(subDays(today, 13));
+      // Allow up to 1 day in the future (UTC) to accommodate global timezones
+      const maxDate = addDays(today, 1);
 
-      if (isBefore(logDate, limitDate) || isAfter(logDate, today)) {
+      if (isBefore(logDate, limitDate) || isAfter(logDate, maxDate)) {
         throw createError({
           statusCode: 400,
           statusMessage: 'Habit updates are only allowed for the last 14 days.'
