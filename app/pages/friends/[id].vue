@@ -749,23 +749,8 @@ onMounted(() => {
 onUnmounted(() => {
   unsubscribeHabits();
   window.removeEventListener('resize', checkHeightOverflow);
-  if (typeof document !== 'undefined') {
-    document.body.classList.remove('overflow-hidden');
-  }
 });
 // ─────────────────────────────────────────────────────────────────────────────
 
-// ── Scroll Lock ──────────────────────────────────────────────────────────────
-watch(
-  () => showModal.value || showShareModal.value || showUnfriendModal.value,
-  (isOpen) => {
-    if (typeof document === 'undefined') return;
-    if (isOpen) {
-      document.body.classList.add('overflow-hidden');
-    } else {
-      document.body.classList.remove('overflow-hidden');
-    }
-  }
-);
 // ─────────────────────────────────────────────────────────────────────────────
 </script>

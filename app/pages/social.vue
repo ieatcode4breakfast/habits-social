@@ -871,13 +871,6 @@ watch([showShareModal, myHabits, showHabitModal], async () => {
   }
 });
 
-// Scroll Lock
-watch([showUnfriendModal, showAddModal, showShareModal, showHabitModal], (newVal) => {
-  if (typeof document === 'undefined') return;
-  const isAnyOpen = newVal.some(v => v);
-  if (isAnyOpen) document.body.classList.add('overflow-hidden');
-  else document.body.classList.remove('overflow-hidden');
-});
 
 const loadFriendships = async () => {
   await refreshSocial();
@@ -892,9 +885,6 @@ onMounted(async () => {
 
 onUnmounted(() => {
   window.removeEventListener('resize', checkHeightOverflow);
-  if (typeof document !== 'undefined') {
-    document.body.classList.remove('overflow-hidden');
-  }
 });
 
 onActivated(async () => {

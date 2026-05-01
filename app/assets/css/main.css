@@ -69,6 +69,13 @@ input, textarea, select {
 }
 
 /* Adaptive Height Modals: Triggered via JS when content overflows window height */
+/* Prevent scrolling when modals are open - enforced for all devices */
+html.overflow-hidden,
+body.overflow-hidden {
+  overflow: hidden !important;
+  height: 100% !important;
+}
+
 .modal-adaptive-height {
   height: 100% !important;
   width: 100% !important;
