@@ -56,8 +56,8 @@ export default defineEventHandler(async (event) => {
     JOIN users u ON h.ownerid::uuid = u.id
     WHERE h.user_date IS NOT NULL
       AND (
-        (h.ownerid::text = ANY(${friendIds}) AND ${userId}::text = ANY(h.sharedwith))
-        OR h.ownerid::text = ${userId}::text
+        h.ownerid::text = ${userId}::text
+        OR (h.ownerid::text = ANY(${friendIds}) AND ${userId}::text = ANY(h.sharedwith))
       )
     ORDER BY h.user_date DESC, h."createdAt" DESC
     LIMIT 100

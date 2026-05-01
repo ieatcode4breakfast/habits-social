@@ -122,7 +122,7 @@ Chronological triggers for building, maintaining, or losing momentum from Day 2 
 Triggers for visibility and network actions.
 
 * **Trigger 3.1: Public Commitment (New Habit)**
-    * **Content:** Triggered only when a user creates a new habit and selects specific friends to share it with.
+    * **Content:** Triggered when a user creates a new habit. It is always visible to the owner. It is only visible to friends if they are specifically selected for sharing.
     * **Your Activity:** You committed to a new habit: Morning Workout on Apr 27.
     * **Friend Activity:** Alex committed to a new habit: Morning Workout on Apr 27.
 * **Trigger 3.2: Shared a habit with you**
