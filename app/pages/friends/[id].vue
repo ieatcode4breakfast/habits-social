@@ -3,7 +3,7 @@
     <!-- Responsive Header & Actions -->
     <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-y-3 sm:gap-y-0">
       <!-- Profile Header -->
-      <div class="flex items-center gap-1 px-4 sm:px-0" v-motion-slide-visible-once-left>
+      <div class="flex items-center gap-1 px-4 sm:px-0 mt-2" v-motion-slide-visible-once-left>
         <button @click="handleBack" class="inline-flex items-center justify-center p-1 -ml-1 text-zinc-500 hover:text-white transition-all flex-shrink-0 cursor-pointer">
           <ChevronLeft class="w-6 h-6" />
         </button>
@@ -14,19 +14,20 @@
             icon-class="w-6 h-6 text-zinc-600"
           />
           <div>
-            <h1 class="text-xl font-bold tracking-tight text-white mb-1">{{ profile.username }}'s habits</h1>
-            <p class="text-zinc-400 text-xs">habits shared with you</p>
+            <h1 class="text-xl font-bold tracking-tight text-white">{{ profile.username }}'s habits</h1>
           </div>
         </div>
       </div>
 
       <!-- Action Row (Mobile: New Row, Desktop: Right Aligned) -->
       <div v-if="profile && !loading" class="flex justify-end gap-2 px-4 sm:px-0 -mt-2 sm:mt-0" v-motion-slide-visible-once-right>
-        <button v-if="relationshipStatus === 'friends'" @click="openShareModal" class="flex items-center gap-2 px-4 py-2 bg-white hover:bg-zinc-200 text-black rounded-xl transition-colors font-semibold text-sm cursor-pointer shadow-lg shadow-white/5">
-          <Share2 class="w-4 h-4" /> Share
+        <button v-if="relationshipStatus === 'friends'" @click="openShareModal" class="flex items-center sm:gap-2 p-2.5 sm:px-4 sm:py-2 bg-white hover:bg-zinc-200 text-black rounded-xl transition-colors font-semibold text-sm cursor-pointer shadow-lg shadow-white/5" title="Share Habits">
+          <Share2 class="w-4 h-4" />
+          <span class="hidden sm:inline">Share</span>
         </button>
-        <button v-if="relationshipStatus === 'friends'" @click="showUnfriendModal = true" class="flex items-center gap-2 px-4 py-2 bg-rose-500 hover:bg-rose-600 text-white rounded-xl transition-colors font-semibold text-sm cursor-pointer shadow-lg shadow-rose-500/20">
-          <UserMinus class="w-4 h-4" /> Unfriend
+        <button v-if="relationshipStatus === 'friends'" @click="showUnfriendModal = true" class="flex items-center sm:gap-2 p-2.5 sm:px-4 sm:py-2 bg-rose-500 hover:bg-rose-600 text-white rounded-xl transition-colors font-semibold text-sm cursor-pointer shadow-lg shadow-rose-500/20" title="Unfriend">
+          <UserMinus class="w-4 h-4" />
+          <span class="hidden sm:inline">Unfriend</span>
         </button>
         <button v-if="relationshipStatus === 'none'" @click="executeSendRequest" class="flex items-center gap-2 px-4 py-2 bg-white hover:bg-zinc-200 text-black rounded-xl transition-colors font-semibold text-sm cursor-pointer shadow-lg shadow-white/5">
           <UserPlus class="w-4 h-4" /> Add
