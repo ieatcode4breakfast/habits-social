@@ -158,7 +158,7 @@
                 </Teleport>
               </div>
 
-              <div class="text-[10px] font-bold" :class="isToday(day) ? 'text-white' : 'text-zinc-500'">
+              <div class="text-[10px] font-bold text-white">
                 {{ format(day, 'd') }}
               </div>
             </div>
@@ -183,7 +183,6 @@
       >
         <div v-if="showModal" 
           class="fixed inset-0 z-[100] flex items-center justify-center sm:p-4 p-0"
-          :class="{ 'modal-parent-adaptive': isHeightOverflowing }"
         >
           <!-- Backdrop -->
           <div class="absolute inset-0 bg-black/80 backdrop-blur-md" @click="showModal = false"></div>
@@ -192,7 +191,6 @@
           <div 
             ref="modalContent"
             class="relative w-full h-full sm:h-auto sm:max-w-md max-w-none bg-zinc-925 border-x-0 sm:border border-zinc-800 sm:rounded-3xl rounded-none shadow-2xl overflow-hidden transition-all duration-300 flex flex-col"
-            :class="{ 'modal-adaptive-height': isHeightOverflowing }"
           >
             <!-- Scrollable Content -->
             <div class="flex-1 overflow-y-auto p-8 pb-4">
@@ -341,7 +339,6 @@
       >
         <div v-if="showEditModal" 
           class="fixed inset-0 z-[100] flex items-center justify-center sm:p-4 p-0"
-          :class="{ 'modal-parent-adaptive': isHeightOverflowing }"
         >
           <!-- Backdrop -->
           <div class="absolute inset-0 bg-black/80 backdrop-blur-md" @click="showEditModal = false"></div>
@@ -350,7 +347,6 @@
           <div 
             ref="modalContent"
             class="relative w-full h-full sm:h-auto sm:max-w-lg max-w-none bg-zinc-925 border-x-0 sm:border border-zinc-800 sm:rounded-3xl rounded-none shadow-2xl overflow-hidden transition-all duration-300 flex flex-col"
-            :class="{ 'modal-adaptive-height': isHeightOverflowing }"
           >
             <!-- Scrollable Content -->
             <div class="flex-1 overflow-y-auto p-8 pb-4">
@@ -558,8 +554,8 @@
                           </Teleport>
                         </div>
                         <div class="text-[9px] font-bold" :class="[
-                          isToday(day) ? 'text-white' : 'text-zinc-600',
-                          (day.getMonth() !== currentCalendarDate.getMonth() || isFutureDay(day)) ? 'opacity-30' : ''
+                          day.getMonth() === currentCalendarDate.getMonth() ? 'text-white' : 'text-zinc-600',
+                          day.getMonth() !== currentCalendarDate.getMonth() ? 'opacity-30' : ''
                         ]">
                           {{ format(day, 'd') }}
                         </div>
@@ -1452,28 +1448,8 @@ const removeHabit = async (id: string) => {
   habits.value = habits.value.filter(h => h.id !== id);
 };
 
-// ── Modal Overflow Logic ─────────────────────────────────────────────────────
+// --- Modal State Management ---
 const modalContent = ref<HTMLElement | null>(null);
-const isHeightOverflowing = ref(false);
-
-const checkHeightOverflow = () => {
-  if (!modalContent.value) return;
-  // Use a slight buffer (32px) for a more comfortable transition
-  isHeightOverflowing.value = modalContent.value.scrollHeight > (window.innerHeight - 32);
-};
-
-// Check on modal open, and when relevant content changes
-watch([showModal, showEditModal, editDescription, newDescription, editFrequencyPeriod], async (newVal) => {
-  const isAnyOpen = Array.isArray(newVal) ? newVal.slice(0, 2).some(v => v) : false;
-  if (isAnyOpen) {
-    await nextTick();
-    checkHeightOverflow();
-    // Double check after transitions
-    setTimeout(checkHeightOverflow, 350);
-  } else {
-    isHeightOverflowing.value = false;
-  }
-});
 
 
 
@@ -1501,7 +1477,6 @@ onMounted(() => {
 
   // Social state is now initialized globally in default.vue layout
   load();
-  window.addEventListener('resize', checkHeightOverflow);
   window.addEventListener('click', closeLogMenu);
 });
 
@@ -1551,7 +1526,6 @@ watch(() => user.value?.id, (newId) => {
 onUnmounted(() => {
   // cleanupSocial(); // Now a no-op singleton cleanup handled by logout
   unsubscribeOwnHabits();
-  window.removeEventListener('resize', checkHeightOverflow);
   window.removeEventListener('click', closeLogMenu);
 });
 // ─────────────────────────────────────────────────────────────────────────────

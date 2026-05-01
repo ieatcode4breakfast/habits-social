@@ -68,26 +68,9 @@ input, textarea, select {
   font-size: 16px !important;
 }
 
-/* Adaptive Height Modals: Triggered via JS when content overflows window height */
-/* Prevent scrolling when modals are open - enforced for all devices */
+/* Modal Utilities are now handled via responsive Tailwind classes in templates */
 html.overflow-hidden,
 body.overflow-hidden {
   overflow: hidden !important;
   height: 100% !important;
-}
-
-.modal-adaptive-height {
-  height: 100% !important;
-  width: 100% !important;
-  max-width: none !important;
-  max-height: none !important;
-  border-radius: 0 !important;
-  border-left: none !important;
-  border-right: none !important;
-  border-top: none !important;
-  border-bottom: none !important;
-}
-
-.modal-parent-adaptive {
-  padding: 0 !important;
 }

@@ -116,7 +116,7 @@
                 <Minus v-else-if="getStatus(habit.id, day) === 'skipped'" class="w-4 h-4 text-white" />
               </div>
 
-              <div class="text-[10px] font-bold" :class="isToday(day) ? 'text-white' : 'text-zinc-500'">
+              <div class="text-[10px] font-bold text-white">
                 {{ format(day, 'd') }}
               </div>
             </div>
@@ -137,7 +137,6 @@
       >
         <div v-if="showModal && selectedHabit" 
           class="fixed inset-0 z-[100] flex items-center justify-center sm:p-4 p-0"
-          :class="{ 'modal-parent-adaptive': isHeightOverflowing }"
         >
           <!-- Backdrop -->
           <div class="absolute inset-0 bg-black/80 backdrop-blur-md" @click="showModal = false"></div>
@@ -146,7 +145,6 @@
           <div 
             ref="modalContent"
             class="relative w-full h-full sm:h-auto sm:max-w-md max-w-none bg-zinc-925 border-x-0 sm:border border-zinc-800 sm:rounded-3xl rounded-none shadow-2xl p-8 overflow-y-auto transition-all duration-300"
-            :class="{ 'modal-adaptive-height': isHeightOverflowing }"
           >
             <div class="flex items-center gap-1 mb-6 -ml-2">
 
@@ -247,8 +245,8 @@
                       <span v-else-if="getStatus(selectedHabit.id, day) === 'skipped'" class="w-3 h-0.5 bg-white rounded-full"></span>
                     </div>
                     <div class="text-[9px] font-bold" :class="[
-                      isToday(day) ? 'text-white' : 'text-zinc-600',
-                      (day.getMonth() !== currentCalendarDate.getMonth() || isFutureDay(day)) ? 'opacity-30' : ''
+                      day.getMonth() === currentCalendarDate.getMonth() ? 'text-white' : 'text-zinc-600',
+                      day.getMonth() !== currentCalendarDate.getMonth() ? 'opacity-30' : ''
                     ]">
                       {{ format(day, 'd') }}
                     </div>
@@ -284,13 +282,11 @@
       >
         <div v-if="showShareModal" 
           class="fixed inset-0 z-[110] flex items-center justify-center sm:p-4 p-0"
-          :class="{ 'modal-parent-adaptive': isShareHeightOverflowing }"
         >
           <div class="absolute inset-0 bg-black/90 backdrop-blur-md" @click="showShareModal = false"></div>
           <div 
             ref="shareModalContent"
             class="relative w-full h-full sm:h-auto sm:max-w-md max-w-none bg-zinc-925 border-x-0 sm:border border-zinc-800 sm:rounded-3xl rounded-none shadow-2xl p-8 overflow-y-auto transition-all duration-300"
-            :class="{ 'modal-adaptive-height': isShareHeightOverflowing }"
           >
             <div class="text-center mb-6">
               <div class="w-16 h-16 bg-zinc-925 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -705,32 +701,9 @@ watch(currentCalendarDate, async (newDate) => {
 });
 // ----------------------------
 
-// ── Modal Overflow Logic ─────────────────────────────────────────────────────
+// --- Modal State Management ---
 const modalContent = ref<HTMLElement | null>(null);
-const isHeightOverflowing = ref(false);
-
 const shareModalContent = ref<HTMLElement | null>(null);
-const isShareHeightOverflowing = ref(false);
-
-const checkHeightOverflow = () => {
-  if (!modalContent.value) return;
-  isHeightOverflowing.value = modalContent.value.scrollHeight > (window.innerHeight - 32);
-};
-
-const checkShareHeightOverflow = () => {
-  if (!shareModalContent.value) return;
-  isShareHeightOverflowing.value = shareModalContent.value.scrollHeight > (window.innerHeight - 32);
-};
-
-watch(showModal, async (isOpen) => {
-  if (isOpen) {
-    await nextTick();
-    checkHeightOverflow();
-    setTimeout(checkHeightOverflow, 350);
-  } else {
-    isHeightOverflowing.value = false;
-  }
-});
 
 const { subscribeToFriendHabits } = useRealtime();
 let unsubscribeHabits = () => {};
@@ -740,15 +713,10 @@ onMounted(() => {
   unsubscribeHabits = subscribeToFriendHabits(friendId, () => {
     load();
   });
-  window.addEventListener('resize', () => {
-    checkHeightOverflow();
-    checkShareHeightOverflow();
-  });
 });
 
 onUnmounted(() => {
   unsubscribeHabits();
-  window.removeEventListener('resize', checkHeightOverflow);
 });
 // ─────────────────────────────────────────────────────────────────────────────
 
