@@ -11,7 +11,7 @@
         />
         <div>
           <h1 class="text-xl font-bold tracking-tight text-white mb-1">My habits</h1>
-          <p class="text-zinc-400 text-xs">You are currently tracking {{ habits.length }} habit{{ habits.length === 1 ? '' : 's' }}</p>
+          <p class="text-zinc-400 text-xs">Tracking {{ habits.length }} habit{{ habits.length === 1 ? '' : 's' }}</p>
         </div>
       </div>
       <div class="flex items-center gap-2">
@@ -192,17 +192,18 @@
             ref="modalContent"
             class="relative my-auto w-full h-full sm:h-auto sm:max-w-md max-w-none bg-zinc-925 border-x-0 sm:border border-zinc-800 sm:rounded-3xl rounded-none shadow-2xl overflow-hidden transition-all duration-300 flex flex-col"
           >
-            <!-- Scrollable Content -->
-            <div class="flex-1 overflow-y-auto p-4 sm:p-8 sm:pb-4">
-              <div class="flex items-center gap-1 mb-6 -ml-2">
-                <button @click="showModal = false" class="p-2 text-zinc-500 hover:text-white transition-all cursor-pointer flex-shrink-0">
-                  <ChevronLeft class="w-6 h-6" />
-                </button>
-                <div class="flex-1 min-w-0">
-                  <h2 class="text-lg font-bold text-white truncate leading-none min-w-0">New Habit</h2>
-                </div>
+            <!-- Sticky Header -->
+            <div class="sticky top-0 z-10 bg-zinc-925 px-4 sm:px-8 py-4 sm:py-6 border-b border-zinc-800/80 flex items-center gap-1 shrink-0">
+              <button @click="showModal = false" class="p-2 -ml-2 text-zinc-500 hover:text-white transition-all cursor-pointer flex-shrink-0">
+                <ChevronLeft class="w-6 h-6" />
+              </button>
+              <div class="flex-1 min-w-0">
+                <h2 class="text-lg font-bold text-white truncate leading-none min-w-0">New Habit</h2>
               </div>
-              
+            </div>
+
+            <!-- Scrollable Content -->
+            <div class="flex-1 overflow-y-auto p-4 sm:p-8 sm:py-6">
               <form id="addHabitForm" @submit.prevent="addHabit" class="space-y-6">
                 <div class="space-y-2">
                   <label class="text-xs font-bold uppercase tracking-widest text-zinc-500">Habit Name</label>
@@ -355,48 +356,48 @@
             ref="modalContent"
             class="relative my-auto w-full h-full sm:h-auto sm:max-w-lg max-w-none bg-zinc-925 border-x-0 sm:border border-zinc-800 sm:rounded-3xl rounded-none shadow-2xl overflow-hidden transition-all duration-300 flex flex-col"
           >
-            <!-- Scrollable Content -->
-            <div class="flex-1 overflow-y-auto p-4 sm:p-8 sm:pb-4">
-              <div class="flex items-center gap-1 mb-6 -ml-2">
-
-                <button @click="showEditModal = false" class="p-2 text-zinc-500 hover:text-white transition-all cursor-pointer flex-shrink-0">
-                  <ChevronLeft class="w-6 h-6" />
-                </button>
-                <div class="flex-1 min-w-0">
-                  <div class="flex items-center gap-2 min-w-0">
-                    <h2 class="text-lg font-bold text-white truncate leading-none min-w-0">{{ editTitle }}</h2>
-                    <!-- Streak Badge -->
-                    <div 
-                      v-if="(editingHabit?.currentStreak ?? 0) >= 2"
-                      class="flex items-center gap-1 px-2 py-0.5 bg-black border rounded-full shrink-0"
-                      :class="[
-                        isFaded(editingHabit as Habit) ? 'opacity-30' : 'opacity-100',
-                        getStreakTheme(editingHabit?.currentStreak ?? 0).border
-                      ]"
+            <!-- Sticky Header -->
+            <div class="sticky top-0 z-10 bg-zinc-925 px-4 sm:px-8 py-4 sm:py-6 border-b border-zinc-800/80 flex items-center gap-1 shrink-0">
+              <button @click="showEditModal = false" class="p-2 -ml-2 text-zinc-500 hover:text-white transition-all cursor-pointer flex-shrink-0">
+                <ChevronLeft class="w-6 h-6" />
+              </button>
+              <div class="flex-1 min-w-0">
+                <div class="flex items-center gap-2 min-w-0">
+                  <h2 class="text-lg font-bold text-white truncate leading-none min-w-0">{{ editTitle }}</h2>
+                  <!-- Streak Badge -->
+                  <div 
+                    v-if="(editingHabit?.currentStreak ?? 0) >= 2"
+                    class="flex items-center gap-1 px-2 py-0.5 bg-black border rounded-full shrink-0"
+                    :class="[
+                      isFaded(editingHabit as Habit) ? 'opacity-30' : 'opacity-100',
+                      getStreakTheme(editingHabit?.currentStreak ?? 0).border
+                    ]"
+                  >
+                    <span 
+                      class="text-[9px] font-black tracking-tight"
+                      :class="getStreakTheme(editingHabit?.currentStreak ?? 0).text"
                     >
-                      <span 
-                        class="text-[9px] font-black tracking-tight"
-                        :class="getStreakTheme(editingHabit?.currentStreak ?? 0).text"
-                      >
-                        x{{ editingHabit?.currentStreak }} STREAK
-                      </span>
+                      x{{ editingHabit?.currentStreak }} STREAK
+                    </span>
 
-                      <Flame 
-                        v-if="(editingHabit?.currentStreak ?? 0) >= 7"
-                        class="w-2.5 h-2.5" 
-                        :class="[
-                          getStreakTheme(editingHabit?.currentStreak ?? 0).text,
-                          getStreakTheme(editingHabit?.currentStreak ?? 0).fill
-                        ]"
-                      />
-                    </div>
+                    <Flame 
+                      v-if="(editingHabit?.currentStreak ?? 0) >= 7"
+                      class="w-2.5 h-2.5" 
+                      :class="[
+                        getStreakTheme(editingHabit?.currentStreak ?? 0).text,
+                        getStreakTheme(editingHabit?.currentStreak ?? 0).fill
+                      ]"
+                    />
                   </div>
                 </div>
-                <button @click="showDeleteModal = true" class="p-2 text-zinc-500 hover:text-rose-500 transition-all cursor-pointer flex-shrink-0">
-                  <Trash2 class="w-5 h-5" />
-                </button>
               </div>
+              <button @click="showDeleteModal = true" class="p-2 text-zinc-500 hover:text-rose-500 transition-all cursor-pointer flex-shrink-0">
+                <Trash2 class="w-5 h-5" />
+              </button>
+            </div>
 
+            <!-- Scrollable Content -->
+            <div class="flex-1 overflow-y-auto p-4 sm:p-8 sm:py-6">
               
               <div class="space-y-6">
                 <div class="space-y-2">
@@ -668,25 +669,25 @@
               This will permanently remove "<span class="text-zinc-200 font-medium">{{ editingHabit?.title }}</span>" and all its progress. This action cannot be undone.
             </p>
             
-            <div class="flex flex-col gap-3">
+            <div class="flex gap-3 mt-2">
+              <button
+                @click="showDeleteModal = false"
+                class="flex-1 px-5 py-3 bg-transparent hover:bg-zinc-925 text-zinc-400 hover:text-zinc-200 font-semibold rounded-xl transition-all cursor-pointer"
+              >
+                Keep Habit
+              </button>
               <button
                 @click="handleDelete"
                 :disabled="isDeletingHabit"
-                class="w-full px-5 py-3 bg-white hover:bg-zinc-200 text-black font-semibold rounded-xl transition-all shadow-lg shadow-white/5 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                class="flex-1 px-5 py-3 bg-rose-500 hover:bg-rose-600 text-white font-semibold rounded-xl transition-all shadow-lg shadow-rose-500/20 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
               >
                 <template v-if="isDeletingHabit">
-                  <div class="w-4 h-4 border-2 border-black/20 border-t-black rounded-full animate-spin"></div>
+                  <div class="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>
                   Deleting...
                 </template>
                 <template v-else>
-                  Delete Permanently
+                  Delete
                 </template>
-              </button>
-              <button
-                @click="showDeleteModal = false"
-                class="w-full px-5 py-3 bg-transparent hover:bg-zinc-925 text-zinc-400 hover:text-zinc-200 font-semibold rounded-xl transition-all cursor-pointer"
-              >
-                Keep Habit
               </button>
             </div>
           </div>
@@ -714,25 +715,25 @@
             <p class="text-zinc-500 mb-8 text-sm">
               This will update who can see your progress for this habit.
             </p>
-            <div class="flex flex-col gap-3">
+            <div class="flex gap-3 mt-2">
+              <button
+                @click="cancelSharingSave"
+                class="flex-1 px-5 py-3 bg-transparent hover:bg-zinc-925 text-zinc-400 hover:text-zinc-200 font-semibold rounded-xl transition-all cursor-pointer"
+              >
+                Cancel
+              </button>
               <button
                 @click="confirmSharingSave"
                 :disabled="isUpdatingHabit"
-                class="w-full px-5 py-3 bg-white hover:bg-zinc-200 text-black font-semibold rounded-xl transition-all shadow-lg shadow-white/5 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                class="flex-1 px-5 py-3 bg-white hover:bg-zinc-200 text-black font-semibold rounded-xl transition-all shadow-lg shadow-white/5 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
               >
                 <template v-if="isUpdatingHabit">
                   <div class="w-4 h-4 border-2 border-black/20 border-t-black rounded-full animate-spin"></div>
                   Saving...
                 </template>
                 <template v-else>
-                  Confirm Changes
+                  Confirm
                 </template>
-              </button>
-              <button
-                @click="cancelSharingSave"
-                class="w-full px-5 py-3 bg-transparent hover:bg-zinc-925 text-zinc-400 hover:text-zinc-200 font-semibold rounded-xl transition-all cursor-pointer"
-              >
-                Cancel
               </button>
             </div>
           </div>

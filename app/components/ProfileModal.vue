@@ -13,9 +13,11 @@
         <div v-if="modelValue" class="fixed inset-0 z-[100] flex flex-col items-center justify-start overflow-y-auto sm:py-8 py-0">
           <div class="fixed inset-0 bg-black/80 backdrop-blur-md" @click="handleProfileCloseAttempt"></div>
           
-          <div class="relative my-auto w-full h-full sm:h-auto sm:max-w-md max-w-none bg-zinc-925 border-x-0 sm:border border-zinc-800 sm:rounded-3xl rounded-none shadow-2xl p-4 sm:p-8 overflow-y-auto transition-all duration-300">
-            <div class="flex items-center gap-1 mb-6 -ml-2">
-              <button @click="handleProfileCloseAttempt" class="p-2 text-zinc-500 hover:text-white transition-all cursor-pointer flex-shrink-0">
+          <div class="relative my-auto w-full h-full sm:h-auto sm:max-w-md max-w-none bg-zinc-925 border-x-0 sm:border border-zinc-800 sm:rounded-3xl rounded-none shadow-2xl overflow-hidden transition-all duration-300 flex flex-col">
+            
+            <!-- Sticky Header -->
+            <div class="sticky top-0 z-10 bg-zinc-925 px-4 sm:px-8 py-4 sm:py-6 border-b border-zinc-800/80 flex items-center gap-1 shrink-0">
+              <button @click="handleProfileCloseAttempt" class="p-2 -ml-2 text-zinc-500 hover:text-white transition-all cursor-pointer flex-shrink-0">
                 <ChevronLeft class="w-6 h-6" />
               </button>
               <div class="flex-1 min-w-0">
@@ -23,129 +25,139 @@
               </div>
             </div>
 
-            <form @submit.prevent="triggerProfileUpdate" class="space-y-4">
-              <!-- Avatar Selection -->
-              <AvatarPicker 
-                v-model="profileForm.photourl" 
-                label="Avatar"
-              />
+            <!-- Scrollable Content -->
+            <div class="flex-1 overflow-y-auto p-4 sm:p-8 sm:py-6">
+              <form id="profileForm" @submit.prevent="triggerProfileUpdate" class="space-y-4">
+                <!-- Avatar Selection -->
+                <AvatarPicker 
+                  v-model="profileForm.photourl" 
+                  label="Avatar"
+                />
 
-              <div class="space-y-1.5">
-                <label class="text-xs font-bold text-zinc-500 uppercase tracking-widest ml-1">Username</label>
-                <div class="relative group">
-                  <UserIcon class="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-600 group-focus-within:text-white transition-colors" />
-                  <input 
-                    v-model="profileForm.username"
-                    type="text"
-                    required
-                    placeholder="Username"
-                    @input="profileError = ''"
-                    class="w-full bg-black border rounded-xl py-3 pl-10 pr-4 text-white placeholder-zinc-700 focus:outline-none focus:ring-2 transition-all text-sm"
-                    :class="[
-                      profileError && (profileError.includes('username') || profileError.includes('taken')) 
-                        ? 'border-rose-500/50 focus:ring-rose-500/10 focus:border-rose-500' 
-                        : 'border-zinc-800 focus:ring-white/10 focus:border-zinc-700'
-                    ]"
-                  />
+                <div class="space-y-1.5">
+                  <label class="text-xs font-bold text-zinc-500 uppercase tracking-widest ml-1">Username</label>
+                  <div class="relative group">
+                    <UserIcon class="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-600 group-focus-within:text-white transition-colors" />
+                    <input 
+                      v-model="profileForm.username"
+                      type="text"
+                      required
+                      placeholder="Username"
+                      @input="profileError = ''"
+                      class="w-full bg-black border rounded-xl py-3 pl-10 pr-4 text-white placeholder-zinc-700 focus:outline-none focus:ring-2 transition-all text-sm"
+                      :class="[
+                        profileError && (profileError.includes('username') || profileError.includes('taken')) 
+                          ? 'border-rose-500/50 focus:ring-rose-500/10 focus:border-rose-500' 
+                          : 'border-zinc-800 focus:ring-white/10 focus:border-zinc-700'
+                      ]"
+                    />
+                  </div>
                 </div>
-              </div>
 
-              <div class="space-y-1.5">
-                <label class="text-xs font-bold text-zinc-500 uppercase tracking-widest ml-1">Email Address</label>
-                <div class="relative group">
-                  <Mail class="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-600 group-focus-within:text-white transition-colors" />
-                  <input 
-                    v-model="profileForm.email"
-                    type="email"
-                    required
-                    placeholder="email@example.com"
-                    @input="profileError = ''"
-                    class="w-full bg-black border rounded-xl py-3 pl-10 pr-4 text-white placeholder-zinc-700 focus:outline-none focus:ring-2 transition-all text-sm"
-                    :class="[
-                      profileError && profileError.includes('email')
-                        ? 'border-rose-500/50 focus:ring-rose-500/10 focus:border-rose-500' 
-                        : 'border-zinc-800 focus:ring-white/10 focus:border-zinc-700'
-                    ]"
-                  />
+                <div class="space-y-1.5">
+                  <label class="text-xs font-bold text-zinc-500 uppercase tracking-widest ml-1">Email Address</label>
+                  <div class="relative group">
+                    <Mail class="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-600 group-focus-within:text-white transition-colors" />
+                    <input 
+                      v-model="profileForm.email"
+                      type="email"
+                      required
+                      placeholder="email@example.com"
+                      @input="profileError = ''"
+                      class="w-full bg-black border rounded-xl py-3 pl-10 pr-4 text-white placeholder-zinc-700 focus:outline-none focus:ring-2 transition-all text-sm"
+                      :class="[
+                        profileError && profileError.includes('email')
+                          ? 'border-rose-500/50 focus:ring-rose-500/10 focus:border-rose-500' 
+                          : 'border-zinc-800 focus:ring-white/10 focus:border-zinc-700'
+                      ]"
+                    />
+                  </div>
                 </div>
-              </div>
 
-              <div class="space-y-1.5">
-                <label class="text-xs font-bold text-zinc-500 uppercase tracking-widest ml-1">New Password (Optional)</label>
-                <div class="relative group">
-                  <Lock class="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-600 group-focus-within:text-white transition-colors" />
-                  <input 
-                    v-model="profileForm.password"
-                    :type="showPassword ? 'text' : 'password'"
-                    placeholder="••••••••"
-                    @input="profileError = ''"
-                    class="w-full bg-black border rounded-xl py-3 pl-10 pr-12 text-white placeholder-zinc-700 focus:outline-none focus:ring-2 transition-all text-sm"
-                    :class="[
-                      profileError && profileError.includes('Password')
-                        ? 'border-rose-500/50 focus:ring-rose-500/10 focus:border-rose-500' 
-                        : 'border-zinc-800 focus:ring-white/10 focus:border-zinc-700'
-                    ]"
-                  />
-                  <button 
-                    type="button"
-                    @click="showPassword = !showPassword"
-                    class="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-zinc-600 hover:text-white transition-colors cursor-pointer"
-                  >
-                    <Eye v-if="!showPassword" class="w-4 h-4" />
-                    <EyeOff v-else class="w-4 h-4" />
-                  </button>
+                <div class="space-y-1.5">
+                  <label class="text-xs font-bold text-zinc-500 uppercase tracking-widest ml-1">New Password (Optional)</label>
+                  <div class="relative group">
+                    <Lock class="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-600 group-focus-within:text-white transition-colors" />
+                    <input 
+                      v-model="profileForm.password"
+                      :type="showPassword ? 'text' : 'password'"
+                      placeholder="••••••••"
+                      @input="profileError = ''"
+                      class="w-full bg-black border rounded-xl py-3 pl-10 pr-12 text-white placeholder-zinc-700 focus:outline-none focus:ring-2 transition-all text-sm"
+                      :class="[
+                        profileError && profileError.includes('Password')
+                          ? 'border-rose-500/50 focus:ring-rose-500/10 focus:border-rose-500' 
+                          : 'border-zinc-800 focus:ring-white/10 focus:border-zinc-700'
+                      ]"
+                    />
+                    <button 
+                      type="button"
+                      @click="showPassword = !showPassword"
+                      class="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-zinc-600 hover:text-white transition-colors cursor-pointer"
+                    >
+                      <Eye v-if="!showPassword" class="w-4 h-4" />
+                      <EyeOff v-else class="w-4 h-4" />
+                    </button>
+                  </div>
                 </div>
-              </div>
 
-              <div class="space-y-1.5">
-                <label class="text-xs font-bold text-zinc-500 uppercase tracking-widest ml-1">Confirm New Password</label>
-                <div class="relative group">
-                  <Lock class="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-600 group-focus-within:text-white transition-colors" />
-                  <input 
-                    v-model="profileForm.confirmPassword"
-                    :type="showPassword ? 'text' : 'password'"
-                    placeholder="••••••••"
-                    @input="profileError = ''"
-                    class="w-full bg-black border rounded-xl py-3 pl-10 pr-12 text-white placeholder-zinc-700 focus:outline-none focus:ring-2 transition-all text-sm"
-                    :class="[
-                      profileError && profileError.includes('match')
-                        ? 'border-rose-500/50 focus:ring-rose-500/10 focus:border-rose-500' 
-                        : 'border-zinc-800 focus:ring-white/10 focus:border-zinc-700'
-                    ]"
-                  />
-                  <button 
-                    type="button"
-                    @click="showPassword = !showPassword"
-                    class="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-zinc-600 hover:text-white transition-colors cursor-pointer"
-                  >
-                    <Eye v-if="!showPassword" class="w-4 h-4" />
-                    <EyeOff v-else class="w-4 h-4" />
-                  </button>
+                <div class="space-y-1.5">
+                  <label class="text-xs font-bold text-zinc-500 uppercase tracking-widest ml-1">Confirm New Password</label>
+                  <div class="relative group">
+                    <Lock class="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-600 group-focus-within:text-white transition-colors" />
+                    <input 
+                      v-model="profileForm.confirmPassword"
+                      :type="showPassword ? 'text' : 'password'"
+                      placeholder="••••••••"
+                      @input="profileError = ''"
+                      class="w-full bg-black border rounded-xl py-3 pl-10 pr-12 text-white placeholder-zinc-700 focus:outline-none focus:ring-2 transition-all text-sm"
+                      :class="[
+                        profileError && profileError.includes('match')
+                          ? 'border-rose-500/50 focus:ring-rose-500/10 focus:border-rose-500' 
+                          : 'border-zinc-800 focus:ring-white/10 focus:border-zinc-700'
+                      ]"
+                    />
+                    <button 
+                      type="button"
+                      @click="showPassword = !showPassword"
+                      class="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-zinc-600 hover:text-white transition-colors cursor-pointer"
+                    >
+                      <Eye v-if="!showPassword" class="w-4 h-4" />
+                      <EyeOff v-else class="w-4 h-4" />
+                    </button>
+                  </div>
                 </div>
-              </div>
 
-              <div v-if="profileError" class="mt-4 p-3 bg-rose-500/10 border border-rose-500/20 rounded-xl text-rose-500 text-sm text-center font-medium">
-                {{ profileError }}
-              </div>
+                <div v-if="profileError" class="mt-4 p-3 bg-rose-500/10 border border-rose-500/20 rounded-xl text-rose-500 text-sm text-center font-medium">
+                  {{ profileError }}
+                </div>
+              </form>
+            </div>
 
-              <div class="pt-4 flex gap-3">
-                <button 
-                  type="button"
-                  @click="handleProfileCloseAttempt"
-                  class="flex-1 py-3 px-4 bg-zinc-900 text-white font-semibold rounded-xl hover:bg-zinc-800 transition-all cursor-pointer"
-                >
-                  Cancel
-                </button>
-                <button 
-                  type="submit"
-                  :disabled="isUpdating"
-                  class="flex-1 py-3 px-4 bg-white text-black font-bold rounded-xl hover:bg-zinc-200 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                >
-                  <Loader2 v-if="isUpdating" class="w-4 h-4 animate-spin" />
-                  {{ isUpdating ? 'Saving...' : 'Save' }}
-                </button>
-              </div>
-            </form>
+            <!-- Fixed Footer -->
+            <div class="px-8 py-4 border-t border-zinc-800 bg-zinc-925/80 backdrop-blur-md flex gap-3">
+              <button
+                type="button"
+                @click="handleProfileCloseAttempt"
+                class="flex-1 px-5 py-3 bg-transparent hover:bg-zinc-925 text-zinc-400 hover:text-zinc-200 font-semibold rounded-xl transition-all cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                form="profileForm"
+                :disabled="isUpdating"
+                class="flex-1 px-5 py-3 bg-white hover:bg-zinc-200 text-black font-semibold rounded-xl transition-all shadow-lg shadow-white/5 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+              >
+                <template v-if="isUpdating">
+                  <div class="w-4 h-4 border-2 border-black/20 border-t-black rounded-full animate-spin"></div>
+                  Saving...
+                </template>
+                <template v-else>
+                  Save
+                </template>
+              </button>
+            </div>
           </div>
         </div>
       </Transition>

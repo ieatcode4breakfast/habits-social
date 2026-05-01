@@ -260,12 +260,12 @@
                 : `Are you sure you want to unfriend ${unfriendDisplayName}?` 
               }}
             </p>
-            <div class="flex flex-col gap-3">
-              <button @click="executeUnfriend" class="w-full px-5 py-3 bg-rose-500 hover:bg-rose-600 text-white font-semibold rounded-xl transition-all shadow-lg shadow-rose-500/20 cursor-pointer">
-                {{ friendshipToUnfriend?.status === 'pending' ? 'Cancel Request' : 'Unfriend' }}
-              </button>
-              <button @click="showUnfriendModal = false" class="w-full px-5 py-3 bg-transparent hover:bg-zinc-800 text-zinc-400 hover:text-zinc-200 font-semibold rounded-xl transition-all cursor-pointer">
+            <div class="flex gap-3 mt-2">
+              <button @click="showUnfriendModal = false" class="flex-1 px-5 py-3 bg-transparent hover:bg-zinc-800 text-zinc-400 hover:text-zinc-200 font-semibold rounded-xl transition-all cursor-pointer">
                 Cancel
+              </button>
+              <button @click="executeUnfriend" class="flex-1 px-5 py-3 bg-rose-500 hover:bg-rose-600 text-white font-semibold rounded-xl transition-all shadow-lg shadow-rose-500/20 cursor-pointer">
+                {{ friendshipToUnfriend?.status === 'pending' ? 'Cancel Request' : 'Unfriend' }}
               </button>
             </div>
           </div>
@@ -293,12 +293,12 @@
             <p class="text-zinc-500 mb-8 text-sm">
               Send a friend request to <span class="text-zinc-200 font-medium">{{ userToRequest?.username }}</span>?
             </p>
-            <div class="flex flex-col gap-3">
-              <button @click="executeSendRequest" class="w-full px-5 py-3 bg-white hover:bg-zinc-200 text-black font-semibold rounded-xl transition-all shadow-lg shadow-white/5 cursor-pointer">
-                Send Request
-              </button>
-              <button @click="showAddModal = false" class="w-full px-5 py-3 bg-transparent hover:bg-zinc-800 text-zinc-400 hover:text-zinc-200 font-semibold rounded-xl transition-all cursor-pointer">
+            <div class="flex gap-3 mt-2">
+              <button @click="showAddModal = false" class="flex-1 px-5 py-3 bg-transparent hover:bg-zinc-800 text-zinc-400 hover:text-zinc-200 font-semibold rounded-xl transition-all cursor-pointer">
                 Cancel
+              </button>
+              <button @click="executeSendRequest" class="flex-1 px-5 py-3 bg-white hover:bg-zinc-200 text-black font-semibold rounded-xl transition-all shadow-lg shadow-white/5 cursor-pointer">
+                Send Request
               </button>
             </div>
           </div>
@@ -361,12 +361,12 @@
               </div>
             </div>
 
-            <div class="flex flex-col gap-3">
-              <button @click="executeBatchShare" class="w-full px-5 py-3 bg-white hover:bg-zinc-200 text-black font-semibold rounded-xl transition-all shadow-lg shadow-white/5 cursor-pointer">
-                {{ selectedHabitIds.length > 0 ? `Share ${selectedHabitIds.length} habits` : 'Continue' }}
-              </button>
-              <button @click="showShareModal = false" class="w-full px-5 py-3 bg-transparent hover:bg-zinc-925 text-zinc-400 hover:text-zinc-200 font-semibold rounded-xl transition-all cursor-pointer">
+            <div class="flex gap-3 mt-2">
+              <button @click="showShareModal = false" class="flex-1 px-5 py-3 bg-transparent hover:bg-zinc-925 text-zinc-400 hover:text-zinc-200 font-semibold rounded-xl transition-all cursor-pointer">
                 Cancel
+              </button>
+              <button @click="executeBatchShare" class="flex-1 px-5 py-3 bg-white hover:bg-zinc-200 text-black font-semibold rounded-xl transition-all shadow-lg shadow-white/5 cursor-pointer">
+                {{ selectedHabitIds.length > 0 ? `Share ${selectedHabitIds.length} habits` : 'Continue' }}
               </button>
             </div>
           </div>
@@ -392,15 +392,16 @@
           <!-- Modal Content -->
           <div 
             ref="habitModalContent"
-            class="relative my-auto w-full h-full sm:h-auto sm:max-w-md max-w-none bg-zinc-925 border-x-0 sm:border border-zinc-800 sm:rounded-3xl rounded-none shadow-2xl p-4 sm:p-8 overflow-y-auto transition-all duration-300"
+            class="relative my-auto w-full h-full sm:h-auto sm:max-w-md max-w-none bg-zinc-925 border-x-0 sm:border border-zinc-800 sm:rounded-3xl rounded-none shadow-2xl overflow-hidden transition-all duration-300 flex flex-col"
           >
             <div v-if="habitLoading" class="flex justify-center p-12">
               <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
             </div>
             
             <template v-else>
-              <div class="flex items-center gap-1 mb-6 -ml-2">
-                <button @click="showHabitModal = false" class="p-2 text-zinc-500 hover:text-white transition-all cursor-pointer flex-shrink-0">
+              <!-- Sticky Header -->
+              <div class="sticky top-0 z-10 bg-zinc-925 px-4 sm:px-8 py-4 sm:py-6 border-b border-zinc-800/80 flex items-center gap-1 shrink-0">
+                <button @click="showHabitModal = false" class="p-2 -ml-2 text-zinc-500 hover:text-white transition-all cursor-pointer flex-shrink-0">
                   <ChevronLeft class="w-6 h-6" />
                 </button>
                 <div class="flex-1 min-w-0">
@@ -431,84 +432,88 @@
                       />
                     </div>
                   </div>
-                  <div class="text-[10px] font-bold uppercase tracking-widest text-zinc-500">
+                  <div class="text-[10px] font-bold uppercase tracking-widest text-zinc-500 mt-1">
                     <span class="capitalize">{{ selectedHabit.frequencyPeriod }}</span><template v-if="selectedHabit.frequencyPeriod !== 'daily'">, {{ selectedHabit.frequencyCount }} {{ selectedHabit.frequencyCount === 1 ? 'time' : 'times' }}</template>
                   </div>
                 </div>
               </div>
 
-              <p v-if="selectedHabit.description" class="text-zinc-400 text-sm mb-4 italic break-words whitespace-pre-wrap">
-                {{ selectedHabit.description }}
-              </p>
-              <div v-else class="mb-6"></div>
+              <!-- Scrollable Content -->
+              <div class="flex-1 overflow-y-auto p-4 sm:p-8 sm:py-6">
+                <p v-if="selectedHabit.description" class="text-zinc-400 text-sm mb-6 italic break-words whitespace-pre-wrap">
+                  {{ selectedHabit.description }}
+                </p>
 
-              <!-- Monthly Calendar View -->
-              <div class="space-y-4">
-                <div class="flex items-center justify-between px-2">
-                  <h3 class="text-sm font-bold uppercase tracking-widest text-white">
-                    {{ format(currentCalendarDate, 'MMMM yyyy') }}
-                  </h3>
-                  <div class="flex gap-2">
-                    <button type="button" @click="prevMonth" class="p-2 hover:bg-zinc-800 rounded-lg text-zinc-400 hover:text-zinc-200 transition-colors cursor-pointer">
-                      <ChevronLeft class="w-4 h-4" />
-                    </button>
-                    <button type="button" @click="nextMonth" class="p-2 hover:bg-zinc-800 rounded-lg text-zinc-400 hover:text-zinc-200 transition-colors cursor-pointer">
-                      <ChevronRight class="w-4 h-4" />
-                    </button>
+                <!-- Monthly Calendar View -->
+                <div class="space-y-4">
+                  <div class="flex items-center justify-between px-2">
+                    <h3 class="text-sm font-bold uppercase tracking-widest text-white">
+                      {{ format(currentCalendarDate, 'MMMM yyyy') }}
+                    </h3>
+                    <div class="flex gap-2">
+                      <button type="button" @click="prevMonth" class="p-2 hover:bg-zinc-800 rounded-lg text-zinc-400 hover:text-zinc-200 transition-colors cursor-pointer">
+                        <ChevronLeft class="w-4 h-4" />
+                      </button>
+                      <button type="button" @click="nextMonth" class="p-2 hover:bg-zinc-800 rounded-lg text-zinc-400 hover:text-zinc-200 transition-colors cursor-pointer">
+                        <ChevronRight class="w-4 h-4" />
+                      </button>
+                    </div>
                   </div>
-                </div>
 
-                <div class="bg-black rounded-2xl p-4 border border-zinc-800 relative overflow-hidden">
-                  <!-- Loading Overlay -->
-                  <Transition
-                    enter-active-class="transition duration-200 ease-out"
-                    enter-from-class="opacity-0"
-                    enter-to-class="opacity-100"
-                    leave-active-class="transition duration-300 ease-in"
-                    leave-from-class="opacity-100"
-                    leave-to-class="opacity-0"
-                  >
-                    <div v-if="calendarLoading" class="absolute inset-0 z-10 bg-black/40 backdrop-blur-[2px] flex items-center justify-center">
-                      <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-white"></div>
-                    </div>
-                  </Transition>
-                  <div class="grid grid-cols-7 gap-y-4 gap-x-1">
-                    <!-- Day Headers -->
-                    <div v-for="dayName in ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']" :key="dayName" class="text-[10px] text-center font-black uppercase tracking-tighter text-zinc-600 mb-1">
-                      {{ dayName }}
-                    </div>
-
-                    <!-- Calendar Grid -->
-                    <div v-for="(day, i) in calendarDays" :key="i" class="flex flex-col items-center gap-1">
-                      <div
-                        class="w-8 h-8 rounded-lg flex items-center justify-center transition-all border-2 relative"
-                        :class="[
-                          (day.getMonth() !== currentCalendarDate.getMonth() || isFutureDay(day)) ? 'opacity-30 border-transparent' : '',
-                          getStatus(selectedHabit.id, day) === 'completed' ? 'bg-emerald-500 border-emerald-500 shadow-md shadow-emerald-500/20' :
-                          getStatus(selectedHabit.id, day) === 'failed' ? 'bg-rose-500 border-rose-500 shadow-md shadow-rose-500/20' :
-                          getStatus(selectedHabit.id, day) === 'skipped' ? 'bg-zinc-500 border-zinc-500 shadow-none' :
-                          'border-dashed border-zinc-800 bg-transparent'
-                        ]"
-                      >
-                        <Check v-if="getStatus(selectedHabit.id, day) === 'completed'" class="w-3 h-3 text-white" />
-                        <XIcon v-else-if="getStatus(selectedHabit.id, day) === 'failed'" class="w-3 h-3 text-white" />
-                        <span v-else-if="getStatus(selectedHabit.id, day) === 'skipped'" class="w-3 h-0.5 bg-white rounded-full"></span>
+                  <div class="bg-black rounded-2xl p-4 border border-zinc-800 relative overflow-hidden">
+                    <!-- Loading Overlay -->
+                    <Transition
+                      enter-active-class="transition duration-200 ease-out"
+                      enter-from-class="opacity-0"
+                      enter-to-class="opacity-100"
+                      leave-active-class="transition duration-300 ease-in"
+                      leave-from-class="opacity-100"
+                      leave-to-class="opacity-0"
+                    >
+                      <div v-if="calendarLoading" class="absolute inset-0 z-10 bg-black/40 backdrop-blur-[2px] flex items-center justify-center">
+                        <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-white"></div>
                       </div>
-                      <div class="text-[9px] font-bold" :class="[
-                        day.getMonth() === currentCalendarDate.getMonth() ? 'text-white' : 'text-zinc-600',
-                        day.getMonth() !== currentCalendarDate.getMonth() ? 'opacity-30' : ''
-                      ]">
-                        {{ format(day, 'd') }}
+                    </Transition>
+                    <div class="grid grid-cols-7 gap-y-4 gap-x-1">
+                      <!-- Day Headers -->
+                      <div v-for="dayName in ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']" :key="dayName" class="text-[10px] text-center font-black uppercase tracking-tighter text-zinc-600 mb-1">
+                        {{ dayName }}
+                      </div>
+
+                      <!-- Calendar Grid -->
+                      <div v-for="(day, i) in calendarDays" :key="i" class="flex flex-col items-center gap-1">
+                        <div
+                          class="w-8 h-8 rounded-lg flex items-center justify-center transition-all border-2 relative"
+                          :class="[
+                            (day.getMonth() !== currentCalendarDate.getMonth() || isFutureDay(day)) ? 'opacity-30 border-transparent' : '',
+                            getStatus(selectedHabit.id, day) === 'completed' ? 'bg-emerald-500 border-emerald-500 shadow-md shadow-emerald-500/20' :
+                            getStatus(selectedHabit.id, day) === 'failed' ? 'bg-rose-500 border-rose-500 shadow-md shadow-rose-500/20' :
+                            getStatus(selectedHabit.id, day) === 'skipped' ? 'bg-zinc-500 border-zinc-500 shadow-none' :
+                            'border-dashed border-zinc-800 bg-transparent'
+                          ]"
+                        >
+                          <Check v-if="getStatus(selectedHabit.id, day) === 'completed'" class="w-3 h-3 text-white" />
+                          <XIcon v-else-if="getStatus(selectedHabit.id, day) === 'failed'" class="w-3 h-3 text-white" />
+                          <span v-else-if="getStatus(selectedHabit.id, day) === 'skipped'" class="w-3 h-0.5 bg-white rounded-full"></span>
+                        </div>
+                        <div class="text-[9px] font-bold" :class="[
+                          day.getMonth() === currentCalendarDate.getMonth() ? 'text-white' : 'text-zinc-600',
+                          day.getMonth() !== currentCalendarDate.getMonth() ? 'opacity-30' : ''
+                        ]">
+                          {{ format(day, 'd') }}
+                        </div>
                       </div>
                     </div>
                   </div>
                 </div>
               </div>
-              
-              <div class="mt-5">
+
+              <!-- Fixed Footer -->
+              <div class="px-8 py-4 border-t border-zinc-800 bg-zinc-925/80 backdrop-blur-md flex gap-3">
                 <button
+                  type="button"
                   @click="showHabitModal = false"
-                  class="w-full py-3 px-4 bg-white text-black font-semibold rounded-xl hover:bg-zinc-200 transition-all cursor-pointer shadow-sm"
+                  class="flex-1 px-5 py-3 bg-white hover:bg-zinc-200 text-black font-semibold rounded-xl transition-all shadow-lg shadow-white/5 cursor-pointer"
                 >
                   Close
                 </button>
