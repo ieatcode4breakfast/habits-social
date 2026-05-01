@@ -1,5 +1,5 @@
 <template>
-  <div class="space-y-3 relative">
+  <div class="relative">
     <!-- Tab Navigation -->
     <div class="px-4 sm:px-0 sticky top-[57px] z-40 bg-black pt-2 pb-2">
       <div class="flex p-1 bg-zinc-925 border border-zinc-800 rounded-xl relative">
@@ -42,18 +42,22 @@
         </p>
       </div>
 
-      <div v-else class="space-y-8 px-0 sm:px-0">
-        <div v-for="(group, date) in groupedFeed" :key="date" class="space-y-0">
-          <h3 class="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-600 px-4 sm:px-1 py-3 mt-2">
+      <div v-else class="space-y-2 px-0 sm:px-0">
+        <div v-for="(group, date, index) in groupedFeed" :key="date" class="space-y-0">
+          <h3 class="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-600 px-4 sm:px-1 pb-2" :class="index === 0 ? 'mt-2' : 'mt-4'">
             {{ formatFeedDate(String(date)) }}
           </h3>
           
           <div class="space-y-0">
             <div 
-              v-for="item in group" 
+              v-for="(item, itemIndex) in group" 
               :key="item.id"
               @click="item.habit?.id ? openHabitDetails(item.habit.id) : (String(item.user.id) !== String(user?.id) ? navigateTo(`/friends/${item.user.id}?from=${activeTab}`) : null)"
-              class="group bg-zinc-925/50 hover:bg-zinc-900/80 border-b border-zinc-800/50 last:border-b-0 sm:border sm:border-zinc-800/50 sm:rounded-2xl p-4 transition-all duration-300 cursor-pointer flex items-center gap-4 shadow-sm"
+              class="group bg-zinc-925/50 hover:bg-zinc-900/80 border-b border-zinc-800/50 last:border-b-0 sm:border-x sm:border-b sm:border-zinc-800/50 p-4 transition-all duration-300 cursor-pointer flex items-center gap-4 shadow-sm"
+              :class="[
+                itemIndex === 0 ? 'sm:rounded-t-2xl sm:border-t' : '',
+                itemIndex === group.length - 1 ? 'sm:rounded-b-2xl' : ''
+              ]"
             >
               <!-- Avatar -->
               <UserAvatar 
