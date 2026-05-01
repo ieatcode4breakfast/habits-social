@@ -700,8 +700,14 @@ const formatMessage = (msg: string) => {
   // 1. Process Habits [H]...[/H] -> Sky Blue
   content = content.replace(/\[H\](.*?)\[\/H\]/g, '<strong class="text-blue-500 font-bold">$1</strong>');
   
-  // 2. Process Usernames [U:id]...[/U] -> Bold White + Clickable
-  content = content.replace(/\[U:(.*?)\](.*?)\[\/U\]/g, '<span class="font-bold text-zinc-100 hover:text-zinc-400 transition-colors cursor-pointer" data-user-id="$1">$2</span>');
+  // 2. Process Usernames [U:id]...[/U] -> Bold White + Clickable (Interactive only if not current user)
+  content = content.replace(/\[U:(.*?)\](.*?)\[\/U\]/g, (match, id, label) => {
+    const isMe = id === String(user.value?.id);
+    if (isMe) {
+      return `<span class="font-bold text-zinc-100">${label}</span>`;
+    }
+    return `<span class="font-bold text-zinc-100 hover:text-zinc-400 transition-colors cursor-pointer" data-user-id="${id}">${label}</span>`;
+  });
   
   // Legacy support for [U]...[/U] without ID
   content = content.replace(/\[U\](.*?)\[\/U\]/g, '<strong class="text-zinc-100 font-bold">$1</strong>');
