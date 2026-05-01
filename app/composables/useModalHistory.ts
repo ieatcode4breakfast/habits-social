@@ -1,4 +1,4 @@
-import { watch, onMounted, onUnmounted, type Ref } from 'vue';
+import { watch, onMounted, onUnmounted, isReadonly, type Ref } from 'vue';
 
 /**
  * Global counter to track how many modals are currently open.
@@ -48,25 +48,36 @@ export const useModalHistory = (isOpen: Ref<boolean>, onClose?: () => boolean | 
         }, 10);
       } else {
         modalStatePushed = false;
-        isOpen.value = false;
+        // Only assign if it's not a readonly computed ref
+        if (!isReadonly(isOpen) && isOpen.value) {
+          isOpen.value = false;
+        }
       }
     }
   };
 
+  // Dedicated watcher for scroll lock
+  watch(isOpen, (open, wasOpen) => {
+    if (open && !wasOpen) {
+      updateScrollLock(true);
+    } else if (!open && wasOpen) {
+      updateScrollLock(false);
+    }
+  });
+
+  // Dedicated watcher for history state
   watch(isOpen, (open, wasOpen) => {
     if (open && !wasOpen) {
       // Modal opened: push a unique key for this modal, preserving other state
       const currentState = window.history.state || {};
       window.history.pushState({ ...currentState, [modalKey]: true }, '');
       modalStatePushed = true;
-      updateScrollLock(true);
     } else if (!open && wasOpen && modalStatePushed) {
       modalStatePushed = false;
       // Only pop if the current top state still belongs to us
       if (window.history.state?.[modalKey]) {
         window.history.back();
       }
-      updateScrollLock(false);
     }
   });
 
