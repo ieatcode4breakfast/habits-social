@@ -17,6 +17,10 @@ export default defineEventHandler(async (event) => {
     const countResult = await sql`SELECT COUNT(*) FROM habits WHERE ownerid = ${userId}`;
     const nextSortOrder = parseInt(countResult[0]?.count) || 0;
 
+    if (nextSortOrder >= 30) {
+      throw createError({ statusCode: 400, statusMessage: 'Habit limit of 30 reached' });
+    }
+
     const title = body.title;
     const description = body.description || '';
     const frequencyCount = body.frequencyCount || 1;

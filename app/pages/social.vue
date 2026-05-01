@@ -392,7 +392,7 @@
           <!-- Modal Content -->
           <div 
             ref="habitModalContent"
-            class="relative my-auto w-full h-full sm:h-auto sm:max-w-md max-w-none bg-zinc-925 border-x-0 sm:border border-zinc-800 sm:rounded-3xl rounded-none shadow-2xl p-8 overflow-y-auto transition-all duration-300"
+            class="relative my-auto w-full h-full sm:h-auto sm:max-w-md max-w-none bg-zinc-925 border-x-0 sm:border border-zinc-800 sm:rounded-3xl rounded-none shadow-2xl p-4 sm:p-8 overflow-y-auto transition-all duration-300"
           >
             <div v-if="habitLoading" class="flex justify-center p-12">
               <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
@@ -405,7 +405,7 @@
                 </button>
                 <div class="flex-1 min-w-0">
                   <div class="flex items-center gap-2 min-w-0">
-                    <h2 class="text-xl font-bold text-white truncate leading-none min-w-0">{{ selectedHabit.title }}</h2>
+                    <h2 class="text-lg font-bold text-white truncate leading-none min-w-0">{{ selectedHabit.title }}</h2>
                     <!-- Streak Badge -->
                     <div 
                       v-if="(selectedHabit.currentStreak ?? 0) >= 2"

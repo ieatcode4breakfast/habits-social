@@ -14,13 +14,14 @@
             icon-class="w-6 h-6 text-zinc-600"
           />
           <div>
-            <h1 class="text-xl font-bold tracking-tight text-white">{{ profile.username }}'s habits</h1>
+            <h1 class="text-xl font-bold tracking-tight text-white">{{ profile.username }}</h1>
+            <p class="text-zinc-400 text-xs">{{ profile.username }} is currently tracking {{ habits.length }} habit{{ habits.length === 1 ? '' : 's' }}</p>
           </div>
         </div>
       </div>
 
       <!-- Action Row (Mobile: In-line if space permits, Desktop: Right Aligned) -->
-      <div v-if="profile && !loading" class="flex justify-end gap-2 sm:mt-0" v-motion-slide-right>
+      <div v-if="profile && !loading" class="flex justify-end gap-2 sm:mt-0 ml-auto" v-motion-slide-right>
         <button v-if="relationshipStatus === 'friends'" @click="openShareModal" class="flex items-center sm:gap-2 p-2.5 sm:px-4 sm:py-2 bg-white hover:bg-zinc-200 text-black rounded-xl transition-colors font-semibold text-sm cursor-pointer shadow-lg shadow-white/5" title="Share Habits">
           <Share2 class="w-4 h-4" />
           <span class="hidden sm:inline">Share</span>
@@ -145,7 +146,7 @@
           <!-- Modal Content -->
           <div 
             ref="modalContent"
-            class="relative w-full h-full sm:h-auto sm:max-w-md max-w-none bg-zinc-925 border-x-0 sm:border border-zinc-800 sm:rounded-3xl rounded-none shadow-2xl p-8 overflow-y-auto transition-all duration-300"
+            class="relative w-full h-full sm:h-auto sm:max-w-md max-w-none bg-zinc-925 border-x-0 sm:border border-zinc-800 sm:rounded-3xl rounded-none shadow-2xl p-4 sm:p-8 overflow-y-auto transition-all duration-300"
           >
             <div class="flex items-center gap-1 mb-6 -ml-2">
 
@@ -154,7 +155,7 @@
               </button>
               <div class="flex-1 min-w-0">
                 <div class="flex items-center gap-2 min-w-0">
-                  <h2 class="text-xl font-bold text-white truncate leading-none min-w-0">{{ selectedHabit.title }}</h2>
+                  <h2 class="text-lg font-bold text-white truncate leading-none min-w-0">{{ selectedHabit.title }}</h2>
                   <!-- Streak Badge -->
                   <div 
                     v-if="(selectedHabit.currentStreak ?? 0) >= 2"

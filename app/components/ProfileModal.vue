@@ -13,22 +13,21 @@
         <div v-if="modelValue" class="fixed inset-0 z-[100] flex flex-col items-center justify-start overflow-y-auto sm:py-8 py-0">
           <div class="fixed inset-0 bg-black/80 backdrop-blur-md" @click="handleProfileCloseAttempt"></div>
           
-          <div class="relative my-auto w-full h-full sm:h-auto sm:max-w-md max-w-none bg-zinc-925 border-x-0 sm:border border-zinc-800 sm:rounded-3xl rounded-none shadow-2xl p-8 overflow-y-auto transition-all duration-300">
-            <div class="flex items-center justify-between mb-6">
-              <div>
-                <h2 class="text-2xl font-bold text-white">Edit Profile</h2>
-                <p class="text-zinc-500 text-sm">Update your account settings</p>
-              </div>
-              <button @click="handleProfileCloseAttempt" class="p-2 text-zinc-500 hover:text-white hover:bg-zinc-800 rounded-xl transition-all cursor-pointer">
-                <XIcon class="w-5 h-5" />
+          <div class="relative my-auto w-full h-full sm:h-auto sm:max-w-md max-w-none bg-zinc-925 border-x-0 sm:border border-zinc-800 sm:rounded-3xl rounded-none shadow-2xl p-4 sm:p-8 overflow-y-auto transition-all duration-300">
+            <div class="flex items-center gap-1 mb-6 -ml-2">
+              <button @click="handleProfileCloseAttempt" class="p-2 text-zinc-500 hover:text-white transition-all cursor-pointer flex-shrink-0">
+                <ChevronLeft class="w-6 h-6" />
               </button>
+              <div class="flex-1 min-w-0">
+                <h2 class="text-lg font-bold text-white truncate leading-none">Edit Profile</h2>
+              </div>
             </div>
 
             <form @submit.prevent="triggerProfileUpdate" class="space-y-4">
               <!-- Avatar Selection -->
               <AvatarPicker 
                 v-model="profileForm.photourl" 
-                label="Profile Avatar"
+                label="Avatar"
               />
 
               <div class="space-y-1.5">
@@ -243,7 +242,7 @@
 </template>
 
 <script setup lang="ts">
-import { User as UserIcon, Mail, Lock, X as XIcon, Loader2, Eye, EyeOff, RefreshCw } from 'lucide-vue-next';
+import { User as UserIcon, Mail, Lock, ChevronLeft, Loader2, Eye, EyeOff, RefreshCw } from 'lucide-vue-next';
 
 const props = defineProps<{
   modelValue: boolean
