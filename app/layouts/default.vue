@@ -38,7 +38,7 @@
       </div>
     </header>
 
-    <main class="flex-1 w-full max-w-5xl mx-auto px-0 sm:px-6 lg:px-8 pt-2 pb-20 md:pt-4 md:pb-12">
+    <main class="flex-1 w-full max-w-5xl mx-auto px-0 sm:px-6 lg:px-8 pt-4 pb-20 md:pt-4 md:pb-12">
       <slot />
     </main>
     <!-- Mobile Bottom Navigation -->
