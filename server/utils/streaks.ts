@@ -42,9 +42,17 @@ export async function recalculateHabitStreak(sql: any, habitId: string, userId: 
       `;
       return result[0];
     }
-    // If incremental found nothing, return current habit state
-    const currentHabit = await sql`SELECT * FROM habits WHERE id = ${habitId}`;
-    return currentHabit[0];
+    
+    // INCREMENTAL FIX: Even if no logs are found at/after fromDate, we MUST update the habit
+    // to match the state of the last known log (runningStreak from prevLog).
+    const result = await sql`
+      UPDATE habits 
+      SET "currentStreak" = ${runningStreak}, 
+          updatedat = NOW()
+      WHERE id = ${habitId} AND ownerid = ${userId}
+      RETURNING *
+    `;
+    return result[0];
   }
 
   // 4. The Cascading Update: Iterate through timeline and calculate counts
