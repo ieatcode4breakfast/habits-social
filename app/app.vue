@@ -15,8 +15,8 @@
         leave-from-class="opacity-100 scale-100"
         leave-to-class="opacity-0 scale-95"
       >
-        <div v-if="isVisible" class="fixed bottom-24 md:bottom-12 left-1/2 -translate-x-1/2 z-[200] flex items-center gap-3 px-4 py-2.5 bg-zinc-900/90 border border-white/10 rounded-full backdrop-blur-xl shadow-2xl ring-1 ring-white/5 pointer-events-none">
-          <div class="flex items-center justify-center w-6 h-6 rounded-lg" :class="{
+        <div v-if="isVisible" class="fixed bottom-24 md:bottom-12 left-1/2 -translate-x-1/2 z-[200] flex items-center justify-center gap-3 px-6 py-2.5 max-w-[calc(100vw-2rem)] bg-zinc-900/90 border border-white/10 rounded-2xl md:rounded-full backdrop-blur-xl shadow-2xl ring-1 ring-white/5 pointer-events-none">
+          <div class="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-lg" :class="{
             'bg-emerald-500/20 text-emerald-500': type === 'completed',
             'bg-rose-500/20 text-rose-500': type === 'failed',
             'bg-zinc-500/20 text-zinc-400': type === 'skipped',
@@ -26,7 +26,7 @@
             <XIcon v-else-if="type === 'failed'" class="w-4 h-4" />
             <MinusIcon v-else-if="type === 'skipped'" class="w-4 h-4" />
           </div>
-          <span class="text-sm font-bold tracking-tight text-white pr-2 whitespace-nowrap">{{ message }}</span>
+          <span class="text-sm font-bold tracking-tight text-white text-center">{{ message }}</span>
         </div>
       </Transition>
     </Teleport>
