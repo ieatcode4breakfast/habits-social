@@ -20,7 +20,7 @@
       </div>
 
       <!-- Action Row (Mobile: In-line if space permits, Desktop: Right Aligned) -->
-      <div v-if="profile && !loading" class="flex justify-end gap-2 sm:mt-0" v-motion-slide-visible-once-right>
+      <div v-if="profile && !loading" class="flex justify-end gap-2 sm:mt-0" v-motion-slide-right>
         <button v-if="relationshipStatus === 'friends'" @click="openShareModal" class="flex items-center sm:gap-2 p-2.5 sm:px-4 sm:py-2 bg-white hover:bg-zinc-200 text-black rounded-xl transition-colors font-semibold text-sm cursor-pointer shadow-lg shadow-white/5" title="Share Habits">
           <Share2 class="w-4 h-4" />
           <span class="hidden sm:inline">Share</span>
@@ -35,9 +35,9 @@
         <button v-else-if="relationshipStatus === 'pending_incoming'" @click="executeAcceptRequest" class="flex items-center gap-2 px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl transition-colors font-semibold text-sm cursor-pointer shadow-lg shadow-emerald-500/20">
           <Check class="w-4 h-4" /> Accept
         </button>
-        <span v-else-if="relationshipStatus === 'pending_outgoing'" class="text-xs font-semibold text-zinc-500 bg-zinc-925 px-3 py-1.5 rounded-xl border border-zinc-800">
+        <button v-else-if="relationshipStatus === 'pending_outgoing'" @click="showCancelRequestModal = true" class="text-xs font-semibold text-zinc-500 bg-zinc-925 hover:bg-zinc-900 px-3 py-1.5 rounded-xl border border-zinc-800 transition-colors cursor-pointer">
           Pending
-        </span>
+        </button>
       </div>
     </div>
 
@@ -371,6 +371,38 @@
         </div>
       </Transition>
     </Teleport>
+    <!-- Cancel Request Confirmation Modal -->
+    <Teleport to="body">
+      <Transition
+        enter-active-class="transition duration-300 ease-out"
+        enter-from-class="opacity-0 scale-95"
+        enter-to-class="opacity-100 scale-100"
+        leave-active-class="transition duration-200 ease-in"
+        leave-from-class="opacity-100 scale-100"
+        leave-to-class="opacity-0 scale-95"
+      >
+        <div v-if="showCancelRequestModal" class="fixed inset-0 z-[120] flex items-center justify-center p-4">
+          <div class="absolute inset-0 bg-black/90 backdrop-blur-md" @click="showCancelRequestModal = false"></div>
+          <div class="relative w-full max-w-sm bg-zinc-925 border border-zinc-800 rounded-3xl shadow-2xl p-8 text-center">
+            <div class="w-16 h-16 bg-zinc-925 rounded-full flex items-center justify-center mx-auto mb-4">
+              <UserMinus class="w-8 h-8 text-rose-500" />
+            </div>
+            <h2 class="text-xl font-bold text-white mb-2">Cancel Request?</h2>
+            <p class="text-zinc-500 mb-8 text-sm">
+              Are you sure you want to cancel your friend request to <span class="text-zinc-200 font-medium">{{ profile?.username }}</span>?
+            </p>
+            <div class="flex flex-col gap-3">
+              <button @click="executeCancelRequest" class="w-full px-5 py-3 bg-rose-500 hover:bg-rose-600 text-white font-semibold rounded-xl transition-all shadow-lg shadow-rose-500/20 cursor-pointer">
+                Cancel Request
+              </button>
+              <button @click="showCancelRequestModal = false" class="w-full px-5 py-3 bg-transparent hover:bg-zinc-800 text-zinc-400 hover:text-zinc-200 font-semibold rounded-xl transition-all cursor-pointer">
+                Go Back
+              </button>
+            </div>
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
   </div>
 </template>
 
@@ -419,6 +451,7 @@ const relationshipStatus = computed(() => {
 // Share Modal State
 const showShareModal = ref(false);
 const showUnfriendModal = ref(false);
+const showCancelRequestModal = ref(false);
 const myHabits = ref<any[]>([]);
 const selectedHabitIds = ref<string[]>([]);
 const shareModalTitle = ref('Request Sent!');
@@ -499,6 +532,13 @@ const executeUnfriend = async () => {
   navigateTo('/social?tab=friends');
 };
 
+const executeCancelRequest = async () => {
+  if (!friendship.value) return;
+  await $fetch(`/api/social/requests/${friendship.value.id}`, { method: 'DELETE' });
+  await refreshSocial();
+  showCancelRequestModal.value = false;
+};
+
 const profile = ref<any>(null);
 const habits = ref<Habit[]>([]);
 const logs = ref<HabitLog[]>([]);
@@ -513,12 +553,13 @@ const selectedHabit = ref<Habit | null>(null);
 const currentCalendarDate = ref(new Date());
 const calendarLoading = ref(false);
 
-const isAnyModalOpen = computed(() => showModal.value || showShareModal.value || showUnfriendModal.value);
+const isAnyModalOpen = computed(() => showModal.value || showShareModal.value || showUnfriendModal.value || showCancelRequestModal.value);
 
 useModalHistory(isAnyModalOpen, () => {
   showModal.value = false;
   showShareModal.value = false;
   showUnfriendModal.value = false;
+  showCancelRequestModal.value = false;
 });
 
 const isFutureDay = (day: Date) => isAfter(startOfDay(day), startOfDay(today));

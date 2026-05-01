@@ -194,7 +194,14 @@
           >
             <!-- Scrollable Content -->
             <div class="flex-1 overflow-y-auto p-8 pb-4">
-              <h2 class="text-2xl font-bold text-white mb-6">New Habit</h2>
+              <div class="flex items-center gap-1 mb-6 -ml-2">
+                <button @click="showModal = false" class="p-2 text-zinc-500 hover:text-white transition-all cursor-pointer flex-shrink-0">
+                  <ChevronLeft class="w-6 h-6" />
+                </button>
+                <div class="flex-1 min-w-0">
+                  <h2 class="text-xl font-bold text-white truncate leading-none min-w-0">New Habit</h2>
+                </div>
+              </div>
               
               <form id="addHabitForm" @submit.prevent="addHabit" class="space-y-6">
                 <div class="space-y-2">
