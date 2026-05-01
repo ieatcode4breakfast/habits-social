@@ -26,7 +26,7 @@
             <XIcon v-else-if="type === 'failed'" class="w-4 h-4" />
             <MinusIcon v-else-if="type === 'skipped'" class="w-4 h-4" />
           </div>
-          <span class="text-sm font-bold tracking-tight text-white pr-2">{{ message }}</span>
+          <span class="text-sm font-bold tracking-tight text-white pr-2 whitespace-nowrap">{{ message }}</span>
         </div>
       </Transition>
     </Teleport>
