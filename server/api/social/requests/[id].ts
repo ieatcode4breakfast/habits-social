@@ -18,7 +18,7 @@ export default defineEventHandler(async (event) => {
       const friendship = updated[0]!;
       const pusher = usePusher();
       if (pusher) {
-        console.log(`[Pusher] Triggering friend-request-accepted for initiator: ${friendship.initiatorId} and receiver: ${friendship.receiverId}`);
+
         await pusher.trigger(`user-${friendship.initiatorId}-social`, 'friend-request-accepted', friendship);
         await pusher.trigger(`user-${friendship.receiverId}-social`, 'friend-request-accepted', friendship);
       }

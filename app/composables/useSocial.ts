@@ -78,7 +78,7 @@ export const useSocial = () => {
   const init = () => {
     if (import.meta.server || isInitialized) return;
     
-    console.log('[Social] Initializing global social state...');
+
     isInitialized = true;
     
     // Initial fetch
@@ -88,9 +88,9 @@ export const useSocial = () => {
     if (globalStopWatch) globalStopWatch();
     globalStopWatch = watch(() => user.value?.id, (newId) => {
       if (newId && !globalUnsubscribe) {
-        console.log('[Social] Subscribing to global realtime events for user:', newId);
+
         globalUnsubscribe = subscribeToSocials((eventName, data) => {
-          console.log(`[Social] Realtime event [${eventName}] received:`, data);
+
           
           // Optimistic update for friendships
           if (eventName === 'friend-request-accepted' || eventName === 'friend-request-received') {

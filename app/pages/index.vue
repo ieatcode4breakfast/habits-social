@@ -982,7 +982,7 @@ const getFrequencyText = (habit: Habit) => {
 };
 
 const load = async (silent = false) => {
-  console.log('[Dashboard] load() triggered', silent ? '(silent)' : '');
+
   if (!silent) loading.value = true;
   try {
     const [h, l] = await Promise.all([
@@ -992,7 +992,7 @@ const load = async (silent = false) => {
     ]);
     habits.value = h;
     logs.value = l;
-    console.log('[Dashboard] Load complete.');
+
   } catch (error) {
     console.error('[Dashboard] load() failed:', error);
   } finally {
@@ -1498,7 +1498,7 @@ let unsubscribeOwnHabits = () => {};
 // Social integration is now handled by useSocial
 
 onMounted(() => {
-  console.log('[Dashboard] onMounted, user ID:', user.value?.id);
+
   // Social state is now initialized globally in default.vue layout
   load();
   window.addEventListener('resize', checkHeightOverflow);
@@ -1508,9 +1508,9 @@ onMounted(() => {
 watch(() => user.value?.id, (newId) => {
   unsubscribeOwnHabits();
   if (newId) {
-    console.log('[Dashboard] Subscribing to own habit updates...');
+
     unsubscribeOwnHabits = subscribeToFriendHabits(String(newId), (eventName, data) => {
-      console.log('[Dashboard] Own habit update received:', eventName, data);
+
       
       if (eventName === 'habit-updated' && data?.log && data?.habit) {
         // Update specific log

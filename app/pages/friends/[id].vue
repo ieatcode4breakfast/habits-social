@@ -643,14 +643,13 @@ const getStatus = (habitId: string, day: Date) => {
 const load = async () => {
   loading.value = true;
   try {
-    console.log('Loading profile for friendId:', friendId);
+
     const [profileData, sharedData] = await Promise.all([
       $fetch('/api/social/profile', { query: { friendId } }),
       $fetch('/api/social/friend-data', { query: { friendId } })
     ]);
     
-    console.log('Profile data received:', profileData);
-    console.log('Shared data received:', sharedData);
+
 
     profile.value = profileData as any;
     habits.value = (sharedData as any).habits || [];

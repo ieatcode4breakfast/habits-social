@@ -7,7 +7,7 @@ export const useRealtime = () => {
   const { user } = useAuth();
   
   if (import.meta.client && !pusherInstance && config.public.pusherKey && config.public.pusherCluster) {
-    console.log('[Realtime] Initializing Pusher...');
+
     pusherInstance = new Pusher(config.public.pusherKey as string, {
       cluster: config.public.pusherCluster as string,
     });
@@ -17,7 +17,7 @@ export const useRealtime = () => {
     if (!pusherInstance || !user.value?.id) return () => {};
     
     const channelName = `user-${user.value.id}-social`;
-    console.log('[Realtime] Subscribing to social channel:', channelName);
+
     const channel = pusherInstance.subscribe(channelName);
     
     const onReceived = (data: any) => callback('friend-request-received', data);
@@ -29,7 +29,7 @@ export const useRealtime = () => {
     channel.bind('friendship-removed', onRemoved);
 
     return () => {
-      console.log('[Realtime] Unbinding social listeners from:', channelName);
+
       channel.unbind('friend-request-received', onReceived);
       channel.unbind('friend-request-accepted', onAccepted);
       channel.unbind('friendship-removed', onRemoved);
@@ -43,7 +43,7 @@ export const useRealtime = () => {
     if (!pusherInstance) return () => {};
     
     const channelName = `user-${friendId}-habits`;
-    console.log('[Realtime] Subscribing to habits channel:', channelName);
+
     const channel = pusherInstance.subscribe(channelName);
     
     const onUpdated = (data: any) => callback('habit-updated', data);
@@ -53,7 +53,7 @@ export const useRealtime = () => {
     channel.bind('habit-deleted', onDeleted);
 
     return () => {
-      console.log('[Realtime] Unbinding habit listeners from:', channelName);
+
       channel.unbind('habit-updated', onUpdated);
       channel.unbind('habit-deleted', onDeleted);
     };
