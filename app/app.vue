@@ -39,10 +39,11 @@ import { Check as CheckIcon, X as XIcon, Minus as MinusIcon } from 'lucide-vue-n
 const { isVisible, message, type } = useToast();
 
 onMounted(() => {
-  // Nuclear option: Unregister any stale service workers that might be causing the redirect crash
+  // Purge any existing service workers that might be caching stale HTML/sessions
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.getRegistrations().then((registrations) => {
       for (const registration of registrations) {
+        console.log('[System] Purging stale service worker:', registration.scope);
         registration.unregister();
       }
     });

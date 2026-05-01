@@ -23,8 +23,12 @@ export default defineNuxtConfig({
   nitro: {
     preset: 'cloudflare-module',
     routeRules: {
-      '/': { headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate' } },
-      '/api/**': { headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate' } },
+      '/**': { 
+        headers: { 
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Vary': 'Cookie'
+        } 
+      }
     }
   },
   runtimeConfig: {
