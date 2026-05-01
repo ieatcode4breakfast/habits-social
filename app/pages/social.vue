@@ -79,8 +79,7 @@
                   >
                     {{ item.user.name }}
                   </span>
-                  <span class="text-zinc-400">
-                    {{ item.message }}
+                  <span class="text-zinc-400" v-html="formatMessage(item.message)">
                   </span>
                 </div>
                 <div class="flex items-center gap-2 mt-1">
@@ -671,6 +670,35 @@ const formatFeedDate = (dateStr: string) => {
   if (isToday(d)) return 'Today';
   if (isToday(addDays(d, 1))) return 'Yesterday';
   return format(d, 'MMMM d, yyyy');
+};
+
+const formatMessage = (msg: string) => {
+  if (!msg) return '';
+  // Escape HTML to prevent injection
+  let content = msg
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+  
+  // 1. Process Habits [H]...[/H] -> Sky Blue
+  content = content.replace(/\[H\](.*?)\[\/H\]/g, '<strong class="text-blue-500 font-bold">$1</strong>');
+  
+  // 2. Process Usernames [U]...[/U] -> Bold White
+  content = content.replace(/\[U\](.*?)\[\/U\]/g, '<strong class="text-zinc-100 font-bold">$1</strong>');
+  
+  // 3. Process Streaks [S:count]...[/S] -> Dynamic Color
+  content = content.replace(/\[S:(\d+)\](.*?)\[\/S\]/g, (_, countStr, text) => {
+    const count = parseInt(countStr);
+    let colorClass = 'text-emerald-500'; // Default < 7 days (Green)
+    if (count >= 30) colorClass = 'text-yellow-400'; // 30+ days (Gold)
+    else if (count >= 7) colorClass = 'text-violet-400'; // 7+ days (Purple)
+    
+    return `<strong class="${colorClass} font-bold">${text}</strong>`;
+  });
+
+  return content;
 };
 
 // Refresh sort snapshot when entering the friends tab
