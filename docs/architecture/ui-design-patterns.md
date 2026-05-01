@@ -8,13 +8,14 @@ The application follows three distinct phases to adapt the layout density across
 | Phase | Breakpoint | Layout Behavior |
 |-------|------------|-----------------|
 | **Mobile** | `< 640px` (`base`) | **Full-Bleed**: Content extends to the viewport edges. Side borders and corner radii are zeroed out to maximize horizontal space. |
-| **Tablet** | `≥ 640px` (`sm`) | **Contained**: Content is inset from the viewport edges with standard padding. Containers adopt full borders and a `24px` corner radius. |
+| **Tablet** | `≥ 640px` (`sm`) | **Contained**: Content is inset from the viewport edges with standard padding. Containers adopt full borders and a `16px` corner radius (`sm:rounded-2xl`). |
 | **Desktop** | `≥ 768px` (`md`) | **Multi-Column**: Complex layouts transition from vertical lists to multi-column grids. Item-level spacing and gaps are restored. |
 
 ## 2. Design System Tokens
 To maintain a consistent aesthetic, follow these standardized visual patterns:
 
-- **Full-Bleed Containers**: Use `rounded-none sm:rounded-2xl` and `border-x-0 sm:border`.
+- **Full-Bleed Containers**: Use `rounded-none sm:rounded-2xl` (16px) and `border-x-0 sm:border`.
+- **Desktop Modals**: Use `sm:rounded-3xl` (24px) to differentiate from standard content containers.
 - **Interaction Layer**: Use `hover:bg-white/5` for interactive items to provide feedback without visual clutter.
 - **Depth & Recess**: Use `bg-zinc-950` for recessed elements nested within `bg-zinc-925` surfaces to create a sense of depth.
 

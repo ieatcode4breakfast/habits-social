@@ -26,14 +26,16 @@ The application uses three primary categories of modals to handle different leve
 | **Unfriend User** | `app/pages/friends/[id].vue` | `showUnfriendModal` | Confirmation before removing a friend connection. |
 | **Add Friend** | `app/pages/social.vue` | `showAddModal` | Post-action success confirmation. |
 | **Sharing Update** | `app/pages/index.vue` | `showSharingConfirmModal` | Confirmation for updating habit sharing settings. |
+| **Cancel Friend Request** | `app/pages/friends/[id].vue` | `showCancelRequestModal` | Confirmation before cancelling a pending outgoing friend request. |
 
 ### **Category C: Selection & Utility Modals**
 *Specialized UI. Focus on lists, selection, or specific layout management.*
 
 | Modal Name | File Location | Triggering State | Purpose |
 |------------|---------------|------------------|---------|
-| **Share Selection** | `app/components/ShareHabitsModal.vue` | (Component) | Batch selection of habits to share with a friend. |
+| **Share Selection** | `app/components/ShareHabitsModal.vue` | `showShareModal` | Batch selection of habits to share with a friend. |
 | **Reorder Habits** | `app/pages/index.vue` | `showReorderModal` | Specialized drag-and-drop list for habit ordering. |
+| **Avatar Selection** | `app/components/AvatarPicker.vue` | `showAvatarModal` | Avatar grid and refresh actions for profile customization. |
 
 ---
 
@@ -60,4 +62,3 @@ To maintain a consistent experience, all modals must adhere to the following arc
 ### **Responsiveness**
 *   **Mobile**: Category A modals should be full-screen (`h-full w-full`) with `rounded-none`. Body content must use `overflow-y-auto`.
 *   **Desktop**: Modals should be centered cards (`h-auto max-w-md`) with `sm:rounded-3xl`.
-ded-3xl`.
