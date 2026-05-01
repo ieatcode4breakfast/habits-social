@@ -71,7 +71,7 @@
 
               <!-- Content -->
               <div class="flex-1 min-w-0">
-                <div class="text-sm leading-relaxed min-w-0 break-all">
+                <div class="text-sm leading-relaxed min-w-0 break-words">
                   <span 
                     @click="String(item.user.id) !== String(user?.id) ? ($event.stopPropagation(), navigateTo(`/friends/${item.user.id}?from=${activeTab}`)) : null"
                     class="font-bold text-zinc-100 transition-colors cursor-pointer mr-1.5"
@@ -85,38 +85,13 @@
                 </div>
                 <div class="flex items-center gap-2 mt-1">
 
-                  <span class="text-[10px] font-bold uppercase tracking-wider text-zinc-500 break-all">
+                  <span class="text-[10px] font-bold uppercase tracking-wider text-zinc-500 break-words">
                     {{ item.habit.title }}
                   </span>
                 </div>
               </div>
 
-              <!-- Habit Color/Status Indicator -->
-              <div class="flex-shrink-0">
-                <div 
-                  class="w-8 h-8 rounded-xl flex items-center justify-center border-2"
-                  :class="[
-                    item.type === 'INITIAL_COMPLETION' ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-500' :
-                    ['INITIAL_FAILURE', 'STREAK_BROKEN'].includes(item.type) ? 'bg-rose-500/10 border-rose-500/20 text-rose-500' :
-                    ['STREAK_STARTED', 'STREAK_MILESTONE', 'ANNUAL_ANNIVERSARY', 'POST_YEAR_MILESTONE'].includes(item.type) ? 'bg-violet-500/10 border-violet-500/20 text-violet-500 shadow-lg shadow-violet-500/20' :
-                    ['STREAK_CONTINUED', 'STREAK_EXTENSION', 'POST_YEAR_EXTENSION'].includes(item.type) ? 'bg-amber-500/10 border-amber-500/20 text-amber-500' :
-                    item.type === 'STREAK_MAINTAINED' ? 'bg-zinc-500/10 border-zinc-500/20 text-zinc-400' :
-                    item.type === 'COMMITMENT' ? 'bg-indigo-500/10 border-indigo-500/20 text-indigo-500' :
-                    item.type === 'SHARE' ? 'bg-sky-500/10 border-sky-500/20 text-sky-500' :
-                    'bg-zinc-500/10 border-zinc-500/20 text-zinc-500'
-                  ]"
-                >
-                  <Check v-if="item.type === 'INITIAL_COMPLETION'" class="w-4 h-4" />
-                  <XIcon v-else-if="item.type === 'INITIAL_FAILURE'" class="w-4 h-4" />
-                  <HeartCrack v-else-if="item.type === 'STREAK_BROKEN'" class="w-4 h-4" />
-                  <Trophy v-else-if="['STREAK_STARTED', 'STREAK_MILESTONE', 'ANNUAL_ANNIVERSARY', 'POST_YEAR_MILESTONE'].includes(item.type)" class="w-4 h-4" />
-                  <Flame v-else-if="['STREAK_CONTINUED', 'STREAK_EXTENSION', 'POST_YEAR_EXTENSION'].includes(item.type)" class="w-4 h-4" />
-                  <Shield v-else-if="item.type === 'STREAK_MAINTAINED'" class="w-4 h-4" />
-                  <Target v-else-if="item.type === 'COMMITMENT'" class="w-4 h-4" />
-                  <Share2 v-else-if="item.type === 'SHARE'" class="w-4 h-4" />
-                  <Minus v-else class="w-4 h-4" />
-                </div>
-              </div>
+
             </div>
           </div>
         </div>
@@ -554,7 +529,7 @@
 
 <script setup lang="ts">
 defineOptions({ name: 'social' });
-import { Search, UserPlus, UserMinus, Check, X as XIcon, User, Trash2, ChevronDown, CheckSquare, Activity, Star, Minus, ChevronLeft, ChevronRight, Flame, HeartCrack, Trophy, Shield, Target, Share2 } from 'lucide-vue-next';
+import { Search, UserPlus, UserMinus, Check, X as XIcon, User, Trash2, ChevronDown, CheckSquare, Activity, Star, ChevronLeft, ChevronRight, Flame } from 'lucide-vue-next';
 import { format, parseISO, isToday, addDays, startOfMonth, endOfMonth, eachDayOfInterval, subDays, isAfter, startOfDay, subMonths, addMonths } from 'date-fns';
 import { useSocial } from '../composables/useSocial';
 import { useToast } from '../composables/useToast';
