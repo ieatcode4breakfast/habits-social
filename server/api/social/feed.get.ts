@@ -298,7 +298,7 @@ export default defineEventHandler(async (event) => {
 
     const isOwner = se.ownerid === userId;
     const recipientLabel = se.recipientid === userId ? 'you' : se.recipient_username;
-    const recipientFormatted = `[U]${recipientLabel}[/U]`;
+    const recipientFormatted = `[U:${se.recipientid}]${recipientLabel}[/U]`;
 
     let message: string;
     const habitText = habits.length === 1 ? `[H]${habits[0].title}[/H]` : `${habits.length} habits`;

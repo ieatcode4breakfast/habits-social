@@ -79,7 +79,7 @@
                   >
                     {{ item.user.name }}
                   </span>
-                  <span class="text-zinc-400" v-html="formatMessage(item.message)">
+                  <span class="text-zinc-400" v-html="formatMessage(item.message)" @click="handleMessageClick">
                   </span>
                 </div>
                 <div class="flex items-center gap-2 mt-1">
@@ -538,6 +538,15 @@ definePageMeta({ middleware: 'auth' });
 const { user } = useAuth();
 const { showToast } = useToast();
 const route = useRoute();
+const lastPath = useState('social_prev_path', () => '');
+const router = useRouter();
+
+// Track previous path for conditional refresh logic
+const unhook = router.beforeEach((to, from) => {
+  lastPath.value = from.fullPath;
+});
+onUnmounted(() => unhook());
+
 const activeTab = computed({
   get: () => (route.query.tab as 'activity' | 'friends') || 'activity',
   set: (val) => navigateTo({ query: { ...route.query, tab: val } } as any, { replace: true })
@@ -655,6 +664,17 @@ const loadFeed = async () => {
   }
 };
 
+const handleMessageClick = (event: MouseEvent) => {
+  const target = event.target as HTMLElement;
+  const userId = target.getAttribute('data-user-id');
+  if (userId) {
+    event.stopPropagation();
+    if (userId !== String(user.value?.id)) {
+      navigateTo(`/friends/${userId}?from=${activeTab.value}`);
+    }
+  }
+};
+
 const groupedFeed = computed(() => {
   if (!feed.value) return {};
   return feed.value.reduce((acc: any, item: any) => {
@@ -685,7 +705,10 @@ const formatMessage = (msg: string) => {
   // 1. Process Habits [H]...[/H] -> Sky Blue
   content = content.replace(/\[H\](.*?)\[\/H\]/g, '<strong class="text-blue-500 font-bold">$1</strong>');
   
-  // 2. Process Usernames [U]...[/U] -> Bold White
+  // 2. Process Usernames [U:id]...[/U] -> Bold White + Clickable
+  content = content.replace(/\[U:(.*?)\](.*?)\[\/U\]/g, '<span class="font-bold text-zinc-100 hover:text-zinc-400 transition-colors cursor-pointer" data-user-id="$1">$2</span>');
+  
+  // Legacy support for [U]...[/U] without ID
   content = content.replace(/\[U\](.*?)\[\/U\]/g, '<strong class="text-zinc-100 font-bold">$1</strong>');
   
   // 3. Process Streaks [S:count]...[/S] -> Dynamic Color
@@ -864,26 +887,42 @@ const loadFriendships = async () => {
 const { pendingCount } = useSocialNotifications();
 
 onMounted(async () => {
-  await loadFriendships();
-  if (activeTab.value === 'activity') {
-    loadFeed();
-  }
-  
-  // Capture snapshot of favorites for stable sorting during this visit
-  const myId = String(user.value?.id);
-  const favs = friendships.value
-    .filter((f: any) => f.status === 'accepted' && (String(f.initiatorId) === myId ? f.initiatorFavorite : f.receiverFavorite))
-    .map((f: any) => f.id);
-  favoritedAtStart.value = new Set(favs);
-
+  // Note: Data loading is now handled by onActivated to support conditional refresh
   window.addEventListener('resize', checkHeightOverflow);
 });
 
 onUnmounted(() => {
-  // cleanupSocial(); // Now a no-op singleton cleanup handled by logout
   window.removeEventListener('resize', checkHeightOverflow);
   if (typeof document !== 'undefined') {
     document.body.classList.remove('overflow-hidden');
+  }
+});
+
+onActivated(async () => {
+  // 1. Restore scroll position
+  await nextTick();
+  requestAnimationFrame(() => {
+    if (savedScrollY.value > 0) {
+      window.scrollTo({ top: savedScrollY.value, behavior: 'instant' });
+    }
+  });
+
+  // 2. Conditional Refresh
+  // We refresh if we're coming from anywhere EXCEPT a friend's profile (to preserve state on back-nav)
+  const isFromProfile = lastPath.value.includes('/friends/');
+  
+  if (!isFromProfile) {
+    await loadFriendships();
+    if (activeTab.value === 'activity') {
+      loadFeed();
+    }
+    
+    // Also update the stable favorites snapshot for friends list sorting
+    const myId = String(user.value?.id);
+    const favs = friendships.value
+      .filter((f: any) => f.status === 'accepted' && (String(f.initiatorId) === myId ? f.initiatorFavorite : f.receiverFavorite))
+      .map((f: any) => f.id);
+    favoritedAtStart.value = new Set(favs);
   }
 });
 
@@ -892,17 +931,6 @@ const savedScrollY = ref(0);
 
 onDeactivated(() => {
   savedScrollY.value = window.scrollY;
-});
-
-onActivated(async () => {
-  // Wait for DOM to be fully updated after keepalive re-activation,
-  // then restore scroll position as a fallback if the router's savedPosition didn't fire
-  await nextTick();
-  requestAnimationFrame(() => {
-    if (savedScrollY.value > 0) {
-      window.scrollTo({ top: savedScrollY.value, behavior: 'instant' });
-    }
-  });
 });
 
 const handleSearch = async () => {
