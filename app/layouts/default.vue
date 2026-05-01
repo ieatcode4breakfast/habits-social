@@ -1,7 +1,7 @@
 <template>
   <div class="min-h-[100dvh] text-zinc-100 flex flex-col transition-colors duration-300">
-    <header class="sticky top-0 z-50 py-3 md:mt-2 bg-black/50 backdrop-blur-md border-b border-white/5">
-      <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between">
+    <header class="sticky top-0 z-50 h-[57px] bg-black border-b border-white/10">
+      <div class="h-full max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between">
         <div class="flex items-center gap-2">
           <NuxtLink to="/" class="flex items-center gap-2 group">
             <div class="w-8 h-8 rounded-full bg-transparent flex items-center justify-center shadow-md shadow-white/10 group-hover:shadow-white/20 transition-shadow overflow-hidden">
@@ -38,7 +38,7 @@
       </div>
     </header>
 
-    <main class="flex-1 w-full max-w-5xl mx-auto px-0 sm:px-6 lg:px-8 pt-4 pb-20 md:pt-4 md:pb-12">
+    <main class="flex-1 w-full max-w-5xl mx-auto px-0 sm:px-6 lg:px-8 pb-20 md:pb-12">
       <slot />
     </main>
     <!-- Mobile Bottom Navigation -->

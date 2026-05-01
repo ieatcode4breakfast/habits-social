@@ -1,7 +1,7 @@
 <template>
-  <div class="space-y-3">
+  <div class="space-y-3 relative">
     <!-- Header -->
-    <div v-motion-slide-visible-once-left class="px-4 sm:px-0 flex items-end justify-between gap-4">
+    <div class="px-4 sm:px-0 flex items-end justify-between gap-4 sticky top-[57px] z-40 bg-black pt-2 pb-2">
       <div class="flex items-center gap-4">
         <UserAvatar 
           v-if="user"

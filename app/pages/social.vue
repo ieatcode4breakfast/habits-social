@@ -1,7 +1,7 @@
 <template>
-  <div class="space-y-3">
+  <div class="space-y-3 relative">
     <!-- Tab Navigation -->
-    <div class="px-4 sm:px-0">
+    <div class="px-4 sm:px-0 sticky top-[57px] z-40 bg-black pt-2 pb-2">
       <div class="flex p-1 bg-zinc-925 border border-zinc-800 rounded-xl relative">
         <button 
           @click="activeTab = 'activity'"
