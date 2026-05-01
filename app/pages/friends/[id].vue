@@ -1,9 +1,9 @@
 <template>
   <div class="space-y-3">
     <!-- Responsive Header & Actions -->
-    <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-y-3 sm:gap-y-0">
+    <div class="flex flex-wrap items-end justify-between gap-3 px-4 sm:px-0">
       <!-- Profile Header -->
-      <div class="flex items-center gap-1 px-4 sm:px-0 mt-2" v-motion-slide-visible-once-left>
+      <div class="flex items-center gap-1 mt-2" v-motion-slide-visible-once-left>
         <button @click="handleBack" class="inline-flex items-center justify-center p-1 -ml-1 text-zinc-500 hover:text-white transition-all flex-shrink-0 cursor-pointer">
           <ChevronLeft class="w-6 h-6" />
         </button>
@@ -19,8 +19,8 @@
         </div>
       </div>
 
-      <!-- Action Row (Mobile: New Row, Desktop: Right Aligned) -->
-      <div v-if="profile && !loading" class="flex justify-end gap-2 px-4 sm:px-0 -mt-2 sm:mt-0" v-motion-slide-visible-once-right>
+      <!-- Action Row (Mobile: In-line if space permits, Desktop: Right Aligned) -->
+      <div v-if="profile && !loading" class="flex justify-end gap-2 sm:mt-0" v-motion-slide-visible-once-right>
         <button v-if="relationshipStatus === 'friends'" @click="openShareModal" class="flex items-center sm:gap-2 p-2.5 sm:px-4 sm:py-2 bg-white hover:bg-zinc-200 text-black rounded-xl transition-colors font-semibold text-sm cursor-pointer shadow-lg shadow-white/5" title="Share Habits">
           <Share2 class="w-4 h-4" />
           <span class="hidden sm:inline">Share</span>
