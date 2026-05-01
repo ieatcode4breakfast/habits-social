@@ -1,54 +1,55 @@
 <template>
-  <div class="space-y-3">
-    <!-- Responsive Header & Actions -->
-    <div class="flex flex-wrap items-end justify-between gap-3 px-4 sm:px-0">
-      <!-- Profile Header -->
-      <div class="flex items-center gap-1 mt-2" v-motion-slide-visible-once-left>
+  <div class="space-y-1 relative">
+    <!-- Header -->
+    <div class="px-4 sm:px-0 flex items-end justify-between gap-4 sticky top-[57px] z-40 bg-black pt-2 pb-2 sm:pt-4">
+      <div class="flex items-center gap-1">
         <button @click="handleBack" class="inline-flex items-center justify-center p-1 -ml-1 text-zinc-500 hover:text-white transition-all flex-shrink-0 cursor-pointer">
           <ChevronLeft class="w-6 h-6" />
         </button>
         <div v-if="profile" class="flex items-center gap-4 ml-1">
           <UserAvatar 
             :src="profile.photourl" 
-            container-class="w-12 h-12 bg-zinc-925 shadow-sm"
+            container-class="w-12 h-12 bg-zinc-925 rounded-2xl shadow-sm"
             icon-class="w-6 h-6 text-zinc-600"
           />
           <div>
-            <h1 class="text-xl font-bold tracking-tight text-white">{{ profile.username }}</h1>
+            <h1 class="text-xl font-bold tracking-tight text-white mb-1">{{ profile.username }}</h1>
             <p class="text-zinc-400 text-xs">{{ habits.length }} habit{{ habits.length === 1 ? '' : 's' }} shared with you</p>
           </div>
         </div>
       </div>
 
-      <!-- Action Row (Mobile: In-line if space permits, Desktop: Right Aligned) -->
-      <div v-if="profile && !loading" class="flex justify-end gap-2 sm:mt-0 ml-auto" v-motion-slide-right>
-        <button v-if="relationshipStatus === 'friends'" @click="openShareModal" class="flex items-center sm:gap-2 p-2.5 sm:px-4 sm:py-2 bg-white hover:bg-zinc-200 text-black rounded-xl transition-colors font-semibold text-sm cursor-pointer shadow-lg shadow-white/5" title="Share Habits">
+      <!-- Action Row -->
+      <div v-if="profile && !loading" class="flex items-center gap-2">
+        <button v-if="relationshipStatus === 'friends'" @click="openShareModal" class="w-11 sm:w-auto py-2.5 sm:px-4 bg-white hover:bg-zinc-200 text-black font-semibold rounded-xl transition-all shadow-lg shadow-white/5 cursor-pointer text-sm flex items-center justify-center gap-2 active:scale-95" title="Share Habits">
           <Share2 class="w-4 h-4" />
           <span class="hidden sm:inline">Share</span>
         </button>
-        <button v-if="relationshipStatus === 'friends'" @click="showUnfriendModal = true" class="flex items-center sm:gap-2 p-2.5 sm:px-4 sm:py-2 bg-rose-500 hover:bg-rose-600 text-white rounded-xl transition-colors font-semibold text-sm cursor-pointer shadow-lg shadow-rose-500/20" title="Unfriend">
+        <button v-if="relationshipStatus === 'friends'" @click="showUnfriendModal = true" class="w-11 sm:w-auto py-2.5 sm:px-4 bg-rose-500 hover:bg-rose-600 text-white font-semibold rounded-xl transition-all shadow-lg shadow-rose-500/20 cursor-pointer text-sm flex items-center justify-center gap-2 active:scale-95" title="Unfriend">
           <UserMinus class="w-4 h-4" />
           <span class="hidden sm:inline">Unfriend</span>
         </button>
-        <button v-if="relationshipStatus === 'none'" @click="executeSendRequest" class="flex items-center gap-2 px-4 py-2 bg-white hover:bg-zinc-200 text-black rounded-xl transition-colors font-semibold text-sm cursor-pointer shadow-lg shadow-white/5">
-          <UserPlus class="w-4 h-4" /> Add
+        <button v-if="relationshipStatus === 'none'" @click="executeSendRequest" class="w-11 sm:w-auto py-2.5 sm:px-4 bg-white hover:bg-zinc-200 text-black font-semibold rounded-xl transition-all shadow-lg shadow-white/5 cursor-pointer text-sm flex items-center justify-center gap-2 active:scale-95">
+          <UserPlus class="w-4 h-4" />
+          <span class="hidden sm:inline">Add</span>
         </button>
-        <button v-else-if="relationshipStatus === 'pending_incoming'" @click="executeAcceptRequest" class="flex items-center gap-2 px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl transition-colors font-semibold text-sm cursor-pointer shadow-lg shadow-emerald-500/20">
-          <Check class="w-4 h-4" /> Accept
+        <button v-else-if="relationshipStatus === 'pending_incoming'" @click="executeAcceptRequest" class="w-11 sm:w-auto py-2.5 sm:px-4 bg-emerald-500 hover:bg-emerald-600 text-white font-semibold rounded-xl transition-all shadow-lg shadow-emerald-500/20 cursor-pointer text-sm flex items-center justify-center gap-2 active:scale-95">
+          <Check class="w-4 h-4" />
+          <span class="hidden sm:inline">Accept</span>
         </button>
-        <button v-else-if="relationshipStatus === 'pending_outgoing'" @click="showCancelRequestModal = true" class="text-xs font-semibold text-zinc-500 bg-zinc-925 hover:bg-zinc-900 px-3 py-1.5 rounded-xl border border-zinc-800 transition-colors cursor-pointer">
+        <button v-else-if="relationshipStatus === 'pending_outgoing'" @click="showCancelRequestModal = true" class="py-2.5 px-4 bg-zinc-925 hover:bg-zinc-900 text-zinc-500 font-semibold rounded-xl border border-zinc-800 transition-all cursor-pointer text-sm flex items-center justify-center gap-2 active:scale-95">
           Pending
         </button>
       </div>
     </div>
 
-    <div v-if="loading" class="flex justify-center p-12">
-      <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
-    </div>
-
     <!-- Shared Habit List (Single Card) -->
-    <div v-if="!loading" v-motion-fade class="bg-zinc-925/80 backdrop-blur-sm sm:rounded-2xl rounded-none shadow-2xl divide-y divide-zinc-800/80 border-y border-x-0 sm:border border-zinc-800/80 overflow-x-auto">
-      <div v-if="habits.length === 0" class="p-10 text-center text-zinc-500 italic text-sm">
+    <div v-motion-fade class="bg-zinc-925/80 backdrop-blur-md sm:rounded-2xl rounded-none shadow-2xl border-y border-x-0 sm:border border-zinc-800/80 divide-y divide-zinc-800/80 overflow-x-auto custom-scrollbar">
+      <div v-if="loading" class="flex justify-center p-12">
+        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
+      </div>
+      <template v-else>
+        <div v-if="habits.length === 0" class="p-10 text-center text-zinc-500 italic text-sm">
         {{ profile?.username }} hasn't shared any habits with you yet.
       </div>
       
@@ -122,226 +123,30 @@
                 {{ format(day, 'd') }}
               </div>
             </div>
+          </div>
+        </div>
       </div>
+      </template>
     </div>
-  </div>
-</div>
 
     <!-- View Habit Details Modal -->
-    <Teleport to="body">
-      <Transition
-        enter-active-class="transition duration-300 ease-out"
-        enter-from-class="opacity-0 scale-95"
-        enter-to-class="opacity-100 scale-100"
-        leave-active-class="transition duration-200 ease-in"
-        leave-from-class="opacity-100 scale-100"
-        leave-to-class="opacity-0 scale-95"
-      >
-        <div v-if="showModal && selectedHabit" 
-          class="fixed inset-0 z-[100] flex flex-col items-center justify-start overflow-y-auto sm:py-8 py-0"
-        >
-          <!-- Backdrop -->
-          <div class="fixed inset-0 bg-black/80 backdrop-blur-md" @click="showModal = false"></div>
-          
-          <!-- Modal Content -->
-          <div 
-            ref="modalContent"
-            class="relative my-auto w-full h-full sm:h-auto sm:max-w-md max-w-none bg-zinc-925 border-x-0 sm:border border-zinc-800 sm:rounded-3xl rounded-none shadow-2xl overflow-hidden transition-all duration-300 flex flex-col"
-          >
-            <!-- Sticky Header -->
-            <div class="sticky top-0 z-10 bg-zinc-925 px-4 sm:px-8 py-4 sm:py-6 border-b border-zinc-800/80 flex items-center gap-1 shrink-0">
-              <button @click="showModal = false" class="p-2 -ml-2 text-zinc-500 hover:text-white transition-all cursor-pointer flex-shrink-0">
-                <ChevronLeft class="w-6 h-6" />
-              </button>
-              <div class="flex-1 min-w-0">
-                <div class="flex items-center gap-2 min-w-0">
-                  <h2 class="text-lg font-bold text-white truncate leading-none min-w-0">{{ selectedHabit.title }}</h2>
-                  <!-- Streak Badge -->
-                  <div 
-                    v-if="(selectedHabit.currentStreak ?? 0) >= 2"
-                    class="flex items-center gap-1 px-2 py-0.5 bg-black border rounded-full shrink-0"
-                    :class="[
-                      isFaded(selectedHabit) ? 'opacity-30' : 'opacity-100',
-                      getStreakTheme(selectedHabit.currentStreak ?? 0).border
-                    ]"
-                  >
-                    <span 
-                      class="text-[9px] font-black tracking-tight"
-                      :class="getStreakTheme(selectedHabit.currentStreak ?? 0).text"
-                    >
-                      x{{ selectedHabit.currentStreak }} STREAK
-                    </span>
-
-                    <Flame 
-                      v-if="(selectedHabit.currentStreak ?? 0) >= 7"
-                      class="w-2.5 h-2.5" 
-                      :class="[
-                        getStreakTheme(selectedHabit.currentStreak ?? 0).text,
-                        getStreakTheme(selectedHabit.currentStreak ?? 0).fill
-                      ]"
-                    />
-                  </div>
-                </div>
-                <div class="text-[10px] font-bold uppercase tracking-widest text-zinc-500 mt-1">
-                  <span class="capitalize">{{ selectedHabit.frequencyPeriod }}</span><template v-if="selectedHabit.frequencyPeriod !== 'daily'">, {{ selectedHabit.frequencyCount }} {{ selectedHabit.frequencyCount === 1 ? 'time' : 'times' }}</template>
-                </div>
-              </div>
-            </div>
-
-            <!-- Scrollable Content -->
-            <div class="flex-1 overflow-y-auto p-4 sm:p-8 sm:py-6">
-              <p v-if="selectedHabit.description" class="text-zinc-400 text-sm mb-6 italic break-words whitespace-pre-wrap">
-                {{ selectedHabit.description }}
-              </p>
-
-              <!-- Monthly Calendar View -->
-              <div class="space-y-4">
-                <div class="flex items-center justify-between px-2">
-                  <h3 class="text-sm font-bold uppercase tracking-widest text-white">
-                    {{ format(currentCalendarDate, 'MMMM yyyy') }}
-                  </h3>
-                  <div class="flex gap-2">
-                    <button type="button" @click="prevMonth" class="p-2 hover:bg-zinc-800 rounded-lg text-zinc-400 hover:text-zinc-200 transition-colors cursor-pointer">
-                      <ChevronLeft class="w-4 h-4" />
-                    </button>
-                    <button type="button" @click="nextMonth" class="p-2 hover:bg-zinc-800 rounded-lg text-zinc-400 hover:text-zinc-200 transition-colors cursor-pointer">
-                      <ChevronRight class="w-4 h-4" />
-                    </button>
-                  </div>
-                </div>
-
-                <div class="bg-black rounded-2xl p-4 border border-zinc-800 relative overflow-hidden">
-                  <!-- Loading Overlay -->
-                  <Transition
-                    enter-active-class="transition duration-200 ease-out"
-                    enter-from-class="opacity-0"
-                    enter-to-class="opacity-100"
-                    leave-active-class="transition duration-300 ease-in"
-                    leave-from-class="opacity-100"
-                    leave-to-class="opacity-0"
-                  >
-                    <div v-if="calendarLoading" class="absolute inset-0 z-10 bg-black/40 backdrop-blur-[2px] flex items-center justify-center">
-                      <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-white"></div>
-                    </div>
-                  </Transition>
-                  <div class="grid grid-cols-7 gap-y-4 gap-x-1">
-                    <!-- Day Headers -->
-                    <div v-for="dayName in ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']" :key="dayName" class="text-[10px] text-center font-black uppercase tracking-tighter text-zinc-600 mb-1">
-                      {{ dayName }}
-                    </div>
-
-                    <!-- Calendar Grid -->
-                    <div v-for="(day, i) in calendarDays" :key="i" class="flex flex-col items-center gap-1">
-                      <div
-                        class="w-8 h-8 rounded-lg flex items-center justify-center transition-all border-2 relative"
-                        :class="[
-                          (day.getMonth() !== currentCalendarDate.getMonth() || isFutureDay(day)) ? 'opacity-30 border-transparent' : '',
-                          getStatus(selectedHabit.id, day) === 'completed' ? 'bg-emerald-500 border-emerald-500 shadow-md shadow-emerald-500/20' :
-                          getStatus(selectedHabit.id, day) === 'failed' ? 'bg-rose-500 border-rose-500 shadow-md shadow-rose-500/20' :
-                          getStatus(selectedHabit.id, day) === 'skipped' ? 'bg-zinc-500 border-zinc-500 shadow-none' :
-                          'border-dashed border-zinc-800 bg-transparent'
-                        ]"
-                      >
-                        <Check v-if="getStatus(selectedHabit.id, day) === 'completed'" class="w-3 h-3 text-white" />
-                        <XIcon v-else-if="getStatus(selectedHabit.id, day) === 'failed'" class="w-3 h-3 text-white" />
-                        <span v-else-if="getStatus(selectedHabit.id, day) === 'skipped'" class="w-3 h-0.5 bg-white rounded-full"></span>
-                      </div>
-                      <div class="text-[9px] font-bold" :class="[
-                        day.getMonth() === currentCalendarDate.getMonth() ? 'text-white' : 'text-zinc-600',
-                        day.getMonth() !== currentCalendarDate.getMonth() ? 'opacity-30' : ''
-                      ]">
-                        {{ format(day, 'd') }}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <!-- Fixed Footer -->
-            <div class="px-8 py-4 border-t border-zinc-800 bg-zinc-925/80 backdrop-blur-md flex gap-3">
-              <button
-                type="button"
-                @click="showModal = false"
-                class="flex-1 px-5 py-3 bg-white hover:bg-zinc-200 text-black font-semibold rounded-xl transition-all shadow-lg shadow-white/5 cursor-pointer"
-              >
-                Close
-              </button>
-            </div>
-          </div>
-        </div>
-
-
-      </Transition>
-    </Teleport>
+    <HabitDetailsModal
+      v-model="showModal"
+      :habit="selectedHabit"
+      :logs="logs"
+      :loading="calendarLoading"
+      @month-changed="handleFriendMonthChanged"
+    />
 
     <!-- Share Habits Modal -->
-    <Teleport to="body">
-      <Transition
-        enter-active-class="transition duration-300 ease-out"
-        enter-from-class="opacity-0 scale-95"
-        enter-to-class="opacity-100 scale-100"
-        leave-active-class="transition duration-200 ease-in"
-        leave-from-class="opacity-100 scale-100"
-        leave-to-class="opacity-0 scale-95"
-      >
-        <div v-if="showShareModal" 
-          class="fixed inset-0 z-[110] flex items-center justify-center sm:p-4 p-0"
-        >
-          <div class="absolute inset-0 bg-black/90 backdrop-blur-md" @click="showShareModal = false"></div>
-          <div 
-            ref="shareModalContent"
-            class="relative w-full h-full sm:h-auto sm:max-w-md max-w-none bg-zinc-925 border-x-0 sm:border border-zinc-800 sm:rounded-3xl rounded-none shadow-2xl p-8 overflow-y-auto transition-all duration-300"
-          >
-            <div class="text-center mb-6">
-              <div class="w-16 h-16 bg-zinc-925 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Check class="w-8 h-8 text-white" />
-              </div>
-              <h2 class="text-xl font-bold text-white mb-2">{{ shareModalTitle }}</h2>
-              <p class="text-zinc-500 text-sm">
-                Which habits would you like to share with <span class="text-zinc-200 font-medium">{{ profile?.username }}</span>?
-              </p>
-            </div>
-            
-            <!-- Selection Controls -->
-            <div class="flex items-center justify-between mb-3 px-1">
-              <label class="text-[10px] font-bold uppercase tracking-widest text-zinc-500">My habits</label>
-              <button 
-                @click="toggleSelectAllHabits"
-                title="Select/Unselect All"
-                class="p-1 text-zinc-500 hover:text-white transition-colors cursor-pointer"
-              >
-                <CheckSquare class="w-4 h-4" />
-              </button>
-            </div>
-
-            <div class="max-h-[320px] overflow-y-auto pr-2 space-y-2 mb-8 scrollbar-thin scrollbar-thumb-zinc-800 scrollbar-track-transparent">
-              <div v-for="habit in myHabits" :key="habit.id" 
-                @click="toggleHabitSelection(habit.id)"
-                class="flex items-center gap-3 p-3 rounded-xl border transition-all cursor-pointer group"
-                :class="selectedHabitIds.includes(habit.id) ? 'bg-white/5 border-white/20' : 'bg-black border-zinc-900 hover:border-zinc-700'"
-              >
-                <div class="flex-1 text-sm text-zinc-200 font-medium truncate min-w-0">{{ habit.title }}</div>
-                <div class="w-5 h-5 rounded-md border flex items-center justify-center transition-all"
-                  :class="selectedHabitIds.includes(habit.id) ? 'bg-white border-white text-black' : 'border-zinc-700 group-hover:border-zinc-500'"
-                >
-                  <Check v-if="selectedHabitIds.includes(habit.id)" class="w-3 h-3" />
-                </div>
-              </div>
-            </div>
-
-            <div class="flex gap-3 mt-2">
-              <button @click="showShareModal = false" class="flex-1 px-5 py-3 bg-transparent hover:bg-zinc-925 text-zinc-400 hover:text-zinc-200 font-semibold rounded-xl transition-all cursor-pointer">
-                Cancel
-              </button>
-              <button @click="executeBatchShare" class="flex-1 px-5 py-3 bg-white hover:bg-zinc-200 text-black font-semibold rounded-xl transition-all shadow-lg shadow-white/5 cursor-pointer">
-                {{ selectedHabitIds.length > 0 ? `Share ${selectedHabitIds.length} habits` : 'Continue' }}
-              </button>
-            </div>
-          </div>
-        </div>
-      </Transition>
-    </Teleport>
+    <ShareHabitsModal
+      v-model="showShareModal"
+      :title="shareModalTitle"
+      :target-user="profile"
+      :my-habits="myHabits"
+      :initial-selected-ids="selectedHabitIds"
+      @shared="executeBatchShareRefresh"
+    />
 
     <!-- Unfriend Confirmation Modal -->
     <Teleport to="body">
@@ -515,15 +320,7 @@ const executeAcceptRequest = async () => {
   }
 };
 
-const executeBatchShare = async () => {
-  await $fetch('/api/social/share-habits', { 
-    method: 'POST', 
-    body: { 
-      targetUserId: friendId, 
-      habitIds: selectedHabitIds.value,
-      user_date: format(new Date(), 'yyyy-MM-dd')
-    } 
-  });
+const executeBatchShareRefresh = async () => {
   showShareModal.value = false;
   load(); // Reload friend data to see if anything changed
 };
@@ -715,36 +512,35 @@ const isCompleted = (habitId: string, day: Date) => {
 };
 
 // --- Dynamic Log Fetching ---
-watch(currentCalendarDate, async (newDate) => {
-  if (showModal.value && selectedHabit.value) {
-    const start = format(startOfMonth(newDate), 'yyyy-MM-dd');
-    const end = format(endOfMonth(newDate), 'yyyy-MM-dd');
-    calendarLoading.value = true;
-    try {
-      const data = await $fetch<any>('/api/social/habit-details', { 
-        query: { 
-          habitId: selectedHabit.value.id,
-          startDate: start,
-          endDate: end
-        } 
+const handleFriendMonthChanged = async (newDate: Date) => {
+  if (!selectedHabit.value) return;
+  const start = format(startOfMonth(newDate), 'yyyy-MM-dd');
+  const end = format(endOfMonth(newDate), 'yyyy-MM-dd');
+  calendarLoading.value = true;
+  try {
+    const data = await $fetch<any>('/api/social/habit-details', { 
+      query: { 
+        habitId: selectedHabit.value.id,
+        startDate: start,
+        endDate: end
+      } 
+    });
+    if (data.logs) {
+      data.logs.forEach((newLog: any) => {
+        const idx = logs.value.findIndex((l: any) => l.id === newLog.id);
+        if (idx >= 0) {
+          logs.value[idx] = newLog;
+        } else {
+          logs.value.push(newLog);
+        }
       });
-      if (data.logs) {
-        data.logs.forEach((newLog: any) => {
-          const idx = logs.value.findIndex(l => l.id === newLog.id);
-          if (idx >= 0) {
-            logs.value[idx] = newLog;
-          } else {
-            logs.value.push(newLog);
-          }
-        });
-      }
-    } catch (err) {
-      console.error('Failed to fetch historical friend logs:', err);
-    } finally {
-      calendarLoading.value = false;
     }
+  } catch (err) {
+    console.error('Failed to fetch historical friend logs:', err);
+  } finally {
+    calendarLoading.value = false;
   }
-});
+};
 // ----------------------------
 
 // --- Modal State Management ---

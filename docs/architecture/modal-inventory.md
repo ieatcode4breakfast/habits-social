@@ -13,8 +13,7 @@ The application uses three primary categories of modals to handle different leve
 |------------|---------------|------------------|---------|
 | **Add Habit** | `app/pages/index.vue` | `showModal` | Form to create a new habit. |
 | **Edit Habit** | `app/pages/index.vue` | `showEditModal` | Comprehensive habit editor (title, desc, frequency, sharing). |
-| **View Habit Details** | `app/pages/social.vue` | `showHabitModal` | View-only friend habit details & calendar. |
-| **View Habit Details** | `app/pages/friends/[id].vue`| `showModal` | View-only friend habit details & calendar. |
+| **View Habit Details** | `app/components/HabitDetailsModal.vue` | (Component) | View-only friend habit details & calendar. |
 | **Profile Modal** | `app/components/ProfileModal.vue`| (Component) | View/Edit own user profile details. |
 
 ### **Category B: Confirmation & Action Modals**
@@ -33,8 +32,7 @@ The application uses three primary categories of modals to handle different leve
 
 | Modal Name | File Location | Triggering State | Purpose |
 |------------|---------------|------------------|---------|
-| **Share Selection** | `app/pages/social.vue` | `showShareModal` | Batch selection of habits to share with a friend. |
-| **Share Selection** | `app/pages/friends/[id].vue` | `showShareModal` | Batch selection of habits to share with a friend. |
+| **Share Selection** | `app/components/ShareHabitsModal.vue` | (Component) | Batch selection of habits to share with a friend. |
 | **Reorder Habits** | `app/pages/index.vue` | `showReorderModal` | Specialized drag-and-drop list for habit ordering. |
 
 ---
@@ -62,3 +60,4 @@ To maintain a consistent experience, all modals must adhere to the following arc
 ### **Responsiveness**
 *   **Mobile**: Category A modals should be full-screen (`h-full w-full`) with `rounded-none`. Body content must use `overflow-y-auto`.
 *   **Desktop**: Modals should be centered cards (`h-auto max-w-md`) with `sm:rounded-3xl`.
+ded-3xl`.

@@ -1,7 +1,7 @@
 <template>
   <div class="space-y-1 relative">
     <!-- Header -->
-    <div class="px-4 sm:px-0 flex items-end justify-between gap-4 sticky top-[57px] z-40 bg-black pt-2 pb-2 sm:mt-2">
+    <div class="px-4 sm:px-0 flex items-end justify-between gap-4 sticky top-[57px] z-40 bg-black pt-2 pb-2 sm:pt-4">
       <div class="flex items-center gap-4">
         <UserAvatar 
           v-if="user"
