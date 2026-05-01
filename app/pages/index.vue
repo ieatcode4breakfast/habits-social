@@ -536,7 +536,7 @@
                             >
                               <div 
                                 v-if="activeLogMenu && activeLogMenu.habitId === editingHabit?.id && isSameDay(activeLogMenu.date, day)"
-                                class="fixed z-[200] bg-zinc-900/95 backdrop-blur-xl border border-zinc-800 rounded-2xl shadow-2xl p-1 flex flex-col gap-1 -translate-x-1/2"
+                                class="fixed z-[200] bg-zinc-900/95 backdrop-blur-xl border border-zinc-800 rounded-2xl shadow-2xl p-1.5 flex flex-col gap-1.5 -translate-x-1/2"
                                 :style="{ 
                                   top: `${menuPosition.top + 8}px`, 
                                   left: `${menuPosition.left}px` 
@@ -547,11 +547,11 @@
                                   v-for="opt in getLogOptions(editingHabit!, day)"
                                   :key="opt.label"
                                   @click.stop="setLogStatus(editingHabit!, day, opt.status)"
-                                  class="w-7 h-7 rounded-lg flex items-center justify-center transition-all border-2 cursor-pointer relative"
+                                  class="w-8 h-8 rounded-lg flex items-center justify-center transition-all border-2 cursor-pointer relative"
                                   :class="opt.bgColor"
                                   :title="opt.label"
                                 >
-                                  <component :is="opt.icon" class="w-3 h-3" :class="opt.color" />
+                                  <component :is="opt.icon" class="w-3.5 h-3.5" :class="opt.color" />
                                 </button>
                               </div>
                             </Transition>
