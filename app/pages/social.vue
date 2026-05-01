@@ -247,9 +247,9 @@
         leave-from-class="opacity-100 scale-100"
         leave-to-class="opacity-0 scale-95"
       >
-        <div v-if="showUnfriendModal" class="fixed inset-0 z-[110] flex items-center justify-center p-4">
-          <div class="absolute inset-0 bg-black/90 backdrop-blur-md" @click="showUnfriendModal = false"></div>
-          <div class="relative w-full max-w-sm bg-zinc-925 border border-zinc-800 rounded-3xl shadow-2xl p-8 text-center">
+        <div v-if="showUnfriendModal" class="fixed inset-0 z-[110] flex flex-col items-center justify-start overflow-y-auto p-4 sm:py-8">
+          <div class="fixed inset-0 bg-black/90 backdrop-blur-md" @click="showUnfriendModal = false"></div>
+          <div class="relative my-auto w-full max-w-sm bg-zinc-925 border border-zinc-800 rounded-3xl shadow-2xl p-8 text-center">
             <div class="w-16 h-16 bg-zinc-925 rounded-full flex items-center justify-center mx-auto mb-4">
               <User class="w-8 h-8 text-rose-500" />
             </div>
@@ -283,9 +283,9 @@
         leave-from-class="opacity-100 scale-100"
         leave-to-class="opacity-0 scale-95"
       >
-        <div v-if="showAddModal" class="fixed inset-0 z-[110] flex items-center justify-center p-4">
-          <div class="absolute inset-0 bg-black/90 backdrop-blur-md" @click="showAddModal = false"></div>
-          <div class="relative w-full max-w-sm bg-zinc-925 border border-zinc-800 rounded-3xl shadow-2xl p-8 text-center">
+        <div v-if="showAddModal" class="fixed inset-0 z-[110] flex flex-col items-center justify-start overflow-y-auto p-4 sm:py-8">
+          <div class="fixed inset-0 bg-black/90 backdrop-blur-md" @click="showAddModal = false"></div>
+          <div class="relative my-auto w-full max-w-sm bg-zinc-925 border border-zinc-800 rounded-3xl shadow-2xl p-8 text-center">
             <div class="w-16 h-16 bg-zinc-925 rounded-full flex items-center justify-center mx-auto mb-4">
               <UserPlus class="w-8 h-8 text-white" />
             </div>
@@ -317,12 +317,12 @@
         leave-to-class="opacity-0 scale-95"
       >
         <div v-if="showShareModal" 
-          class="fixed inset-0 z-[110] flex items-center justify-center sm:p-4 p-0"
+          class="fixed inset-0 z-[110] flex flex-col items-center justify-start overflow-y-auto sm:py-8 py-0"
         >
-          <div class="absolute inset-0 bg-black/90 backdrop-blur-md" @click="showShareModal = false"></div>
+          <div class="fixed inset-0 bg-black/90 backdrop-blur-md" @click="showShareModal = false"></div>
           <div 
             ref="modalContent"
-            class="relative w-full h-full sm:h-auto sm:max-w-md max-w-none bg-zinc-925 border-x-0 sm:border border-zinc-800 sm:rounded-3xl rounded-none shadow-2xl p-8 overflow-y-auto transition-all duration-300"
+            class="relative my-auto w-full h-full sm:h-auto sm:max-w-md max-w-none bg-zinc-925 border-x-0 sm:border border-zinc-800 sm:rounded-3xl rounded-none shadow-2xl p-8 overflow-y-auto transition-all duration-300"
           >
             <div class="text-center mb-6">
               <div class="w-16 h-16 bg-zinc-925 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -384,15 +384,15 @@
         leave-to-class="opacity-0 scale-95"
       >
         <div v-if="showHabitModal && selectedHabit" 
-          class="fixed inset-0 z-[100] flex items-center justify-center sm:p-4 p-0"
+          class="fixed inset-0 z-[100] flex flex-col items-center justify-start overflow-y-auto sm:py-8 py-0"
         >
           <!-- Backdrop -->
-          <div class="absolute inset-0 bg-black/80 backdrop-blur-md" @click="showHabitModal = false"></div>
+          <div class="fixed inset-0 bg-black/80 backdrop-blur-md" @click="showHabitModal = false"></div>
           
           <!-- Modal Content -->
           <div 
             ref="habitModalContent"
-            class="relative w-full h-full sm:h-auto sm:max-w-md max-w-none bg-zinc-925 border-x-0 sm:border border-zinc-800 sm:rounded-3xl rounded-none shadow-2xl p-8 overflow-y-auto transition-all duration-300"
+            class="relative my-auto w-full h-full sm:h-auto sm:max-w-md max-w-none bg-zinc-925 border-x-0 sm:border border-zinc-800 sm:rounded-3xl rounded-none shadow-2xl p-8 overflow-y-auto transition-all duration-300"
           >
             <div v-if="habitLoading" class="flex justify-center p-12">
               <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>

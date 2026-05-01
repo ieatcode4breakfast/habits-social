@@ -182,15 +182,15 @@
         leave-to-class="opacity-0 scale-95"
       >
         <div v-if="showModal" 
-          class="fixed inset-0 z-[100] flex items-center justify-center sm:p-4 p-0"
+          class="fixed inset-0 z-[100] flex flex-col items-center justify-start overflow-y-auto sm:py-8 py-0"
         >
           <!-- Backdrop -->
-          <div class="absolute inset-0 bg-black/80 backdrop-blur-md" @click="showModal = false"></div>
+          <div class="fixed inset-0 bg-black/80 backdrop-blur-md" @click="showModal = false"></div>
           
           <!-- Modal Content -->
           <div 
             ref="modalContent"
-            class="relative w-full h-full sm:h-auto sm:max-w-md max-w-none bg-zinc-925 border-x-0 sm:border border-zinc-800 sm:rounded-3xl rounded-none shadow-2xl overflow-hidden transition-all duration-300 flex flex-col"
+            class="relative my-auto w-full h-full sm:h-auto sm:max-w-md max-w-none bg-zinc-925 border-x-0 sm:border border-zinc-800 sm:rounded-3xl rounded-none shadow-2xl overflow-hidden transition-all duration-300 flex flex-col"
           >
             <!-- Scrollable Content -->
             <div class="flex-1 overflow-y-auto p-8 pb-4">
@@ -338,15 +338,15 @@
         leave-to-class="opacity-0 scale-95"
       >
         <div v-if="showEditModal" 
-          class="fixed inset-0 z-[100] flex items-center justify-center sm:p-4 p-0"
+          class="fixed inset-0 z-[100] flex flex-col items-center justify-start overflow-y-auto sm:py-8 py-0"
         >
           <!-- Backdrop -->
-          <div class="absolute inset-0 bg-black/80 backdrop-blur-md" @click="showEditModal = false"></div>
+          <div class="fixed inset-0 bg-black/80 backdrop-blur-md" @click="showEditModal = false"></div>
           
           <!-- Modal Content -->
           <div 
             ref="modalContent"
-            class="relative w-full h-full sm:h-auto sm:max-w-lg max-w-none bg-zinc-925 border-x-0 sm:border border-zinc-800 sm:rounded-3xl rounded-none shadow-2xl overflow-hidden transition-all duration-300 flex flex-col"
+            class="relative my-auto w-full h-full sm:h-auto sm:max-w-lg max-w-none bg-zinc-925 border-x-0 sm:border border-zinc-800 sm:rounded-3xl rounded-none shadow-2xl overflow-hidden transition-all duration-300 flex flex-col"
           >
             <!-- Scrollable Content -->
             <div class="flex-1 overflow-y-auto p-8 pb-4">
@@ -647,12 +647,12 @@
         leave-from-class="opacity-100 scale-100"
         leave-to-class="opacity-0 scale-95"
       >
-        <div v-if="showDeleteModal" class="fixed inset-0 z-[110] flex items-center justify-center p-4">
+        <div v-if="showDeleteModal" class="fixed inset-0 z-[110] flex flex-col items-center justify-start overflow-y-auto p-4 sm:py-8">
           <!-- Backdrop -->
-          <div class="absolute inset-0 bg-black/90 backdrop-blur-md" @click="showDeleteModal = false"></div>
+          <div class="fixed inset-0 bg-black/90 backdrop-blur-md" @click="showDeleteModal = false"></div>
           
           <!-- Modal Content -->
-          <div class="relative w-full max-w-sm bg-zinc-925 border border-zinc-800 rounded-3xl shadow-2xl p-8 text-center">
+          <div class="relative my-auto w-full max-w-sm bg-zinc-925 border border-zinc-800 rounded-3xl shadow-2xl p-8 text-center">
             <div class="w-16 h-16 bg-zinc-925 rounded-full flex items-center justify-center mx-auto mb-4">
               <Trash2 class="w-8 h-8 text-zinc-400" />
             </div>
@@ -697,9 +697,9 @@
         leave-from-class="opacity-100 scale-100"
         leave-to-class="opacity-0 scale-95"
       >
-        <div v-if="showSharingConfirmModal" class="fixed inset-0 z-[120] flex items-center justify-center p-4">
-          <div class="absolute inset-0 bg-black/90 backdrop-blur-md" @click="showSharingConfirmModal = false"></div>
-          <div class="relative w-full max-w-sm bg-zinc-925 border border-zinc-800 rounded-3xl shadow-2xl p-8 text-center">
+        <div v-if="showSharingConfirmModal" class="fixed inset-0 z-[120] flex flex-col items-center justify-start overflow-y-auto p-4 sm:py-8">
+          <div class="fixed inset-0 bg-black/90 backdrop-blur-md" @click="showSharingConfirmModal = false"></div>
+          <div class="relative my-auto w-full max-w-sm bg-zinc-925 border border-zinc-800 rounded-3xl shadow-2xl p-8 text-center">
             <div class="w-16 h-16 bg-zinc-925 rounded-full flex items-center justify-center mx-auto mb-4">
               <User class="w-8 h-8 text-zinc-400" />
             </div>
@@ -743,12 +743,12 @@
         leave-from-class="opacity-100 scale-100"
         leave-to-class="opacity-0 scale-95"
       >
-        <div v-if="showReorderModal" class="fixed inset-0 z-[100] flex items-end sm:items-center justify-center sm:p-4 p-0">
+        <div v-if="showReorderModal" class="fixed inset-0 z-[100] flex flex-col items-center justify-start overflow-y-auto sm:p-4 p-0 sm:py-8">
           <!-- Backdrop -->
-          <div class="absolute inset-0 bg-black/80 backdrop-blur-md" @click="showReorderModal = false"></div>
+          <div class="fixed inset-0 bg-black/80 backdrop-blur-md" @click="showReorderModal = false"></div>
 
           <!-- Modal Content -->
-          <div class="relative w-full sm:max-w-sm bg-zinc-925 border-t sm:border border-zinc-800 sm:rounded-3xl rounded-t-3xl shadow-2xl overflow-hidden flex flex-col" style="max-height: 80vh">
+          <div class="relative my-auto w-full sm:max-w-sm bg-zinc-925 border-t sm:border border-zinc-800 sm:rounded-3xl rounded-t-3xl shadow-2xl overflow-hidden flex flex-col" style="max-height: 80vh">
             <!-- Header -->
             <div class="flex items-center justify-between px-5 py-4 border-b border-zinc-800/80 shrink-0">
               <div>
