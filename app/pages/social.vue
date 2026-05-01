@@ -1,12 +1,7 @@
 <template>
   <div class="space-y-3">
-    <div v-motion-slide-visible-once-left class="px-4 sm:px-0">
-      <h1 class="text-xl font-bold tracking-tight text-white mb-1">Social</h1>
-      <p class="text-zinc-400 text-xs">Connect with friends and view their progress</p>
-    </div>
-
     <!-- Tab Navigation -->
-    <div class="px-4 sm:px-0 pt-2">
+    <div class="px-4 sm:px-0">
       <div class="flex p-1 bg-zinc-925 border border-zinc-800 rounded-xl relative">
         <button 
           @click="activeTab = 'activity'"

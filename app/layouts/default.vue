@@ -1,25 +1,29 @@
 <template>
   <div class="min-h-[100dvh] text-zinc-100 flex flex-col transition-colors duration-300">
-    <header class="sticky top-0 z-50 px-4 py-3 bg-black/50 backdrop-blur-md border-b border-white/5">
-      <div class="max-w-5xl mx-auto flex items-center justify-between">
-        <NuxtLink to="/" class="flex items-center gap-2 group">
-          <div class="w-8 h-8 rounded-full bg-transparent flex items-center justify-center shadow-md shadow-white/10 group-hover:shadow-white/20 transition-shadow overflow-hidden">
-            <img src="/icons/icon-192.png" class="w-full h-full object-cover scale-[1.35] transform-gpu" alt="Logo" />
-          </div>
-          <span class="font-bold text-lg tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-zinc-200 to-zinc-400">
-            Habits Social
-          </span>
-        </NuxtLink>
+    <header class="sticky top-0 z-50 py-3 md:mt-2 bg-black/50 backdrop-blur-md border-b border-white/5">
+      <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <NuxtLink to="/" class="flex items-center gap-2 group">
+            <div class="w-8 h-8 rounded-full bg-transparent flex items-center justify-center shadow-md shadow-white/10 group-hover:shadow-white/20 transition-shadow overflow-hidden">
+              <img src="/icons/icon-192.png" class="w-full h-full object-cover scale-[1.35] transform-gpu" alt="Logo" />
+            </div>
+            <span class="font-bold text-lg tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-zinc-200 to-zinc-400">
+              Habits Social
+            </span>
+          </NuxtLink>
+
+          <template v-if="user">
+            <nav class="hidden md:flex items-center gap-1 ml-2">
+              <NuxtLink to="/" class="nav-link" :class="{ 'nav-link-active': $route.path === '/' }">Dashboard</NuxtLink>
+              <NuxtLink to="/social" class="nav-link flex items-center gap-2" :class="{ 'nav-link-active': $route.path === '/social' }">
+                Social
+                <span v-if="pendingCount > 0 && $route.path !== '/social'" class="flex w-2 h-2 bg-rose-500 rounded-full"></span>
+              </NuxtLink>
+            </nav>
+          </template>
+        </div>
 
         <div v-if="user" class="flex items-center gap-0">
-          <nav class="hidden md:flex items-center gap-1">
-            <NuxtLink to="/" class="nav-link" :class="{ 'nav-link-active': $route.path === '/' }">Dashboard</NuxtLink>
-            <NuxtLink to="/social" class="nav-link flex items-center gap-2" :class="{ 'nav-link-active': $route.path === '/social' }">
-              Social
-              <span v-if="pendingCount > 0 && $route.path !== '/social'" class="flex w-2 h-2 bg-rose-500 rounded-full"></span>
-            </NuxtLink>
-          </nav>
-          <div class="w-px h-6 bg-zinc-800 hidden md:block mx-2 shrink-0"></div>
           <button 
             @click="showProfileModal = true"
             class="flex items-center gap-2 group text-sm font-medium text-zinc-400 hover:text-white transition-colors cursor-pointer px-3 py-2 rounded-xl hover:bg-zinc-900"
@@ -34,7 +38,7 @@
       </div>
     </header>
 
-    <main class="flex-1 w-full max-w-5xl mx-auto px-0 sm:px-6 lg:px-8 py-8 pb-20 md:py-12">
+    <main class="flex-1 w-full max-w-5xl mx-auto px-0 sm:px-6 lg:px-8 pt-2 pb-20 md:pt-4 md:pb-12">
       <slot />
     </main>
     <!-- Mobile Bottom Navigation -->
