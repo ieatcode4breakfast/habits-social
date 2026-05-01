@@ -22,13 +22,8 @@
           <div class="w-px h-6 bg-zinc-800 hidden md:block mx-2 shrink-0"></div>
           <button 
             @click="showProfileModal = true"
-            class="flex items-center gap-2 group text-sm font-medium text-zinc-400 hover:text-white transition-colors cursor-pointer px-1 py-1 rounded-lg hover:bg-zinc-900"
+            class="flex items-center gap-2 group text-sm font-medium text-zinc-400 hover:text-white transition-colors cursor-pointer px-3 py-2 rounded-xl hover:bg-zinc-900"
           >
-            <UserAvatar 
-              :src="user.photourl" 
-              container-class="w-6 h-6 bg-zinc-800 border border-zinc-700"
-              icon-class="w-3.5 h-3.5 text-zinc-500"
-            />
             Hi, {{ user.username }}!
           </button>
           <div class="w-px h-6 bg-zinc-800 mx-2 shrink-0"></div>
