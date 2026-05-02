@@ -101,7 +101,7 @@ export async function recalculateBucketStreak(sql: any, bucketId: string, userId
         "brokenStreakCount" = v.bsc,
         updatedat = NOW()
       FROM (
-        SELECT * FROM UNNEST(${ids}::uuid[], ${scs}::int[], ${bscs}::int[])
+        SELECT * FROM UNNEST(${ids}::text[], ${scs}::int[], ${bscs}::int[])
         AS t(id, sc, bsc)
       ) AS v
       WHERE h.id = v.id
@@ -166,17 +166,19 @@ export async function syncSingleBucketLog(sql: any, bucketId: string, userId: st
       finalStatus = 'skipped';
     }
 
+    const logId = `${bucketId}_${date}`;
     await sql`
-      INSERT INTO bucketlogs (bucketid, ownerid, date, status, updatedat)
-      VALUES (${bucketId}::uuid, ${userId}, ${date}, ${finalStatus}, NOW())
-      ON CONFLICT (bucketid, date) DO UPDATE 
+      INSERT INTO bucketlogs (id, bucketid, ownerid, date, status, updatedat)
+      VALUES (${logId}, ${bucketId}::uuid, ${userId}, ${date}, ${finalStatus}, NOW())
+      ON CONFLICT (id) DO UPDATE 
       SET status = ${finalStatus}, updatedat = NOW()
     `;
   } else {
+    const logId = `${bucketId}_${date}`;
     await sql`
-      INSERT INTO bucketlogs (bucketid, ownerid, date, status, updatedat)
-      VALUES (${bucketId}::uuid, ${userId}, ${date}, 'cleared', NOW())
-      ON CONFLICT (bucketid, date) DO UPDATE 
+      INSERT INTO bucketlogs (id, bucketid, ownerid, date, status, updatedat)
+      VALUES (${logId}, ${bucketId}::uuid, ${userId}, ${date}, 'cleared', NOW())
+      ON CONFLICT (id) DO UPDATE 
       SET status = 'cleared', updatedat = NOW()
     `;
   }

@@ -39,6 +39,8 @@ import { Check as CheckIcon, X as XIcon, Minus as MinusIcon } from 'lucide-vue-n
 const { isVisible, message, type } = useToast();
 const { sync } = useHabitsApi();
 const { user } = useAuth();
+const { subscribeToUserSync } = useRealtime();
+let unsubscribeSync: () => void = () => {};
 
 onMounted(() => {
   // Purge any existing service workers that might be caching stale HTML/sessions
@@ -52,11 +54,26 @@ onMounted(() => {
   }
 });
 
+onUnmounted(() => {
+  unsubscribeSync();
+});
+
 // Initial sync to hydrate the local database when user is logged in
 watch(() => user.value?.id, (newId) => {
   if (newId && process.client) {
     console.log('[Offline First] User detected, starting initial sync...');
     sync();
+
+    // Subscribe to real-time pushes indicating the server has settled
+    unsubscribeSync();
+    unsubscribeSync = subscribeToUserSync(newId, (eventName) => {
+      if (eventName === 'sync-settled') {
+        console.log('[Sync] Received sync-settled push event, triggering pull...');
+        sync();
+      }
+    });
+  } else {
+    unsubscribeSync();
   }
 }, { immediate: true });
 

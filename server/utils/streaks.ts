@@ -114,7 +114,7 @@ export async function recalculateHabitStreak(sql: any, habitId: string, userId: 
         "brokenStreakCount" = v.bsc,
         updatedat = NOW()
       FROM (
-        SELECT * FROM UNNEST(${ids}::uuid[], ${scs}::int[], ${bscs}::int[])
+        SELECT * FROM UNNEST(${ids}::text[], ${scs}::int[], ${bscs}::int[])
         AS t(id, sc, bsc)
       ) AS v
       WHERE h.id = v.id

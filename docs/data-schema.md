@@ -4,6 +4,18 @@ This document outlines the data structures used in the Habits Social application
 
 ## Core Entities
 
+### User
+Represents a registered user of the application.
+
+| Field | Type | Description |
+| :--- | :--- | :--- |
+| `id` | `string` | Unique identifier (UUID). |
+| `email` | `string` | User's email address. |
+| `username` | `string` | User's chosen display name. |
+| `passwordHash` | `string` | Hashed password. |
+| `photourl` | `string` | Optional URL to the user's avatar/profile picture. |
+| `createdAt` | `Date` | System timestamp of creation. |
+
 ### Habit
 Represents a recurring task or behavior a user intends to track.
 
@@ -34,9 +46,11 @@ A record of a specific instance of a habit being completed, skipped, or failed.
 | `habitid` | `string` | Reference to the parent Habit. |
 | `ownerid` | `string` | ID of the user who performed the action. |
 | `date` | `string` | The calendar date of the log (`YYYY-MM-DD`). |
-| `status` | `string` | Result of the habit (`completed`, `skipped`, `failed`). |
+| `status` | `string` | Result of the habit (`completed`, `skipped`, `failed`, `cleared`). |
 | `streakCount` | `number` | The streak value recorded at the moment of this log. |
+| `brokenStreakCount`| `number` | Optional. If this log broke a streak, the length of the streak broken. |
 | `sharedwith` | `string[]` | Users who have visibility into this specific event. |
+| `updatedat` | `Date` | System timestamp of the last modification. |
 
 ---
 
@@ -51,11 +65,28 @@ Buckets allow users to group multiple habits and track a collective "meta-streak
 | `ownerid` | `string` | ID of the user who owns the bucket. |
 | `title` | `string` | Name of the bucket. |
 | `description` | `string` | Optional context for the group. |
+| `color` | `string` | Optional UI theme color identifier or hex code. |
 | `habitIds` | `string[]` | (Client-side) IDs of habits associated with this bucket. |
 | `currentStreak` | `number` | Collective streak based on bucket completion rules. |
 | `longestStreak` | `number` | Historical peak for the bucket. |
 | `streakAnchorDate`| `Date/string` | Reference date for bucket streak calculation. |
 | `sortOrder` | `number` | Position in the "Buckets" view. |
+| `createdAt` | `Date` | System timestamp of creation. |
+| `updatedat` | `Date` | System timestamp of the last modification. |
+
+### BucketLog
+A record of a bucket's status for a specific date based on its habits.
+
+| Field | Type | Description |
+| :--- | :--- | :--- |
+| `id` | `string` | Unique identifier (Composite: `${bucketid}_${date}`). |
+| `bucketid` | `string` | Reference to the parent Bucket. |
+| `ownerid` | `string` | ID of the user who owns the bucket. |
+| `date` | `string` | The calendar date of the log (`YYYY-MM-DD`). |
+| `status` | `string` | Result of the bucket (`completed`, `skipped`, `failed`, `cleared`). |
+| `streakCount` | `number` | The streak value recorded at the moment of this log. |
+| `brokenStreakCount`| `number` | Optional. If this log broke a streak, the length of the streak broken. |
+| `updatedat` | `Date` | System timestamp of the last modification. |
 
 ---
 
@@ -71,22 +102,26 @@ Logs the event of a user sharing specific habits with another user.
 | `recipientid` | `string` | User who received the share. |
 | `habitids` | `string[]` | The specific habits included in this share event. |
 | `user_date` | `string` | The local date of the sharing action. |
+| `created_at` | `Date` | System timestamp of creation. |
 
 ### Friendship
 Manages the social graph between users.
 
 | Field | Type | Description |
 | :--- | :--- | :--- |
+| `id` | `string` | Unique identifier. |
 | `initiatorId` | `string` | User who sent the friend request. |
 | `receiverId` | `string` | User who received the request. |
 | `status` | `string` | State of the friendship (`pending`, `accepted`). |
 | `initiatorFavorite`| `boolean` | Whether the initiator pinned this friend. |
 | `receiverFavorite` | `boolean` | Whether the receiver pinned this friend. |
+| `createdAt` | `Date` | System timestamp of creation. |
+| `updatedAt` | `Date` | System timestamp of the last modification. |
 
 ---
 
 ## Local Sync Metadata (Dexie)
 When stored in the local IndexedDB via Dexie, entities include synchronization flags:
 
-*   **`synced`**: (0 or 1) Indicates if the local change has been successfully pushed to the server.
+*   **`synced`**: (0, 1, or -1) Indicates if the local change has been successfully pushed to the server. (0: New/unsynced, 1: Synced, -1: Updated but unsynced).
 *   **`updatedAt`**: (number) Unix timestamp of the last local update, used for "Last-Write-Wins" conflict resolution during sync.

@@ -17,7 +17,24 @@ export default defineEventHandler(async (event) => {
 
   if (event.method === 'GET') {
     setResponseHeader(event, 'Cache-Control', 'no-cache, no-store, must-revalidate');
-    const userHabits = await sql`SELECT * FROM habits WHERE ownerid = ${userId} ORDER BY "sortOrder" ASC, "createdAt" ASC`;
+    const query = getQuery(event);
+    let userHabits;
+
+    if (query.lastSynced) {
+      const lastSynced = Number(query.lastSynced);
+      userHabits = await sql`
+        SELECT * FROM habits 
+        WHERE ownerid = ${userId} 
+          AND updatedat >= to_timestamp(${lastSynced} / 1000.0)
+        ORDER BY "sortOrder" ASC, "createdAt" ASC
+      `;
+    } else {
+      userHabits = await sql`
+        SELECT * FROM habits 
+        WHERE ownerid = ${userId} 
+        ORDER BY "sortOrder" ASC, "createdAt" ASC
+      `;
+    }
     return userHabits.map(normalizeHabit);
   }
 
@@ -60,7 +77,7 @@ export default defineEventHandler(async (event) => {
     // Real-time: Notify other devices
     const pusher = usePusher();
     if (pusher) {
-      await pusher.trigger(`user-${userId}-habits`, 'habit-updated', { habitId: newHabit!.id });
+      await pusher.trigger(`user-${userId}-habits`, 'sync-settled', { timestamp: Date.now() });
     }
 
     return normalizeHabit(newHabit);

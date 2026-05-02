@@ -650,17 +650,13 @@ watch(() => user.value?.id, (newId) => {
     const idStr = String(newId);
     
     // Listen to bucket-specific events (CRUD on buckets)
-    unsubscribeOwnBuckets = subscribeToUserBuckets(idStr, (eventName) => {
-      if (eventName === 'bucket-updated' || eventName === 'bucket-deleted' || eventName === 'bucket-needs-refresh') {
-        api.sync(); // This will trigger the lastSyncTime watcher and reload data
-      }
+    unsubscribeOwnBuckets = subscribeToUserBuckets(idStr, () => {
+      api.sync();
     });
 
     // Listen to habit events (logging a habit affects bucket progress/streaks)
-    unsubscribeOwnHabits = subscribeToFriendHabits(idStr, (eventName) => {
-      if (eventName === 'habit-updated' || eventName === 'habit-deleted') {
-        api.sync();
-      }
+    unsubscribeOwnHabits = subscribeToFriendHabits(idStr, () => {
+      api.sync();
     });
 
   }

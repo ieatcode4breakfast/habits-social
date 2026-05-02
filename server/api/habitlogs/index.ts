@@ -73,7 +73,14 @@ export default defineEventHandler(async (event) => {
     const query = getQuery(event);
     
     let logs;
-    if (query.startDate && query.endDate) {
+    if (query.lastSynced) {
+      const lastSynced = Number(query.lastSynced);
+      logs = await sql`
+        SELECT * FROM habitlogs 
+        WHERE ownerid = ${userId} 
+          AND updatedat >= to_timestamp(${lastSynced} / 1000.0)
+      `;
+    } else if (query.startDate && query.endDate) {
       logs = await sql`
         SELECT * FROM habitlogs 
         WHERE ownerid = ${userId} 
@@ -98,6 +105,7 @@ export default defineEventHandler(async (event) => {
       WHERE habitid = ${habitId} AND ownerid = ${userId} AND date = ${dateStr}
     `;
 
+    let finalLog;
     if (existing.length > 0) {
       const existingLog = existing[0]!;
       const newSharedwith = body.sharedwith && Array.isArray(body.sharedwith) ? body.sharedwith : existingLog.sharedwith;
@@ -108,42 +116,35 @@ export default defineEventHandler(async (event) => {
         WHERE id = ${existingLog.id}
         RETURNING *
       `;
-      
-      const updatedLog = normalizeLog(result[0]);
-      const updatedHabit = normalizeHabit(await recalculateHabitStreak(sql, habitId, userId, dateStr));
-      const updatedBuckets = (await syncBucketLogsForHabit(sql, habitId, userId, dateStr)).map(normalizeBucket);
-
-      const pusher = usePusher();
-      if (pusher) {
-        await pusher.trigger(`user-${userId}-habits`, 'habit-updated', { 
-          log: updatedLog, 
-          habit: updatedHabit,
-          buckets: updatedBuckets 
-        });
-      }
-      return { log: updatedLog, habit: updatedHabit, buckets: updatedBuckets };
+      finalLog = result[0];
     } else {
+      const logId = body.id || `${habitId}_${dateStr}`;
       const sharedwith = body.sharedwith && Array.isArray(body.sharedwith) ? body.sharedwith : [];
       const result = await sql`
-        INSERT INTO habitlogs (habitid, ownerid, date, status, sharedwith, updatedat)
-        VALUES (${habitId}, ${userId}, ${dateStr}, ${status}, ${sharedwith}, NOW())
+        INSERT INTO habitlogs (id, habitid, ownerid, date, status, sharedwith, updatedat)
+        VALUES (${logId}, ${habitId}, ${userId}, ${dateStr}, ${status}, ${sharedwith}, NOW())
+        ON CONFLICT (id) DO UPDATE SET
+          status = EXCLUDED.status,
+          sharedwith = EXCLUDED.sharedwith,
+          updatedat = NOW()
         RETURNING *
       `;
-      
-      const newLog = normalizeLog(result[0]);
-      const updatedHabit = normalizeHabit(await recalculateHabitStreak(sql, habitId, userId, dateStr));
-      const updatedBuckets = (await syncBucketLogsForHabit(sql, habitId, userId, dateStr)).map(normalizeBucket);
-
-      const pusher = usePusher();
-      if (pusher) {
-        await pusher.trigger(`user-${userId}-habits`, 'habit-updated', { 
-          log: newLog, 
-          habit: updatedHabit,
-          buckets: updatedBuckets
-        });
-      }
-      return { log: newLog, habit: updatedHabit, buckets: updatedBuckets };
+      finalLog = result[0];
     }
+
+    const updatedHabit = await recalculateHabitStreak(sql, habitId, userId, dateStr);
+    const updatedBuckets = await syncBucketLogsForHabit(sql, habitId, userId, dateStr);
+
+    const pusher = usePusher();
+    if (pusher) {
+      await pusher.trigger(`user-${userId}-habits`, 'sync-settled', { timestamp: Date.now() });
+    }
+
+    return { 
+      log: normalizeLog(finalLog), 
+      habit: normalizeHabit(updatedHabit), 
+      buckets: updatedBuckets.map(normalizeBucket) 
+    };
   }
 
   if (event.method === 'DELETE') {
@@ -156,19 +157,19 @@ export default defineEventHandler(async (event) => {
       WHERE habitid = ${habitId} AND ownerid = ${userId} AND date = ${dateStr}
     `;
     
-    const updatedHabit = normalizeHabit(await recalculateHabitStreak(sql, habitId, userId, dateStr));
-    const updatedBuckets = (await syncBucketLogsForHabit(sql, habitId, userId, dateStr)).map(normalizeBucket);
+    const updatedHabit = await recalculateHabitStreak(sql, habitId, userId, dateStr);
+    const updatedBuckets = await syncBucketLogsForHabit(sql, habitId, userId, dateStr);
 
     const pusher = usePusher();
     if (pusher) {
-      await pusher.trigger(`user-${userId}-habits`, 'habit-deleted', { 
-        habitid: habitId, 
-        date: dateStr, 
-        habit: updatedHabit,
-        buckets: updatedBuckets
-      });
+      await pusher.trigger(`user-${userId}-habits`, 'sync-settled', { timestamp: Date.now() });
     }
-    return { success: true, habit: updatedHabit, buckets: updatedBuckets };
+
+    return { 
+      success: true, 
+      habit: normalizeHabit(updatedHabit), 
+      buckets: updatedBuckets.map(normalizeBucket) 
+    };
   }
 });
 

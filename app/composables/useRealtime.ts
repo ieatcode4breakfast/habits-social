@@ -39,23 +39,23 @@ export const useRealtime = () => {
     };
   };
 
-  const subscribeToFriendHabits = (friendId: string, callback: (eventName: string, data: any) => void) => {
+  const subscribeToUserSync = (userId: string, callback: (eventName: string, data: any) => void) => {
     if (!pusherInstance) return () => {};
     
-    const channelName = `user-${friendId}-habits`;
+    const habitsChannelName = `user-${userId}-habits`;
+    const bucketsChannelName = `user-${userId}-buckets`;
 
-    const channel = pusherInstance.subscribe(channelName);
+    const habitsChannel = pusherInstance.subscribe(habitsChannelName);
+    const bucketsChannel = pusherInstance.subscribe(bucketsChannelName);
     
-    const onUpdated = (data: any) => callback('habit-updated', data);
-    const onDeleted = (data: any) => callback('habit-deleted', data);
+    const onSyncSettled = (data: any) => callback('sync-settled', data);
 
-    channel.bind('habit-updated', onUpdated);
-    channel.bind('habit-deleted', onDeleted);
+    habitsChannel.bind('sync-settled', onSyncSettled);
+    bucketsChannel.bind('sync-settled', onSyncSettled);
 
     return () => {
-
-      channel.unbind('habit-updated', onUpdated);
-      channel.unbind('habit-deleted', onDeleted);
+      habitsChannel.unbind('sync-settled', onSyncSettled);
+      bucketsChannel.unbind('sync-settled', onSyncSettled);
     };
   };
 
@@ -68,22 +68,51 @@ export const useRealtime = () => {
     const onUpdated = (data: any) => callback('bucket-updated', data);
     const onDeleted = (data: any) => callback('bucket-deleted', data);
     const onRefresh = (data: any) => callback('bucket-needs-refresh', data);
+    const onSyncSettled = (data: any) => callback('sync-settled', data);
 
     channel.bind('bucket-updated', onUpdated);
     channel.bind('bucket-deleted', onDeleted);
     channel.bind('bucket-needs-refresh', onRefresh);
+    channel.bind('sync-settled', onSyncSettled);
 
     return () => {
       channel.unbind('bucket-updated', onUpdated);
       channel.unbind('bucket-deleted', onDeleted);
       channel.unbind('bucket-needs-refresh', onRefresh);
+      channel.unbind('sync-settled', onSyncSettled);
+    };
+  };
+
+  const subscribeToFriendHabits = (friendId: string, callback: (eventName: string, data: any) => void) => {
+    if (!pusherInstance) return () => {};
+    
+    const channelName = `user-${friendId}-habits`;
+
+    const channel = pusherInstance.subscribe(channelName);
+    
+    // We still allow friends to listen to specific legacy updates if needed for UI,
+    // but the main data sync will use 'sync-settled'
+    const onUpdated = (data: any) => callback('habit-updated', data);
+    const onDeleted = (data: any) => callback('habit-deleted', data);
+    const onSyncSettled = (data: any) => callback('sync-settled', data);
+
+    channel.bind('habit-updated', onUpdated);
+    channel.bind('habit-deleted', onDeleted);
+    channel.bind('sync-settled', onSyncSettled);
+
+    return () => {
+
+      channel.unbind('habit-updated', onUpdated);
+      channel.unbind('habit-deleted', onDeleted);
+      channel.unbind('sync-settled', onSyncSettled);
     };
   };
 
   return {
     pusher: pusherInstance,
     subscribeToSocials,
-    subscribeToFriendHabits,
-    subscribeToUserBuckets
+    subscribeToUserSync,
+    subscribeToUserBuckets,
+    subscribeToFriendHabits
   };
 };

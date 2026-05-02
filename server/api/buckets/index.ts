@@ -17,23 +17,48 @@ export default defineEventHandler(async (event) => {
   const userId = await requireAuth(event);
 
   if (event.method === 'GET') {
-    setResponseHeader(event, 'Cache-Control', 'no-cache, no-store, must-revalidate');
-    const userBuckets = await sql`SELECT * FROM buckets WHERE ownerid = ${userId} ORDER BY "sortOrder" ASC, "createdAt" ASC`;
-    
-    if (userBuckets.length === 0) return [];
+    try {
+      setResponseHeader(event, 'Cache-Control', 'no-cache, no-store, must-revalidate');
+      const query = getQuery(event);
+      let userBuckets;
 
-    const bucketIds = userBuckets.map((b: any) => b.id);
-    
-    // Fetch habit mappings
-    const bucketHabits = await sql`SELECT bucket_id, habit_id FROM bucket_habits WHERE bucket_id = ANY(${bucketIds}::uuid[])`;
-    
-    // Group habits by bucket
-    const userBucketsWithHabits = userBuckets.map((b: any) => {
-      const habitIds = bucketHabits.filter((bh: any) => bh.bucket_id === b.id).map((bh: any) => bh.habit_id);
-      return normalizeBucket({ ...b, habitIds });
-    });
+      if (query.lastSynced) {
+        const lastSynced = Number(query.lastSynced);
+        userBuckets = await sql`
+          SELECT * FROM buckets 
+          WHERE ownerid = ${userId} 
+            AND updatedat >= to_timestamp(${lastSynced} / 1000.0)
+          ORDER BY "sortOrder" ASC, "createdAt" ASC
+        `;
+      } else {
+        userBuckets = await sql`
+          SELECT * FROM buckets 
+          WHERE ownerid = ${userId} 
+          ORDER BY "sortOrder" ASC, "createdAt" ASC
+        `;
+      }
+      
+      if (userBuckets.length === 0) return [];
 
-    return userBucketsWithHabits;
+      const bucketIds = userBuckets.map((b: any) => b.id);
+      
+      // Fetch habit mappings
+      const bucketHabits = await sql`SELECT bucket_id, habit_id FROM bucket_habits WHERE bucket_id = ANY(${bucketIds}::uuid[])`;
+      
+      // Group habits by bucket
+      const userBucketsWithHabits = userBuckets.map((b: any) => {
+        const habitIds = bucketHabits.filter((bh: any) => bh.bucket_id === b.id).map((bh: any) => bh.habit_id);
+        return normalizeBucket({ ...b, habitIds });
+      });
+
+      return userBucketsWithHabits;
+    } catch (error: any) {
+      console.error('[API Buckets GET] Error:', error);
+      throw createError({
+        statusCode: 500,
+        statusMessage: error.message || 'Internal Server Error'
+      });
+    }
   }
 
   if (event.method === 'POST') {
@@ -88,7 +113,7 @@ export default defineEventHandler(async (event) => {
 
       const pusher = usePusher();
       if (pusher) {
-        await pusher.trigger(`user-${userId}-buckets`, 'bucket-updated', { bucketId: newBucket.id });
+        await pusher.trigger(`user-${userId}-buckets`, 'sync-settled', { timestamp: Date.now() });
       }
 
       return normalizeBucket({ ...updatedBucketResult[0], habitIds });
