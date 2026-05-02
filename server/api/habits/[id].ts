@@ -1,6 +1,16 @@
+import { format } from 'date-fns';
 import type { IHabit } from '../../models';
 import { usePusher } from '../../utils/pusher';
 import { reevaluateBucketLogs } from '../../utils/buckets';
+
+const normalizeHabit = (h: any) => {
+  if (!h) return h;
+  const normalized = { ...h };
+  if (normalized.streakAnchorDate) {
+    normalized.streakAnchorDate = format(new Date(normalized.streakAnchorDate), 'yyyy-MM-dd');
+  }
+  return normalized;
+};
 
 export default defineEventHandler(async (event) => {
   const sql = useDB(event);
@@ -32,7 +42,7 @@ export default defineEventHandler(async (event) => {
 
     if (result.length === 0) throw createError({ statusCode: 404, statusMessage: 'Not found after update' });
 
-    const updatedHabit = result[0];
+    const updatedHabit = normalizeHabit(result[0]);
 
     // Category 3: Detect newly shared recipients and record share events
     const oldShared = new Set((habit.sharedwith || []).map(String));

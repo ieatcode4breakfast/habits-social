@@ -1,6 +1,16 @@
+import { format } from 'date-fns';
 import type { IBucket } from '../../models';
 import { usePusher } from '../../utils/pusher';
 import { reevaluateBucketLogs } from '../../utils/buckets';
+
+const normalizeBucket = (b: any) => {
+  if (!b) return b;
+  const normalized = { ...b };
+  if (normalized.streakAnchorDate) {
+    normalized.streakAnchorDate = format(new Date(normalized.streakAnchorDate), 'yyyy-MM-dd');
+  }
+  return normalized;
+};
 
 export default defineEventHandler(async (event) => {
   const sql = useDB(event);
@@ -20,7 +30,7 @@ export default defineEventHandler(async (event) => {
     // Group habits by bucket
     const userBucketsWithHabits = userBuckets.map((b: any) => {
       const habitIds = bucketHabits.filter((bh: any) => bh.bucket_id === b.id).map((bh: any) => bh.habit_id);
-      return { ...b, habitIds };
+      return normalizeBucket({ ...b, habitIds });
     });
 
     return userBucketsWithHabits;
@@ -72,7 +82,7 @@ export default defineEventHandler(async (event) => {
         await pusher.trigger(`user-${userId}-buckets`, 'bucket-updated', { bucketId: newBucket.id });
       }
 
-      return { ...updatedBucketResult[0], habitIds };
+      return normalizeBucket({ ...updatedBucketResult[0], habitIds });
     } catch (error: any) {
       console.error('[API Buckets POST] Error:', error);
       throw createError({
@@ -83,3 +93,4 @@ export default defineEventHandler(async (event) => {
     }
   }
 });
+

@@ -1,6 +1,16 @@
+import { format } from 'date-fns';
 import type { IBucket } from '../../models';
 import { usePusher } from '../../utils/pusher';
 import { reevaluateBucketLogs } from '../../utils/buckets';
+
+const normalizeBucket = (b: any) => {
+  if (!b) return b;
+  const normalized = { ...b };
+  if (normalized.streakAnchorDate) {
+    normalized.streakAnchorDate = format(new Date(normalized.streakAnchorDate), 'yyyy-MM-dd');
+  }
+  return normalized;
+};
 
 export default defineEventHandler(async (event) => {
   const sql = useDB(event);
@@ -19,7 +29,7 @@ export default defineEventHandler(async (event) => {
     const title = body.title !== undefined ? body.title : bucket.title;
     const description = body.description !== undefined ? body.description : bucket.description;
     const color = body.color !== undefined ? body.color : bucket.color;
-    const habitIds = body.habitIds;
+    const habitIds = body.habitIds && Array.isArray(body.habitIds) ? body.habitIds : null;
 
     const result = await sql`
       UPDATE buckets
@@ -30,32 +40,27 @@ export default defineEventHandler(async (event) => {
 
     if (result.length === 0) throw createError({ statusCode: 404, statusMessage: 'Not found after update' });
 
-    let updatedBucket = result[0];
-
-    // Update habit mappings
-    if (habitIds && Array.isArray(habitIds)) {
+    if (habitIds !== null) {
       await sql`DELETE FROM bucket_habits WHERE bucket_id = ${id}::uuid`;
-      for (const hid of habitIds) {
-        await sql`
-          INSERT INTO bucket_habits (bucket_id, habit_id)
-          VALUES (${id}::uuid, ${hid}::uuid)
-        `;
+      if (habitIds.length > 0) {
+        for (const hid of habitIds) {
+          await sql`
+            INSERT INTO bucket_habits (bucket_id, habit_id)
+            VALUES (${id}::uuid, ${hid}::uuid)
+          `;
+        }
       }
-      
-      // Re-evaluate logs for this bucket based on the added/removed habits
-      await reevaluateBucketLogs(sql, id, userId);
-      
-      // refetch updated bucket
-      const bRes = await sql`SELECT * FROM buckets WHERE id = ${id}::uuid`;
-      updatedBucket = bRes[0];
+      await reevaluateBucketLogs(sql, id as string, userId);
     }
+
+    const updatedBucket = normalizeBucket(result[0]);
 
     const pusher = usePusher();
     if (pusher) {
       await pusher.trigger(`user-${userId}-buckets`, 'bucket-updated', { bucketId: id });
     }
 
-    return { ...updatedBucket, habitIds };
+    return { ...updatedBucket, habitIds: habitIds || [] };
   }
 
   if (event.method === 'DELETE') {

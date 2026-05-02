@@ -1,8 +1,28 @@
-import { parseISO, startOfDay, subDays, addDays, isAfter, isBefore } from 'date-fns';
+import { parseISO, startOfDay, subDays, addDays, isAfter, isBefore, format } from 'date-fns';
 import type { IHabitLog } from '../../models';
 import { usePusher } from '../../utils/pusher';
 import { recalculateHabitStreak } from '../../utils/streaks';
 import { syncBucketLogsForHabit } from '../../utils/buckets';
+
+// Helper to ensure the date column (which postgres returns as a Date object)
+// is always sent to the client as a clean YYYY-MM-DD string.
+const normalizeLog = (log: any) => {
+  if (!log) return log;
+  const normalized = { ...log };
+  if (normalized.date) {
+    normalized.date = format(new Date(normalized.date), 'yyyy-MM-dd');
+  }
+  return normalized;
+};
+
+const normalizeHabit = (h: any) => {
+  if (!h) return h;
+  const normalized = { ...h };
+  if (normalized.streakAnchorDate) {
+    normalized.streakAnchorDate = format(new Date(normalized.streakAnchorDate), 'yyyy-MM-dd');
+  }
+  return normalized;
+};
 
 export default defineEventHandler(async (event) => {
   const sql = useDB(event);
@@ -54,7 +74,7 @@ export default defineEventHandler(async (event) => {
       logs = await sql`SELECT * FROM habitlogs WHERE ownerid = ${userId}`;
     }
     
-    return logs;
+    return logs.map(normalizeLog);
   }
 
   if (event.method === 'POST') {
@@ -79,8 +99,8 @@ export default defineEventHandler(async (event) => {
         RETURNING *
       `;
       
-      const updatedLog = result[0];
-      const updatedHabit = await recalculateHabitStreak(sql, habitId, userId, dateStr);
+      const updatedLog = normalizeLog(result[0]);
+      const updatedHabit = normalizeHabit(await recalculateHabitStreak(sql, habitId, userId, dateStr));
       await syncBucketLogsForHabit(sql, habitId, userId, dateStr);
 
       const pusher = usePusher();
@@ -97,8 +117,8 @@ export default defineEventHandler(async (event) => {
         RETURNING *
       `;
       
-      const newLog = result[0];
-      const updatedHabit = await recalculateHabitStreak(sql, habitId, userId, dateStr);
+      const newLog = normalizeLog(result[0]);
+      const updatedHabit = normalizeHabit(await recalculateHabitStreak(sql, habitId, userId, dateStr));
       await syncBucketLogsForHabit(sql, habitId, userId, dateStr);
 
       const pusher = usePusher();
@@ -120,7 +140,7 @@ export default defineEventHandler(async (event) => {
       WHERE habitid = ${habitId} AND ownerid = ${userId} AND date = ${dateStr}
     `;
     
-    const updatedHabit = await recalculateHabitStreak(sql, habitId, userId, dateStr);
+    const updatedHabit = normalizeHabit(await recalculateHabitStreak(sql, habitId, userId, dateStr));
     await syncBucketLogsForHabit(sql, habitId, userId, dateStr);
 
     const pusher = usePusher();
@@ -131,3 +151,5 @@ export default defineEventHandler(async (event) => {
     return { success: true, habit: updatedHabit };
   }
 });
+
+

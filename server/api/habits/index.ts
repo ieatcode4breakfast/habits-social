@@ -1,5 +1,15 @@
+import { format } from 'date-fns';
 import type { IHabit } from '../../models';
 import { usePusher } from '../../utils/pusher';
+
+const normalizeHabit = (h: any) => {
+  if (!h) return h;
+  const normalized = { ...h };
+  if (normalized.streakAnchorDate) {
+    normalized.streakAnchorDate = format(new Date(normalized.streakAnchorDate), 'yyyy-MM-dd');
+  }
+  return normalized;
+};
 
 export default defineEventHandler(async (event) => {
   const sql = useDB(event);
@@ -8,7 +18,7 @@ export default defineEventHandler(async (event) => {
   if (event.method === 'GET') {
     setResponseHeader(event, 'Cache-Control', 'no-cache, no-store, must-revalidate');
     const userHabits = await sql`SELECT * FROM habits WHERE ownerid = ${userId} ORDER BY "sortOrder" ASC, "createdAt" ASC`;
-    return userHabits;
+    return userHabits.map(normalizeHabit);
   }
 
   if (event.method === 'POST') {
@@ -44,6 +54,7 @@ export default defineEventHandler(async (event) => {
       await pusher.trigger(`user-${userId}-habits`, 'habit-updated', { habitId: newHabit!.id });
     }
 
-    return newHabit;
+    return normalizeHabit(newHabit);
   }
 });
+

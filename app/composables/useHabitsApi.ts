@@ -64,6 +64,21 @@ export const useHabitsApi = () => {
   // Helper to strip Vue reactivity before saving to IndexedDB
   const toPlain = (obj: any) => JSON.parse(JSON.stringify(obj));
 
+  // Helper to ensure dates from the server are always clean YYYY-MM-DD strings
+  const normalizeData = (obj: any) => {
+    if (!obj) return obj;
+    const res = { ...obj };
+    // Handle habit/bucket log date
+    if (res.date) {
+      res.date = format(new Date(res.date), 'yyyy-MM-dd');
+    }
+    // Handle streak anchor dates
+    if (res.streakAnchorDate) {
+      res.streakAnchorDate = format(new Date(res.streakAnchorDate), 'yyyy-MM-dd');
+    }
+    return res;
+  };
+
   // --- Background Sync Helpers ---
   const triggerSync = () => {
     // We'll implement the full sync logic in a moment, 
@@ -267,7 +282,7 @@ export const useHabitsApi = () => {
                 throw err;
               }
             }
-            await db.habits.update(h.id, { ...remote, synced: 1 });
+            await db.habits.update(h.id, { ...normalizeData(remote), synced: 1 });
           } catch (e) {
             console.warn('[Sync] Habit push failed:', e);
           }
@@ -284,12 +299,15 @@ export const useHabitsApi = () => {
               body: l 
             });
             
+            const normalizedLog = normalizeData(log);
+            const normalizedHabit = normalizeData(habit);
+
             // Use our local composite ID (habitid_date) instead of the server's UUID
-            if (log) delete (log as any).id;
+            if (normalizedLog) delete (normalizedLog as any).id;
             
-            await db.habitLogs.update(l.id, { ...log, synced: 1 });
-            if (habit) {
-              await db.habits.update(habit.id, { ...habit, synced: 1 });
+            await db.habitLogs.update(l.id, { ...normalizedLog, synced: 1 });
+            if (normalizedHabit) {
+              await db.habits.update(normalizedHabit.id, { ...normalizedHabit, synced: 1 });
             }
           } catch (e) {
             console.warn('[Sync] Log push failed:', e);
@@ -312,7 +330,7 @@ export const useHabitsApi = () => {
                 throw err;
               }
             }
-            await db.buckets.update(b.id, { ...remote, synced: 1 });
+            await db.buckets.update(b.id, { ...normalizeData(remote), synced: 1 });
           } catch (e) {
             console.warn('[Sync] Bucket push failed:', e);
           }
@@ -332,21 +350,24 @@ export const useHabitsApi = () => {
           // Bulk update local DB with remote truth
           await db.transaction('rw', db.habits, db.buckets, db.habitLogs, async () => {
             for (const h of remoteHabits) {
-              const local = await db.habits.get(h.id);
+              const normalized = normalizeData(h);
+              const local = await db.habits.get(normalized.id);
               // CRITICAL: Don't overwrite local changes that haven't synced yet
               if (local && local.synced === 0) continue; 
-              await db.habits.put({ ...h, synced: 1, updatedAt: Date.now() });
+              await db.habits.put({ ...normalized, synced: 1, updatedAt: Date.now() });
             }
             for (const b of remoteBuckets) {
-              const local = await db.buckets.get(b.id);
+              const normalized = normalizeData(b);
+              const local = await db.buckets.get(normalized.id);
               if (local && local.synced === 0) continue;
-              await db.buckets.put({ ...b, synced: 1, updatedAt: Date.now() });
+              await db.buckets.put({ ...normalized, synced: 1, updatedAt: Date.now() });
             }
             for (const l of remoteLogs) {
-              const logId = `${l.habitid}_${l.date}`;
+              const normalized = normalizeData(l);
+              const logId = `${normalized.habitid}_${normalized.date}`;
               const local = await db.habitLogs.get(logId);
               if (local && local.synced === 0) continue;
-              await db.habitLogs.put({ ...l, id: logId, synced: 1, updatedAt: Date.now() });
+              await db.habitLogs.put({ ...normalized, id: logId, synced: 1, updatedAt: Date.now() });
             }
           });
           lastSyncTime.value = Date.now();
@@ -366,3 +387,4 @@ export const useHabitsApi = () => {
     lastSyncTime
   };
 };
+
