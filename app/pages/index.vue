@@ -224,7 +224,7 @@
                   <div class="relative">
                     <textarea
                       v-model="newDescription"
-                      rows="2"
+                      rows="1"
                       maxlength="300"
                       placeholder=""
                       @input="autoExpand"
@@ -418,7 +418,7 @@
                     <textarea
                       ref="editDescriptionRef"
                       v-model="editDescription"
-                      rows="2"
+                      rows="1"
                       maxlength="300"
                       placeholder=""
                       @input="autoExpand"
@@ -815,6 +815,7 @@ import { useSocial } from '../composables/useSocial';
 
 const api = useHabitsApi();
 const { user } = useAuth();
+const { lastSyncTime } = api;
 const { friends: rawFriends, refresh: refreshSocial, init: initSocial, cleanup: cleanupSocial } = useSocial();
 
 const friends = computed(() => {
@@ -1101,7 +1102,7 @@ const getLogOptions = (habit: Habit, day: Date) => {
     });
   }
 
-  if (currentStatus) {
+  if (currentStatus && currentStatus !== 'cleared') {
     options.push({ 
       label: 'Clear', 
       status: null, 
@@ -1163,8 +1164,13 @@ const setLogStatus = async (habit: Habit, day: Date, nextStatus: 'completed' | '
       const habitIdx = habits.value.findIndex(h => h.id === habit.id);
       if (habitIdx >= 0) habits.value[habitIdx] = updatedHabit;
     } else {
-      const { habit: updatedHabit } = await api.deleteLog(habit.id, dateStr);
+      const { log, habit: updatedHabit } = await api.deleteLog(habit.id, dateStr);
       
+      // Update logs array with the 'cleared' record
+      const idx = logs.value.findIndex(l => l.habitid === habit.id && l.date === dateStr);
+      if (idx >= 0) logs.value[idx] = log;
+      else logs.value.push(log);
+
       // Update habits array with returned habit (updated streaks)
       const habitIdx = habits.value.findIndex(h => h.id === habit.id);
       if (habitIdx >= 0) habits.value[habitIdx] = updatedHabit;
@@ -1501,6 +1507,11 @@ onMounted(() => {
   window.addEventListener('click', closeLogMenu);
 });
 
+watch(lastSyncTime, () => {
+  console.log('[Dashboard] Background sync detected, refreshing data...');
+  load(true);
+});
+
 watch(() => user.value?.id, (newId) => {
   unsubscribeOwnHabits();
   if (newId) {
@@ -1519,7 +1530,12 @@ watch(() => user.value?.id, (newId) => {
 
         // Update specific habit (for streaks)
         const habitIdx = habits.value.findIndex(h => h.id === data.habit.id);
-        if (habitIdx >= 0) habits.value[habitIdx] = data.habit;
+        if (habitIdx >= 0) {
+          habits.value[habitIdx] = data.habit;
+        } else {
+          // New habit from another session, need to sync Dexie
+          api.sync();
+        }
       } else if (eventName === 'habit-deleted') {
         const hid = data?.habitId || data?.habitid;
         if (hid && data?.date) {
@@ -1534,11 +1550,11 @@ watch(() => user.value?.id, (newId) => {
           habits.value = habits.value.filter(h => h.id !== hid);
           logs.value = logs.value.filter(l => l.habitid !== hid);
         } else {
-          load(true);
+          api.sync();
         }
       } else {
         // Generic fallback for reorder or other updates
-        load(true);
+        api.sync();
       }
     });
   }

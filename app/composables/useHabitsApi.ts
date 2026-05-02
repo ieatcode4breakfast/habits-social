@@ -1,6 +1,13 @@
 import { db } from '~/utils/db';
 import { format, subDays, addDays } from 'date-fns';
 
+const generateId = () => {
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+    return crypto.randomUUID();
+  }
+  return 'local_' + Math.random().toString(36).substring(2, 15);
+};
+
 export interface Habit {
   id: string;
   ownerid: string;
@@ -22,7 +29,7 @@ export interface HabitLog {
   habitid: string;
   ownerid: string;
   date: string;
-  status: 'completed' | 'skipped' | 'failed';
+  status: 'completed' | 'skipped' | 'failed' | 'cleared';
   sharedwith: string[];
 }
 
@@ -50,6 +57,12 @@ export interface BucketLog {
 export const useHabitsApi = () => {
   const { user } = useAuth();
   const getOwnerId = () => user.value?.id || '';
+  const lastSyncTime = useState('last-sync-time', () => 0);
+  const isSyncing = ref(false);
+  let syncNeeded = false;
+
+  // Helper to strip Vue reactivity before saving to IndexedDB
+  const toPlain = (obj: any) => JSON.parse(JSON.stringify(obj));
 
   // --- Background Sync Helpers ---
   const triggerSync = () => {
@@ -65,13 +78,13 @@ export const useHabitsApi = () => {
   };
 
   const createHabit = async (data: Partial<Habit>) => {
-    const newHabit: any = {
+    const newHabit: any = toPlain({
       ...data,
-      id: data.id || crypto.randomUUID(),
+      id: data.id || generateId(),
       ownerid: getOwnerId(),
       synced: 0,
       updatedAt: Date.now()
-    };
+    });
     await db.habits.put(newHabit);
     triggerSync();
     return newHabit;
@@ -81,21 +94,28 @@ export const useHabitsApi = () => {
     const existing = await db.habits.get(id);
     if (!existing) throw new Error('Habit not found');
     
-    const updated = {
+    const updated = toPlain({
       ...existing,
       ...data,
       synced: 0,
       updatedAt: Date.now()
-    };
+    });
     await db.habits.put(updated);
     triggerSync();
     return updated;
   };
 
   const deleteHabit = async (id: string) => {
+    // Check if it was synced. If yes, we need to tell the server.
+    const habit = await db.habits.get(id);
+    if (habit?.synced) {
+      await db.syncQueue.add({ type: 'habit', action: 'DELETE', payload: { id } });
+    }
+
     await db.habits.delete(id);
-    // For deletions, we might need a "tombstone" or just call the API directly
-    await $fetch(`/api/habits/${id}`, { method: 'DELETE' }).catch(() => {});
+    // Also delete related logs locally
+    await db.habitLogs.where({ habitid: id }).delete();
+    triggerSync();
   };
 
   const reorderHabits = async (ids: string[]) => {
@@ -117,13 +137,13 @@ export const useHabitsApi = () => {
 
   const upsertLog = async (data: { habitid: string; date: string; status: string; sharedwith?: string[] }) => {
     const logId = `${data.habitid}_${data.date}`;
-    const newLog: any = {
+    const newLog: any = toPlain({
       id: logId,
       ...data,
       ownerid: getOwnerId(),
       synced: 0,
       updatedAt: Date.now()
-    };
+    });
     await db.habitLogs.put(newLog);
     
     // We return the habit too because UI expects recalculated streaks
@@ -134,12 +154,15 @@ export const useHabitsApi = () => {
     return { log: newLog, habit: habit! };
   };
 
-  const deleteLog = async (habitid: string, date: string) => {
-    const logId = `${habitid}_${date}`;
-    await db.habitLogs.delete(logId);
-    const habit = await db.habits.get(habitid);
-    triggerSync();
-    return { success: true, habit: habit! };
+  const deleteLog = async (habitId: string, date: string) => {
+    // Instead of deleting, we upsert with a 'cleared' status
+    // This avoids race conditions by making 'Clear' an explicit state that syncs like any other status
+    const result = await upsertLog({ 
+      habitid: habitId, 
+      date, 
+      status: 'cleared' 
+    });
+    return { success: true, ...result };
   };
 
   // --- Buckets ---
@@ -149,13 +172,13 @@ export const useHabitsApi = () => {
   };
 
   const createBucket = async (data: Partial<Bucket>) => {
-    const newBucket: any = {
+    const newBucket: any = toPlain({
       ...data,
-      id: data.id || crypto.randomUUID(),
+      id: data.id || generateId(),
       ownerid: getOwnerId(),
       synced: 0,
       updatedAt: Date.now()
-    };
+    });
     await db.buckets.put(newBucket);
     triggerSync();
     return newBucket;
@@ -165,20 +188,24 @@ export const useHabitsApi = () => {
     const existing = await db.buckets.get(id);
     if (!existing) throw new Error('Bucket not found');
     
-    const updated = {
+    const updated = toPlain({
       ...existing,
       ...data,
       synced: 0,
       updatedAt: Date.now()
-    };
+    });
     await db.buckets.put(updated);
     triggerSync();
     return updated;
   };
 
   const deleteBucket = async (id: string) => {
+    const bucket = await db.buckets.get(id);
+    if (bucket?.synced) {
+      await db.syncQueue.add({ type: 'bucket', action: 'DELETE', payload: { id } });
+    }
     await db.buckets.delete(id);
-    await $fetch(`/api/buckets/${id}`, { method: 'DELETE' }).catch(() => {});
+    triggerSync();
   };
 
   const getBucketLogs = async (startDate: string, endDate: string) => {
@@ -191,66 +218,151 @@ export const useHabitsApi = () => {
   // --- The Core Sync Engine ---
   const sync = async () => {
     if (!user.value) return;
-
-    // 1. Push local changes to server
-    const unsyncedHabits = await db.habits.where('synced').equals(0).toArray();
-    for (const h of unsyncedHabits) {
-      try {
-        const remote = await $fetch<Habit>(`/api/habits/${h.id}`, { 
-          method: 'PUT', 
-          body: h 
-        }).catch(() => $fetch<Habit>('/api/habits', { method: 'POST', body: h }));
-        
-        await db.habits.update(h.id, { ...remote, synced: 1 });
-      } catch (e) {}
+    if (isSyncing.value) {
+      syncNeeded = true;
+      return;
     }
+    isSyncing.value = true;
 
-    const unsyncedLogs = await db.habitLogs.where('synced').equals(0).toArray();
-    for (const l of unsyncedLogs) {
-      try {
-        const { log, habit } = await $fetch<{ log: HabitLog, habit: Habit }>('/api/habitlogs', { 
-          method: 'POST', 
-          body: l 
-        });
-        await db.habitLogs.update(l.id, { ...log, synced: 1 });
-        await db.habits.update(habit.id, { ...habit, synced: 1 });
-      } catch (e) {}
-    }
-
-    // 2. Pull remote changes
     try {
-      const start = format(subDays(new Date(), 60), 'yyyy-MM-dd');
-      const end = format(addDays(new Date(), 30), 'yyyy-MM-dd');
+      do {
+        syncNeeded = false;
+        
+        // 0. Process Deletion Queue
+        const deletions = await db.syncQueue.toArray();
+        for (const d of deletions) {
+          try {
+            if (d.type === 'habit') {
+              await $fetch(`/api/habits/${d.payload.id}`, { method: 'DELETE' });
+            } else if (d.type === 'bucket') {
+              await $fetch(`/api/buckets/${d.payload.id}`, { method: 'DELETE' });
+            }
+            if (d.id) await db.syncQueue.delete(d.id);
+          } catch (e: any) {
+            // If 404, it's already gone from server, so we can remove from queue
+            if (e.statusCode === 404 && d.id) {
+              await db.syncQueue.delete(d.id);
+            }
+            console.warn('[Sync] Deletion failed:', e);
+          }
+        }
 
-      const [remoteHabits, remoteBuckets, remoteLogs] = await Promise.all([
-        $fetch<Habit[]>('/api/habits'),
-        $fetch<Bucket[]>('/api/buckets'),
-        $fetch<HabitLog[]>('/api/habitlogs', { query: { startDate: start, endDate: end } })
-      ]);
+        // 1. Push local changes to server
+        const unsyncedHabits = await db.habits.where('synced').equals(0).toArray();
+        for (const h of unsyncedHabits) {
+          // Double check it wasn't deleted while we were fetching the array
+          const stillExists = await db.habits.get(h.id);
+          if (!stillExists) continue;
 
-      // Bulk update local DB with remote truth
-      await db.transaction('rw', db.habits, db.buckets, db.habitLogs, async () => {
-        for (const h of remoteHabits) {
-          await db.habits.put({ ...h, synced: 1, updatedAt: Date.now() });
+          try {
+            // Try to update existing. We use { ignoreResponseError: true } equivalent by catching 404
+            let remote;
+            try {
+              remote = await $fetch<Habit>(`/api/habits/${h.id}`, { method: 'PUT', body: h });
+            } catch (err: any) {
+              if (err.statusCode === 404) {
+                // Not on server yet, use POST but keep the same ID
+                remote = await $fetch<Habit>('/api/habits', { method: 'POST', body: h });
+              } else {
+                throw err;
+              }
+            }
+            await db.habits.update(h.id, { ...remote, synced: 1 });
+          } catch (e) {
+            console.warn('[Sync] Habit push failed:', e);
+          }
         }
-        for (const b of remoteBuckets) {
-          await db.buckets.put({ ...b, synced: 1, updatedAt: Date.now() });
+
+        const unsyncedLogs = await db.habitLogs.where('synced').equals(0).toArray();
+        for (const l of unsyncedLogs) {
+          const stillExists = await db.habitLogs.get(l.id);
+          if (!stillExists) continue;
+
+          try {
+            const { log, habit } = await $fetch<{ log: HabitLog, habit: Habit }>('/api/habitlogs', { 
+              method: 'POST', 
+              body: l 
+            });
+            
+            // Use our local composite ID (habitid_date) instead of the server's UUID
+            if (log) delete (log as any).id;
+            
+            await db.habitLogs.update(l.id, { ...log, synced: 1 });
+            if (habit) {
+              await db.habits.update(habit.id, { ...habit, synced: 1 });
+            }
+          } catch (e) {
+            console.warn('[Sync] Log push failed:', e);
+          }
         }
-        for (const l of remoteLogs) {
-          // Use a composite ID for logs to avoid duplicates
-          const logId = `${l.habitid}_${l.date}`;
-          await db.habitLogs.put({ ...l, id: logId, synced: 1, updatedAt: Date.now() });
+
+        const unsyncedBuckets = await db.buckets.where('synced').equals(0).toArray();
+        for (const b of unsyncedBuckets) {
+          const stillExists = await db.buckets.get(b.id);
+          if (!stillExists) continue;
+
+          try {
+            let remote;
+            try {
+              remote = await $fetch<Bucket>(`/api/buckets/${b.id}`, { method: 'PUT', body: b });
+            } catch (err: any) {
+              if (err.statusCode === 404) {
+                remote = await $fetch<Bucket>('/api/buckets', { method: 'POST', body: b });
+              } else {
+                throw err;
+              }
+            }
+            await db.buckets.update(b.id, { ...remote, synced: 1 });
+          } catch (e) {
+            console.warn('[Sync] Bucket push failed:', e);
+          }
         }
-      });
-    } catch (e) {
-      console.warn('[Sync] Pull failed (offline?)', e);
+
+        // 2. Pull remote changes
+        try {
+          const start = format(subDays(new Date(), 60), 'yyyy-MM-dd');
+          const end = format(addDays(new Date(), 30), 'yyyy-MM-dd');
+
+          const [remoteHabits, remoteBuckets, remoteLogs] = await Promise.all([
+            $fetch<Habit[]>('/api/habits'),
+            $fetch<Bucket[]>('/api/buckets'),
+            $fetch<HabitLog[]>('/api/habitlogs', { query: { startDate: start, endDate: end } })
+          ]);
+
+          // Bulk update local DB with remote truth
+          await db.transaction('rw', db.habits, db.buckets, db.habitLogs, async () => {
+            for (const h of remoteHabits) {
+              const local = await db.habits.get(h.id);
+              // CRITICAL: Don't overwrite local changes that haven't synced yet
+              if (local && local.synced === 0) continue; 
+              await db.habits.put({ ...h, synced: 1, updatedAt: Date.now() });
+            }
+            for (const b of remoteBuckets) {
+              const local = await db.buckets.get(b.id);
+              if (local && local.synced === 0) continue;
+              await db.buckets.put({ ...b, synced: 1, updatedAt: Date.now() });
+            }
+            for (const l of remoteLogs) {
+              const logId = `${l.habitid}_${l.date}`;
+              const local = await db.habitLogs.get(logId);
+              if (local && local.synced === 0) continue;
+              await db.habitLogs.put({ ...l, id: logId, synced: 1, updatedAt: Date.now() });
+            }
+          });
+          lastSyncTime.value = Date.now();
+        } catch (e) {
+          console.warn('[Sync] Pull failed (offline?)', e);
+        }
+      } while (syncNeeded);
+    } finally {
+      isSyncing.value = false;
     }
   };
 
   return { 
     getHabits, createHabit, updateHabit, deleteHabit, getLogs, upsertLog, deleteLog, reorderHabits,
     getBuckets, createBucket, updateBucket, deleteBucket, getBucketLogs,
-    sync
+    sync,
+    lastSyncTime
   };
 };
-

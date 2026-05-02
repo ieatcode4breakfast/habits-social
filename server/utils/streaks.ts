@@ -79,6 +79,8 @@ export async function recalculateHabitStreak(sql: any, habitId: string, userId: 
       runningStreak = 0;
     } else if (log.status === 'skipped') {
       // Streak remains intact (protected)
+    } else if (log.status === 'cleared') {
+      runningStreak = 0;
     }
 
     maxStreak = Math.max(maxStreak, runningStreak);

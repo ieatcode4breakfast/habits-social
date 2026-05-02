@@ -54,7 +54,7 @@ onMounted(() => {
 
 // Initial sync to hydrate the local database when user is logged in
 watch(() => user.value?.id, (newId) => {
-  if (newId) {
+  if (newId && process.client) {
     console.log('[Offline First] User detected, starting initial sync...');
     sync();
   }

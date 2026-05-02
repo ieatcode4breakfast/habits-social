@@ -59,9 +59,31 @@ export const useRealtime = () => {
     };
   };
 
+  const subscribeToUserBuckets = (userId: string, callback: (eventName: string, data: any) => void) => {
+    if (!pusherInstance) return () => {};
+    
+    const channelName = `user-${userId}-buckets`;
+    const channel = pusherInstance.subscribe(channelName);
+    
+    const onUpdated = (data: any) => callback('bucket-updated', data);
+    const onDeleted = (data: any) => callback('bucket-deleted', data);
+    const onRefresh = (data: any) => callback('bucket-needs-refresh', data);
+
+    channel.bind('bucket-updated', onUpdated);
+    channel.bind('bucket-deleted', onDeleted);
+    channel.bind('bucket-needs-refresh', onRefresh);
+
+    return () => {
+      channel.unbind('bucket-updated', onUpdated);
+      channel.unbind('bucket-deleted', onDeleted);
+      channel.unbind('bucket-needs-refresh', onRefresh);
+    };
+  };
+
   return {
     pusher: pusherInstance,
     subscribeToSocials,
-    subscribeToFriendHabits
+    subscribeToFriendHabits,
+    subscribeToUserBuckets
   };
 };

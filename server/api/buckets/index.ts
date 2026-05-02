@@ -43,8 +43,8 @@ export default defineEventHandler(async (event) => {
       const habitIds = body.habitIds && Array.isArray(body.habitIds) ? body.habitIds : [];
 
       const result = await sql`
-        INSERT INTO buckets (ownerid, title, description, color, "sortOrder", "createdAt", updatedat)
-        VALUES (${userId}, ${title}, ${description}, ${color}, ${nextSortOrder}, NOW(), NOW())
+        INSERT INTO buckets (id, ownerid, title, description, color, "sortOrder", "createdAt", updatedat)
+        VALUES (${body.id ? body.id : sql`DEFAULT`}, ${userId}, ${title}, ${description}, ${color}, ${nextSortOrder}, NOW(), NOW())
         RETURNING *
       `;
 

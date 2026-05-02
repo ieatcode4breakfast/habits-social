@@ -165,7 +165,7 @@
                   <div class="relative">
                     <textarea
                       v-model="newDescription"
-                      rows="2"
+                      rows="1"
                       maxlength="300"
                       placeholder=""
                       @input="autoExpand"
@@ -313,7 +313,7 @@
                     <textarea
                       ref="editDescriptionRef"
                       v-model="editDescription"
-                      rows="2"
+                      rows="1"
                       maxlength="300"
                       placeholder=""
                       @input="autoExpand"
@@ -429,6 +429,7 @@ definePageMeta({ middleware: 'auth' });
 
 const api = useHabitsApi();
 const { user } = useAuth();
+const { lastSyncTime } = api;
 const { showToast } = useToast();
 
 useSeoMeta({
@@ -494,18 +495,27 @@ const isFaded = (bucket: Bucket) => {
   return isAfter(yesterday, anchor);
 };
 
-const getStatus = (bucketId: string, day: Date) => {
+const getStatus = (bucketId: string, day: Date): 'completed' | 'failed' | 'skipped' | null => {
   const bucket = buckets.value.find(b => b.id === bucketId);
   if (!bucket || !bucket.habitIds?.length) return null;
 
   const dateStr = format(day, 'yyyy-MM-dd');
   
-  // Logic: Bucket is completed if ALL its habits are completed for that day
-  const allCompleted = bucket.habitIds.every(hId => 
-    habitLogs.value.find(l => l.habitid === hId && l.date === dateStr)?.status === 'completed'
+  const relevantLogs = bucket.habitIds.map(hId => 
+    habitLogs.value.find(l => l.habitid === hId && l.date === dateStr)
   );
+
+  // 1. Failed: If ANY habit in the bucket is failed
+  if (relevantLogs.some(l => l?.status === 'failed')) return 'failed';
   
-  return allCompleted ? 'completed' : null;
+  // 2. Completed: If ALL habits in the bucket are completed
+  if (relevantLogs.every(l => l?.status === 'completed')) return 'completed';
+
+  // 3. Skipped: If ALL habits are (completed OR skipped) AND at least one is skipped
+  const allDoneOrSkipped = relevantLogs.every(l => l?.status === 'completed' || l?.status === 'skipped');
+  if (allDoneOrSkipped && relevantLogs.some(l => l?.status === 'skipped')) return 'skipped';
+  
+  return null;
 };
 
 const load = async (silent = false) => {
@@ -634,20 +644,36 @@ useModalHistory(isAnyModalOpen, () => {
   showDeleteModal.value = false;
 });
 
-const { subscribeToFriendHabits } = useRealtime();
+const { subscribeToFriendHabits, subscribeToUserBuckets } = useRealtime();
 let unsubscribeOwnBuckets = () => {};
+let unsubscribeOwnHabits = () => {};
 
 onMounted(() => {
   load();
 });
 
+watch(lastSyncTime, () => {
+  console.log('[Buckets] Background sync detected, refreshing data...');
+  load(true);
+});
+
 watch(() => user.value?.id, (newId) => {
   unsubscribeOwnBuckets();
+  unsubscribeOwnHabits();
   if (newId) {
-    unsubscribeOwnBuckets = subscribeToFriendHabits(String(newId), (eventName, data) => {
-      // If we receive a bucket event, or a generic habit updated event, we may need to reload.
-      if (eventName === 'bucket-updated' || eventName === 'bucket-needs-refresh') {
-        load(true);
+    const idStr = String(newId);
+    
+    // Listen to bucket-specific events (CRUD on buckets)
+    unsubscribeOwnBuckets = subscribeToUserBuckets(idStr, (eventName) => {
+      if (eventName === 'bucket-updated' || eventName === 'bucket-deleted' || eventName === 'bucket-needs-refresh') {
+        api.sync(); // This will trigger the lastSyncTime watcher and reload data
+      }
+    });
+
+    // Listen to habit events (logging a habit affects bucket progress/streaks)
+    unsubscribeOwnHabits = subscribeToFriendHabits(idStr, (eventName) => {
+      if (eventName === 'habit-updated' || eventName === 'habit-deleted') {
+        api.sync();
       }
     });
   }
@@ -655,6 +681,7 @@ watch(() => user.value?.id, (newId) => {
 
 onUnmounted(() => {
   unsubscribeOwnBuckets();
+  unsubscribeOwnHabits();
 });
 
 </script>
