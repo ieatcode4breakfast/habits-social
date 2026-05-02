@@ -42,6 +42,15 @@ export default defineEventHandler(async (event) => {
     const result = await sql`
       INSERT INTO habits (id, ownerid, title, description, "frequencyCount", "frequencyPeriod", color, sharedwith, "sortOrder", user_date, "createdAt", updatedat)
       VALUES (${body.id ? body.id : sql`DEFAULT`}, ${userId}, ${title}, ${description}, ${frequencyCount}, ${frequencyPeriod}, ${color}, ${sharedwith}, ${nextSortOrder}, ${user_date}, NOW(), NOW())
+      ON CONFLICT (id) DO UPDATE SET
+        title = EXCLUDED.title,
+        description = EXCLUDED.description,
+        "frequencyCount" = EXCLUDED."frequencyCount",
+        "frequencyPeriod" = EXCLUDED."frequencyPeriod",
+        color = EXCLUDED.color,
+        sharedwith = EXCLUDED.sharedwith,
+        "sortOrder" = EXCLUDED."sortOrder",
+        updatedat = NOW()
       RETURNING *
     `;
 

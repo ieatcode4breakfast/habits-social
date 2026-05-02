@@ -5,7 +5,11 @@ const generateId = () => {
   if (typeof crypto !== 'undefined' && crypto.randomUUID) {
     return crypto.randomUUID();
   }
-  return 'local_' + Math.random().toString(36).substring(2, 15);
+  // Fallback for non-secure contexts or older browsers: valid UUIDv4 structure
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+    const r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
+    return v.toString(16);
+  });
 };
 
 export interface Habit {
@@ -108,11 +112,11 @@ export const useHabitsApi = () => {
   const updateHabit = async (id: string, data: Partial<Habit>) => {
     const existing = await db.habits.get(id);
     if (!existing) throw new Error('Habit not found');
-    
+
     const updated = toPlain({
       ...existing,
       ...data,
-      synced: 0,
+      synced: (existing as any).synced === 1 ? -1 : (existing as any).synced,
       updatedAt: Date.now()
     });
     await db.habits.put(updated);
@@ -135,9 +139,14 @@ export const useHabitsApi = () => {
 
   const reorderHabits = async (ids: string[]) => {
     // Update local sort orders
-    const updates = ids.map((id, index) => 
-      db.habits.update(id, { sortOrder: index, synced: 0, updatedAt: Date.now() })
-    );
+    const updates = ids.map(async (id, index) => {
+      const existing = await db.habits.get(id);
+      return db.habits.update(id, {
+        sortOrder: index,
+        synced: (existing as any)?.synced === 1 ? -1 : (existing as any)?.synced,
+        updatedAt: Date.now()
+      });
+    });
     await Promise.all(updates);
     triggerSync();
   };
@@ -170,7 +179,7 @@ export const useHabitsApi = () => {
         // All habits logged! Calculate status.
         let finalStatus: 'completed' | 'failed' | 'skipped' = 'completed';
         const statuses = logs.map(l => l.status);
-        
+
         if (statuses.includes('failed')) finalStatus = 'failed';
         else if (statuses.includes('skipped')) finalStatus = 'skipped';
 
@@ -208,12 +217,12 @@ export const useHabitsApi = () => {
       updatedAt: Date.now()
     });
     await db.habitLogs.put(newLog);
-    
+
     // We return the habit too because UI expects recalculated streaks
     // In a full offline mode, we'd calculate this locally. 
     // For now, we return the existing habit and let the sync update it.
     const habit = await db.habits.get(data.habitid);
-    
+
     // Optimistically update affected buckets locally
     await syncLocalBucketLogs(data.habitid, data.date);
 
@@ -224,10 +233,10 @@ export const useHabitsApi = () => {
   const deleteLog = async (habitId: string, date: string) => {
     // Instead of deleting, we upsert with a 'cleared' status
     // This avoids race conditions by making 'Clear' an explicit state that syncs like any other status
-    const result = await upsertLog({ 
-      habitid: habitId, 
-      date, 
-      status: 'cleared' 
+    const result = await upsertLog({
+      habitid: habitId,
+      date,
+      status: 'cleared'
     });
     return { success: true, ...result };
   };
@@ -254,11 +263,11 @@ export const useHabitsApi = () => {
   const updateBucket = async (id: string, data: Partial<Bucket>) => {
     const existing = await db.buckets.get(id);
     if (!existing) throw new Error('Bucket not found');
-    
+
     const updated = toPlain({
       ...existing,
       ...data,
-      synced: 0,
+      synced: (existing as any).synced === 1 ? -1 : (existing as any).synced,
       updatedAt: Date.now()
     });
     await db.buckets.put(updated);
@@ -294,7 +303,7 @@ export const useHabitsApi = () => {
     try {
       do {
         syncNeeded = false;
-        
+
         // 0. Process Deletion Queue
         const deletions = await db.syncQueue.toArray();
         for (const d of deletions) {
@@ -315,22 +324,28 @@ export const useHabitsApi = () => {
         }
 
         // 1. Push local changes to server
-        const unsyncedHabits = await db.habits.where('synced').equals(0).toArray();
+        const unsyncedHabits = await db.habits.where('synced').notEqual(1).toArray();
         for (const h of unsyncedHabits) {
-          // Double check it wasn't deleted while we were fetching the array
           const stillExists = await db.habits.get(h.id);
           if (!stillExists) continue;
 
           try {
-            // Try to update existing. We use { ignoreResponseError: true } equivalent by catching 404
             let remote;
-            try {
-              remote = await $fetch<Habit>(`/api/habits/${h.id}`, { method: 'PUT', body: h });
-            } catch (err: any) {
-              if (err.statusCode === 404) {
-                // Not on server yet, use POST but keep the same ID
-                remote = await $fetch<Habit>('/api/habits', { method: 'POST', body: h });
-              } else {
+            const isNew = (h as any).synced === 0;
+
+            if (isNew) {
+              remote = await $fetch<Habit>('/api/habits', { method: 'POST', body: h });
+            } else {
+              try {
+                remote = await $fetch<Habit>(`/api/habits/${h.id}`, { method: 'PUT', body: h });
+              } catch (err: any) {
+                if (err.statusCode === 404) {
+                  // If it was supposed to exist but is gone from server, it was deleted remotely.
+                  // Sync that deletion locally.
+                  await db.habits.delete(h.id);
+                  await db.habitLogs.where({ habitid: h.id }).delete();
+                  continue;
+                }
                 throw err;
               }
             }
@@ -346,17 +361,17 @@ export const useHabitsApi = () => {
           if (!stillExists) continue;
 
           try {
-            const { log, habit } = await $fetch<{ log: HabitLog, habit: Habit }>('/api/habitlogs', { 
-              method: 'POST', 
-              body: l 
+            const { log, habit } = await $fetch<{ log: HabitLog, habit: Habit }>('/api/habitlogs', {
+              method: 'POST',
+              body: l
             });
-            
+
             const normalizedLog = normalizeData(log);
             const normalizedHabit = normalizeData(habit);
 
             // Use our local composite ID (habitid_date) instead of the server's UUID
             if (normalizedLog) delete (normalizedLog as any).id;
-            
+
             await db.habitLogs.update(l.id, { ...normalizedLog, synced: 1 });
             if (normalizedHabit) {
               await db.habits.update(normalizedHabit.id, { ...normalizedHabit, synced: 1 });
@@ -366,19 +381,25 @@ export const useHabitsApi = () => {
           }
         }
 
-        const unsyncedBuckets = await db.buckets.where('synced').equals(0).toArray();
+        const unsyncedBuckets = await db.buckets.where('synced').notEqual(1).toArray();
         for (const b of unsyncedBuckets) {
           const stillExists = await db.buckets.get(b.id);
           if (!stillExists) continue;
 
           try {
             let remote;
-            try {
-              remote = await $fetch<Bucket>(`/api/buckets/${b.id}`, { method: 'PUT', body: b });
-            } catch (err: any) {
-              if (err.statusCode === 404) {
-                remote = await $fetch<Bucket>('/api/buckets', { method: 'POST', body: b });
-              } else {
+            const isNew = (b as any).synced === 0;
+
+            if (isNew) {
+              remote = await $fetch<Bucket>('/api/buckets', { method: 'POST', body: b });
+            } else {
+              try {
+                remote = await $fetch<Bucket>(`/api/buckets/${b.id}`, { method: 'PUT', body: b });
+              } catch (err: any) {
+                if (err.statusCode === 404) {
+                  await db.buckets.delete(b.id);
+                  continue;
+                }
                 throw err;
               }
             }
@@ -406,7 +427,7 @@ export const useHabitsApi = () => {
               const normalized = normalizeData(h);
               const local = await db.habits.get(normalized.id);
               // CRITICAL: Don't overwrite local changes that haven't synced yet
-              if (local && local.synced === 0) continue; 
+              if (local && local.synced === 0) continue;
               await db.habits.put({ ...normalized, synced: 1, updatedAt: Date.now() });
             }
             for (const l of remoteLogs) {
@@ -439,11 +460,12 @@ export const useHabitsApi = () => {
     }
   };
 
-  return { 
+  return {
     getHabits, createHabit, updateHabit, deleteHabit, getLogs, upsertLog, deleteLog, reorderHabits,
     getBuckets, createBucket, updateBucket, deleteBucket, getBucketLogs,
     sync,
     lastSyncTime
   };
 };
+
 

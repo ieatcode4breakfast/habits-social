@@ -55,11 +55,20 @@ export default defineEventHandler(async (event) => {
       const result = await sql`
         INSERT INTO buckets (id, ownerid, title, description, color, "sortOrder", "createdAt", updatedat)
         VALUES (${body.id ? body.id : sql`DEFAULT`}, ${userId}, ${title}, ${description}, ${color}, ${nextSortOrder}, NOW(), NOW())
+        ON CONFLICT (id) DO UPDATE SET
+          title = EXCLUDED.title,
+          description = EXCLUDED.description,
+          color = EXCLUDED.color,
+          "sortOrder" = EXCLUDED."sortOrder",
+          updatedat = NOW()
         RETURNING *
       `;
 
       const newBucket = result[0];
       if (!newBucket) throw createError({ statusCode: 500, statusMessage: 'Failed to create bucket' });
+
+      // Clear existing mappings before re-inserting (handles updates)
+      await sql`DELETE FROM bucket_habits WHERE bucket_id = ${newBucket.id}::uuid`;
 
       // Insert habit mappings
       if (habitIds.length > 0) {
