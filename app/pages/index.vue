@@ -1536,6 +1536,7 @@ watch(() => user.value?.id, (newId) => {
           // New habit from another session, need to sync Dexie
           api.sync();
         }
+
       } else if (eventName === 'habit-deleted') {
         const hid = data?.habitId || data?.habitid;
         if (hid && data?.date) {

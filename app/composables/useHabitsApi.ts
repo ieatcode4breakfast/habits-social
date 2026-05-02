@@ -51,7 +51,7 @@ export interface BucketLog {
   bucketid: string;
   ownerid: string;
   date: string;
-  status: 'completed' | 'skipped' | 'failed';
+  status: 'completed' | 'skipped' | 'failed' | 'cleared';
 }
 
 export const useHabitsApi = () => {
@@ -150,6 +150,54 @@ export const useHabitsApi = () => {
       .toArray();
   };
 
+  const syncLocalBucketLogs = async (habitId: string, date: string) => {
+    // 1. Find all buckets containing this habit
+    const allBuckets = await db.buckets.where('ownerid').equals(getOwnerId()).toArray();
+    const affectedBuckets = allBuckets.filter(b => b.habitIds?.includes(habitId));
+
+    for (const bucket of affectedBuckets) {
+      // 2. Get all habits in this bucket
+      const habitsInBucket = bucket.habitIds || [];
+      if (habitsInBucket.length === 0) continue;
+
+      // 3. Check local habit logs for this date
+      const logs = await db.habitLogs
+        .where('ownerid').equals(getOwnerId())
+        .filter(l => habitsInBucket.includes(l.habitid) && l.date === date && l.status !== 'cleared')
+        .toArray();
+
+      if (logs.length === habitsInBucket.length) {
+        // All habits logged! Calculate status.
+        let finalStatus: 'completed' | 'failed' | 'skipped' = 'completed';
+        const statuses = logs.map(l => l.status);
+        
+        if (statuses.includes('failed')) finalStatus = 'failed';
+        else if (statuses.includes('skipped')) finalStatus = 'skipped';
+
+        await db.bucketLogs.put({
+          id: `${bucket.id}_${date}`,
+          bucketid: bucket.id,
+          ownerid: getOwnerId(),
+          date: date,
+          status: finalStatus,
+          synced: 0,
+          updatedAt: Date.now()
+        });
+      } else {
+        // Not all habits logged, mark the bucket log as cleared
+        await db.bucketLogs.put({
+          id: `${bucket.id}_${date}`,
+          bucketid: bucket.id,
+          ownerid: getOwnerId(),
+          date: date,
+          status: 'cleared',
+          synced: 0,
+          updatedAt: Date.now()
+        });
+      }
+    }
+  };
+
   const upsertLog = async (data: { habitid: string; date: string; status: string; sharedwith?: string[] }) => {
     const logId = `${data.habitid}_${data.date}`;
     const newLog: any = toPlain({
@@ -165,6 +213,10 @@ export const useHabitsApi = () => {
     // In a full offline mode, we'd calculate this locally. 
     // For now, we return the existing habit and let the sync update it.
     const habit = await db.habits.get(data.habitid);
+    
+    // Optimistically update affected buckets locally
+    await syncLocalBucketLogs(data.habitid, data.date);
+
     triggerSync();
     return { log: newLog, habit: habit! };
   };
@@ -341,14 +393,15 @@ export const useHabitsApi = () => {
           const start = format(subDays(new Date(), 60), 'yyyy-MM-dd');
           const end = format(addDays(new Date(), 30), 'yyyy-MM-dd');
 
-          const [remoteHabits, remoteBuckets, remoteLogs] = await Promise.all([
+          const [remoteHabits, remoteBuckets, remoteLogs, remoteBucketLogs] = await Promise.all([
             $fetch<Habit[]>('/api/habits'),
             $fetch<Bucket[]>('/api/buckets'),
-            $fetch<HabitLog[]>('/api/habitlogs', { query: { startDate: start, endDate: end } })
+            $fetch<HabitLog[]>('/api/habitlogs', { query: { startDate: start, endDate: end } }),
+            $fetch<BucketLog[]>('/api/bucketlogs', { query: { startDate: start, endDate: end } })
           ]);
 
           // Bulk update local DB with remote truth
-          await db.transaction('rw', db.habits, db.buckets, db.habitLogs, async () => {
+          await db.transaction('rw', db.habits, db.buckets, db.habitLogs, db.bucketLogs, async () => {
             for (const h of remoteHabits) {
               const normalized = normalizeData(h);
               const local = await db.habits.get(normalized.id);
@@ -356,18 +409,24 @@ export const useHabitsApi = () => {
               if (local && local.synced === 0) continue; 
               await db.habits.put({ ...normalized, synced: 1, updatedAt: Date.now() });
             }
-            for (const b of remoteBuckets) {
-              const normalized = normalizeData(b);
-              const local = await db.buckets.get(normalized.id);
-              if (local && local.synced === 0) continue;
-              await db.buckets.put({ ...normalized, synced: 1, updatedAt: Date.now() });
-            }
             for (const l of remoteLogs) {
               const normalized = normalizeData(l);
               const logId = `${normalized.habitid}_${normalized.date}`;
               const local = await db.habitLogs.get(logId);
               if (local && local.synced === 0) continue;
               await db.habitLogs.put({ ...normalized, id: logId, synced: 1, updatedAt: Date.now() });
+            }
+            for (const b of remoteBuckets) {
+              const normalized = normalizeData(b);
+              const local = await db.buckets.get(normalized.id);
+              if (local && local.synced === 0) continue;
+              await db.buckets.put({ ...normalized, synced: 1, updatedAt: Date.now() });
+            }
+            for (const bl of remoteBucketLogs) {
+              const normalized = normalizeData(bl);
+              const local = await db.bucketLogs.get(normalized.id);
+              if (local && local.synced === 0) continue;
+              await db.bucketLogs.put({ ...normalized, synced: 1, updatedAt: Date.now() });
             }
           });
           lastSyncTime.value = Date.now();

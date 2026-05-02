@@ -439,6 +439,7 @@ useSeoMeta({
 
 const buckets = ref<Bucket[]>([]);
 const habitLogs = ref<HabitLog[]>([]);
+const bucketLogs = ref<BucketLog[]>([]);
 const availableHabits = ref<Habit[]>([]);
 const loading = ref(true);
 
@@ -495,39 +496,24 @@ const isFaded = (bucket: Bucket) => {
   return isAfter(yesterday, anchor);
 };
 
-const getStatus = (bucketId: string, day: Date): 'completed' | 'failed' | 'skipped' | null => {
-  const bucket = buckets.value.find(b => b.id === bucketId);
-  if (!bucket || !bucket.habitIds?.length) return null;
-
+const getStatus = (bucketId: string, day: Date): 'completed' | 'failed' | 'skipped' | 'cleared' | null => {
   const dateStr = format(day, 'yyyy-MM-dd');
-  
-  const relevantLogs = bucket.habitIds.map(hId => 
-    habitLogs.value.find(l => l.habitid === hId && l.date === dateStr)
-  );
-
-  // 1. Failed: If ANY habit in the bucket is failed
-  if (relevantLogs.some(l => l?.status === 'failed')) return 'failed';
-  
-  // 2. Completed: If ALL habits in the bucket are completed
-  if (relevantLogs.every(l => l?.status === 'completed')) return 'completed';
-
-  // 3. Skipped: If ALL habits are (completed OR skipped) AND at least one is skipped
-  const allDoneOrSkipped = relevantLogs.every(l => l?.status === 'completed' || l?.status === 'skipped');
-  if (allDoneOrSkipped && relevantLogs.some(l => l?.status === 'skipped')) return 'skipped';
-  
-  return null;
+  const log = bucketLogs.value.find(l => l.bucketid === bucketId && l.date === dateStr);
+  return (log?.status as any) || null;
 };
 
 const load = async (silent = false) => {
   if (!silent) loading.value = true;
   try {
-    const [b, l, h] = await Promise.all([
+    const [b, l, bl, h] = await Promise.all([
       api.getBuckets(), 
       api.getLogs(startDate, endDate),
+      api.getBucketLogs(startDate, endDate),
       api.getHabits()
     ]);
     buckets.value = b;
     habitLogs.value = l;
+    bucketLogs.value = bl;
     availableHabits.value = h;
   } catch (error) {
     console.error('[Buckets] load() failed:', error);
@@ -676,6 +662,7 @@ watch(() => user.value?.id, (newId) => {
         api.sync();
       }
     });
+
   }
 }, { immediate: true });
 

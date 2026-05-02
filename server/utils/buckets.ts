@@ -69,6 +69,8 @@ export async function recalculateBucketStreak(sql: any, bucketId: string, userId
     } else if (log.status === 'failed') {
       brokenStreakCount = runningStreak;
       runningStreak = 0;
+    } else if (log.status === 'cleared') {
+      runningStreak = 0;
     } 
 
     maxStreak = Math.max(maxStreak, runningStreak);
@@ -127,9 +129,12 @@ export async function syncBucketLogsForHabit(sql: any, habitId: string, userId: 
     WHERE bh.habit_id = ${habitId}::uuid AND b.ownerid = ${userId}
   `;
 
+  const updatedBuckets = [];
   for (const bucket of buckets) {
-    await syncSingleBucketLog(sql, bucket.id, userId, date);
+    const updated = await syncSingleBucketLog(sql, bucket.id, userId, date);
+    if (updated) updatedBuckets.push(updated);
   }
+  return updatedBuckets;
 }
 
 export async function syncSingleBucketLog(sql: any, bucketId: string, userId: string, date: string) {
@@ -148,6 +153,7 @@ export async function syncSingleBucketLog(sql: any, bucketId: string, userId: st
   const logsRes = await sql`
     SELECT status FROM habitlogs 
     WHERE habitid = ANY(${habitIds}::text[]) AND ownerid = ${userId} AND date = ${date}
+      AND status != 'cleared'
   `;
 
   if (logsRes.length === habitsRes.length) {
@@ -168,11 +174,14 @@ export async function syncSingleBucketLog(sql: any, bucketId: string, userId: st
     `;
   } else {
     await sql`
-      DELETE FROM bucketlogs WHERE bucketid = ${bucketId}::uuid AND ownerid = ${userId} AND date = ${date}
+      INSERT INTO bucketlogs (bucketid, ownerid, date, status, updatedat)
+      VALUES (${bucketId}::uuid, ${userId}, ${date}, 'cleared', NOW())
+      ON CONFLICT (bucketid, date) DO UPDATE 
+      SET status = 'cleared', updatedat = NOW()
     `;
   }
 
-  await recalculateBucketStreak(sql, bucketId, userId, date);
+  return await recalculateBucketStreak(sql, bucketId, userId, date);
 }
 
 export async function reevaluateBucketLogs(sql: any, bucketId: string, userId: string) {
@@ -186,7 +195,9 @@ export async function reevaluateBucketLogs(sql: any, bucketId: string, userId: s
   const habitIds = habitsRes.map((h: any) => h.habit_id);
   
   const datesRes = await sql`
-    SELECT DISTINCT date FROM habitlogs WHERE habitid = ANY(${habitIds}::text[]) AND ownerid = ${userId}
+    SELECT DISTINCT date FROM habitlogs 
+    WHERE habitid = ANY(${habitIds}::text[]) AND ownerid = ${userId}
+      AND status != 'cleared'
   `;
   
   for (const row of datesRes) {

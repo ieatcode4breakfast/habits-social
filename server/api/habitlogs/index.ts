@@ -24,6 +24,16 @@ const normalizeHabit = (h: any) => {
   return normalized;
 };
 
+const normalizeBucket = (b: any) => {
+  if (!b) return b;
+  const normalized = { ...b };
+  if (normalized.streakAnchorDate) {
+    normalized.streakAnchorDate = format(new Date(normalized.streakAnchorDate), 'yyyy-MM-dd');
+  }
+  return normalized;
+};
+
+
 export default defineEventHandler(async (event) => {
   const sql = useDB(event);
   const userId = await requireAuth(event);
@@ -101,14 +111,17 @@ export default defineEventHandler(async (event) => {
       
       const updatedLog = normalizeLog(result[0]);
       const updatedHabit = normalizeHabit(await recalculateHabitStreak(sql, habitId, userId, dateStr));
-      await syncBucketLogsForHabit(sql, habitId, userId, dateStr);
+      const updatedBuckets = (await syncBucketLogsForHabit(sql, habitId, userId, dateStr)).map(normalizeBucket);
 
       const pusher = usePusher();
       if (pusher) {
-        await pusher.trigger(`user-${userId}-habits`, 'habit-updated', { log: updatedLog, habit: updatedHabit });
-        await pusher.trigger(`user-${userId}-buckets`, 'bucket-needs-refresh', { date: dateStr });
+        await pusher.trigger(`user-${userId}-habits`, 'habit-updated', { 
+          log: updatedLog, 
+          habit: updatedHabit,
+          buckets: updatedBuckets 
+        });
       }
-      return { log: updatedLog, habit: updatedHabit };
+      return { log: updatedLog, habit: updatedHabit, buckets: updatedBuckets };
     } else {
       const sharedwith = body.sharedwith && Array.isArray(body.sharedwith) ? body.sharedwith : [];
       const result = await sql`
@@ -119,14 +132,17 @@ export default defineEventHandler(async (event) => {
       
       const newLog = normalizeLog(result[0]);
       const updatedHabit = normalizeHabit(await recalculateHabitStreak(sql, habitId, userId, dateStr));
-      await syncBucketLogsForHabit(sql, habitId, userId, dateStr);
+      const updatedBuckets = (await syncBucketLogsForHabit(sql, habitId, userId, dateStr)).map(normalizeBucket);
 
       const pusher = usePusher();
       if (pusher) {
-        await pusher.trigger(`user-${userId}-habits`, 'habit-updated', { log: newLog, habit: updatedHabit });
-        await pusher.trigger(`user-${userId}-buckets`, 'bucket-needs-refresh', { date: dateStr });
+        await pusher.trigger(`user-${userId}-habits`, 'habit-updated', { 
+          log: newLog, 
+          habit: updatedHabit,
+          buckets: updatedBuckets
+        });
       }
-      return { log: newLog, habit: updatedHabit };
+      return { log: newLog, habit: updatedHabit, buckets: updatedBuckets };
     }
   }
 
@@ -141,15 +157,20 @@ export default defineEventHandler(async (event) => {
     `;
     
     const updatedHabit = normalizeHabit(await recalculateHabitStreak(sql, habitId, userId, dateStr));
-    await syncBucketLogsForHabit(sql, habitId, userId, dateStr);
+    const updatedBuckets = (await syncBucketLogsForHabit(sql, habitId, userId, dateStr)).map(normalizeBucket);
 
     const pusher = usePusher();
     if (pusher) {
-      await pusher.trigger(`user-${userId}-habits`, 'habit-deleted', { habitid: habitId, date: dateStr, habit: updatedHabit });
-      await pusher.trigger(`user-${userId}-buckets`, 'bucket-needs-refresh', { date: dateStr });
+      await pusher.trigger(`user-${userId}-habits`, 'habit-deleted', { 
+        habitid: habitId, 
+        date: dateStr, 
+        habit: updatedHabit,
+        buckets: updatedBuckets
+      });
     }
-    return { success: true, habit: updatedHabit };
+    return { success: true, habit: updatedHabit, buckets: updatedBuckets };
   }
 });
+
 
 
