@@ -18,7 +18,7 @@ export default defineEventHandler(async (event) => {
 
   // 2. Fetch all deltas in parallel
   // We use >= to ensure no gaps, client-side 'put' handles duplicates
-  const [habits, buckets, habitLogs, bucketLogs] = await Promise.all([
+  const [habits, buckets, habitLogs, bucketLogs, deletions] = await Promise.all([
     sql`
       SELECT * FROM habits 
       WHERE ownerid = ${userId} 
@@ -48,6 +48,11 @@ export default defineEventHandler(async (event) => {
         : (query.startDate && query.endDate 
             ? sql`AND date >= ${String(query.startDate)} AND date <= ${String(query.endDate)}` 
             : sql``)}
+    `,
+    sql`
+      SELECT entity_id, entity_type FROM sync_deletions
+      WHERE ownerid = ${userId}
+      ${lastSynced > 0 ? sql`AND created_at >= to_timestamp(${lastSynced} / 1000.0)` : sql``}
     `
   ]);
 
@@ -71,6 +76,7 @@ export default defineEventHandler(async (event) => {
     buckets: normalizedBuckets,
     habitLogs: habitLogs.map(normalizeLog),
     bucketLogs: bucketLogs.map(normalizeLog),
+    deletions: deletions.map((d: any) => ({ id: d.entity_id, type: d.entity_type })),
     serverTime // This is the checkpoint for the next sync
   };
 });

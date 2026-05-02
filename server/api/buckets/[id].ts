@@ -65,6 +65,7 @@ export default defineEventHandler(async (event) => {
 
   if (event.method === 'DELETE') {
     await sql`DELETE FROM buckets WHERE id = ${id}::uuid`;
+    await sql`INSERT INTO sync_deletions (ownerid, entity_id, entity_type) VALUES (${userId}, ${id}::uuid, 'bucket')`;
 
     const pusher = usePusher();
     if (pusher) {

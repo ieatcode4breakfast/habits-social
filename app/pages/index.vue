@@ -1495,8 +1495,9 @@ useModalHistory(isAnyModalOpen, () => {
 
 
 
-const { subscribeToFriendHabits } = useRealtime();
+const { subscribeToFriendHabits, subscribeToUserBuckets } = useRealtime();
 let unsubscribeOwnHabits = () => {};
+let unsubscribeOwnBuckets = () => {};
 
 // Social integration is now handled by useSocial
 
@@ -1516,7 +1517,7 @@ watch(() => user.value?.id, (newId) => {
   unsubscribeOwnHabits();
   if (newId) {
 
-    unsubscribeOwnHabits = subscribeToFriendHabits(String(newId), (eventName, data) => {
+    unsubscribeOwnHabits = subscribeToFriendHabits(String(newId), (eventName: string, data: any) => {
 
       
       if (eventName === 'habit-updated' && data?.log && data?.habit) {
@@ -1546,15 +1547,27 @@ watch(() => user.value?.id, (newId) => {
             const habitIdx = habits.value.findIndex(h => h.id === data.habit.id);
             if (habitIdx >= 0) habits.value[habitIdx] = data.habit;
           }
+          // Note: Specific log deletions are currently handled as 'cleared' status in logs,
+          // so standard sync will pick them up.
         } else if (hid) {
           // Entire habit was deleted
           habits.value = habits.value.filter(h => h.id !== hid);
           logs.value = logs.value.filter(l => l.habitid !== hid);
+          // Trigger sync to purge from Dexie
+          api.sync();
         } else {
           api.sync();
         }
       } else {
         // Generic fallback for reorder or other updates
+        api.sync();
+      }
+    });
+
+    unsubscribeOwnBuckets = subscribeToUserBuckets(String(newId), (eventName: string, data: any) => {
+      if (eventName === 'bucket-deleted') {
+        api.sync();
+      } else {
         api.sync();
       }
     });
@@ -1564,6 +1577,7 @@ watch(() => user.value?.id, (newId) => {
 onUnmounted(() => {
   // cleanupSocial(); // Now a no-op singleton cleanup handled by logout
   unsubscribeOwnHabits();
+  unsubscribeOwnBuckets();
   window.removeEventListener('click', closeLogMenu);
 });
 // ─────────────────────────────────────────────────────────────────────────────

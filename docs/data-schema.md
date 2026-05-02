@@ -118,6 +118,17 @@ Manages the social graph between users.
 | `createdAt` | `Date` | System timestamp of creation. |
 | `updatedAt` | `Date` | System timestamp of the last modification. |
 
+### Sync Deletion (Tombstones)
+Records when an entity is deleted on the server so that other devices can catch up during a delta sync.
+
+| Field | Type | Description |
+| :--- | :--- | :--- |
+| `id` | `string` | Unique identifier (UUID). |
+| `ownerid` | `string` | ID of the user who performed the deletion. |
+| `entity_id` | `string` | The ID of the habit or bucket that was deleted. |
+| `entity_type` | `string` | The type of entity (`habit`, `bucket`). |
+| `created_at` | `Date` | System timestamp of the deletion. |
+
 ---
 
 ## Local Sync Metadata (Dexie)
@@ -125,3 +136,4 @@ When stored in the local IndexedDB via Dexie, entities include synchronization f
 
 *   **`synced`**: (0, 1, or -1) Indicates if the local change has been successfully pushed to the server. (0: New/unsynced, 1: Synced, -1: Updated but unsynced).
 *   **`updatedAt`**: (number) Unix timestamp of the last local update, used for "Last-Write-Wins" conflict resolution during sync.
+*   **Tombstone Reconciliation**: During the sync process, the client fetches any relevant `Sync Deletion` records from the server and purges the corresponding local entities from Dexie.

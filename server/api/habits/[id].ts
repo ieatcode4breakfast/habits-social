@@ -71,6 +71,7 @@ export default defineEventHandler(async (event) => {
     const bucketIds = buckets.map(b => b.bucket_id);
     
     await sql`DELETE FROM habits WHERE id = ${id}::uuid`;
+    await sql`INSERT INTO sync_deletions (ownerid, entity_id, entity_type) VALUES (${userId}, ${id}::uuid, 'habit')`;
 
     for (const bid of bucketIds) {
       await reevaluateBucketLogs(sql, bid, userId);

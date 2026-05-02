@@ -423,10 +423,24 @@ export const useHabitsApi = () => {
             buckets: Bucket[], 
             habitLogs: HabitLog[], 
             bucketLogs: BucketLog[],
+            deletions?: { id: string, type: string }[],
             serverTime: number
           }>('/api/sync', { query: queryParams });
 
-          const { habits: remoteHabits, buckets: remoteBuckets, habitLogs: remoteLogs, bucketLogs: remoteBucketLogs, serverTime } = response;
+          const { habits: remoteHabits, buckets: remoteBuckets, habitLogs: remoteLogs, bucketLogs: remoteBucketLogs, deletions: remoteDeletions, serverTime } = response;
+
+          // 3. Handle Deletions from Server
+          if (remoteDeletions && remoteDeletions.length > 0) {
+            for (const d of remoteDeletions) {
+              if (d.type === 'habit') {
+                await db.habits.delete(d.id);
+                await db.habitLogs.where({ habitid: d.id }).delete();
+                await removeHabitFromBuckets(d.id);
+              } else if (d.type === 'bucket') {
+                await db.buckets.delete(d.id);
+              }
+            }
+          }
 
           // 3. Cleanup: Purge legacy UUID logs that have been superseded by composite IDs
           if (remoteLogs.length > 0 || remoteBucketLogs.length > 0) {
