@@ -2,6 +2,7 @@ import { parseISO, startOfDay, subDays, addDays, isAfter, isBefore } from 'date-
 import type { IHabitLog } from '../../models';
 import { usePusher } from '../../utils/pusher';
 import { recalculateHabitStreak } from '../../utils/streaks';
+import { syncBucketLogsForHabit } from '../../utils/buckets';
 
 export default defineEventHandler(async (event) => {
   const sql = useDB(event);
@@ -80,9 +81,12 @@ export default defineEventHandler(async (event) => {
       
       const updatedLog = result[0];
       const updatedHabit = await recalculateHabitStreak(sql, habitId, userId, dateStr);
+      await syncBucketLogsForHabit(sql, habitId, userId, dateStr);
+
       const pusher = usePusher();
       if (pusher) {
         await pusher.trigger(`user-${userId}-habits`, 'habit-updated', { log: updatedLog, habit: updatedHabit });
+        await pusher.trigger(`user-${userId}-buckets`, 'bucket-needs-refresh', { date: dateStr });
       }
       return { log: updatedLog, habit: updatedHabit };
     } else {
@@ -95,9 +99,12 @@ export default defineEventHandler(async (event) => {
       
       const newLog = result[0];
       const updatedHabit = await recalculateHabitStreak(sql, habitId, userId, dateStr);
+      await syncBucketLogsForHabit(sql, habitId, userId, dateStr);
+
       const pusher = usePusher();
       if (pusher) {
         await pusher.trigger(`user-${userId}-habits`, 'habit-updated', { log: newLog, habit: updatedHabit });
+        await pusher.trigger(`user-${userId}-buckets`, 'bucket-needs-refresh', { date: dateStr });
       }
       return { log: newLog, habit: updatedHabit };
     }
@@ -114,10 +121,12 @@ export default defineEventHandler(async (event) => {
     `;
     
     const updatedHabit = await recalculateHabitStreak(sql, habitId, userId, dateStr);
-    
+    await syncBucketLogsForHabit(sql, habitId, userId, dateStr);
+
     const pusher = usePusher();
     if (pusher) {
       await pusher.trigger(`user-${userId}-habits`, 'habit-deleted', { habitid: habitId, date: dateStr, habit: updatedHabit });
+      await pusher.trigger(`user-${userId}-buckets`, 'bucket-needs-refresh', { date: dateStr });
     }
     return { success: true, habit: updatedHabit };
   }

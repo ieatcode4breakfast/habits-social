@@ -1,5 +1,6 @@
 import type { IHabit } from '../../models';
 import { usePusher } from '../../utils/pusher';
+import { reevaluateBucketLogs } from '../../utils/buckets';
 
 export default defineEventHandler(async (event) => {
   const sql = useDB(event);
@@ -56,12 +57,20 @@ export default defineEventHandler(async (event) => {
   }
 
   if (event.method === 'DELETE') {
+    const buckets = await sql`SELECT bucket_id FROM bucket_habits WHERE habit_id = ${id}::uuid`;
+    const bucketIds = buckets.map(b => b.bucket_id);
+    
     await sql`DELETE FROM habits WHERE id = ${id}::uuid`;
+
+    for (const bid of bucketIds) {
+      await reevaluateBucketLogs(sql, bid, userId);
+    }
 
     // Real-time: Notify other devices
     const pusher = usePusher();
     if (pusher) {
       await pusher.trigger(`user-${userId}-habits`, 'habit-deleted', { habitId: id });
+      await pusher.trigger(`user-${userId}-buckets`, 'bucket-needs-refresh', { habitDeleted: true });
     }
 
     return { success: true };

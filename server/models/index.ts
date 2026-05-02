@@ -56,3 +56,28 @@ export interface IFriendship {
   createdAt: Date;
   updatedAt: Date;
 }
+
+export interface IBucket {
+  id?: string;
+  ownerid: string;
+  title: string;
+  description?: string;
+  color?: string;
+  currentStreak: number;
+  longestStreak: number;
+  streakAnchorDate: Date | null;
+  sortOrder: number;
+  createdAt: Date;
+  updatedat: Date;
+}
+
+export interface IBucketLog {
+  id?: string;
+  bucketid: string;
+  ownerid: string;
+  date: string;
+  status: string;
+  streakCount: number;
+  brokenStreakCount?: number;
+  updatedat: Date;
+}

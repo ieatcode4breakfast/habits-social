@@ -7,7 +7,7 @@ Habits Social is your companion for building better routines through social acco
 ### Creating Your Account
 1.  Visit [www.habitssocial.com](https://www.habitssocial.com) and click **Sign Up**.
 2.  Choose a unique username—this is how friends will find you.
-3.  Once registered, you'll land on your personal **Dashboard**.
+3.  Once registered, you'll land on your personal **My Habits**.
 
 ### Personalizing Your Profile
 *   **Access Settings:** Click your avatar at the top of the screen to open the Profile Modal.
@@ -16,7 +16,7 @@ Habits Social is your companion for building better routines through social acco
 
 ## 2. Mastering Your Streaks
 
-The Dashboard is your mission control for daily habits.
+My Habits is your mission control for daily habits.
 
 ### Adding a Habit
 1.  Click **Add Habit**.

@@ -11,7 +11,7 @@
         />
         <div>
           <h1 class="text-xl font-bold tracking-tight text-white mb-1">My habits</h1>
-          <p class="text-zinc-400 text-xs">Tracking {{ habits.length }} habit{{ habits.length === 1 ? '' : 's' }}</p>
+          <p class="text-zinc-400 text-xs">{{ habits.length }} habit{{ habits.length === 1 ? '' : 's' }}</p>
         </div>
       </div>
       <div class="flex items-center gap-2">
@@ -1006,7 +1006,7 @@ const load = async (silent = false) => {
     logs.value = l;
 
   } catch (error) {
-    console.error('[Dashboard] load() failed:', error);
+    console.error('[My Habits] load() failed:', error);
   } finally {
     loading.value = false;
   }
@@ -1210,7 +1210,7 @@ const addHabit = async () => {
     newSharedWith.value = [];
     showModal.value = false;
   } catch (error) {
-    console.error('[Dashboard] Failed to add habit:', error);
+    console.error('[My Habits] Failed to add habit:', error);
     showToast('Failed to create habit', 'failed');
   } finally {
     isAddingHabit.value = false;
@@ -1398,7 +1398,7 @@ const updateHabit = async () => {
       habits.value[idx] = updated;
     }
   } catch (error) {
-    console.error('[Dashboard] Failed to update habit:', error);
+    console.error('[My Habits] Failed to update habit:', error);
     showToast('Failed to save changes', 'failed');
   } finally {
     isUpdatingHabit.value = false;
@@ -1432,7 +1432,7 @@ const handleDelete = async () => {
     showDeleteModal.value = false;
     showEditModal.value = false;
   } catch (error) {
-    console.error('[Dashboard] Failed to delete habit:', error);
+    console.error('[My Habits] Failed to delete habit:', error);
     showToast('Failed to delete habit', 'failed');
   } finally {
     isDeletingHabit.value = false;
@@ -1456,7 +1456,7 @@ watch(currentCalendarDate, async (newDate) => {
         }
       });
     } catch (err) {
-      console.error('[Dashboard] Failed to fetch historical logs:', err);
+      console.error('[My Habits] Failed to fetch historical logs:', err);
     } finally {
       calendarLoading.value = false;
     }

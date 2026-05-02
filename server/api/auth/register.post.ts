@@ -34,7 +34,8 @@ export default defineEventHandler(async (event) => {
 
   if (result.length === 0) throw createError({ statusCode: 500, statusMessage: 'Failed to create user' });
 
-  const insertedId = result[0].id;
+  const insertedId = result[0]?.id;
+  if (!insertedId) throw createError({ statusCode: 500, statusMessage: 'Failed to create user' });
   const token = await generateToken(insertedId, event);
   setCookie(event, 'auth_token', token, { httpOnly: true, maxAge: 60 * 60 * 24 * 7, path: '/', sameSite: 'strict' });
 

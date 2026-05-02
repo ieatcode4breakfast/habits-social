@@ -23,6 +23,27 @@ export interface HabitLog {
   sharedwith: string[];
 }
 
+export interface Bucket {
+  id: string;
+  ownerid: string;
+  title: string;
+  description: string;
+  color: string;
+  habitIds: string[];
+  sortOrder?: number;
+  currentStreak?: number;
+  longestStreak?: number;
+  streakAnchorDate?: string | null;
+}
+
+export interface BucketLog {
+  id: string;
+  bucketid: string;
+  ownerid: string;
+  date: string;
+  status: 'completed' | 'skipped' | 'failed';
+}
+
 export const useHabitsApi = () => {
   const getHabits = () => $fetch<Habit[]>('/api/habits');
 
@@ -47,5 +68,22 @@ export const useHabitsApi = () => {
   const reorderHabits = (ids: string[]) =>
     $fetch('/api/habits/reorder', { method: 'POST', body: { ids } });
 
-  return { getHabits, createHabit, updateHabit, deleteHabit, getLogs, upsertLog, deleteLog, reorderHabits };
+  const getBuckets = () => $fetch<Bucket[]>('/api/buckets');
+
+  const createBucket = (data: Partial<Bucket>) =>
+    $fetch<Bucket>('/api/buckets', { method: 'POST', body: data });
+
+  const updateBucket = (id: string, data: Partial<Bucket>) =>
+    $fetch<Bucket>(`/api/buckets/${id}`, { method: 'PUT', body: data });
+
+  const deleteBucket = (id: string) =>
+    $fetch(`/api/buckets/${id}`, { method: 'DELETE' });
+
+  const getBucketLogs = (startDate: string, endDate: string) =>
+    $fetch<BucketLog[]>('/api/bucketlogs', { query: { startDate, endDate } });
+
+  return { 
+    getHabits, createHabit, updateHabit, deleteHabit, getLogs, upsertLog, deleteLog, reorderHabits,
+    getBuckets, createBucket, updateBucket, deleteBucket, getBucketLogs
+  };
 };

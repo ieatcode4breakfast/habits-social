@@ -14,7 +14,8 @@
 
           <template v-if="user">
             <nav class="hidden md:flex items-center gap-1 ml-2">
-              <NuxtLink to="/" class="nav-link" :class="{ 'nav-link-active': $route.path === '/' }">Dashboard</NuxtLink>
+              <NuxtLink to="/" class="nav-link" :class="{ 'nav-link-active': $route.path === '/' }">My Habits</NuxtLink>
+              <NuxtLink to="/buckets" class="nav-link" :class="{ 'nav-link-active': $route.path === '/buckets' }">Buckets</NuxtLink>
               <NuxtLink to="/social" class="nav-link flex items-center gap-2" :class="{ 'nav-link-active': $route.path === '/social' }">
                 Social
                 <span v-if="pendingCount > 0 && $route.path !== '/social'" class="flex w-2 h-2 bg-rose-500 rounded-full"></span>
@@ -48,7 +49,13 @@
           <div class="p-1 rounded-lg transition-colors" :class="$route.path === '/' ? 'bg-white/10' : 'group-hover:bg-white/5'">
             <LayoutDashboard class="w-6 h-6" />
           </div>
-          <span class="text-[10px] font-bold uppercase tracking-widest">Dashboard</span>
+          <span class="text-[10px] font-bold uppercase tracking-widest">My Habits</span>
+        </NuxtLink>
+        <NuxtLink to="/buckets" class="flex flex-col items-center gap-1 group transition-colors" :class="$route.path === '/buckets' ? 'text-white' : 'text-zinc-500'">
+          <div class="p-1 rounded-lg transition-colors" :class="$route.path === '/buckets' ? 'bg-white/10' : 'group-hover:bg-white/5'">
+            <PaintBucket class="w-6 h-6" />
+          </div>
+          <span class="text-[10px] font-bold uppercase tracking-widest">Buckets</span>
         </NuxtLink>
         <NuxtLink to="/social" class="flex flex-col items-center gap-1 group transition-colors relative" :class="$route.path === '/social' ? 'text-white' : 'text-zinc-500'">
           <div class="p-1 rounded-lg transition-colors" :class="$route.path === '/social' ? 'bg-white/10' : 'group-hover:bg-white/5'">
@@ -67,13 +74,13 @@
 </template>
 
 <script setup lang="ts">
-import { LogOut, LayoutDashboard, Users, User as UserIcon } from 'lucide-vue-next';
+import { LogOut, LayoutDashboard, Users, User as UserIcon, PaintBucket } from 'lucide-vue-next';
 
 const { user, fetchUser } = useAuth();
 const { pendingCount, init: initSocial, cleanup: cleanupSocial, logoutCleanup } = useSocial();
 
 useSeoMeta({
-  title: 'Dashboard - HabitsSocial',
+  title: 'My Habits - HabitsSocial',
   ogTitle: 'HabitsSocial',
   description: 'Track and build better habits with your friends on HabitsSocial.',
   ogDescription: 'Track and build better habits with your friends on HabitsSocial.',
