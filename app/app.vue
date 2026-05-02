@@ -37,6 +37,8 @@
 import { Check as CheckIcon, X as XIcon, Minus as MinusIcon } from 'lucide-vue-next';
 
 const { isVisible, message, type } = useToast();
+const { sync } = useHabitsApi();
+const { user } = useAuth();
 
 onMounted(() => {
   // Purge any existing service workers that might be caching stale HTML/sessions
@@ -49,6 +51,15 @@ onMounted(() => {
     });
   }
 });
+
+// Initial sync to hydrate the local database when user is logged in
+watch(() => user.value?.id, (newId) => {
+  if (newId) {
+    console.log('[Offline First] User detected, starting initial sync...');
+    sync();
+  }
+}, { immediate: true });
+
 
 useHead({
   htmlAttrs: { class: 'dark' },

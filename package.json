@@ -18,6 +18,7 @@
     "@vueuse/motion": "^3.0.3",
     "bcrypt-ts": "^5.0.3",
     "date-fns": "^4.1.0",
+    "dexie": "^4.4.2",
     "jose": "^6.0.0",
     "lucide-vue-next": "^1.0.0",
     "nuxt": "^4.4.2",

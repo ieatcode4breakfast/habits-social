@@ -437,7 +437,7 @@ useSeoMeta({
 });
 
 const buckets = ref<Bucket[]>([]);
-const logs = ref<BucketLog[]>([]);
+const habitLogs = ref<HabitLog[]>([]);
 const availableHabits = ref<Habit[]>([]);
 const loading = ref(true);
 
@@ -495,8 +495,17 @@ const isFaded = (bucket: Bucket) => {
 };
 
 const getStatus = (bucketId: string, day: Date) => {
+  const bucket = buckets.value.find(b => b.id === bucketId);
+  if (!bucket || !bucket.habitIds?.length) return null;
+
   const dateStr = format(day, 'yyyy-MM-dd');
-  return logs.value.find(l => l.bucketid === bucketId && l.date === dateStr)?.status;
+  
+  // Logic: Bucket is completed if ALL its habits are completed for that day
+  const allCompleted = bucket.habitIds.every(hId => 
+    habitLogs.value.find(l => l.habitid === hId && l.date === dateStr)?.status === 'completed'
+  );
+  
+  return allCompleted ? 'completed' : null;
 };
 
 const load = async (silent = false) => {
@@ -504,11 +513,11 @@ const load = async (silent = false) => {
   try {
     const [b, l, h] = await Promise.all([
       api.getBuckets(), 
-      api.getBucketLogs(startDate, endDate),
+      api.getLogs(startDate, endDate),
       api.getHabits()
     ]);
     buckets.value = b;
-    logs.value = l;
+    habitLogs.value = l;
     availableHabits.value = h;
   } catch (error) {
     console.error('[Buckets] load() failed:', error);
