@@ -54,10 +54,10 @@
           </div>
 
           <div class="px-4 sm:px-8 py-4 border-t border-zinc-800 bg-zinc-925/80 backdrop-blur-md flex gap-3 shrink-0">
-            <button @click="close" class="flex-1 px-5 py-3 bg-transparent hover:bg-zinc-925 text-zinc-400 hover:text-zinc-200 font-semibold rounded-xl transition-all cursor-pointer">
+            <button @click="close" class="flex-1 px-5 py-3 bg-transparent hover:bg-zinc-925 text-zinc-400 hover:text-zinc-200 font-semibold rounded-xl transition-all cursor-pointer whitespace-nowrap">
               Cancel
             </button>
-            <button @click="executeBatchShare" :disabled="sharing" class="flex-1 px-5 py-3 bg-white hover:bg-zinc-200 text-black font-semibold rounded-xl transition-all shadow-lg shadow-white/5 cursor-pointer disabled:opacity-50 flex items-center justify-center gap-2">
+            <button @click="executeBatchShare" :disabled="sharing" class="flex-1 px-5 py-3 bg-white hover:bg-zinc-200 text-black font-semibold rounded-xl transition-all shadow-lg shadow-white/5 cursor-pointer disabled:opacity-50 flex items-center justify-center gap-2 whitespace-nowrap">
               <template v-if="sharing">
                 <div class="w-4 h-4 border-2 border-black/20 border-t-black rounded-full animate-spin"></div>
                 Saving...

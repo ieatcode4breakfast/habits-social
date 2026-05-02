@@ -12,7 +12,7 @@
       <button 
         type="button" 
         @click="openAvatarModal"
-        class="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-white text-xs font-bold rounded-xl transition-all cursor-pointer flex items-center gap-2"
+        class="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-white text-xs font-bold rounded-xl transition-all cursor-pointer flex items-center gap-2 whitespace-nowrap"
       >
         <RefreshCw class="w-3.5 h-3.5" />
         Change Avatar
@@ -47,7 +47,7 @@
               <div class="flex items-center gap-2">
                 <button 
                   @click="generateAvatars"
-                  class="p-2 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded-xl transition-all cursor-pointer flex items-center gap-2 text-sm font-bold"
+                  class="p-2 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded-xl transition-all cursor-pointer flex items-center gap-2 text-sm font-bold whitespace-nowrap"
                 >
                   <RefreshCw class="w-4 h-4" />
                   Refresh
@@ -85,7 +85,7 @@
             <div class="mt-8">
               <button 
                 @click="showAvatarModal = false"
-                class="w-full py-4 bg-zinc-900 text-white font-bold rounded-2xl hover:bg-zinc-800 transition-all cursor-pointer"
+                class="w-full py-4 bg-zinc-900 text-white font-bold rounded-2xl hover:bg-zinc-800 transition-all cursor-pointer whitespace-nowrap"
               >
                 Cancel
               </button>

@@ -139,7 +139,7 @@
               <button
                 type="button"
                 @click="handleProfileCloseAttempt"
-                class="flex-1 px-5 py-3 bg-transparent hover:bg-zinc-925 text-zinc-400 hover:text-zinc-200 font-semibold rounded-xl transition-all cursor-pointer"
+                class="flex-1 px-5 py-3 bg-transparent hover:bg-zinc-925 text-zinc-400 hover:text-zinc-200 font-semibold rounded-xl transition-all cursor-pointer whitespace-nowrap"
               >
                 Cancel
               </button>
@@ -147,7 +147,7 @@
                 type="submit"
                 form="profileForm"
                 :disabled="isUpdating"
-                class="flex-1 px-5 py-3 bg-white hover:bg-zinc-200 text-black font-semibold rounded-xl transition-all shadow-lg shadow-white/5 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                class="flex-1 px-5 py-3 bg-white hover:bg-zinc-200 text-black font-semibold rounded-xl transition-all shadow-lg shadow-white/5 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer whitespace-nowrap"
               >
                 <template v-if="isUpdating">
                   <div class="w-4 h-4 border-2 border-black/20 border-t-black rounded-full animate-spin"></div>
@@ -189,13 +189,13 @@
             <div class="flex flex-col gap-3">
               <button 
                 @click="discardChangesAndClose"
-                class="w-full py-4 bg-rose-500 text-white font-bold rounded-2xl hover:bg-rose-600 transition-all cursor-pointer"
+                class="w-full py-4 bg-rose-500 text-white font-bold rounded-2xl hover:bg-rose-600 transition-all cursor-pointer whitespace-nowrap"
               >
                 Yes, Discard Changes
               </button>
               <button 
                 @click="showUnsavedChangesModal = false"
-                class="w-full py-4 bg-zinc-900 text-zinc-400 font-bold rounded-2xl hover:bg-zinc-800 hover:text-white transition-all cursor-pointer"
+                class="w-full py-4 bg-zinc-900 text-zinc-400 font-bold rounded-2xl hover:bg-zinc-800 hover:text-white transition-all cursor-pointer whitespace-nowrap"
               >
                 Continue Editing
               </button>
@@ -234,14 +234,14 @@
               <button 
                 @click="confirmProfileUpdate"
                 :disabled="isUpdating"
-                class="w-full py-4 bg-white text-black font-bold rounded-2xl hover:bg-zinc-200 transition-all cursor-pointer flex items-center justify-center gap-2"
+                class="w-full py-4 bg-white text-black font-bold rounded-2xl hover:bg-zinc-200 transition-all cursor-pointer flex items-center justify-center gap-2 whitespace-nowrap"
               >
                 <Loader2 v-if="isUpdating" class="w-4 h-4 animate-spin" />
                 {{ isUpdating ? 'Saving...' : 'Yes, Update Profile' }}
               </button>
               <button 
                 @click="showConfirmModal = false"
-                class="w-full py-4 bg-zinc-900 text-zinc-400 font-bold rounded-2xl hover:bg-zinc-800 hover:text-white transition-all cursor-pointer"
+                class="w-full py-4 bg-zinc-900 text-zinc-400 font-bold rounded-2xl hover:bg-zinc-800 hover:text-white transition-all cursor-pointer whitespace-nowrap"
               >
                 Cancel
               </button>
