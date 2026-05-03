@@ -146,7 +146,7 @@ export default defineEventHandler(async (event) => {
       const updatedHabit = await recalculateHabitStreak(sql, habitId, userId, dateStr);
       const updatedBuckets = await syncBucketLogsForHabit(sql, habitId, userId, dateStr);
 
-      const pusher = usePusher();
+      const pusher = usePusher(event);
       if (pusher) {
         await pusher.trigger(`user-${userId}-habits`, 'sync-settled', { timestamp: Date.now() });
       }
@@ -171,7 +171,7 @@ export default defineEventHandler(async (event) => {
       const updatedHabit = await recalculateHabitStreak(sql, habitId, userId, dateStr);
       const updatedBuckets = await syncBucketLogsForHabit(sql, habitId, userId, dateStr);
 
-      const pusher = usePusher();
+      const pusher = usePusher(event);
       if (pusher) {
         await pusher.trigger(`user-${userId}-habits`, 'sync-settled', { timestamp: Date.now() });
       }
