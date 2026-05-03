@@ -95,7 +95,7 @@ export default defineEventHandler(async (event) => {
   }
 
   if (event.method === 'POST') {
-    const body = await readBody(event);
+    const body = event.context.body || await readBody(event);
     const habitId = String(body.habitid || body.habitId || '');
     const dateStr = String(body.date || '');
     const status = String(body.status || '');
