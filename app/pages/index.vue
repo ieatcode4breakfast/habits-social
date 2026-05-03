@@ -104,7 +104,10 @@
         <div class="flex-1 min-w-[320px] flex justify-center sm:justify-end items-end gap-4">
           <div class="flex justify-evenly items-end w-full max-w-lg">
             <div v-for="(day, i) in days" :key="i" class="flex flex-col items-center gap-2">
-              <div class="text-[10px] uppercase tracking-tighter text-zinc-500 font-black">
+              <div 
+                class="text-[10px] uppercase tracking-tighter font-black transition-colors"
+                :class="isToday(day) ? 'text-white' : 'text-zinc-500'"
+              >
                 {{ format(day, 'EEE') }}
               </div>
               
@@ -116,49 +119,23 @@
                     getStatus(habit.id, day) === 'completed' ? 'bg-emerald-500 border-emerald-500 shadow-md shadow-emerald-500/20' :
                     getStatus(habit.id, day) === 'failed' ? 'bg-rose-500 border-rose-500 shadow-md shadow-rose-500/20' :
                     getStatus(habit.id, day) === 'skipped' ? 'bg-zinc-500 border-zinc-500 shadow-none' :
+                    getStatus(habit.id, day) === 'vacation' ? 'bg-amber-500 border-amber-500 shadow-md shadow-amber-500/20' :
                     'bg-transparent hover:bg-zinc-925 border-dashed border-zinc-800'
                   ]"
                 >
                   <Check v-if="getStatus(habit.id, day) === 'completed'" class="w-4 h-4 text-white" />
                   <XIcon v-else-if="getStatus(habit.id, day) === 'failed'" class="w-4 h-4 text-white" />
                   <Minus v-else-if="getStatus(habit.id, day) === 'skipped'" class="w-4 h-4 text-white" />
+                  <Palmtree v-else-if="getStatus(habit.id, day) === 'vacation'" class="w-4 h-4 text-white" />
                 </button>
 
-                <!-- Status Dropdown -->
-                <Teleport to="body">
-                  <Transition
-                    enter-active-class="transition duration-200 ease-out"
-                    enter-from-class="opacity-0 scale-95 -translate-y-2"
-                    enter-to-class="opacity-100 scale-100 translate-y-0"
-                    leave-active-class="transition duration-150 ease-in"
-                    leave-from-class="opacity-100 scale-100 translate-y-0"
-                    leave-to-class="opacity-0 scale-95 -translate-y-2"
-                  >
-                    <div 
-                      v-if="activeLogMenu && activeLogMenu.habitId === habit.id && isSameDay(activeLogMenu.date, day)"
-                      class="fixed z-[200] bg-zinc-900/95 backdrop-blur-xl border border-zinc-800 rounded-2xl shadow-2xl p-1.5 flex flex-col gap-1.5 -translate-x-1/2"
-                      :style="{ 
-                        top: `${menuPosition.top + 8}px`, 
-                        left: `${menuPosition.left}px` 
-                      }"
-                      @click.stop
-                    >
-                      <button
-                        v-for="opt in getLogOptions(habit, day)"
-                        :key="opt.label"
-                        @click.stop="setLogStatus(habit, day, opt.status)"
-                        class="w-8 h-8 rounded-lg flex items-center justify-center transition-all border-2 cursor-pointer relative"
-                        :class="opt.bgColor"
-                        :title="opt.label"
-                      >
-                        <component :is="opt.icon" class="w-3.5 h-3.5" :class="opt.color" />
-                      </button>
-                    </div>
-                  </Transition>
-                </Teleport>
+                <!-- Status Dropdown (REMOVED FROM HERE - NOW GLOBAL) -->
               </div>
 
-              <div class="text-[10px] font-bold text-white">
+              <div 
+                class="text-[10px] font-bold transition-colors"
+                :class="isToday(day) ? 'text-white' : 'text-zinc-500'"
+              >
                 {{ format(day, 'd') }}
               </div>
             </div>
@@ -518,46 +495,17 @@
                               getStatus(editingHabit!.id, day) === 'completed' ? 'bg-emerald-500 border-emerald-500 shadow-md shadow-emerald-500/20' :
                               getStatus(editingHabit!.id, day) === 'failed' ? 'bg-rose-500 border-rose-500 shadow-md shadow-rose-500/20' :
                               getStatus(editingHabit!.id, day) === 'skipped' ? 'bg-zinc-500 border-zinc-500 shadow-none' :
+                              getStatus(editingHabit!.id, day) === 'vacation' ? 'bg-amber-500 border-amber-500 shadow-md shadow-amber-500/20' :
                               'border-dashed border-zinc-800 bg-transparent hover:bg-zinc-925'
                             ]"
                           >
                             <Check v-if="getStatus(editingHabit!.id, day) === 'completed'" class="w-3 h-3 text-white" />
                             <XIcon v-else-if="getStatus(editingHabit!.id, day) === 'failed'" class="w-3 h-3 text-white" />
                             <span v-else-if="getStatus(editingHabit!.id, day) === 'skipped'" class="w-3 h-0.5 bg-white rounded-full"></span>
+                            <Palmtree v-else-if="getStatus(editingHabit!.id, day) === 'vacation'" class="w-3 h-3 text-white" />
                           </button>
 
-                          <!-- Status Dropdown (Calendar) -->
-                          <Teleport to="body">
-                            <Transition
-                              enter-active-class="transition duration-200 ease-out"
-                              enter-from-class="opacity-0 scale-95 -translate-y-2"
-                              enter-to-class="opacity-100 scale-100 translate-y-0"
-                              leave-active-class="transition duration-150 ease-in"
-                              leave-from-class="opacity-100 scale-100 translate-y-0"
-                              leave-to-class="opacity-0 scale-95 -translate-y-2"
-                            >
-                              <div 
-                                v-if="activeLogMenu && activeLogMenu.habitId === editingHabit?.id && isSameDay(activeLogMenu.date, day)"
-                                class="fixed z-[200] bg-zinc-900/95 backdrop-blur-xl border border-zinc-800 rounded-2xl shadow-2xl p-1.5 flex flex-col gap-1.5 -translate-x-1/2"
-                                :style="{ 
-                                  top: `${menuPosition.top + 8}px`, 
-                                  left: `${menuPosition.left}px` 
-                                }"
-                                @click.stop
-                              >
-                                <button
-                                  v-for="opt in getLogOptions(editingHabit!, day)"
-                                  :key="opt.label"
-                                  @click.stop="setLogStatus(editingHabit!, day, opt.status)"
-                                  class="w-8 h-8 rounded-lg flex items-center justify-center transition-all border-2 cursor-pointer relative"
-                                  :class="opt.bgColor"
-                                  :title="opt.label"
-                                >
-                                  <component :is="opt.icon" class="w-3.5 h-3.5" :class="opt.color" />
-                                </button>
-                              </div>
-                            </Transition>
-                          </Teleport>
+                          <!-- Status Dropdown (REMOVED FROM HERE - NOW GLOBAL) -->
                         </div>
                         <div class="text-[9px] font-bold" :class="[
                           day.getMonth() === currentCalendarDate.getMonth() ? 'text-white' : 'text-zinc-600',
@@ -800,11 +748,54 @@
         </div>
       </Transition>
     </Teleport>
+
+    <!-- Global Log Menu -->
+    <Teleport to="body">
+      <Transition
+        enter-active-class="transition duration-200 ease-out"
+        enter-from-class="opacity-0 scale-95 -translate-y-2"
+        enter-to-class="opacity-100 scale-100 translate-y-0"
+        leave-active-class="transition duration-150 ease-in"
+        leave-from-class="opacity-100 scale-100 translate-y-0"
+        leave-to-class="opacity-0 scale-95 -translate-y-2"
+      >
+        <div 
+          v-if="activeLogMenu && activeHabitForMenu"
+          ref="floatingRef"
+          class="fixed z-[200] bg-zinc-900/95 backdrop-blur-xl border border-zinc-800 rounded-2xl shadow-2xl p-1.5 flex flex-row gap-1.5"
+          :style="floatingStyles"
+          @click.stop
+        >
+          <button
+            v-for="opt in getLogOptions(activeHabitForMenu, activeLogMenu.date)"
+            :key="opt.label"
+            @click.stop="setLogStatus(activeHabitForMenu, activeLogMenu.date, opt.status)"
+            class="w-9 h-9 rounded-lg flex items-center justify-center transition-all border-2 cursor-pointer relative"
+            :class="opt.bgColor"
+            :title="opt.label"
+          >
+            <component :is="opt.icon" class="w-4 h-4" :class="opt.color" />
+          </button>
+
+          <!-- Arrow -->
+          <div 
+            ref="arrowRef"
+            class="absolute w-3 h-3 bg-zinc-900 border-r border-b border-zinc-800 rotate-45"
+            :style="{
+              left: middlewareData.arrow?.x != null ? `${middlewareData.arrow.x}px` : '',
+              top: middlewareData.arrow?.y != null ? `${middlewareData.arrow.y}px` : '',
+              bottom: '-6px'
+            }"
+          ></div>
+        </div>
+      </Transition>
+    </Teleport>
   </div>
 </template>
 
 <script setup lang="ts">
 import { Plus, Trash2, Check, X as XIcon, Minus, ChevronLeft, ChevronRight, User, ChevronUp, ChevronDown, Edit2, Save, CheckSquare, GripVertical, ArrowUpDown, Flame, Palmtree } from 'lucide-vue-next';
+import { useFloating, offset, flip, shift, arrow, autoUpdate } from '@floating-ui/vue';
 import { format, subDays, isToday, startOfMonth, endOfMonth, eachDayOfInterval, addMonths, subMonths, isAfter, startOfDay, addDays, isSameWeek, isSameMonth, getDaysInMonth, parseISO, startOfWeek, isBefore, isSameDay } from 'date-fns';
 import type { Habit, HabitLog } from '~/composables/useHabitsApi';
 
@@ -899,7 +890,7 @@ const isMarkable = (day: Date) => {
   const limit = subDays(t, 13); // Last 14 days including today
   return !isBefore(d, limit) && !isAfter(d, t);
 };
-const days = Array.from({ length: 7 }, (_, i) => subDays(today, 6 - i));
+const days = Array.from({ length: 7 }, (_, i) => addDays(startOfWeek(today, { weekStartsOn: 0 }), i));
 const startDate = format(startOfMonth(subMonths(today, 1)), 'yyyy-MM-dd');
 const endDate = format(endOfMonth(addMonths(today, 1)), 'yyyy-MM-dd');
 
@@ -930,7 +921,7 @@ const getStreakTheme = (count: number) => {
 
 const getFrequencyText = (habit: Habit) => {
   const period = habit.skipsPeriod;
-  const maxSkips = habit.skipsCount || 0;
+  const maxSkips = habit.skipsCount ?? 0;
   const now = new Date();
 
   let skipped = 0;
@@ -983,21 +974,39 @@ const getStatus = (habitId: string, day: Date) => {
 };
 
 const activeLogMenu = ref<{ habitId: string, date: Date } | null>(null);
-const menuPosition = ref({ top: 0, left: 0 });
+const floatingRef = ref<HTMLElement | null>(null);
+const referenceRef = ref<HTMLElement | null>(null);
+const arrowRef = ref<HTMLElement | null>(null);
+
+const { floatingStyles, middlewareData } = useFloating(referenceRef, floatingRef, {
+  placement: 'top',
+  middleware: [
+    offset(12),
+    flip(),
+    shift({ padding: 10 }),
+    arrow({ element: arrowRef })
+  ],
+  whileElementsMounted: autoUpdate
+});
+
+const activeHabitForMenu = computed(() => {
+  if (!activeLogMenu.value) return null;
+  return habits.value.find(h => h.id === activeLogMenu.value?.habitId) || (editingHabit.value?.id === activeLogMenu.value?.habitId ? editingHabit.value : null);
+});
 const openLogMenu = (habit: Habit, day: Date, event: MouseEvent) => {
   if (!isMarkable(day)) {
     showToast('You can only update habits for the last 14 days', 'failed');
     return;
   }
-  if (activeLogMenu.value?.habitId === habit.id && isSameDay(activeLogMenu.value.date, day)) {
+  if (activeLogMenu.value && activeLogMenu.value.habitId === habit.id && isSameDay(activeLogMenu.value.date, day)) {
     activeLogMenu.value = null;
+    referenceRef.value = null;
   } else {
-    const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
-    menuPosition.value = {
-      top: rect.bottom,
-      left: rect.left + rect.width / 2
-    };
-    activeLogMenu.value = { habitId: habit.id, date: day };
+    const el = (event.target as HTMLElement).closest('button');
+    if (el) {
+      referenceRef.value = el;
+      activeLogMenu.value = { habitId: habit.id, date: day };
+    }
   }
 };
 
@@ -1011,7 +1020,7 @@ const getLogOptions = (habit: Habit, day: Date) => {
   // Use modal values if currently editing this habit to enforce rules immediately
   const isEditingThis = showEditModal.value && editingHabit.value?.id === habit.id;
   const skipsPeriod = isEditingThis ? editSkipsPeriod.value : habit.skipsPeriod;
-  const skipsCount = isEditingThis ? editSkipsCount.value : (habit.skipsCount || 2);
+  const skipsCount = isEditingThis ? editSkipsCount.value : (habit.skipsCount ?? 2);
 
   let maxSkips = 0;
   let usedSkips = 0;
@@ -1207,7 +1216,7 @@ const openEditModal = (habit: Habit) => {
   editingHabit.value = habit;
   editTitle.value = habit.title;
   editDescription.value = habit.description || '';
-  editSkipsCount.value = habit.skipsCount || 2;
+  editSkipsCount.value = habit.skipsCount ?? 2;
   editSkipsPeriod.value = habit.skipsPeriod as 'none' | 'weekly'|'monthly' || 'weekly';
   editSharedWith.value = [...(habit.sharedwith || [])];
   editSharedWithWorking.value = [...(habit.sharedwith || [])];

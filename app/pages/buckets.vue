@@ -84,7 +84,10 @@
           <div class="flex-1 min-w-[320px] flex justify-center sm:justify-end items-end gap-4 pointer-events-none">
             <div class="flex justify-evenly items-end w-full max-w-lg">
               <div v-for="(day, i) in days" :key="i" class="flex flex-col items-center gap-2">
-                <div class="text-[10px] uppercase tracking-tighter text-zinc-500 font-black">
+                <div 
+                  class="text-[10px] uppercase tracking-tighter font-black transition-colors"
+                  :class="isToday(day) ? 'text-white' : 'text-zinc-500'"
+                >
                   {{ format(day, 'EEE') }}
                 </div>
                 
@@ -95,16 +98,21 @@
                       getStatus(bucket.id, day) === 'completed' ? 'bg-emerald-500 border-emerald-500 shadow-md shadow-emerald-500/20' :
                       getStatus(bucket.id, day) === 'failed' ? 'bg-rose-500 border-rose-500 shadow-md shadow-rose-500/20' :
                       getStatus(bucket.id, day) === 'skipped' ? 'bg-zinc-500 border-zinc-500 shadow-none' :
+                      getStatus(bucket.id, day) === 'vacation' ? 'bg-amber-500 border-amber-500 shadow-md shadow-amber-500/20' :
                       'bg-transparent border-dashed border-zinc-800'
                     ]"
                   >
                     <Check v-if="getStatus(bucket.id, day) === 'completed'" class="w-4 h-4 text-white" />
                     <XIcon v-else-if="getStatus(bucket.id, day) === 'failed'" class="w-4 h-4 text-white" />
                     <Minus v-else-if="getStatus(bucket.id, day) === 'skipped'" class="w-4 h-4 text-white" />
+                    <Palmtree v-else-if="getStatus(bucket.id, day) === 'vacation'" class="w-4 h-4 text-white" />
                   </div>
                 </div>
 
-                <div class="text-[10px] font-bold text-white">
+                <div 
+                  class="text-[10px] font-bold transition-colors"
+                  :class="isToday(day) ? 'text-white' : 'text-zinc-500'"
+                >
                   {{ format(day, 'd') }}
                 </div>
               </div>
@@ -328,6 +336,76 @@
                   </div>
                 </div>
 
+                <!-- Monthly Calendar View -->
+                <div class="space-y-4">
+                  <div class="flex items-center justify-between px-2">
+                    <h3 class="text-sm font-bold uppercase tracking-widest text-white">
+                      {{ format(currentCalendarDate, 'MMMM yyyy') }}
+                    </h3>
+                    <div class="flex gap-2">
+                      <button type="button" @click="prevMonth" class="p-2 hover:bg-zinc-925 rounded-lg text-zinc-400 hover:text-zinc-200 transition-colors cursor-pointer">
+                        <ChevronLeft class="w-4 h-4" />
+                      </button>
+                      <button type="button" @click="nextMonth" class="p-2 hover:bg-zinc-925 rounded-lg text-zinc-400 hover:text-zinc-200 transition-colors cursor-pointer">
+                        <ChevronRight class="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+
+                  <div class="bg-black rounded-2xl p-4 border border-zinc-925 relative">
+                    <!-- Loading Overlay -->
+                    <Transition
+                      enter-active-class="transition duration-200 ease-out"
+                      enter-from-class="opacity-0"
+                      enter-to-class="opacity-100"
+                      leave-active-class="transition duration-300 ease-in"
+                      leave-from-class="opacity-100"
+                      leave-to-class="opacity-0"
+                    >
+                      <div v-if="calendarLoading" class="absolute inset-0 z-10 bg-black/40 backdrop-blur-[2px] flex items-center justify-center rounded-2xl">
+                        <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-white"></div>
+                      </div>
+                    </Transition>
+                    <div class="grid grid-cols-7 gap-y-4 gap-x-1">
+                      <!-- Day Headers -->
+                      <div v-for="dayName in ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']" :key="dayName" class="text-[10px] text-center font-black uppercase tracking-tighter text-zinc-600 mb-1">
+                        {{ dayName }}
+                      </div>
+
+                      <!-- Calendar Grid -->
+                      <div v-for="(day, i) in calendarDays" :key="i" class="flex flex-col items-center gap-1">
+                        <div class="relative">
+                          <div
+                            class="w-8 h-8 rounded-lg flex items-center justify-center transition-all border-2 relative"
+                            :class="[
+                              (day.getMonth() !== currentCalendarDate.getMonth()) ? 'opacity-30' : '',
+                              getStatus(editingBucket!.id, day) === 'completed' ? 'bg-emerald-500 border-emerald-500 shadow-md shadow-emerald-500/20' :
+                              getStatus(editingBucket!.id, day) === 'failed' ? 'bg-rose-500 border-rose-500 shadow-md shadow-rose-500/20' :
+                              getStatus(editingBucket!.id, day) === 'skipped' ? 'bg-zinc-500 border-zinc-500 shadow-none' :
+                              getStatus(editingBucket!.id, day) === 'vacation' ? 'bg-amber-500 border-amber-500 shadow-md shadow-amber-500/20' :
+                              'border-dashed border-zinc-800 bg-transparent'
+                            ]"
+                          >
+                            <Check v-if="getStatus(editingBucket!.id, day) === 'completed'" class="w-3 h-3 text-white" />
+                            <XIcon v-else-if="getStatus(editingBucket!.id, day) === 'failed'" class="w-3 h-3 text-white" />
+                            <Minus v-else-if="getStatus(editingBucket!.id, day) === 'skipped'" class="w-3 h-3 text-white" />
+                            <Palmtree v-else-if="getStatus(editingBucket!.id, day) === 'vacation'" class="w-3 h-3 text-white" />
+                          </div>
+                        </div>
+                        <div 
+                          class="text-[9px] font-bold transition-colors" 
+                          :class="[
+                            isToday(day) ? 'text-white' : (day.getMonth() === currentCalendarDate.getMonth() ? 'text-zinc-400' : 'text-zinc-600'),
+                            day.getMonth() !== currentCalendarDate.getMonth() ? 'opacity-30' : ''
+                          ]"
+                        >
+                          {{ format(day, 'd') }}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
                 <!-- Habits Group -->
                 <div class="space-y-3 pt-4">
                   <div class="flex items-center justify-between">
@@ -424,8 +502,8 @@
 </template>
 
 <script setup lang="ts">
-import { Plus, Trash2, Check, X as XIcon, Minus, ChevronLeft, Flame, PaintBucket } from 'lucide-vue-next';
-import { format, subDays, startOfMonth, endOfMonth, addMonths, subMonths, isAfter, startOfDay, parseISO } from 'date-fns';
+import { Plus, Trash2, Check, X as XIcon, Minus, ChevronLeft, ChevronRight, Flame, PaintBucket, Palmtree } from 'lucide-vue-next';
+import { format, subDays, startOfMonth, endOfMonth, eachDayOfInterval, addMonths, subMonths, isAfter, startOfDay, parseISO, isToday, startOfWeek, addDays } from 'date-fns';
 import type { Bucket, BucketLog, Habit } from '~/composables/useHabitsApi';
 
 definePageMeta({ middleware: 'auth' });
@@ -462,8 +540,57 @@ const isAddingBucket = ref(false);
 const isDeletingBucket = ref(false);
 const isUpdatingBucket = ref(false);
 
+const currentCalendarDate = ref(new Date());
+const calendarLoading = ref(false);
+
+const calendarDays = computed(() => {
+  const start = startOfMonth(currentCalendarDate.value);
+  const end = endOfMonth(currentCalendarDate.value);
+  const daysInMonth = eachDayOfInterval({ start, end });
+  const firstDay = start.getDay();
+  const paddingStart = Array.from({ length: firstDay }, (_, i) => subDays(start, firstDay - i));
+  const lastDay = end.getDay();
+  const paddingEnd = Array.from({ length: 6 - lastDay }, (_, i) => addDays(end, i + 1));
+  return [...paddingStart, ...daysInMonth, ...paddingEnd];
+});
+
+const prevMonth = () => currentCalendarDate.value = subMonths(currentCalendarDate.value, 1);
+const nextMonth = () => currentCalendarDate.value = addMonths(currentCalendarDate.value, 1);
+
+watch(currentCalendarDate, async (newDate) => {
+  if (showEditModal.value) {
+    const start = format(startOfMonth(newDate), 'yyyy-MM-dd');
+    const end = format(endOfMonth(newDate), 'yyyy-MM-dd');
+    calendarLoading.value = true;
+    try {
+      const [newHabitLogs, newBucketLogs] = await Promise.all([
+        api.getLogs(start, end),
+        api.getBucketLogs(start, end)
+      ]);
+      
+      // Merge habit logs
+      newHabitLogs.forEach(nl => {
+        const idx = habitLogs.value.findIndex(l => l.id === nl.id);
+        if (idx >= 0) habitLogs.value[idx] = nl;
+        else habitLogs.value.push(nl);
+      });
+      
+      // Merge bucket logs
+      newBucketLogs.forEach(nl => {
+        const idx = bucketLogs.value.findIndex(l => l.id === nl.id);
+        if (idx >= 0) bucketLogs.value[idx] = nl;
+        else bucketLogs.value.push(nl);
+      });
+    } catch (err) {
+      console.error('[Buckets] Failed to fetch historical logs:', err);
+    } finally {
+      calendarLoading.value = false;
+    }
+  }
+});
+
 const today = new Date();
-const days = Array.from({ length: 7 }, (_, i) => subDays(today, 6 - i));
+const days = Array.from({ length: 7 }, (_, i) => addDays(startOfWeek(today, { weekStartsOn: 0 }), i));
 const startDate = format(startOfMonth(subMonths(today, 1)), 'yyyy-MM-dd');
 const endDate = format(endOfMonth(addMonths(today, 1)), 'yyyy-MM-dd');
 
@@ -499,7 +626,7 @@ const isFaded = (bucket: Bucket) => {
   return isAfter(yesterday, anchor);
 };
 
-const getStatus = (bucketId: string, day: Date): 'completed' | 'failed' | 'skipped' | 'cleared' | null => {
+const getStatus = (bucketId: string, day: Date): 'completed' | 'failed' | 'skipped' | 'vacation' | 'cleared' | null => {
   const dateStr = format(day, 'yyyy-MM-dd');
   const log = bucketLogs.value.find(l => l.bucketid === bucketId && l.date === dateStr);
   return (log?.status as any) || null;

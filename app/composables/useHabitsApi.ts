@@ -36,6 +36,8 @@ export interface HabitLog {
   date: string;
   status: 'completed' | 'skipped' | 'failed' | 'vacation' | 'cleared';
   sharedwith: string[];
+  streakCount?: number;
+  brokenStreakCount?: number;
 }
 
 export interface Bucket {
@@ -57,6 +59,8 @@ export interface BucketLog {
   ownerid: string;
   date: string;
   status: 'completed' | 'skipped' | 'failed' | 'vacation' | 'cleared';
+  streakCount?: number;
+  brokenStreakCount?: number;
 }
 
 export const useHabitsApi = () => {
@@ -169,11 +173,11 @@ export const useHabitsApi = () => {
         .toArray();
 
       if (logs.length === habitsInBucket.length) {
-        let finalStatus: 'completed' | 'failed' | 'skipped' = 'completed';
+        let finalStatus: 'completed' | 'failed' | 'skipped' | 'vacation' = 'completed';
         const statuses = logs.map(l => l.status);
 
         if (statuses.includes('failed')) finalStatus = 'failed';
-        else if (statuses.includes('skipped')) finalStatus = 'skipped';
+        else if (statuses.includes('skipped') || statuses.includes('vacation')) finalStatus = 'skipped';
 
         await db.bucketLogs.put({
           id: `${bucket.id}_${date}`,
