@@ -155,7 +155,7 @@ export async function syncSingleBucketLog(sql: any, bucketId: string, userId: st
 
   const logsRes = await sql`
     SELECT status, habitid FROM habitlogs 
-    WHERE habitid = ANY(${habitIds}::text[]) AND ownerid = ${userId} AND date = ${date}
+    WHERE habitid = ANY(${habitIds}::uuid[]) AND ownerid = ${userId} AND date = ${date}
       AND status != 'cleared'
   `;
 
@@ -205,7 +205,7 @@ export async function reevaluateBucketLogs(sql: any, bucketId: string, userId: s
   
   const datesRes = await sql`
     SELECT DISTINCT date FROM habitlogs 
-    WHERE habitid = ANY(${habitIds}::text[]) AND ownerid = ${userId}
+    WHERE habitid = ANY(${habitIds}::uuid[]) AND ownerid = ${userId}
       AND status != 'cleared'
   `;
   
