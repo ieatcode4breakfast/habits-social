@@ -401,8 +401,12 @@ export const useHabitsApi = () => {
             if (habit) {
               await db.habits.update(habit.id, { synced: 1 });
             }
-          } catch (e) {
-            console.warn('[Sync] Log push failed:', e);
+          } catch (e: any) {
+            if (e.statusCode === 404 || e.response?.status === 404) {
+              await db.habitLogs.delete(l.id);
+            } else {
+              console.warn('[Sync] Log push failed:', e);
+            }
           }
         }
 
@@ -451,8 +455,12 @@ export const useHabitsApi = () => {
               body: bl
             });
             await db.bucketLogs.update(bl.id, { synced: 1 });
-          } catch (e) {
-            console.warn('[Sync] BucketLog push failed:', e);
+          } catch (e: any) {
+            if (e.statusCode === 404 || e.statusCode === 405 || e.response?.status === 404 || e.response?.status === 405) {
+              await db.bucketLogs.delete(bl.id);
+            } else {
+              console.warn('[Sync] BucketLog push failed:', e);
+            }
           }
         }
 

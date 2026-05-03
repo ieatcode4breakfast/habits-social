@@ -100,6 +100,11 @@ export default defineEventHandler(async (event) => {
     const dateStr = String(body.date);
     const status = String(body.status);
 
+    const habitCheck = await sql`SELECT id FROM habits WHERE id = ${habitId} AND ownerid = ${userId}`;
+    if (habitCheck.length === 0) {
+      throw createError({ statusCode: 404, statusMessage: 'Habit not found' });
+    }
+
     const existing = await sql`
       SELECT * FROM habitlogs 
       WHERE habitid = ${habitId} AND ownerid = ${userId} AND date = ${dateStr}
