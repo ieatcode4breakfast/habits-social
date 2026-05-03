@@ -51,7 +51,7 @@
                   </div>
                 </div>
                 <div class="text-[10px] font-bold uppercase tracking-widest text-zinc-500 mt-1">
-                  <span class="capitalize">{{ habit.frequencyPeriod }}</span><template v-if="habit.frequencyPeriod !== 'daily'">, {{ habit.frequencyCount }} {{ habit.frequencyCount === 1 ? 'time' : 'times' }}</template>
+                  <span class="capitalize">{{ habit.skipsPeriod === 'none' ? 'Unlimited skips' : habit.skipsPeriod }}</span><template v-if="habit.skipsPeriod !== 'none'">, {{ habit.skipsCount || 0 }} {{ habit.skipsCount === 1 ? 'skip' : 'skips' }} allowed</template>
                 </div>
               </div>
             </div>

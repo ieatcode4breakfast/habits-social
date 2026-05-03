@@ -405,67 +405,31 @@ const getStreakTheme = (count: number) => {
 };
 
 const getFrequencyText = (habit: Habit) => {
-  const period = habit.frequencyPeriod;
-  const count = habit.frequencyCount || 1;
+  const period = habit.skipsPeriod;
+  const maxSkips = habit.skipsCount ?? 0;
   const now = new Date();
 
-  if (period === 'daily') {
-    let completed = 0;
-    for (const l of logs.value) {
-      if (l.habitid === habit.id && isToday(new Date(l.date)) && l.status === 'completed') {
-        completed++;
-      }
-    }
-    return completed >= 1 ? 'Target completed' : 'Daily, no skips';
-  } else if (period === 'weekly') {
-    const target = count;
-    const maxSkips = 7 - target;
-    
-    let completed = 0;
-    let skipped = 0;
-    
-    for (const l of logs.value) {
-      if (l.habitid === habit.id && isSameWeek(new Date(l.date), now, { weekStartsOn: 0 })) {
-        if (l.status === 'completed') completed++;
-        else if (l.status === 'skipped') skipped++;
-      }
-    }
-    
-    if (completed >= target) return 'Weekly target completed';
-    
-    if (maxSkips === 0) {
-      return `Weekly, ${completed}/${target}, no skips`;
-    } else {
-      const remainingSkips = Math.max(0, maxSkips - skipped);
-      const skipText = remainingSkips === 1 ? '1 skip remaining' : `${remainingSkips} skips remaining`;
-      return `Weekly, ${completed}/${target}, ${skipText}`;
-    }
+  let skipped = 0;
+  if (period === 'weekly') {
+    skipped = logs.value.filter(l => 
+      l.habitid === habit.id && 
+      l.status === 'skipped' && 
+      isSameWeek(new Date(l.date), now, { weekStartsOn: 0 })
+    ).length;
   } else if (period === 'monthly') {
-    const daysInMonth = getDaysInMonth(now);
-    const target = Math.min(count, daysInMonth);
-    const maxSkips = daysInMonth - target;
-    
-    let completed = 0;
-    let skipped = 0;
-    
-    for (const l of logs.value) {
-      if (l.habitid === habit.id && isSameMonth(new Date(l.date), now)) {
-        if (l.status === 'completed') completed++;
-        else if (l.status === 'skipped') skipped++;
-      }
-    }
-    
-    if (completed >= target) return 'Monthly target completed';
-    
-    if (maxSkips === 0) {
-      return `Monthly, ${completed}/${target}, no skips`;
-    } else {
-      const remainingSkips = Math.max(0, maxSkips - skipped);
-      const skipText = remainingSkips === 1 ? '1 skip remaining' : `${remainingSkips} skips remaining`;
-      return `Monthly, ${completed}/${target}, ${skipText}`;
-    }
+    skipped = logs.value.filter(l => 
+      l.habitid === habit.id && 
+      l.status === 'skipped' && 
+      isSameMonth(new Date(l.date), now)
+    ).length;
   }
-  return '';
+
+  if (period === 'none') return 'Unlimited skips';
+
+  const remainingSkips = Math.max(0, maxSkips - skipped);
+  const skipText = remainingSkips === 1 ? '1 skip remaining' : `${remainingSkips} skips remaining`;
+  
+  return `${skipText} this ${period === 'weekly' ? 'week' : 'month'}`;
 };
 
 const openHabitDetails = (habit: Habit) => {
