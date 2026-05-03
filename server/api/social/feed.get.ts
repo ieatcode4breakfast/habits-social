@@ -154,6 +154,11 @@ export default defineEventHandler(async (event) => {
       type = 'INITIAL_FAILURE';
       message = `failed [H]${log.habitTitle}[/H] for ${dateFormatted}.`;
     }
+    // Rule 1.4: Initial Vacation
+    else if (log.status === 'vacation' && log.streakCount <= 1) {
+      type = 'INITIAL_VACATION';
+      message = `took a vacation day for [H]${log.habitTitle}[/H] on ${dateFormatted}.`;
+    }
 
     // --- CATEGORY 2: STREAK DYNAMICS ---
     else if (log.status === 'completed' && log.streakCount > 1) {
@@ -209,6 +214,11 @@ export default defineEventHandler(async (event) => {
     else if (log.status === 'skipped' && log.streakCount > 1) {
       type = 'STREAK_MAINTAINED';
       message = `skipped [H]${log.habitTitle}[/H] for ${dateFormatted}; ${pronoun} ${formatStreak(log.streakCount)} remains intact.`;
+    }
+    // Trigger 2.10: Streak Maintained (Vacation)
+    else if (log.status === 'vacation' && log.streakCount > 1) {
+      type = 'STREAK_MAINTAINED_VACATION';
+      message = `took a vacation day for [H]${log.habitTitle}[/H] on ${dateFormatted}; ${pronoun} ${formatStreak(log.streakCount)} remains intact.`;
     }
 
     if (type) {

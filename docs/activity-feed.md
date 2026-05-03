@@ -55,6 +55,7 @@ The frontend consumes the feed and handles layout, routing, and styling in the `
     * Violet `Trophy` icon for Milestones and Anniversaries
     * Amber `Flame` icon for streak continuations/extensions
     * Zinc `Shield` icon for `STREAK_MAINTAINED` (Skips)
+    * Amber `Palmtree` icon for `STREAK_MAINTAINED_VACATION` (Vacation)
     * Indigo `Target` icon for `COMMITMENT` (New Habit)
     * Sky `Share2` icon for `SHARE` (Shared Habits)
 
@@ -77,6 +78,10 @@ Triggers for the first log of a potential streak (Day 1) or actions taken when n
     * **Content:** Marking a habit as failed when no active streak exists.
     * **Your Activity:** You failed Cold Shower for Apr 27.
     * **Friend Activity:** Morgan failed Cold Shower for Apr 27.
+* **Trigger 1.4: Initial Vacation**
+    * **Content:** Marking a habit as a vacation day when no active streak exists.
+    * **Your Activity:** You took a vacation day for Morning Workout on Apr 27.
+    * **Friend Activity:** Alex took a vacation day for Morning Workout on Apr 27.
 
 ### CATEGORY 2: STREAK DYNAMICS
 Chronological triggers for building, maintaining, or losing momentum from Day 2 onwards.
@@ -117,6 +122,10 @@ Chronological triggers for building, maintaining, or losing momentum from Day 2 
     * **Content:** Skipping a habit while a streak is active (the streak is paused and protected).
     * **Your Activity:** You skipped No Sugar for Apr 26; your 5-day streak remains intact.
     * **Friend Activity:** Taylor skipped No Sugar for Apr 26; their 1-year and 20-day streak (385 days) remains intact.
+* **Trigger 2.10: Streak Maintained (Vacation)**
+    * **Content:** Taking a vacation day while a streak is active (the streak is paused and protected).
+    * **Your Activity:** You took a vacation day for No Sugar on Apr 26; your 5-day streak remains intact.
+    * **Friend Activity:** Taylor took a vacation day for No Sugar on Apr 26; their 1-year and 20-day streak (385 days) remains intact.
 
 ### CATEGORY 3: SOCIAL & SHARING
 Triggers for visibility and network actions.

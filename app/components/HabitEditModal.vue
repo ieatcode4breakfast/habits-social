@@ -545,7 +545,13 @@ const cancelSharingSave = () => {
 // Auto-save logic
 let autosaveTimeout: any = null;
 watch([editTitle, editDescription, editSkipsCount, editSkipsPeriod], () => {
-  if (props.modelValue && props.habit && !isInitializingEdit) {
+  if (props.modelValue && props.habit && !isInitializingEdit.value) {
+    if (editSkipsPeriod.value === 'weekly' && editSkipsCount.value > 6) {
+      editSkipsCount.value = 6;
+    } else if (editSkipsPeriod.value === 'monthly' && editSkipsCount.value > 28) {
+      editSkipsCount.value = 28;
+    }
+
     isDirty.value = true;
     if (autosaveTimeout) clearTimeout(autosaveTimeout);
     autosaveTimeout = setTimeout(() => {
