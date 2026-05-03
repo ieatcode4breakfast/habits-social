@@ -26,14 +26,14 @@ export default defineEventHandler(async (event) => {
         const lastSynced = Number(query.lastSynced);
         userBuckets = await sql`
           SELECT * FROM buckets 
-          WHERE ownerid = ${userId}::uuid 
+          WHERE ownerid = ${userId} 
             AND updatedat >= to_timestamp(${lastSynced} / 1000.0)
           ORDER BY "sortOrder" ASC, "createdAt" ASC
         `;
       } else {
         userBuckets = await sql`
           SELECT * FROM buckets 
-          WHERE ownerid = ${userId}::uuid 
+          WHERE ownerid = ${userId} 
           ORDER BY "sortOrder" ASC, "createdAt" ASC
         `;
       }
@@ -65,7 +65,7 @@ export default defineEventHandler(async (event) => {
     try {
       const body = await readBody(event);
       
-      const countResult = await sql`SELECT COUNT(*) FROM buckets WHERE ownerid = ${userId}::uuid`;
+      const countResult = await sql`SELECT COUNT(*) FROM buckets WHERE ownerid = ${userId}`;
       const nextSortOrder = parseInt(countResult[0]?.count) || 0;
 
       if (nextSortOrder >= 30) {
@@ -79,7 +79,7 @@ export default defineEventHandler(async (event) => {
 
       const result = await sql`
         INSERT INTO buckets (id, ownerid, title, description, color, "sortOrder", "createdAt", updatedat)
-        VALUES (${body.id ? body.id : sql`DEFAULT`}, ${userId}::uuid, ${title}, ${description}, ${color}, ${nextSortOrder}, NOW(), NOW())
+        VALUES (${body.id ? body.id : sql`DEFAULT`}, ${userId}, ${title}, ${description}, ${color}, ${nextSortOrder}, NOW(), NOW())
         ON CONFLICT (id) DO UPDATE SET
           title = EXCLUDED.title,
           description = EXCLUDED.description,

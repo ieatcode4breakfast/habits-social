@@ -11,14 +11,13 @@ export default defineEventHandler(async (event) => {
 
   if (ids.length > 0) {
     await sql.transaction(ids.map((id, index) => 
-      sql`UPDATE buckets SET "sortOrder" = ${index}, updatedat = NOW() WHERE id = ${id}::uuid AND ownerid = ${userId}::uuid`
+      sql`UPDATE buckets SET "sortOrder" = ${index}, updatedat = NOW() WHERE id = ${id}::uuid AND ownerid = ${userId}`
     ));
 
     // Real-time: Notify other devices
     const pusher = usePusher();
     if (pusher) {
       await pusher.trigger(`user-${userId}-buckets`, 'bucket-updated', {});
-      await pusher.trigger(`user-${userId}-buckets`, 'sync-settled', { timestamp: Date.now() });
     }
   }
 

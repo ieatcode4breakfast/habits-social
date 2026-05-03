@@ -71,7 +71,6 @@ export default defineEventHandler(async (event) => {
     const pusher = usePusher();
     if (pusher) {
       await pusher.trigger(`user-${userId}-habits`, 'habit-updated', { habitId: id });
-      await pusher.trigger(`user-${userId}-habits`, 'sync-settled', { timestamp: Date.now() });
     }
 
     return updatedHabit;
@@ -93,7 +92,6 @@ export default defineEventHandler(async (event) => {
     if (pusher) {
       await pusher.trigger(`user-${userId}-habits`, 'habit-deleted', { habitId: id });
       await pusher.trigger(`user-${userId}-buckets`, 'bucket-needs-refresh', { habitDeleted: true });
-      await pusher.trigger(`user-${userId}-habits`, 'sync-settled', { timestamp: Date.now() });
     }
 
     return { success: true };

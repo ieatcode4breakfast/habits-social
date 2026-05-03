@@ -38,11 +38,4 @@ export default defineEventHandler(async (event) => {
     
     return logs.map(normalizeLog);
   }
-
-  if (event.method === 'POST') {
-    // Bucket logs are mostly derived on the server when habit logs are updated,
-    // but the client-side sync engine attempts to push them. 
-    // We accept them here to prevent client-side "sync failed" logic from purging local logs.
-    return { success: true };
-  }
 });

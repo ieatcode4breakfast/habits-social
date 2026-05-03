@@ -21,19 +21,19 @@ export default defineEventHandler(async (event) => {
   const [habits, buckets, habitLogs, bucketLogs, deletions] = await Promise.all([
     sql`
       SELECT * FROM habits 
-      WHERE ownerid = ${userId}::uuid 
+      WHERE ownerid = ${userId} 
       ${lastSynced > 0 ? sql`AND updatedat >= to_timestamp(${lastSynced} / 1000.0)` : sql``}
       ORDER BY "sortOrder" ASC
     `,
     sql`
       SELECT * FROM buckets 
-      WHERE ownerid = ${userId}::uuid 
+      WHERE ownerid = ${userId} 
       ${lastSynced > 0 ? sql`AND updatedat >= to_timestamp(${lastSynced} / 1000.0)` : sql``}
       ORDER BY "sortOrder" ASC
     `,
     sql`
       SELECT * FROM habitlogs 
-      WHERE ownerid = ${userId}::uuid 
+      WHERE ownerid = ${userId} 
       ${lastSynced > 0 
         ? sql`AND updatedat >= to_timestamp(${lastSynced} / 1000.0)` 
         : (query.startDate && query.endDate 
@@ -42,7 +42,7 @@ export default defineEventHandler(async (event) => {
     `,
     sql`
       SELECT * FROM bucketlogs 
-      WHERE ownerid = ${userId}::uuid 
+      WHERE ownerid = ${userId} 
       ${lastSynced > 0 
         ? sql`AND updatedat >= to_timestamp(${lastSynced} / 1000.0)` 
         : (query.startDate && query.endDate 
@@ -51,7 +51,7 @@ export default defineEventHandler(async (event) => {
     `,
     sql`
       SELECT entity_id, entity_type FROM sync_deletions
-      WHERE ownerid = ${userId}::uuid
+      WHERE ownerid = ${userId}
       ${lastSynced > 0 ? sql`AND created_at >= to_timestamp(${lastSynced} / 1000.0)` : sql``}
     `
   ]);
