@@ -458,8 +458,6 @@ const editDescriptionRef = ref<HTMLTextAreaElement | null>(null);
 const currentCalendarDate = ref(new Date());
 const calendarLoading = ref(false);
 const isAddingHabit = ref(false);
-const isDeletingHabit = ref(false);
-const isUpdatingHabit = ref(false);
 
 const draggingId = ref<string | null>(null);
 const dragOverId = ref<string | null>(null);

@@ -63,12 +63,14 @@ export interface BucketLog {
   brokenStreakCount?: number;
 }
 
+// Global module-level state to act as a true singleton lock across all components
+const isSyncing = ref(false);
+const syncNeeded = ref(false);
+
 export const useHabitsApi = () => {
   const { user } = useAuth();
   const getOwnerId = () => user.value?.id || '';
   const lastSyncTime = useState('last-sync-time', () => 0);
-  const isSyncing = ref(false);
-  let syncNeeded = false;
 
   // Helper to strip Vue reactivity before saving to IndexedDB
   const toPlain = (obj: any) => JSON.parse(JSON.stringify(obj));
@@ -314,14 +316,14 @@ export const useHabitsApi = () => {
   const sync = async () => {
     if (!user.value) return;
     if (isSyncing.value) {
-      syncNeeded = true;
+      syncNeeded.value = true;
       return;
     }
     isSyncing.value = true;
 
     try {
       do {
-        syncNeeded = false;
+        syncNeeded.value = false;
 
         // 0. Process Action Queue (Deletions & Reorders)
         const queuedActions = await db.syncQueue.toArray();
@@ -540,7 +542,7 @@ export const useHabitsApi = () => {
             return;
           }
         }
-      } while (syncNeeded);
+      } while (syncNeeded.value);
     } finally {
       isSyncing.value = false;
     }

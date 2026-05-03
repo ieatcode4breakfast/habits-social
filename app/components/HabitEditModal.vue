@@ -546,6 +546,15 @@ const cancelSharingSave = () => {
 let autosaveTimeout: any = null;
 watch([editTitle, editDescription, editSkipsCount, editSkipsPeriod], () => {
   if (props.modelValue && props.habit && !isInitializingEdit.value) {
+    const h = props.habit;
+    if (
+      editTitle.value === h.title &&
+      editDescription.value === (h.description || '') &&
+      editSkipsCount.value === (h.skipsCount ?? 2) &&
+      editSkipsPeriod.value === (h.skipsPeriod || 'weekly')
+    ) {
+      return; // Data matches the server source of truth, no actual user edit
+    }
     if (editSkipsPeriod.value === 'weekly' && editSkipsCount.value > 6) {
       editSkipsCount.value = 6;
     } else if (editSkipsPeriod.value === 'monthly' && editSkipsCount.value > 28) {
