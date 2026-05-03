@@ -28,14 +28,23 @@ export default defineEventHandler(async (event) => {
     
     const title = body.title !== undefined ? body.title : habit.title;
     const description = body.description !== undefined ? body.description : habit.description;
-    const frequencyCount = body.frequencyCount !== undefined ? body.frequencyCount : habit.frequencyCount;
-    const frequencyPeriod = body.frequencyPeriod !== undefined ? body.frequencyPeriod : habit.frequencyPeriod;
+    const skipsPeriod = body.skipsPeriod !== undefined ? body.skipsPeriod : habit.skipsPeriod;
+    const rawSkipsCount = body.skipsCount !== undefined ? body.skipsCount : habit.skipsCount;
+    
+    let skipsCount = rawSkipsCount;
+    if (skipsPeriod === 'none') {
+      skipsCount = 0;
+    } else if (skipsPeriod === 'weekly') {
+      skipsCount = Math.max(0, Math.min(6, rawSkipsCount));
+    } else if (skipsPeriod === 'monthly') {
+      skipsCount = Math.max(0, Math.min(28, rawSkipsCount));
+    }
     const color = body.color !== undefined ? body.color : habit.color;
     const sharedwith = body.sharedwith && Array.isArray(body.sharedwith) ? body.sharedwith : habit.sharedwith;
 
     const result = await sql`
       UPDATE habits
-      SET title = ${title}, description = ${description}, "frequencyCount" = ${frequencyCount}, "frequencyPeriod" = ${frequencyPeriod}, color = ${color}, sharedwith = ${sharedwith}, updatedat = NOW()
+      SET title = ${title}, description = ${description}, "skipsCount" = ${skipsCount}, "skipsPeriod" = ${skipsPeriod}, color = ${color}, sharedwith = ${sharedwith}, updatedat = NOW()
       WHERE id = ${id}::uuid
       RETURNING *
     `;

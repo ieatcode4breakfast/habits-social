@@ -2,12 +2,14 @@
 
 @theme {
   --color-zinc-925: #101013;
+  --color-nav-bg: var(--nav-bg);
 }
 
 :root {
   --font-sans: "Inter", system-ui, sans-serif;
   --color-app-bg: #000000;
   --color-card-bg: rgba(16, 16, 19, 0.8);
+  --nav-bg: #000000;
 }
 
 html, body {

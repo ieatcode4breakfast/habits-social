@@ -240,19 +240,18 @@
                 <div class="flex items-start gap-3">
                   <!-- Left: Label + Selector -->
                   <div class="flex flex-col gap-2">
-                    <label class="text-xs font-bold uppercase tracking-widest text-zinc-500 h-4 flex items-center">I will do this</label>
+                    <label class="text-xs font-bold uppercase tracking-widest text-zinc-500 h-4 flex items-center">Skips Allowed</label>
                     <select
-                      v-model="newFrequencyPeriod"
+                      v-model="newSkipsPeriod"
                       class="w-32 h-10 px-3 py-2 bg-black border border-zinc-800 rounded-lg focus:outline-none focus:ring-2 focus:ring-zinc-600 text-white appearance-none cursor-pointer text-sm"
                     >
-                      <option value="daily">Daily</option>
+                      <option value="none">No limit</option>
                       <option value="weekly">Weekly</option>
                       <option value="monthly">Monthly</option>
                     </select>
                   </div>
 
-                  <!-- Right: Stepper + Times -->
-                  <template v-if="newFrequencyPeriod !== 'daily'">
+                  <template v-if="newSkipsPeriod !== 'none'">
                     <div class="flex items-start gap-3">
                       <div class="flex items-center gap-3">
                         <div class="flex flex-col items-center">
@@ -261,9 +260,9 @@
                           </button>
                           <div class="pt-2 pb-1">
                             <input
-                              v-model.number="newFrequencyCount"
+                              v-model.number="newSkipsCount"
                               type="number"
-                              @blur="newFrequencyCount = newFrequencyPeriod === 'weekly' ? Math.max(1, Math.min(7, newFrequencyCount)) : Math.max(1, Math.min(31, newFrequencyCount))"
+                              @blur="newSkipsCount = newSkipsPeriod === 'weekly' ? Math.max(0, Math.min(6, newSkipsCount)) : (newSkipsPeriod === 'monthly' ? Math.max(0, Math.min(28, newSkipsCount)) : 0)"
                               class="w-10 h-10 bg-black border border-zinc-800 rounded-lg text-center text-sm font-medium text-white focus:outline-none focus:ring-1 focus:ring-zinc-600 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                             />
                           </div>
@@ -271,7 +270,7 @@
                             <ChevronDown class="w-3 h-3" />
                           </button>
                         </div>
-                        <span class="text-zinc-500 text-sm">{{ newFrequencyCount === 1 ? 'time' : 'times' }}</span>
+                        <span class="text-zinc-500 text-sm">{{ newSkipsCount === 1 ? 'skip' : 'skips' }}</span>
                       </div>
                     </div>
                   </template>
@@ -434,19 +433,18 @@
                 <div class="flex items-start gap-3">
                   <!-- Left: Label + Selector -->
                   <div class="flex flex-col gap-2">
-                    <label class="text-xs font-bold uppercase tracking-widest text-zinc-500 h-4 flex items-center">I will do this</label>
+                    <label class="text-xs font-bold uppercase tracking-widest text-zinc-500 h-4 flex items-center">Skips Allowed</label>
                     <select
-                      v-model="editFrequencyPeriod"
+                      v-model="editSkipsPeriod"
                       class="w-32 h-10 px-3 py-2 bg-black border border-zinc-800 rounded-lg focus:outline-none focus:ring-2 focus:ring-zinc-600 text-white appearance-none cursor-pointer text-sm"
                     >
-                      <option value="daily">Daily</option>
+                      <option value="none">No limit</option>
                       <option value="weekly">Weekly</option>
                       <option value="monthly">Monthly</option>
                     </select>
                   </div>
 
-                  <!-- Right: Stepper + Times -->
-                  <template v-if="editFrequencyPeriod !== 'daily'">
+                  <template v-if="editSkipsPeriod !== 'none'">
                     <div class="flex items-start gap-3">
                       <div class="flex items-center gap-3">
                         <div class="flex flex-col items-center">
@@ -455,9 +453,9 @@
                           </button>
                           <div class="pt-2 pb-1">
                             <input
-                              v-model.number="editFrequencyCount"
+                              v-model.number="editSkipsCount"
                               type="number"
-                              @blur="editFrequencyCount = editFrequencyPeriod === 'weekly' ? Math.max(1, Math.min(7, editFrequencyCount)) : Math.max(1, Math.min(31, editFrequencyCount))"
+                              @blur="editSkipsCount = editSkipsPeriod === 'weekly' ? Math.max(0, Math.min(6, editSkipsCount)) : (editSkipsPeriod === 'monthly' ? Math.max(0, Math.min(28, editSkipsCount)) : 0)"
                               class="w-10 h-10 bg-black border border-zinc-800 rounded-lg text-center text-sm font-medium text-white focus:outline-none focus:ring-1 focus:ring-zinc-600 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                             />
                           </div>
@@ -465,7 +463,7 @@
                             <ChevronDown class="w-3 h-3" />
                           </button>
                         </div>
-                        <span class="text-zinc-500 text-sm">{{ editFrequencyCount === 1 ? 'time' : 'times' }}</span>
+                        <span class="text-zinc-500 text-sm">{{ editSkipsCount === 1 ? 'skip' : 'skips' }}</span>
                       </div>
                     </div>
                   </template>
@@ -806,7 +804,7 @@
 </template>
 
 <script setup lang="ts">
-import { Plus, Trash2, Check, X as XIcon, Minus, ChevronLeft, ChevronRight, User, ChevronUp, ChevronDown, Edit2, Save, CheckSquare, GripVertical, ArrowUpDown, Flame } from 'lucide-vue-next';
+import { Plus, Trash2, Check, X as XIcon, Minus, ChevronLeft, ChevronRight, User, ChevronUp, ChevronDown, Edit2, Save, CheckSquare, GripVertical, ArrowUpDown, Flame, Palmtree } from 'lucide-vue-next';
 import { format, subDays, isToday, startOfMonth, endOfMonth, eachDayOfInterval, addMonths, subMonths, isAfter, startOfDay, addDays, isSameWeek, isSameMonth, getDaysInMonth, parseISO, startOfWeek, isBefore, isSameDay } from 'date-fns';
 import type { Habit, HabitLog } from '~/composables/useHabitsApi';
 
@@ -842,8 +840,8 @@ const loading = ref(true);
 
 const newTitle = ref('');
 const newDescription = ref('');
-const newFrequencyCount = ref(1);
-const newFrequencyPeriod = ref<'daily' | 'weekly' | 'monthly'>('daily');
+const newSkipsCount = ref(2);
+const newSkipsPeriod = ref<'none' | 'weekly' | 'monthly'>('weekly');
 const newSharedWith = ref<string[]>([]);
 const showModal = ref(false);
 const showReorderModal = ref(false);
@@ -853,8 +851,8 @@ const showDeleteModal = ref(false);
 const editingHabit = ref<Habit | null>(null);
 const editTitle = ref('');
 const editDescription = ref('');
-const editFrequencyCount = ref(1);
-const editFrequencyPeriod = ref<'daily'|'weekly'|'monthly'>('daily');
+const editSkipsCount = ref(2);
+const editSkipsPeriod = ref<'none' | 'weekly'|'monthly'>('weekly');
 const editSharedWith = ref<string[]>([]);
 const editSharedWithWorking = ref<string[]>([]);
 const isEditingSharing = ref(false);
@@ -931,67 +929,31 @@ const getStreakTheme = (count: number) => {
 };
 
 const getFrequencyText = (habit: Habit) => {
-  const period = habit.frequencyPeriod;
-  const count = habit.frequencyCount || 1;
+  const period = habit.skipsPeriod;
+  const maxSkips = habit.skipsCount || 0;
   const now = new Date();
 
-  if (period === 'daily') {
-    let completed = 0;
-    for (const l of logs.value) {
-      if (l.habitid === habit.id && isToday(new Date(l.date)) && l.status === 'completed') {
-        completed++;
-      }
-    }
-    return completed >= 1 ? 'Target completed' : 'Daily, no skips';
-  } else if (period === 'weekly') {
-    const target = count;
-    const maxSkips = 7 - target;
-    
-    let completed = 0;
-    let skipped = 0;
-    
-    for (const l of logs.value) {
-      if (l.habitid === habit.id && isSameWeek(new Date(l.date), now, { weekStartsOn: 0 })) {
-        if (l.status === 'completed') completed++;
-        else if (l.status === 'skipped') skipped++;
-      }
-    }
-    
-    if (completed >= target) return 'Weekly target completed';
-    
-    if (maxSkips === 0) {
-      return `Weekly, ${completed}/${target}, no skips`;
-    } else {
-      const remainingSkips = Math.max(0, maxSkips - skipped);
-      const skipText = remainingSkips === 1 ? '1 skip remaining' : `${remainingSkips} skips remaining`;
-      return `Weekly, ${completed}/${target}, ${skipText}`;
-    }
+  let skipped = 0;
+  if (period === 'weekly') {
+    skipped = logs.value.filter(l => 
+      l.habitid === habit.id && 
+      l.status === 'skipped' && 
+      isSameWeek(new Date(l.date), now, { weekStartsOn: 0 })
+    ).length;
   } else if (period === 'monthly') {
-    const daysInMonth = getDaysInMonth(now);
-    const target = Math.min(count, daysInMonth);
-    const maxSkips = daysInMonth - target;
-    
-    let completed = 0;
-    let skipped = 0;
-    
-    for (const l of logs.value) {
-      if (l.habitid === habit.id && isSameMonth(new Date(l.date), now)) {
-        if (l.status === 'completed') completed++;
-        else if (l.status === 'skipped') skipped++;
-      }
-    }
-    
-    if (completed >= target) return 'Monthly target completed';
-    
-    if (maxSkips === 0) {
-      return `Monthly, ${completed}/${target}, no skips`;
-    } else {
-      const remainingSkips = Math.max(0, maxSkips - skipped);
-      const skipText = remainingSkips === 1 ? '1 skip remaining' : `${remainingSkips} skips remaining`;
-      return `Monthly, ${completed}/${target}, ${skipText}`;
-    }
+    skipped = logs.value.filter(l => 
+      l.habitid === habit.id && 
+      l.status === 'skipped' && 
+      isSameMonth(new Date(l.date), now)
+    ).length;
   }
-  return '';
+
+  if (period === 'none') return 'Unlimited skips';
+
+  const remainingSkips = Math.max(0, maxSkips - skipped);
+  const skipText = remainingSkips === 1 ? '1 skip remaining' : `${remainingSkips} skips remaining`;
+  
+  return `${skipText} this ${period === 'weekly' ? 'week' : 'month'}`;
 };
 
 const load = async (silent = false) => {
@@ -1048,21 +1010,24 @@ const getLogOptions = (habit: Habit, day: Date) => {
   
   // Use modal values if currently editing this habit to enforce rules immediately
   const isEditingThis = showEditModal.value && editingHabit.value?.id === habit.id;
-  const frequencyPeriod = isEditingThis ? editFrequencyPeriod.value : habit.frequencyPeriod;
-  const frequencyCount = isEditingThis ? editFrequencyCount.value : (habit.frequencyCount || 1);
+  const skipsPeriod = isEditingThis ? editSkipsPeriod.value : habit.skipsPeriod;
+  const skipsCount = isEditingThis ? editSkipsCount.value : (habit.skipsCount || 2);
 
   let maxSkips = 0;
   let usedSkips = 0;
   
-  if (frequencyPeriod === 'weekly') {
-    maxSkips = 7 - (frequencyCount || 1);
+  if (skipsPeriod === 'none') {
+    maxSkips = 999;
+    usedSkips = 0;
+  } else if (skipsPeriod === 'weekly') {
+    maxSkips = skipsCount || 0;
     usedSkips = logs.value.filter(l => 
       l.habitid === habit.id && 
       l.status === 'skipped' && 
       isSameWeek(new Date(l.date), day, { weekStartsOn: 0 })
     ).length;
-  } else if (frequencyPeriod === 'monthly') {
-    maxSkips = Math.max(0, getDaysInMonth(day) - (frequencyCount || 1));
+  } else if (skipsPeriod === 'monthly') {
+    maxSkips = skipsCount || 0;
     usedSkips = logs.value.filter(l => 
       l.habitid === habit.id && 
       l.status === 'skipped' && 
@@ -1070,7 +1035,8 @@ const getLogOptions = (habit: Habit, day: Date) => {
     ).length;
   }
 
-  const options: Array<{ label: string, status: 'completed' | 'failed' | 'skipped' | null, icon: any, color: string, bgColor: string }> = [];
+  const options: Array<{ label: string, status: 'completed' | 'failed' | 'skipped' | 'vacation' | null, icon: any, color: string, bgColor: string }> = [];
+  const canSkip = usedSkips < maxSkips;
 
   if (currentStatus !== 'completed') {
     options.push({ 
@@ -1082,7 +1048,7 @@ const getLogOptions = (habit: Habit, day: Date) => {
     });
   }
 
-  if (currentStatus !== 'skipped' && usedSkips < maxSkips) {
+  if (currentStatus !== 'skipped' && canSkip) {
     options.push({ 
       label: 'Skip', 
       status: 'skipped', 
@@ -1092,13 +1058,23 @@ const getLogOptions = (habit: Habit, day: Date) => {
     });
   }
 
-  if (currentStatus !== 'failed') {
+  if (currentStatus !== 'failed' && !canSkip) {
     options.push({ 
       label: 'Fail', 
       status: 'failed', 
       icon: XIcon, 
       color: 'text-white', 
       bgColor: 'bg-rose-500 border-rose-500 shadow-md shadow-rose-500/20' 
+    });
+  }
+
+  if (currentStatus !== 'vacation' && !canSkip) {
+    options.push({ 
+      label: 'Vacation', 
+      status: 'vacation', 
+      icon: Palmtree, 
+      color: 'text-white', 
+      bgColor: 'bg-amber-500 border-amber-500 shadow-md shadow-amber-500/20' 
     });
   }
 
@@ -1115,7 +1091,7 @@ const getLogOptions = (habit: Habit, day: Date) => {
   return options;
 };
 
-const setLogStatus = async (habit: Habit, day: Date, nextStatus: 'completed' | 'failed' | 'skipped' | null) => {
+const setLogStatus = async (habit: Habit, day: Date, nextStatus: 'completed' | 'failed' | 'skipped' | 'vacation' | null) => {
   const dateStr = format(day, 'yyyy-MM-dd');
   const originalLogs = JSON.parse(JSON.stringify(logs.value));
   const originalHabits = JSON.parse(JSON.stringify(habits.value));
@@ -1140,6 +1116,7 @@ const setLogStatus = async (habit: Habit, day: Date, nextStatus: 'completed' | '
     if (nextStatus === 'completed') showToast('Completed', 'completed');
     else if (nextStatus === 'failed') showToast('Failed', 'failed');
     else if (nextStatus === 'skipped') showToast('Skipped', 'skipped');
+    else if (nextStatus === 'vacation') showToast('On Vacation!', 'skipped');
   } else {
     logs.value = logs.value.filter(l => !(l.habitid === habit.id && l.date === dateStr));
     showToast('Cleared', 'cleared');
@@ -1202,8 +1179,8 @@ const addHabit = async () => {
     const habit = await api.createHabit({ 
       title: newTitle.value.trim(), 
       description: newDescription.value.trim(),
-      frequencyCount: newFrequencyCount.value,
-      frequencyPeriod: newFrequencyPeriod.value,
+      skipsCount: newSkipsCount.value,
+      skipsPeriod: newSkipsPeriod.value,
       sharedwith: newSharedWith.value,
       color: '#6366f1',
       user_date: format(new Date(), 'yyyy-MM-dd')
@@ -1211,8 +1188,8 @@ const addHabit = async () => {
     habits.value.push(habit);
     newTitle.value = '';
     newDescription.value = '';
-    newFrequencyCount.value = 1;
-    newFrequencyPeriod.value = 'daily';
+    newSkipsCount.value = 2;
+    newSkipsPeriod.value = 'weekly';
     newSharedWith.value = [];
     showModal.value = false;
   } catch (error) {
@@ -1230,8 +1207,8 @@ const openEditModal = (habit: Habit) => {
   editingHabit.value = habit;
   editTitle.value = habit.title;
   editDescription.value = habit.description || '';
-  editFrequencyCount.value = habit.frequencyCount || 1;
-  editFrequencyPeriod.value = habit.frequencyPeriod || 'daily';
+  editSkipsCount.value = habit.skipsCount || 2;
+  editSkipsPeriod.value = habit.skipsPeriod as 'none' | 'weekly'|'monthly' || 'weekly';
   editSharedWith.value = [...(habit.sharedwith || [])];
   editSharedWithWorking.value = [...(habit.sharedwith || [])];
   isEditingSharing.value = false;
@@ -1269,11 +1246,13 @@ const handleDoneClick = () => {
 
 const adjustFrequency = (isNew: boolean, delta: number) => {
   if (isNew) {
-    const max = newFrequencyPeriod.value === 'weekly' ? 7 : 31;
-    newFrequencyCount.value = Math.max(1, Math.min(max, newFrequencyCount.value + delta));
+    if (newSkipsPeriod.value === 'none') return;
+    const max = newSkipsPeriod.value === 'weekly' ? 6 : 28;
+    newSkipsCount.value = Math.max(0, Math.min(max, newSkipsCount.value + delta));
   } else {
-    const max = editFrequencyPeriod.value === 'weekly' ? 7 : 31;
-    editFrequencyCount.value = Math.max(1, Math.min(max, editFrequencyCount.value + delta));
+    if (editSkipsPeriod.value === 'none') return;
+    const max = editSkipsPeriod.value === 'weekly' ? 6 : 28;
+    editSkipsCount.value = Math.max(0, Math.min(max, editSkipsCount.value + delta));
   }
 };
 
@@ -1368,7 +1347,7 @@ watch(showEditModal, (isOpen) => {
 });
 
 watch(
-  [editTitle, editDescription, editFrequencyCount, editFrequencyPeriod],
+  [editTitle, editDescription, editSkipsCount, editSkipsPeriod],
   () => {
     if (showEditModal.value && editingHabit.value && !isInitializingEdit) {
       isDirty.value = true;
@@ -1394,8 +1373,8 @@ const updateHabit = async () => {
     const updated = await api.updateHabit(editingHabit.value.id, { 
       title: editTitle.value.trim(),
       description: editDescription.value.trim(),
-      frequencyCount: editFrequencyCount.value,
-      frequencyPeriod: editFrequencyPeriod.value,
+      skipsCount: editSkipsCount.value,
+      skipsPeriod: editSkipsPeriod.value,
       sharedwith: editSharedWith.value,
       user_date: format(new Date(), 'yyyy-MM-dd'),
     });

@@ -2,7 +2,7 @@ import { parseISO, startOfDay, differenceInDays } from 'date-fns';
 
 export async function recalculateHabitStreak(sql: any, habitId: string, userId: string, fromDate?: string) {
   // 1. Fetch habit info
-  const habitRes = await sql`SELECT "frequencyPeriod", "frequencyCount", "longestStreak", "streakAnchorDate" FROM habits WHERE id = ${habitId}`;
+  const habitRes = await sql`SELECT "skipsPeriod", "skipsCount", "longestStreak", "streakAnchorDate" FROM habits WHERE id = ${habitId}`;
   if (!habitRes || habitRes.length === 0) return;
   const habit = habitRes[0];
 
@@ -77,7 +77,7 @@ export async function recalculateHabitStreak(sql: any, habitId: string, userId: 
     } else if (log.status === 'failed') {
       brokenStreakCount = runningStreak;
       runningStreak = 0;
-    } else if (log.status === 'skipped') {
+    } else if (log.status === 'skipped' || log.status === 'vacation') {
       // Streak remains intact (protected)
     } else if (log.status === 'cleared') {
       runningStreak = 0;
@@ -86,7 +86,7 @@ export async function recalculateHabitStreak(sql: any, habitId: string, userId: 
     maxStreak = Math.max(maxStreak, runningStreak);
     
     // The anchor is the most recent log date with a valid status
-    if (['completed', 'failed', 'skipped'].includes(log.status)) {
+    if (['completed', 'failed', 'skipped', 'vacation'].includes(log.status)) {
       streakAnchorDate = log.date;
     }
 

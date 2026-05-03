@@ -31,7 +31,7 @@ export class MyDatabase extends Dexie {
 
   constructor() {
     super('HabitsSocialDB');
-    this.version(2).stores({
+    this.version(3).stores({
       habits: 'id, ownerid, synced, updatedAt',
       habitLogs: 'id, habitid, ownerid, date, synced, updatedAt',
       buckets: 'id, ownerid, synced, updatedAt',

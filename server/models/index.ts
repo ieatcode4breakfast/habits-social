@@ -12,8 +12,8 @@ export interface IHabit {
   ownerid: string;
   title: string;
   description: string;
-  frequencyCount: number;
-  frequencyPeriod: string;
+  skipsCount: number;
+  skipsPeriod: string;
   color: string;
   sharedwith: string[];
   sortOrder: number;

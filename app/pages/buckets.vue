@@ -72,8 +72,11 @@
           </div>
 
           <div class="flex items-center gap-3 min-w-[200px] flex-1">
-            <div class="text-left flex items-start gap-2 relative">
+            <div class="text-left flex flex-col items-start gap-0.5 relative min-w-0 flex-1">
               <h3 class="font-bold text-zinc-200 leading-tight break-all group-hover:text-white transition-colors">{{ bucket.title }}</h3>
+              <p v-if="bucket.habitIds?.length" class="text-[10px] font-bold uppercase tracking-wider text-zinc-500 truncate w-full">
+                {{ getHabitPreview(bucket) }}
+              </p>
             </div>
           </div>
           
@@ -500,6 +503,14 @@ const getStatus = (bucketId: string, day: Date): 'completed' | 'failed' | 'skipp
   const dateStr = format(day, 'yyyy-MM-dd');
   const log = bucketLogs.value.find(l => l.bucketid === bucketId && l.date === dateStr);
   return (log?.status as any) || null;
+};
+
+const getHabitPreview = (bucket: Bucket) => {
+  if (!bucket.habitIds || bucket.habitIds.length === 0) return '';
+  return bucket.habitIds
+    .map(id => availableHabits.value.find(h => h.id === id)?.title)
+    .filter(Boolean)
+    .join(', ');
 };
 
 const load = async (silent = false) => {

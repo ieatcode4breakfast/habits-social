@@ -18,8 +18,8 @@ export interface Habit {
   ownerid: string;
   title: string;
   description: string;
-  frequencyCount: number;
-  frequencyPeriod: 'daily' | 'weekly' | 'monthly';
+  skipsCount: number;
+  skipsPeriod: 'none' | 'weekly' | 'monthly';
   color: string;
   sharedwith: string[];
   sortOrder?: number;
@@ -34,7 +34,7 @@ export interface HabitLog {
   habitid: string;
   ownerid: string;
   date: string;
-  status: 'completed' | 'skipped' | 'failed' | 'cleared';
+  status: 'completed' | 'skipped' | 'failed' | 'vacation' | 'cleared';
   sharedwith: string[];
 }
 
@@ -56,7 +56,7 @@ export interface BucketLog {
   bucketid: string;
   ownerid: string;
   date: string;
-  status: 'completed' | 'skipped' | 'failed' | 'cleared';
+  status: 'completed' | 'skipped' | 'failed' | 'vacation' | 'cleared';
 }
 
 export const useHabitsApi = () => {
@@ -267,6 +267,7 @@ export const useHabitsApi = () => {
       await db.syncQueue.add({ type: 'bucket', action: 'DELETE', payload: { id } });
     }
     await db.buckets.delete(id);
+    await db.bucketLogs.where({ bucketid: id }).delete();
     triggerSync();
   };
 
@@ -438,6 +439,7 @@ export const useHabitsApi = () => {
                 await removeHabitFromBuckets(d.id);
               } else if (d.type === 'bucket') {
                 await db.buckets.delete(d.id);
+                await db.bucketLogs.where({ bucketid: d.id }).delete();
               }
             }
           }

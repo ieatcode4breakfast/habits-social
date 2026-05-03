@@ -50,20 +50,29 @@ export default defineEventHandler(async (event) => {
 
     const title = body.title;
     const description = body.description || '';
-    const frequencyCount = body.frequencyCount || 1;
-    const frequencyPeriod = body.frequencyPeriod || 'daily';
+    const skipsPeriod = body.skipsPeriod || 'weekly';
+    const rawSkipsCount = body.skipsCount !== undefined ? body.skipsCount : 2;
+    
+    let skipsCount = rawSkipsCount;
+    if (skipsPeriod === 'none') {
+      skipsCount = 0;
+    } else if (skipsPeriod === 'weekly') {
+      skipsCount = Math.max(0, Math.min(6, rawSkipsCount));
+    } else if (skipsPeriod === 'monthly') {
+      skipsCount = Math.max(0, Math.min(28, rawSkipsCount));
+    }
     const color = body.color || '#6366f1';
     const sharedwith = body.sharedwith && Array.isArray(body.sharedwith) ? body.sharedwith : [];
     const user_date = body.user_date || null;
 
     const result = await sql`
-      INSERT INTO habits (id, ownerid, title, description, "frequencyCount", "frequencyPeriod", color, sharedwith, "sortOrder", user_date, "createdAt", updatedat)
-      VALUES (${body.id ? body.id : sql`DEFAULT`}, ${userId}, ${title}, ${description}, ${frequencyCount}, ${frequencyPeriod}, ${color}, ${sharedwith}, ${nextSortOrder}, ${user_date}, NOW(), NOW())
+      INSERT INTO habits (id, ownerid, title, description, "skipsCount", "skipsPeriod", color, sharedwith, "sortOrder", user_date, "createdAt", updatedat)
+      VALUES (${body.id ? body.id : sql`DEFAULT`}, ${userId}, ${title}, ${description}, ${skipsCount}, ${skipsPeriod}, ${color}, ${sharedwith}, ${nextSortOrder}, ${user_date}, NOW(), NOW())
       ON CONFLICT (id) DO UPDATE SET
         title = EXCLUDED.title,
         description = EXCLUDED.description,
-        "frequencyCount" = EXCLUDED."frequencyCount",
-        "frequencyPeriod" = EXCLUDED."frequencyPeriod",
+        "skipsCount" = EXCLUDED."skipsCount",
+        "skipsPeriod" = EXCLUDED."skipsPeriod",
         color = EXCLUDED.color,
         sharedwith = EXCLUDED.sharedwith,
         "sortOrder" = EXCLUDED."sortOrder",

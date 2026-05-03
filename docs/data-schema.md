@@ -25,8 +25,8 @@ Represents a recurring task or behavior a user intends to track.
 | `ownerid` | `string` | ID of the user who owns the habit. |
 | `title` | `string` | Name of the habit. |
 | `description` | `string` | Optional details or notes. |
-| `frequencyCount` | `number` | Required completions per period (e.g., **1**). |
-| `frequencyPeriod` | `string` | Time window for frequency (`daily`, `weekly`, `monthly`). |
+| `skipsCount` | `number` | Allowed skips per period (e.g., **2**). |
+| `skipsPeriod` | `string` | Time window for skips (`weekly`, `monthly`). |
 | `color` | `string` | UI theme color identifier or hex code. |
 | `sharedwith` | `string[]` | List of User IDs this habit is shared with. |
 | `sortOrder` | `number` | Manual sorting position in the dashboard. |
