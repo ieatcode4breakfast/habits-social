@@ -114,13 +114,14 @@
               <div class="relative">
                 <button
                   @click.stop="openLogMenu(habit, day, $event)"
-                  class="w-9 h-9 rounded-lg flex items-center justify-center transition-all border-2 cursor-pointer relative"
+                  class="w-9 h-9 rounded-lg flex items-center justify-center transition-all border-2 relative"
                   :class="[
+                    isMarkable(day) ? 'cursor-pointer' : 'cursor-default',
                     getStatus(habit.id, day) === 'completed' ? 'bg-emerald-500 border-emerald-500 shadow-md shadow-emerald-500/20' :
                     getStatus(habit.id, day) === 'failed' ? 'bg-rose-500 border-rose-500 shadow-md shadow-rose-500/20' :
                     getStatus(habit.id, day) === 'skipped' ? 'bg-zinc-500 border-zinc-500 shadow-none' :
                     getStatus(habit.id, day) === 'vacation' ? 'bg-amber-500 border-amber-500 shadow-md shadow-amber-500/20' :
-                    'bg-transparent hover:bg-zinc-925 border-dashed border-zinc-800'
+                    ['bg-transparent border-dashed border-zinc-800', isMarkable(day) ? 'hover:bg-zinc-925' : '']
                   ]"
                 >
                   <Check v-if="getStatus(habit.id, day) === 'completed'" class="w-4 h-4 text-white" />
