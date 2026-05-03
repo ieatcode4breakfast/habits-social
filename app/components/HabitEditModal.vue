@@ -491,7 +491,7 @@ const getStatus = (day: Date) => {
 
 const openLogMenu = (day: Date, event: MouseEvent) => {
   if (props.habit) {
-    emit('open-log-menu', { habit: props.habit, day, event });
+    emit('open-log-menu', props.habit, day, event);
   }
 };
 

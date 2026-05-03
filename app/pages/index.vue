@@ -372,7 +372,7 @@
                 <div
                   class="touch-none shrink-0 text-zinc-500 hover:text-zinc-300 transition-colors"
                   :class="isDragging ? 'cursor-grabbing' : 'cursor-grab'"
-                  @touchstart.prevent="onGripTouchStart($event, habit.id)"
+                  @touchstart.prevent="onGripTouchStart($event)"
                 >
                   <GripVertical class="w-4 h-4" />
                 </div>
@@ -385,53 +385,22 @@
     </Teleport>
 
     <!-- Global Log Menu -->
-    <Teleport to="body">
-      <Transition
-        enter-active-class="transition duration-200 ease-out"
-        enter-from-class="opacity-0 scale-95 -translate-y-2"
-        enter-to-class="opacity-100 scale-100 translate-y-0"
-        leave-active-class="transition duration-150 ease-in"
-        leave-from-class="opacity-100 scale-100 translate-y-0"
-        leave-to-class="opacity-0 scale-95 -translate-y-2"
-      >
-        <div 
-          v-if="activeLogMenu && activeHabitForMenu"
-          ref="floatingRef"
-          class="fixed z-[200] bg-zinc-900/95 backdrop-blur-xl border border-zinc-800 rounded-2xl shadow-2xl p-1.5 flex flex-row gap-1.5"
-          :style="floatingStyles"
-          @click.stop
-        >
-          <button
-            v-for="opt in getLogOptions(activeHabitForMenu, activeLogMenu.date)"
-            :key="opt.label"
-            @click.stop="setLogStatus(activeHabitForMenu, activeLogMenu.date, opt.status)"
-            class="w-9 h-9 rounded-lg flex items-center justify-center transition-all border-2 cursor-pointer relative"
-            :class="opt.bgColor"
-            :title="opt.label"
-          >
-            <component :is="opt.icon" class="w-4 h-4" :class="opt.color" />
-          </button>
-
-          <!-- Arrow -->
-          <div 
-            ref="arrowRef"
-            class="absolute w-3 h-3 bg-zinc-900 border-r border-b border-zinc-800 rotate-45"
-            :style="{
-              left: middlewareData.arrow?.x != null ? `${middlewareData.arrow.x}px` : '',
-              top: middlewareData.arrow?.y != null ? `${middlewareData.arrow.y}px` : '',
-              bottom: '-6px'
-            }"
-          ></div>
-        </div>
-      </Transition>
-    </Teleport>
+    <LogMenu
+      :habit="activeHabitForMenu || null"
+      :date="activeLogMenu?.date || null"
+      :logs="logs"
+      :reference-el="referenceRef"
+      :skips-period="showEditModal && editingHabit?.id === activeLogMenu?.habitId ? editSkipsPeriod : undefined"
+      :skips-count="showEditModal && editingHabit?.id === activeLogMenu?.habitId ? editSkipsCount : undefined"
+      @select="setLogStatus"
+      @close="closeLogMenu"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
 import { Plus, Trash2, Check, X as XIcon, Minus, ChevronLeft, ChevronRight, User, ChevronUp, ChevronDown, Edit2, Save, CheckSquare, GripVertical, ArrowUpDown, Flame, Palmtree } from 'lucide-vue-next';
-import { useFloating, offset, flip, shift, arrow, autoUpdate } from '@floating-ui/vue';
-import { format, subDays, isToday, startOfMonth, endOfMonth, eachDayOfInterval, addMonths, subMonths, isAfter, startOfDay, addDays, isSameWeek, isSameMonth, getDaysInMonth, parseISO, startOfWeek, isBefore, isSameDay } from 'date-fns';
+import { format, subDays, isToday, startOfMonth, endOfMonth, eachDayOfInterval, addMonths, subMonths, isAfter, startOfDay, addDays, isSameWeek, isSameMonth, parseISO, startOfWeek, isBefore, isSameDay } from 'date-fns';
 import type { Habit, HabitLog } from '~/composables/useHabitsApi';
 
 definePageMeta({ middleware: 'auth' });
@@ -517,8 +486,10 @@ const onDrop = async (e: DragEvent, targetId: string) => {
   const newIndex = habits.value.findIndex(h => h.id === targetId);
 
   if (oldIndex !== -1 && newIndex !== -1) {
-    const movedHabit = habits.value.splice(oldIndex, 1)[0];
-    habits.value.splice(newIndex, 0, movedHabit);
+    const [movedHabit] = habits.value.splice(oldIndex, 1);
+    if (movedHabit) {
+      habits.value.splice(newIndex, 0, movedHabit);
+    }
     
     try {
       await api.reorderHabits(habits.value.map(h => h.id));
@@ -668,20 +639,7 @@ const getStatus = (habitId: string, day: Date) => {
 };
 
 const activeLogMenu = ref<{ habitId: string, date: Date } | null>(null);
-const floatingRef = ref<HTMLElement | null>(null);
 const referenceRef = ref<HTMLElement | null>(null);
-const arrowRef = ref<HTMLElement | null>(null);
-
-const { floatingStyles, middlewareData } = useFloating(referenceRef, floatingRef, {
-  placement: 'top',
-  middleware: [
-    offset(12),
-    flip(),
-    shift({ padding: 10 }),
-    arrow({ element: arrowRef })
-  ],
-  whileElementsMounted: autoUpdate
-});
 
 const activeHabitForMenu = computed(() => {
   if (!activeLogMenu.value) return null;
@@ -708,91 +666,6 @@ const closeLogMenu = () => {
   activeLogMenu.value = null;
 };
 
-const getLogOptions = (habit: Habit, day: Date) => {
-  const currentStatus = getStatus(habit.id, day);
-  
-  // Use modal values if currently editing this habit to enforce rules immediately
-  const isEditingThis = showEditModal.value && editingHabit.value?.id === habit.id;
-  const skipsPeriod = isEditingThis ? editSkipsPeriod.value : habit.skipsPeriod;
-  const skipsCount = isEditingThis ? editSkipsCount.value : (habit.skipsCount ?? 2);
-
-  let maxSkips = 0;
-  let usedSkips = 0;
-  
-  if (skipsPeriod === 'none') {
-    maxSkips = 999;
-    usedSkips = 0;
-  } else if (skipsPeriod === 'weekly') {
-    maxSkips = skipsCount || 0;
-    usedSkips = logs.value.filter(l => 
-      l.habitid === habit.id && 
-      l.status === 'skipped' && 
-      isSameWeek(new Date(l.date), day, { weekStartsOn: 0 })
-    ).length;
-  } else if (skipsPeriod === 'monthly') {
-    maxSkips = skipsCount || 0;
-    usedSkips = logs.value.filter(l => 
-      l.habitid === habit.id && 
-      l.status === 'skipped' && 
-      isSameMonth(new Date(l.date), day)
-    ).length;
-  }
-
-  const options: Array<{ label: string, status: 'completed' | 'failed' | 'skipped' | 'vacation' | null, icon: any, color: string, bgColor: string }> = [];
-  const canSkip = usedSkips < maxSkips;
-
-  if (currentStatus !== 'completed') {
-    options.push({ 
-      label: 'Complete', 
-      status: 'completed', 
-      icon: Check, 
-      color: 'text-white', 
-      bgColor: 'bg-emerald-500 border-emerald-500 shadow-md shadow-emerald-500/20' 
-    });
-  }
-
-  if (currentStatus !== 'skipped' && canSkip) {
-    options.push({ 
-      label: 'Skip', 
-      status: 'skipped', 
-      icon: Minus, 
-      color: 'text-white', 
-      bgColor: 'bg-zinc-500 border-zinc-500 shadow-none' 
-    });
-  }
-
-  if (currentStatus !== 'failed' && !canSkip) {
-    options.push({ 
-      label: 'Fail', 
-      status: 'failed', 
-      icon: XIcon, 
-      color: 'text-white', 
-      bgColor: 'bg-rose-500 border-rose-500 shadow-md shadow-rose-500/20' 
-    });
-  }
-
-  if (currentStatus !== 'vacation' && !canSkip) {
-    options.push({ 
-      label: 'Vacation', 
-      status: 'vacation', 
-      icon: Palmtree, 
-      color: 'text-white', 
-      bgColor: 'bg-amber-500 border-amber-500 shadow-md shadow-amber-500/20' 
-    });
-  }
-
-  if (currentStatus && currentStatus !== 'cleared') {
-    options.push({ 
-      label: 'Clear', 
-      status: null, 
-      icon: Trash2, 
-      color: 'text-zinc-400', 
-      bgColor: 'bg-zinc-800 border-zinc-700' 
-    });
-  }
-
-  return options;
-};
 
 const setLogStatus = async (habit: Habit, day: Date, nextStatus: 'completed' | 'failed' | 'skipped' | 'vacation' | null) => {
   const dateStr = format(day, 'yyyy-MM-dd');
@@ -951,7 +824,6 @@ onMounted(() => {
 
   // Social state is now initialized globally in default.vue layout
   load();
-  window.addEventListener('click', closeLogMenu);
 });
 
 watch(lastSyncTime, () => {
@@ -1024,7 +896,6 @@ onUnmounted(() => {
   // cleanupSocial(); // Now a no-op singleton cleanup handled by logout
   unsubscribeOwnHabits();
   unsubscribeOwnBuckets();
-  window.removeEventListener('click', closeLogMenu);
 });
 // ─────────────────────────────────────────────────────────────────────────────
 

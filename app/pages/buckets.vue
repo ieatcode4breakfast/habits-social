@@ -40,7 +40,7 @@
       :logs="habitLogs"
       @habit-updated="onHabitUpdatedFromModal"
       @habit-deleted="onHabitDeletedFromModal"
-      @open-log-menu="onOpenLogMenuFromModal"
+      @open-log-menu="openLogMenu"
     />
 
     <!-- Bucket List -->
@@ -210,8 +210,33 @@
                   class="flex items-center gap-3 min-w-[200px] flex-1 sm:pl-8 cursor-pointer group/habit"
                   @click.stop="openHabitEditModal(habit)"
                 >
-                  <div class="min-w-0 flex-1 pr-4">
+                  <div class="min-w-0 flex-1 pr-4 flex items-center gap-2">
                     <span class="text-sm font-bold text-zinc-200 group-hover/habit:text-white transition-colors break-words">{{ habit.title }}</span>
+                    
+                    <!-- Habit Streak Pill -->
+                    <div 
+                      v-if="(habit.currentStreak ?? 0) >= 2"
+                      class="flex items-center gap-1 px-1.5 py-0.5 bg-black border rounded-full shrink-0"
+                      :class="[
+                        isFaded(habit) ? 'opacity-30' : 'opacity-100',
+                        getStreakTheme(habit.currentStreak ?? 0).border
+                      ]"
+                    >
+                      <span 
+                        class="text-[9px] font-black tracking-tight"
+                        :class="getStreakTheme(habit.currentStreak ?? 0).text"
+                      >
+                        x{{ habit.currentStreak }} STREAK
+                      </span>
+                      <Flame 
+                        v-if="(habit.currentStreak ?? 0) >= 7"
+                        class="w-2.5 h-2.5" 
+                        :class="[
+                          getStreakTheme(habit.currentStreak ?? 0).text,
+                          getStreakTheme(habit.currentStreak ?? 0).fill
+                        ]"
+                      />
+                    </div>
                   </div>
                 </div>
                   
@@ -686,52 +711,19 @@
     </Teleport>
 
     <!-- Global Log Menu -->
-    <Teleport to="body">
-      <Transition
-        enter-active-class="transition duration-200 ease-out"
-        enter-from-class="opacity-0 scale-95 -translate-y-2"
-        enter-to-class="opacity-100 scale-100 translate-y-0"
-        leave-active-class="transition duration-150 ease-in"
-        leave-from-class="opacity-100 scale-100 translate-y-0"
-        leave-to-class="opacity-0 scale-95 -translate-y-2"
-      >
-        <div 
-          v-if="activeLogMenu && activeHabitForMenu"
-          ref="floatingRef"
-          class="fixed z-[200] bg-zinc-900/95 backdrop-blur-xl border border-zinc-800 rounded-2xl shadow-2xl p-1.5 flex flex-row gap-1.5"
-          :style="floatingStyles"
-          @click.stop
-        >
-          <button
-            v-for="opt in getLogOptions(activeHabitForMenu, activeLogMenu.date)"
-            :key="opt.label"
-            @click.stop="setLogStatus(activeHabitForMenu, activeLogMenu.date, opt.status)"
-            class="w-9 h-9 rounded-lg flex items-center justify-center transition-all border-2 cursor-pointer relative"
-            :class="opt.bgColor"
-            :title="opt.label"
-          >
-            <component :is="opt.icon" class="w-4 h-4" :class="opt.color" />
-          </button>
-
-          <!-- Arrow -->
-          <div 
-            ref="arrowRef"
-            class="absolute w-3 h-3 bg-zinc-900 border-r border-b border-zinc-800 rotate-45"
-            :style="{
-              left: middlewareData.arrow?.x != null ? `${middlewareData.arrow.x}px` : '',
-              top: middlewareData.arrow?.y != null ? `${middlewareData.arrow.y}px` : '',
-              bottom: '-6px'
-            }"
-          ></div>
-        </div>
-      </Transition>
-    </Teleport>
+    <LogMenu
+      :habit="activeHabitForMenu || null"
+      :date="activeLogMenu?.date || null"
+      :logs="habitLogs"
+      :reference-el="referenceRef"
+      @select="setLogStatus"
+      @close="closeLogMenu"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
 import { Plus, Trash2, Check, X as XIcon, Minus, ChevronLeft, ChevronRight, Flame, PaintBucket, Palmtree, Edit2, ChevronDown, ChevronUp, ArrowUpDown, GripVertical } from 'lucide-vue-next';
-import { useFloating, offset, flip, shift, arrow, autoUpdate } from '@floating-ui/vue';
 import { format, subDays, startOfMonth, endOfMonth, eachDayOfInterval, addMonths, subMonths, isAfter, startOfDay, parseISO, isToday, startOfWeek, addDays, isSameDay, isSameWeek, isSameMonth, differenceInDays } from 'date-fns';
 import type { Bucket, BucketLog, Habit } from '~/composables/useHabitsApi';
 
@@ -776,16 +768,7 @@ const calendarLoading = ref(false);
 
 const expandedBucketId = ref<string | null>(null);
 const activeLogMenu = ref<{ habitId: string, date: Date } | null>(null);
-
 const referenceRef = ref<HTMLElement | null>(null);
-const floatingRef = ref<HTMLElement | null>(null);
-const arrowRef = ref<HTMLElement | null>(null);
-
-const { floatingStyles, middlewareData } = useFloating(referenceRef, floatingRef, {
-  placement: 'top',
-  middleware: [offset(10), flip(), shift(), arrow({ element: arrowRef })],
-  whileElementsMounted: autoUpdate,
-});
 
 const calendarDays = computed(() => {
   const start = startOfMonth(currentCalendarDate.value);
@@ -869,53 +852,8 @@ const openLogMenu = (habit: Habit, day: Date, event: MouseEvent) => {
   }
 };
 
-const getLogOptions = (habit: Habit, day: Date) => {
-  const currentStatus = getHabitStatus(habit.id, day);
-  const skipsPeriod = habit.skipsPeriod;
-  const skipsCount = habit.skipsCount ?? 2;
-
-  let maxSkips = 0;
-  let usedSkips = 0;
-  
-  if (skipsPeriod === 'none') {
-    maxSkips = 999;
-    usedSkips = 0;
-  } else if (skipsPeriod === 'weekly') {
-    maxSkips = skipsCount || 0;
-    usedSkips = habitLogs.value.filter(l => 
-      l.habitid === habit.id && 
-      l.status === 'skipped' && 
-      isSameWeek(new Date(l.date), day, { weekStartsOn: 0 })
-    ).length;
-  } else if (skipsPeriod === 'monthly') {
-    maxSkips = skipsCount || 0;
-    usedSkips = habitLogs.value.filter(l => 
-      l.habitid === habit.id && 
-      l.status === 'skipped' && 
-      isSameMonth(new Date(l.date), day)
-    ).length;
-  }
-
-  const options: Array<{ label: string, status: 'completed' | 'failed' | 'skipped' | 'vacation' | null, icon: any, color: string, bgColor: string }> = [];
-  const canSkip = usedSkips < maxSkips;
-
-  if (currentStatus !== 'completed') {
-    options.push({ label: 'Complete', status: 'completed', icon: Check, color: 'text-emerald-500', bgColor: 'bg-emerald-500/10 border-emerald-500/20 hover:bg-emerald-500/20' });
-  }
-  if (currentStatus !== 'failed') {
-    options.push({ label: 'Fail', status: 'failed', icon: XIcon, color: 'text-rose-500', bgColor: 'bg-rose-500/10 border-rose-500/20 hover:bg-rose-500/20' });
-  }
-  if (currentStatus !== 'skipped' && canSkip) {
-    options.push({ label: 'Skip', status: 'skipped', icon: Minus, color: 'text-zinc-500', bgColor: 'bg-zinc-500/10 border-zinc-500/20 hover:bg-zinc-500/20' });
-  }
-  if (currentStatus !== 'vacation') {
-    options.push({ label: 'Vacation', status: 'vacation', icon: Palmtree, color: 'text-amber-500', bgColor: 'bg-amber-500/10 border-amber-500/20 hover:bg-amber-500/20' });
-  }
-  if (currentStatus) {
-    options.push({ label: 'Clear', status: null, icon: Trash2, color: 'text-zinc-400', bgColor: 'bg-zinc-800/50 border-zinc-700/50 hover:bg-zinc-800' });
-  }
-
-  return options;
+const closeLogMenu = () => {
+  activeLogMenu.value = null;
 };
 
 const setLogStatus = async (habit: Habit, day: Date, status: any) => {
@@ -986,9 +924,9 @@ const getStreakTheme = (count: number) => {
   };
 };
 
-const isFaded = (bucket: Bucket) => {
-  if (!bucket || !bucket.streakAnchorDate) return false;
-  const anchor = startOfDay(parseISO(bucket.streakAnchorDate));
+const isFaded = (item: Bucket | Habit) => {
+  if (!item || !item.streakAnchorDate) return false;
+  const anchor = startOfDay(parseISO(item.streakAnchorDate));
   const yesterday = startOfDay(subDays(new Date(), 1));
   return isAfter(yesterday, anchor);
 };
@@ -1053,10 +991,6 @@ const onHabitDeletedFromModal = (habitId: string) => {
       b.habitIds = b.habitIds.filter(id => id !== habitId);
     }
   });
-};
-
-const onOpenLogMenuFromModal = ({ habit, day, event }: { habit: Habit, day: Date, event: MouseEvent }) => {
-  openLogMenu(habit, day, event);
 };
 
 const openHabitEditModal = (habit: Habit) => {
