@@ -3,7 +3,7 @@ import { parseISO, startOfDay, differenceInDays } from 'date-fns';
 export async function recalculateHabitStreak(sql: any, habitId: string, userId: string, fromDate?: string) {
   if (!habitId || habitId.length < 36) return;
   // 1. Fetch habit info
-  const habitRes = await sql`SELECT "skipsPeriod", "skipsCount", "longestStreak", "streakAnchorDate" FROM habits WHERE id = ${habitId}`;
+  const habitRes = await sql`SELECT "skipsPeriod", "skipsCount", "longestStreak", "streakAnchorDate" FROM habits WHERE id = ${habitId}::uuid`;
   if (!habitRes || habitRes.length === 0) return;
   const habit = habitRes[0];
 
@@ -15,7 +15,7 @@ export async function recalculateHabitStreak(sql: any, habitId: string, userId: 
   if (fromDate) {
     const prevLog = await sql`
       SELECT "streakCount", date FROM habitlogs 
-      WHERE habitid = ${habitId} AND ownerid = ${userId} AND date < ${fromDate}
+      WHERE habitid = ${habitId}::uuid AND ownerid = ${userId} AND date < ${fromDate}
       ORDER BY date DESC LIMIT 1
     `;
     if (prevLog && prevLog.length > 0) {
@@ -27,7 +27,7 @@ export async function recalculateHabitStreak(sql: any, habitId: string, userId: 
   // 3. Fetch logs from starting point onwards
   const logs = await sql`
     SELECT * FROM habitlogs 
-    WHERE habitid = ${habitId} AND ownerid = ${userId}
+    WHERE habitid = ${habitId}::uuid AND ownerid = ${userId}
     ${queryStartDate ? sql`AND date >= ${queryStartDate}` : sql``}
     ORDER BY date ASC
   `;
@@ -38,19 +38,19 @@ export async function recalculateHabitStreak(sql: any, habitId: string, userId: 
       const result = await sql`
         UPDATE habits 
         SET "currentStreak" = 0, "streakAnchorDate" = NULL, updatedat = NOW()
-        WHERE id = ${habitId} AND ownerid = ${userId}
+        WHERE id = ${habitId}::uuid AND ownerid = ${userId}
         RETURNING *
       `;
       return result[0];
     }
-    
+
     // INCREMENTAL FIX: Even if no logs are found at/after fromDate, we MUST update the habit
     // to match the state of the last known log (runningStreak from prevLog).
     const result = await sql`
       UPDATE habits 
       SET "currentStreak" = ${runningStreak}, 
           updatedat = NOW()
-      WHERE id = ${habitId} AND ownerid = ${userId}
+      WHERE id = ${habitId}::uuid AND ownerid = ${userId}
       RETURNING *
     `;
     return result[0];
@@ -63,7 +63,7 @@ export async function recalculateHabitStreak(sql: any, habitId: string, userId: 
 
   for (const log of logs) {
     const currentDate = startOfDay(parseISO(log.date));
-    
+
     // Check for gap (more than 1 day between logs)
     if (lastDate) {
       const diff = differenceInDays(currentDate, lastDate);
@@ -71,7 +71,7 @@ export async function recalculateHabitStreak(sql: any, habitId: string, userId: 
         runningStreak = 0; // Gap detected, reset streak
       }
     }
-    
+
     let brokenStreakCount = 0;
     if (log.status === 'completed') {
       runningStreak++;
@@ -85,7 +85,7 @@ export async function recalculateHabitStreak(sql: any, habitId: string, userId: 
     }
 
     maxStreak = Math.max(maxStreak, runningStreak);
-    
+
     // The anchor is the most recent log date with a valid status
     if (['completed', 'failed', 'skipped', 'vacation'].includes(log.status)) {
       streakAnchorDate = log.date;
@@ -99,7 +99,7 @@ export async function recalculateHabitStreak(sql: any, habitId: string, userId: 
         brokenStreakCount: brokenStreakCount
       });
     }
-    
+
     lastDate = currentDate;
   }
 
@@ -130,9 +130,9 @@ export async function recalculateHabitStreak(sql: any, habitId: string, userId: 
       "longestStreak" = ${maxStreak},
       "streakAnchorDate" = ${streakAnchorDate},
       updatedat = NOW()
-    WHERE id = ${habitId} AND ownerid = ${userId}
+    WHERE id = ${habitId}::uuid AND ownerid = ${userId}
     RETURNING *
   `;
-  
+
   return result[0];
 }

@@ -47,7 +47,7 @@ export default defineEventHandler(async (event) => {
         dateStr = String(body.date);
         // Re-read body later if needed, or just use the parsed one.
         // Nitro's readBody can be called multiple times if cached, but let's be safe.
-        event.context.body = body; 
+        event.context.body = body;
       } else {
         const query = getQuery(event);
         dateStr = String(query.date);
@@ -72,7 +72,7 @@ export default defineEventHandler(async (event) => {
     if (event.method === 'GET') {
       setResponseHeader(event, 'Cache-Control', 'no-cache, no-store, must-revalidate');
       const query = getQuery(event);
-      
+
       let logs;
       if (query.lastSynced) {
         const lastSynced = Number(query.lastSynced);
@@ -91,7 +91,7 @@ export default defineEventHandler(async (event) => {
       } else {
         logs = await sql`SELECT * FROM habitlogs WHERE ownerid = ${userId}`;
       }
-      
+
       return logs.map(normalizeLog);
     }
 
@@ -106,21 +106,21 @@ export default defineEventHandler(async (event) => {
         throw createError({ statusCode: 400, statusMessage: 'Invalid habitid format' });
       }
 
-      const habitCheck = await sql`SELECT id FROM habits WHERE id = ${habitId} AND ownerid = ${userId}`;
+      const habitCheck = await sql`SELECT id FROM habits WHERE id = ${habitId}::uuid AND ownerid = ${userId}`;
       if (habitCheck.length === 0) {
         throw createError({ statusCode: 404, statusMessage: 'Habit not found' });
       }
 
       const existing = await sql`
         SELECT * FROM habitlogs 
-        WHERE habitid = ${habitId} AND ownerid = ${userId} AND date = ${dateStr}
+        WHERE habitid = ${habitId}::uuid AND ownerid = ${userId} AND date = ${dateStr}
       `;
 
       let finalLog;
       if (existing.length > 0) {
         const existingLog = existing[0]!;
         const newSharedwith = body.sharedwith && Array.isArray(body.sharedwith) ? body.sharedwith : existingLog.sharedwith;
-        
+
         const result = await sql`
           UPDATE habitlogs
           SET status = ${status}, sharedwith = ${newSharedwith}, updatedat = NOW()
@@ -151,10 +151,10 @@ export default defineEventHandler(async (event) => {
         await pusher.trigger(`user-${userId}-habits`, 'sync-settled', { timestamp: Date.now() });
       }
 
-      return { 
-        log: normalizeLog(finalLog), 
-        habit: normalizeHabit(updatedHabit), 
-        buckets: updatedBuckets.map(normalizeBucket) 
+      return {
+        log: normalizeLog(finalLog),
+        habit: normalizeHabit(updatedHabit),
+        buckets: updatedBuckets.map(normalizeBucket)
       };
     }
 
@@ -162,12 +162,12 @@ export default defineEventHandler(async (event) => {
       const query = getQuery(event);
       const habitId = String(query.habitid);
       const dateStr = String(query.date);
-      
+
       await sql`
         DELETE FROM habitlogs 
-        WHERE habitid = ${habitId} AND ownerid = ${userId} AND date = ${dateStr}
+        WHERE habitid = ${habitId}::uuid AND ownerid = ${userId} AND date = ${dateStr}
       `;
-      
+
       const updatedHabit = await recalculateHabitStreak(sql, habitId, userId, dateStr);
       const updatedBuckets = await syncBucketLogsForHabit(sql, habitId, userId, dateStr);
 
@@ -176,10 +176,10 @@ export default defineEventHandler(async (event) => {
         await pusher.trigger(`user-${userId}-habits`, 'sync-settled', { timestamp: Date.now() });
       }
 
-      return { 
-        success: true, 
-        habit: normalizeHabit(updatedHabit), 
-        buckets: updatedBuckets.map(normalizeBucket) 
+      return {
+        success: true,
+        habit: normalizeHabit(updatedHabit),
+        buckets: updatedBuckets.map(normalizeBucket)
       };
     }
   } catch (err: any) {
