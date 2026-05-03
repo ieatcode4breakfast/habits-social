@@ -190,7 +190,7 @@
 
                 <!-- Habits Group -->
                 <div class="space-y-3 pt-4">
-                  <label class="text-xs font-bold uppercase tracking-widest text-zinc-500">Choose habits to add in your bucket</label>
+                  <label class="text-xs font-bold uppercase tracking-widest text-zinc-500">Habits in this bucket</label>
                   <div class="space-y-2 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
                     <label v-for="habit in availableHabits" :key="habit.id" class="flex items-center justify-between p-3 bg-black border border-zinc-925 rounded-xl cursor-pointer hover:border-zinc-800 transition-colors">
                       <div class="flex items-center gap-3">
@@ -409,7 +409,7 @@
                 <!-- Habits Group -->
                 <div class="space-y-3 pt-4">
                   <div class="flex items-center justify-between">
-                    <label class="text-xs font-bold uppercase tracking-widest text-zinc-500">Choose habits to add in your bucket</label>
+                    <label class="text-xs font-bold uppercase tracking-widest text-zinc-500">Habits in this bucket</label>
                   </div>
                   <div class="space-y-2 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar transition-all duration-300">
                     <label v-for="habit in availableHabits" :key="habit.id" class="flex items-center justify-between p-3 bg-black border border-zinc-925 rounded-xl transition-colors cursor-pointer hover:border-zinc-800">

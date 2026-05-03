@@ -41,10 +41,11 @@ export default defineEventHandler(async (event) => {
     }
     const color = body.color !== undefined ? body.color : habit.color;
     const sharedwith = body.sharedwith && Array.isArray(body.sharedwith) ? body.sharedwith : habit.sharedwith;
+    const sortOrder = body.sortOrder !== undefined ? body.sortOrder : habit.sortOrder;
 
     const result = await sql`
       UPDATE habits
-      SET title = ${title}, description = ${description}, "skipsCount" = ${skipsCount}, "skipsPeriod" = ${skipsPeriod}, color = ${color}, sharedwith = ${sharedwith}, updatedat = NOW()
+      SET title = ${title}, description = ${description}, "skipsCount" = ${skipsCount}, "skipsPeriod" = ${skipsPeriod}, color = ${color}, sharedwith = ${sharedwith}, "sortOrder" = ${sortOrder}, updatedat = NOW()
       WHERE id = ${id}::uuid
       RETURNING *
     `;

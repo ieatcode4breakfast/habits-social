@@ -75,7 +75,7 @@ export async function recalculateBucketStreak(sql: any, bucketId: string, userId
 
     maxStreak = Math.max(maxStreak, runningStreak);
     
-    if (['completed', 'failed', 'skipped'].includes(log.status)) {
+    if (['completed', 'failed', 'skipped', 'vacation'].includes(log.status)) {
       streakAnchorDate = log.date;
     }
 
@@ -164,6 +164,8 @@ export async function syncSingleBucketLog(sql: any, bucketId: string, userId: st
       finalStatus = 'failed';
     } else if (statuses.includes('skipped')) {
       finalStatus = 'skipped';
+    } else if (statuses.includes('vacation')) {
+      finalStatus = 'vacation';
     }
 
     const logId = `${bucketId}_${date}`;

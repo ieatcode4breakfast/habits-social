@@ -488,9 +488,9 @@
                           <button
                             type="button"
                             @click.stop="openLogMenu(editingHabit!, day, $event)"
-                            class="w-8 h-8 rounded-lg flex items-center justify-center transition-all border-2 relative"
+                            class="w-8 h-8 rounded-lg flex items-center justify-center transition-all border-2 relative cursor-pointer"
                             :class="[
-                              (day.getMonth() !== currentCalendarDate.getMonth()) ? 'opacity-30 cursor-not-allowed border-transparent' : 'cursor-pointer',
+                              (day.getMonth() !== currentCalendarDate.getMonth()) ? 'opacity-30 border-transparent' : '',
                               !isMarkable(day) && day.getMonth() === currentCalendarDate.getMonth() ? 'opacity-50' : '',
                               getStatus(editingHabit!.id, day) === 'completed' ? 'bg-emerald-500 border-emerald-500 shadow-md shadow-emerald-500/20' :
                               getStatus(editingHabit!.id, day) === 'failed' ? 'bg-rose-500 border-rose-500 shadow-md shadow-rose-500/20' :

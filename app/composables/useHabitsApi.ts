@@ -177,7 +177,8 @@ export const useHabitsApi = () => {
         const statuses = logs.map(l => l.status);
 
         if (statuses.includes('failed')) finalStatus = 'failed';
-        else if (statuses.includes('skipped') || statuses.includes('vacation')) finalStatus = 'skipped';
+        else if (statuses.includes('skipped')) finalStatus = 'skipped';
+        else if (statuses.includes('vacation')) finalStatus = 'vacation';
 
         await db.bucketLogs.put({
           id: `${bucket.id}_${date}`,

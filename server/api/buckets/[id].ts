@@ -29,11 +29,12 @@ export default defineEventHandler(async (event) => {
     const title = body.title !== undefined ? body.title : bucket.title;
     const description = body.description !== undefined ? body.description : bucket.description;
     const color = body.color !== undefined ? body.color : bucket.color;
+    const sortOrder = body.sortOrder !== undefined ? body.sortOrder : bucket.sortOrder;
     const habitIds = body.habitIds && Array.isArray(body.habitIds) ? body.habitIds : null;
 
     const result = await sql`
       UPDATE buckets
-      SET title = ${title}, description = ${description}, color = ${color}, updatedat = NOW()
+      SET title = ${title}, description = ${description}, color = ${color}, "sortOrder" = ${sortOrder}, updatedat = NOW()
       WHERE id = ${id}::uuid
       RETURNING *
     `;
