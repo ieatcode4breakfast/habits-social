@@ -24,14 +24,14 @@ export default defineEventHandler(async (event) => {
       const lastSynced = Number(query.lastSynced);
       userHabits = await sql`
         SELECT * FROM habits 
-        WHERE ownerid = ${userId} 
+        WHERE ownerid = ${userId}::uuid 
           AND updatedat >= to_timestamp(${lastSynced} / 1000.0)
         ORDER BY "sortOrder" ASC, "createdAt" ASC
       `;
     } else {
       userHabits = await sql`
         SELECT * FROM habits 
-        WHERE ownerid = ${userId} 
+        WHERE ownerid = ${userId}::uuid 
         ORDER BY "sortOrder" ASC, "createdAt" ASC
       `;
     }
@@ -41,7 +41,7 @@ export default defineEventHandler(async (event) => {
   if (event.method === 'POST') {
     const body = await readBody(event);
     
-    const countResult = await sql`SELECT COUNT(*) FROM habits WHERE ownerid = ${userId}`;
+    const countResult = await sql`SELECT COUNT(*) FROM habits WHERE ownerid = ${userId}::uuid`;
     const nextSortOrder = parseInt(countResult[0]?.count) || 0;
 
     if (nextSortOrder >= 30) {
@@ -67,7 +67,7 @@ export default defineEventHandler(async (event) => {
 
     const result = await sql`
       INSERT INTO habits (id, ownerid, title, description, "skipsCount", "skipsPeriod", color, sharedwith, "sortOrder", user_date, "createdAt", updatedat)
-      VALUES (${body.id ? body.id : sql`DEFAULT`}, ${userId}, ${title}, ${description}, ${skipsCount}, ${skipsPeriod}, ${color}, ${sharedwith}, ${nextSortOrder}, ${user_date}, NOW(), NOW())
+      VALUES (${body.id ? body.id : sql`DEFAULT`}, ${userId}::uuid, ${title}, ${description}, ${skipsCount}, ${skipsPeriod}, ${color}, ${sharedwith}, ${nextSortOrder}, ${user_date}, NOW(), NOW())
       ON CONFLICT (id) DO UPDATE SET
         title = EXCLUDED.title,
         description = EXCLUDED.description,

@@ -78,18 +78,18 @@ export default defineEventHandler(async (event) => {
         const lastSynced = Number(query.lastSynced);
         logs = await sql`
           SELECT * FROM habitlogs 
-          WHERE ownerid = ${userId} 
+          WHERE ownerid = ${userId}::uuid 
             AND updatedat >= to_timestamp(${lastSynced} / 1000.0)
         `;
       } else if (query.startDate && query.endDate) {
         logs = await sql`
           SELECT * FROM habitlogs 
-          WHERE ownerid = ${userId} 
+          WHERE ownerid = ${userId}::uuid 
             AND date >= ${String(query.startDate)} 
             AND date <= ${String(query.endDate)}
         `;
       } else {
-        logs = await sql`SELECT * FROM habitlogs WHERE ownerid = ${userId}`;
+        logs = await sql`SELECT * FROM habitlogs WHERE ownerid = ${userId}::uuid`;
       }
 
       return logs.map(normalizeLog);

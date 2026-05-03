@@ -10,13 +10,14 @@ export default defineEventHandler(async (event) => {
 
   if (ids.length > 0) {
     await sql.transaction(ids.map((id, index) => 
-      sql`UPDATE habits SET "sortOrder" = ${index}, updatedat = NOW() WHERE id = ${id}::uuid AND ownerid = ${userId}`
+      sql`UPDATE habits SET "sortOrder" = ${index}, updatedat = NOW() WHERE id = ${id}::uuid AND ownerid = ${userId}::uuid`
     ));
 
     // Real-time: Notify other devices
     const pusher = usePusher();
     if (pusher) {
       await pusher.trigger(`user-${userId}-habits`, 'habit-updated', {});
+      await pusher.trigger(`user-${userId}-habits`, 'sync-settled', { timestamp: Date.now() });
     }
   }
 
