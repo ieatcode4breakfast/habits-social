@@ -133,7 +133,7 @@ export default defineEventHandler(async (event) => {
         const sharedwith = body.sharedwith && Array.isArray(body.sharedwith) ? body.sharedwith : [];
         const result = await sql`
           INSERT INTO habitlogs (id, habitid, ownerid, date, status, sharedwith, updatedat)
-          VALUES (${logId}, ${habitId}, ${userId}, ${dateStr}, ${status}, ${sharedwith}, NOW())
+          VALUES (${logId}, ${habitId}::uuid, ${userId}, ${dateStr}, ${status}, ${sharedwith}, NOW())
           ON CONFLICT (id) DO UPDATE SET
             status = EXCLUDED.status,
             sharedwith = EXCLUDED.sharedwith,
