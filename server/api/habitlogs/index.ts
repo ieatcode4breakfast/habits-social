@@ -96,9 +96,14 @@ export default defineEventHandler(async (event) => {
 
   if (event.method === 'POST') {
     const body = await readBody(event);
-    const habitId = String(body.habitid);
-    const dateStr = String(body.date);
-    const status = String(body.status);
+    const habitId = String(body.habitid || body.habitId || '');
+    const dateStr = String(body.date || '');
+    const status = String(body.status || '');
+
+    // Validation: Ensure habitId is a valid UUID to prevent server crashes on casting
+    if (!habitId || habitId.length < 36 || !habitId.includes('-')) {
+      throw createError({ statusCode: 400, statusMessage: 'Invalid habitid format' });
+    }
 
     const habitCheck = await sql`SELECT id FROM habits WHERE id = ${habitId} AND ownerid = ${userId}`;
     if (habitCheck.length === 0) {

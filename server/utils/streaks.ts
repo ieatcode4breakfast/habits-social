@@ -1,6 +1,7 @@
 import { parseISO, startOfDay, differenceInDays } from 'date-fns';
 
 export async function recalculateHabitStreak(sql: any, habitId: string, userId: string, fromDate?: string) {
+  if (!habitId || habitId.length < 36) return;
   // 1. Fetch habit info
   const habitRes = await sql`SELECT "skipsPeriod", "skipsCount", "longestStreak", "streakAnchorDate" FROM habits WHERE id = ${habitId}`;
   if (!habitRes || habitRes.length === 0) return;

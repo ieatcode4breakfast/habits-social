@@ -1,6 +1,7 @@
 import { parseISO, startOfDay, differenceInDays } from 'date-fns';
 
 export async function recalculateBucketStreak(sql: any, bucketId: string, userId: string, fromDate?: string) {
+  if (!bucketId || bucketId.length < 36) return;
   const bucketRes = await sql`SELECT "longestStreak", "streakAnchorDate" FROM buckets WHERE id = ${bucketId}::uuid`;
   if (!bucketRes || bucketRes.length === 0) return;
   const bucket = bucketRes[0];
@@ -123,6 +124,7 @@ export async function recalculateBucketStreak(sql: any, bucketId: string, userId
 }
 
 export async function syncBucketLogsForHabit(sql: any, habitId: string, userId: string, date: string) {
+  if (!habitId || habitId.length < 36) return [];
   const buckets = await sql`
     SELECT b.id FROM buckets b
     JOIN bucket_habits bh ON b.id = bh.bucket_id
@@ -138,6 +140,7 @@ export async function syncBucketLogsForHabit(sql: any, habitId: string, userId: 
 }
 
 export async function syncSingleBucketLog(sql: any, bucketId: string, userId: string, date: string) {
+  if (!bucketId || bucketId.length < 36) return;
   const habitsRes = await sql`
     SELECT habit_id FROM bucket_habits WHERE bucket_id = ${bucketId}::uuid
   `;
