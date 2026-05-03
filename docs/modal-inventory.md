@@ -13,6 +13,8 @@ The application uses three primary categories of modals to handle different leve
 |------------|---------------|------------------|---------|
 | **Add Habit** | `app/pages/index.vue` | `showModal` | Form to create a new habit. |
 | **Edit Habit** | `app/pages/index.vue` | `showEditModal` | Comprehensive habit editor (title, desc, frequency, sharing). |
+| **Add Bucket** | `app/pages/buckets.vue` | `showModal` | Form to create a new bucket. |
+| **Edit Bucket** | `app/pages/buckets.vue` | `showEditModal` | Comprehensive bucket editor (title, desc, color). |
 | **View Habit Details** | `app/components/HabitDetailsModal.vue` | (Component) | View-only friend habit details & calendar. |
 | **Profile Modal** | `app/components/ProfileModal.vue`| (Component) | View/Edit own user profile details. |
 
@@ -22,6 +24,7 @@ The application uses three primary categories of modals to handle different leve
 | Modal Name | File Location | Triggering State | Purpose |
 |------------|---------------|------------------|---------|
 | **Delete Habit** | `app/pages/index.vue` | `showDeleteModal` | Destructive action warning for habit removal. |
+| **Delete Bucket** | `app/pages/buckets.vue` | `showDeleteModal` | Destructive action warning for bucket removal. |
 | **Unfriend User** | `app/pages/social.vue` | `showUnfriendModal` | Confirmation before removing a friend connection. |
 | **Unfriend User** | `app/pages/friends/[id].vue` | `showUnfriendModal` | Confirmation before removing a friend connection. |
 | **Add Friend** | `app/pages/social.vue` | `showAddModal` | Post-action success confirmation. |
@@ -35,6 +38,7 @@ The application uses three primary categories of modals to handle different leve
 |------------|---------------|------------------|---------|
 | **Share Selection** | `app/components/ShareHabitsModal.vue` | `showShareModal` | Batch selection of habits to share with a friend. |
 | **Reorder Habits** | `app/pages/index.vue` | `showReorderModal` | Specialized drag-and-drop list for habit ordering. |
+| **Reorder Buckets** | `app/pages/buckets.vue` | `showReorderModal` | Specialized drag-and-drop list for bucket ordering. |
 | **Avatar Selection** | `app/components/AvatarPicker.vue` | `showAvatarModal` | Avatar grid and refresh actions for profile customization. |
 
 ---

@@ -4,16 +4,16 @@ This document outlines the core logic for calculating and evaluating habit strea
 
 ## Data Model
 
-The streak state is persisted across both the parent `habits` entity and individual `habitlogs`.
+The streak state is persisted across the parent entities (`habits` and `buckets`) and their individual daily logs (`habitlogs` and `bucketlogs`).
 
-**Parent `habits` (Current State):**
+**Parent `habits` and `buckets` (Current State):**
 | Field | Type | Description |
 | :--- | :--- | :--- |
-| `currentStreak` | `Integer` | The number of consecutive days the habit has been completed (ignoring skips). |
+| `currentStreak` | `Integer` | The number of consecutive days the entity has been completed (ignoring skips). |
 | `longestStreak` | `Integer` | The historical record for the most consecutive completions. |
 | `streakAnchorDate` | `Date` | The date of the most recent log that contributed to or "anchored" the current streak. |
 
-**Child `habitlogs` (Historical Snapshots):**
+**Child `habitlogs` and `bucketlogs` (Historical Snapshots):**
 | Field | Type | Description |
 | :--- | :--- | :--- |
 | `streakCount` | `Integer` | The active streak count strictly at the time this log was recorded. |
@@ -32,7 +32,7 @@ The streak state is persisted across both the parent `habits` entity and individ
 > * **Strict:** A "Missing Day" (gap > 1 day) always breaks the chain.
 > * **Security Limit:** Retroactive edits are strictly limited to a **14-day trailing window** to prevent massive historical manipulation.
 
-Streaks are recalculated automatically whenever a habit log is created, updated, or deleted.
+Streaks are recalculated automatically whenever a habit log or bucket log is created, updated, or deleted.
 
 ### The Forward Cascading Update Flow
 To ensure data integrity when users retroactively log or delete days, the engine uses an incremental forward-cascade approach:
@@ -46,7 +46,7 @@ To ensure data integrity when users retroactively log or delete days, the engine
     * **Skipped Day**: Ignore it. The streak remains intact (paused).
     * **Failed Day**: Save the `runningStreak` into `brokenStreakCount`, then reset `runningStreak` to 0.
 5.  **Log Snapshot Stamping**: Every log evaluated in this chain is updated with its specific `streakCount` and `brokenStreakCount`.
-6.  **Final Parent Update**: The final `runningStreak`, the highest observed `maxStreak` (Longest Streak), and the date of the most recent valid log (`streakAnchorDate`) are saved back to the habit entity.
+6.  **Final Parent Update**: The final `runningStreak`, the highest observed `maxStreak` (Longest Streak), and the date of the most recent valid log (`streakAnchorDate`) are saved back to the parent entity.
 
 ---
 

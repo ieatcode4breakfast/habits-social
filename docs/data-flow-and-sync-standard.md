@@ -41,17 +41,13 @@ To preserve bandwidth and ensure fast local database settlement, pull operations
 *   **Pulling Pre-Calculated State:** Secondary devices (or the same user pulling after being offline) *will* pull the server's pre-calculated derived data (e.g., the updated bucket streaks). This prevents every client from having to redundantly calculate state from raw events, saving CPU and ensuring strict consistency across devices.
 *   **Targeted Re-calculation:** When the client receives the delta, it merges the changes into Dexie and only triggers re-calculations (e.g., UI refreshes) for the specific entities affected by the delta.
 
-## 5. Implementation Roadmap (Checklist)
-To fully comply with this standard, the following refactoring steps must be performed on the codebase:
+## 5. End-to-End Data Flow Sequence
+To summarize the standard, the lifecycle of a single user action follows this sequence:
 
-### Client-Side (`app/composables/useHabitsApi.ts` & `app/utils/db.ts`)
-- [ ] Port the server-side bucket streak calculation logic (e.g., `recalculateBucketStreak`) to a client-side Dexie utility.
-- [ ] Update client-side functions (`createHabit`, `updateHabit`, `upsertLog`, etc.) to trigger cascading local updates to `buckets` and `bucketLogs` in Dexie before returning.
-- [ ] Refactor the background `sync` function so that initiating clients ignore the server response for calculated fields, unless conflict resolution is needed.
-- [ ] Update the `sync` function's pull mechanism to request and merge only delta updates (using timestamps or IDs).
-
-### Server-Side (`server/api/**/*.ts` & `server/utils/buckets.ts`)
-- [ ] Ensure that API endpoints only return the hybrid validation response.
-- [ ] Relocate all Pusher event triggers (`pusher.trigger`) inside API endpoints so they only fire at the very end of the controller, *after* the root action and all `recalculateBucketStreak` database operations have successfully settled.
-- [ ] Consolidate specific Pusher events (like `bucket-updated`) into a broader `sync-settled` or delta-specific event to prompt client pulls cleanly.
-- [ ] Ensure pull endpoints (e.g., `GET /api/habits`, `GET /api/buckets`) support delta fetching via `lastSynced` timestamp query parameters.
+1. **User Interaction:** The user performs an action (e.g., logging a habit completion).
+2. **Local Settlement:** The local database instantly records the root action and calculates any immediate cascading effects (e.g., updating a related bucket's local progress). The UI updates immediately without waiting for a network response.
+3. **Background Push:** The client silently queues and sends the root action to the server in the background.
+4. **Server Validation & Storage:** The server receives the action, validates it, and performs its own authoritative cascading calculations. The finalized state is stored in the primary remote database.
+5. **Real-time Broadcast:** Only *after* the primary remote database is completely settled, the server emits a real-time event to any other active sessions belonging to the user.
+6. **Actionable Pull:** Secondary sessions receive the broadcast and initiate a targeted delta-pull request to fetch only the freshly changed records.
+7. **Reconciliation:** Secondary sessions merge the new delta into their local database and selectively trigger UI updates.
