@@ -340,27 +340,27 @@
                 </div>
 
                 <!-- Habits Group -->
-                <div class="space-y-3 pt-4">
-                  <label class="text-xs font-bold uppercase tracking-widest text-zinc-500">Habits in this bucket</label>
-                  <div class="space-y-2 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
-                    <label v-for="habit in availableHabits" :key="habit.id" class="flex items-center justify-between p-3 bg-black border border-zinc-925 rounded-xl cursor-pointer hover:border-zinc-800 transition-colors">
-                      <div class="flex items-center gap-3">
-                        <span class="text-sm font-semibold text-zinc-200">{{ habit.title }}</span>
-                      </div>
-                      <div 
-                        class="w-6 h-6 rounded-lg flex items-center justify-center transition-all"
-                        :class="[
-                          newHabitIds.includes(habit.id) 
-                            ? 'bg-indigo-500 shadow-lg shadow-indigo-500/20' 
-                            : 'bg-zinc-925'
-                        ]"
-                      >
-                        <Check v-if="newHabitIds.includes(habit.id)" class="w-3.5 h-3.5 text-white" />
-                      </div>
-                      <input type="checkbox" :value="habit.id" v-model="newHabitIds" class="hidden" />
-                    </label>
+                  <div class="space-y-3 pt-4">
+                    <label class="text-xs font-bold uppercase tracking-widest text-zinc-500">Habits in this bucket</label>
+                    <div class="space-y-2 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+                      <label v-for="habit in sortedHabitsForAdd" :key="habit.id" class="flex items-center justify-between p-3 bg-black border border-zinc-925 rounded-xl cursor-pointer hover:border-zinc-800 transition-colors">
+                        <div class="flex items-center gap-3">
+                          <span class="text-sm font-semibold text-zinc-200">{{ habit.title }}</span>
+                        </div>
+                        <div 
+                          class="w-6 h-6 rounded-lg flex items-center justify-center transition-all"
+                          :class="[
+                            newHabitIds.includes(habit.id) 
+                              ? 'bg-indigo-500 shadow-lg shadow-indigo-500/20' 
+                              : 'bg-zinc-925'
+                          ]"
+                        >
+                          <Check v-if="newHabitIds.includes(habit.id)" class="w-3.5 h-3.5 text-white" />
+                        </div>
+                        <input type="checkbox" :value="habit.id" v-model="newHabitIds" class="hidden" />
+                      </label>
+                    </div>
                   </div>
-                </div>
               </form>
             </div>
 
@@ -557,30 +557,29 @@
                   </div>
                 </div>
 
-                <!-- Habits Group -->
-                <div class="space-y-3 pt-4">
-                  <div class="flex items-center justify-between">
-                    <label class="text-xs font-bold uppercase tracking-widest text-zinc-500">Habits in this bucket</label>
+                  <div class="space-y-3 pt-4">
+                    <div class="flex items-center justify-between">
+                      <label class="text-xs font-bold uppercase tracking-widest text-zinc-500">Habits in this bucket</label>
+                    </div>
+                    <div class="space-y-2 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar transition-all duration-300">
+                      <label v-for="habit in sortedHabitsForEdit" :key="habit.id" class="flex items-center justify-between p-3 bg-black border border-zinc-925 rounded-xl transition-colors cursor-pointer hover:border-zinc-800">
+                        <div class="flex items-center gap-3">
+                          <span class="text-sm font-semibold text-zinc-200">{{ habit.title }}</span>
+                        </div>
+                        <div 
+                          class="w-6 h-6 rounded-lg flex items-center justify-center transition-all"
+                          :class="[
+                            editHabitIds.includes(habit.id) 
+                              ? 'bg-indigo-500 shadow-lg shadow-indigo-500/20' 
+                              : 'bg-zinc-925'
+                          ]"
+                        >
+                          <Check v-if="editHabitIds.includes(habit.id)" class="w-3.5 h-3.5 text-white" />
+                        </div>
+                        <input type="checkbox" :value="habit.id" v-model="editHabitIds" class="hidden" />
+                      </label>
+                    </div>
                   </div>
-                  <div class="space-y-2 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar transition-all duration-300">
-                    <label v-for="habit in availableHabits" :key="habit.id" class="flex items-center justify-between p-3 bg-black border border-zinc-925 rounded-xl transition-colors cursor-pointer hover:border-zinc-800">
-                      <div class="flex items-center gap-3">
-                        <span class="text-sm font-semibold text-zinc-200">{{ habit.title }}</span>
-                      </div>
-                      <div 
-                        class="w-6 h-6 rounded-lg flex items-center justify-center transition-all"
-                        :class="[
-                          editHabitIds.includes(habit.id) 
-                            ? 'bg-indigo-500 shadow-lg shadow-indigo-500/20' 
-                            : 'bg-zinc-925'
-                        ]"
-                      >
-                        <Check v-if="editHabitIds.includes(habit.id)" class="w-3.5 h-3.5 text-white" />
-                      </div>
-                      <input type="checkbox" :value="habit.id" v-model="editHabitIds" class="hidden" />
-                    </label>
-                  </div>
-                </div>
               </div>
             </div>
 
@@ -782,6 +781,30 @@ const calendarDays = computed(() => {
   return [...paddingStart, ...daysInMonth, ...paddingEnd];
 });
 
+// Sort habits for modals: Associated habits first, then follow "My habits" (global) order
+const sortedHabitsForAdd = computed(() => {
+  const associated = new Set(newHabitIds.value);
+  return [...availableHabits.value].sort((a, b) => {
+    const aIn = associated.has(a.id);
+    const bIn = associated.has(b.id);
+    if (aIn && !bIn) return -1;
+    if (!aIn && bIn) return 1;
+    return 0; // Stable sort preserves global order
+  });
+});
+
+const sortedHabitsForEdit = computed(() => {
+  // Use the ORIGINAL habitIds from the bucket being edited so the list doesn't jump around while clicking
+  const associated = new Set(editingBucket.value?.habitIds || []);
+  return [...availableHabits.value].sort((a, b) => {
+    const aIn = associated.has(a.id);
+    const bIn = associated.has(b.id);
+    if (aIn && !bIn) return -1;
+    if (!aIn && bIn) return 1;
+    return 0; // Stable sort preserves global order
+  });
+});
+
 const prevMonth = () => currentCalendarDate.value = subMonths(currentCalendarDate.value, 1);
 const nextMonth = () => currentCalendarDate.value = addMonths(currentCalendarDate.value, 1);
 
@@ -823,7 +846,24 @@ const startDate = format(startOfMonth(subMonths(today, 1)), 'yyyy-MM-dd');
 const endDate = format(endOfMonth(addMonths(today, 1)), 'yyyy-MM-dd');
 
 const toggleExpand = (bucketId: string) => {
-  expandedBucketId.value = expandedBucketId.value === bucketId ? null : bucketId;
+  const isOpening = expandedBucketId.value !== bucketId;
+  expandedBucketId.value = isOpening ? bucketId : null;
+
+  if (isOpening) {
+    nextTick(() => {
+      const el = document.querySelector(`[data-bucket-id="${bucketId}"]`);
+      if (el) {
+        const rect = el.getBoundingClientRect();
+        const offset = 80; // Account for sticky header
+        const top = window.pageYOffset + rect.top - offset;
+        
+        window.scrollTo({
+          top,
+          behavior: 'smooth'
+        });
+      }
+    });
+  }
 };
 
 const getHabitsInBucket = (bucket: Bucket) => {

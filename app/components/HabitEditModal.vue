@@ -506,7 +506,8 @@ const adjustFrequency = (delta: number) => {
 // Sharing
 const sortedFriendsForEdit = computed(() => {
   if (!props.habit) return props.friends;
-  const sharedIds = new Set(editSharedWithWorking.value);
+  // Use the INITIAL shared IDs so the list doesn't jump around while clicking
+  const sharedIds = new Set(editSharedWith.value);
   return [...props.friends].sort((a, b) => {
     const aShared = sharedIds.has(a.id);
     const bShared = sharedIds.has(b.id);

@@ -38,7 +38,7 @@
             </div>
 
             <div class="space-y-2 mb-2">
-              <div v-for="habit in myHabits" :key="habit.id" 
+              <div v-for="habit in sortedHabits" :key="habit.id" 
                 @click="toggleHabitSelection(habit.id)"
                 class="flex items-center gap-3 p-3 rounded-xl border transition-all cursor-pointer group"
                 :class="selectedHabitIds.includes(habit.id) ? 'bg-white/5 border-white/20' : 'bg-black border-zinc-900 hover:border-zinc-700'"
@@ -74,7 +74,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from 'vue';
+import { ref, watch, computed } from 'vue';
 import { Check, CheckSquare } from 'lucide-vue-next';
 import { format } from 'date-fns';
 
@@ -95,6 +95,18 @@ watch(() => props.modelValue, (newVal) => {
   if (newVal) {
     selectedHabitIds.value = [...(props.initialSelectedIds || [])];
   }
+});
+
+const sortedHabits = computed(() => {
+  // Use the INITIAL selected IDs so the list doesn't jump around while clicking
+  const initial = new Set(props.initialSelectedIds || []);
+  return [...props.myHabits].sort((a, b) => {
+    const aIn = initial.has(a.id);
+    const bIn = initial.has(b.id);
+    if (aIn && !bIn) return -1;
+    if (!aIn && bIn) return 1;
+    return 0; // Maintain original "My habits" order
+  });
 });
 
 const close = () => {
