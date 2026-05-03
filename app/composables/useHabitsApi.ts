@@ -181,7 +181,8 @@ export const useHabitsApi = () => {
         .filter(l => habitsInBucket.includes(l.habitid) && l.date === date && l.status !== 'cleared')
         .toArray();
 
-      if (logs.length === habitsInBucket.length) {
+      const uniqueLoggedHabits = new Set(logs.map(l => l.habitid));
+      if (uniqueLoggedHabits.size === habitsInBucket.length) {
         let finalStatus: 'completed' | 'failed' | 'skipped' | 'vacation' = 'completed';
         const statuses = logs.map(l => l.status);
 
@@ -490,21 +491,19 @@ export const useHabitsApi = () => {
             }
           }
 
-          // 3. Cleanup: Purge legacy UUID logs that have been superseded by composite IDs
-          if (remoteLogs.length > 0 || remoteBucketLogs.length > 0) {
-            const allLocalLogs = await db.habitLogs.toArray();
-            const legacyLogIds = allLocalLogs.filter(l => !l.id.includes('_')).map(l => l.id);
-            if (legacyLogIds.length > 0) {
-              console.log(`[Sync] Purging ${legacyLogIds.length} legacy habit logs...`);
-              await db.habitLogs.bulkDelete(legacyLogIds);
-            }
+          // 3. Cleanup: Unconditionally purge any legacy UUID logs from local database
+          const allLocalLogs = await db.habitLogs.toArray();
+          const legacyLogIds = allLocalLogs.filter(l => !l.id.includes('_')).map(l => l.id);
+          if (legacyLogIds.length > 0) {
+            console.log(`[Sync] Purging ${legacyLogIds.length} legacy habit logs...`);
+            await db.habitLogs.bulkDelete(legacyLogIds);
+          }
 
-            const allLocalBucketLogs = await db.bucketLogs.toArray();
-            const legacyBucketLogIds = allLocalBucketLogs.filter(l => !l.id.includes('_')).map(l => l.id);
-            if (legacyBucketLogIds.length > 0) {
-              console.log(`[Sync] Purging ${legacyBucketLogIds.length} legacy bucket logs...`);
-              await db.bucketLogs.bulkDelete(legacyBucketLogIds);
-            }
+          const allLocalBucketLogs = await db.bucketLogs.toArray();
+          const legacyBucketLogIds = allLocalBucketLogs.filter(l => !l.id.includes('_')).map(l => l.id);
+          if (legacyBucketLogIds.length > 0) {
+            console.log(`[Sync] Purging ${legacyBucketLogIds.length} legacy bucket logs...`);
+            await db.bucketLogs.bulkDelete(legacyBucketLogIds);
           }
 
           // Merge Habits

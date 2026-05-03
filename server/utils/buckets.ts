@@ -151,12 +151,14 @@ export async function syncSingleBucketLog(sql: any, bucketId: string, userId: st
   const habitIds = habitsRes.map((h: any) => h.habit_id);
 
   const logsRes = await sql`
-    SELECT status FROM habitlogs 
+    SELECT status, habitid FROM habitlogs 
     WHERE habitid = ANY(${habitIds}::text[]) AND ownerid = ${userId} AND date = ${date}
       AND status != 'cleared'
   `;
 
-  if (logsRes.length === habitsRes.length) {
+  const uniqueLoggedHabitIds = new Set(logsRes.map((l: any) => l.habitid));
+
+  if (uniqueLoggedHabitIds.size === habitsRes.length) {
     let finalStatus = 'completed';
     const statuses = logsRes.map((l: any) => l.status);
     
