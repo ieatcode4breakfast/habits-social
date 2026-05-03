@@ -69,6 +69,26 @@ export interface IBucket {
   sortOrder: number;
   createdAt: Date;
   updatedat: Date;
+  // Shared metadata
+  sharedMembers?: ISharedBucketMember[];
+  sharedHabits?: IBucketHabit[];
+}
+
+export interface ISharedBucketMember {
+  bucket_id: string;
+  user_id: string;
+  username?: string;
+  status: 'pending' | 'accepted' | 'declined';
+  created_at?: Date;
+  updated_at?: Date;
+}
+
+export interface IBucketHabit {
+  bucket_id: string;
+  habit_id: string;
+  added_by: string;
+  approval_status: 'pending' | 'accepted' | 'declined' | 'removed';
+  habitOwnerId?: string;
 }
 
 export interface IBucketLog {
