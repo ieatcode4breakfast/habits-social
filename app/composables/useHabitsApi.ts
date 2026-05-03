@@ -139,15 +139,22 @@ export const useHabitsApi = () => {
   };
 
   const reorderHabits = async (ids: string[]) => {
+    // 1. Local Settlement: Update Dexie sortOrder immediately
     const updates = ids.map(async (id, index) => {
-      const existing = await db.habits.get(id);
       return db.habits.update(id, {
         sortOrder: index,
-        synced: (existing as any)?.synced === 1 ? -1 : (existing as any)?.synced,
         updatedAt: Date.now()
       });
     });
     await Promise.all(updates);
+
+    // 2. Queue Root Action: Add reorder to syncQueue
+    await db.syncQueue.add({
+      type: 'habit',
+      action: 'REORDER',
+      payload: { ids }
+    });
+
     triggerSync();
   };
 
@@ -283,6 +290,26 @@ export const useHabitsApi = () => {
       .toArray();
   };
 
+  const reorderBuckets = async (ids: string[]) => {
+    // 1. Local Settlement: Update Dexie sortOrder immediately
+    const updates = ids.map(async (id, index) => {
+      return db.buckets.update(id, {
+        sortOrder: index,
+        updatedAt: Date.now()
+      });
+    });
+    await Promise.all(updates);
+
+    // 2. Queue Root Action: Add reorder to syncQueue
+    await db.syncQueue.add({
+      type: 'bucket',
+      action: 'REORDER',
+      payload: { ids }
+    });
+
+    triggerSync();
+  };
+
   // --- The Core Sync Engine ---
   const sync = async () => {
     if (!user.value) return;
@@ -296,21 +323,33 @@ export const useHabitsApi = () => {
       do {
         syncNeeded = false;
 
-        // 0. Process Deletion Queue
-        const deletions = await db.syncQueue.toArray();
-        for (const d of deletions) {
+        // 0. Process Action Queue (Deletions & Reorders)
+        const queuedActions = await db.syncQueue.toArray();
+        for (const d of queuedActions) {
           try {
-            if (d.type === 'habit') {
-              await $fetch(`/api/habits/${d.payload.id}`, { method: 'DELETE' });
-            } else if (d.type === 'bucket') {
-              await $fetch(`/api/buckets/${d.payload.id}`, { method: 'DELETE' });
+            if (d.action === 'DELETE') {
+              if (d.type === 'habit') {
+                await $fetch(`/api/habits/${d.payload.id}`, { method: 'DELETE' });
+              } else if (d.type === 'bucket') {
+                await $fetch(`/api/buckets/${d.payload.id}`, { method: 'DELETE' });
+              }
+            } else if (d.action === 'REORDER') {
+              if (d.type === 'habit') {
+                await $fetch('/api/habits/reorder', { method: 'POST', body: { ids: d.payload.ids } });
+                // Mark these habits as synced
+                await db.habits.where('id').anyOf(d.payload.ids).modify({ synced: 1 });
+              } else if (d.type === 'bucket') {
+                await $fetch('/api/buckets/reorder', { method: 'POST', body: { ids: d.payload.ids } });
+                // Mark these buckets as synced
+                await db.buckets.where('id').anyOf(d.payload.ids).modify({ synced: 1 });
+              }
             }
             if (d.id) await db.syncQueue.delete(d.id);
           } catch (e: any) {
             if (e.statusCode === 404 && d.id) {
               await db.syncQueue.delete(d.id);
             }
-            console.warn('[Sync] Deletion failed:', e);
+            console.warn('[Sync] Action failed:', e);
           }
         }
 
@@ -509,7 +548,7 @@ export const useHabitsApi = () => {
 
   return {
     getHabits, createHabit, updateHabit, deleteHabit, getLogs, upsertLog, deleteLog, reorderHabits,
-    getBuckets, createBucket, updateBucket, deleteBucket, getBucketLogs,
+    getBuckets, createBucket, updateBucket, deleteBucket, getBucketLogs, reorderBuckets,
     sync,
     lastSyncTime
   };

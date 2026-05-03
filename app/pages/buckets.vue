@@ -3,8 +3,8 @@
     <!-- Header -->
     <div class="px-4 sm:px-0 flex items-end justify-between gap-4 sticky top-[57px] z-40 bg-black pt-2 pb-2 sm:pt-4">
       <div class="flex items-center gap-4">
-        <div class="w-12 h-12 bg-gradient-to-br from-indigo-500/20 to-blue-500/20 rounded-2xl shadow-lg shadow-indigo-500/10 flex items-center justify-center border border-indigo-500/20">
-          <PaintBucket class="w-6 h-6 text-indigo-400" />
+        <div class="w-12 h-12 bg-zinc-925 rounded-2xl shadow-lg flex items-center justify-center border border-zinc-800">
+          <PaintBucket class="w-6 h-6 text-zinc-400" />
         </div>
         <div>
           <h1 class="text-xl font-bold tracking-tight text-white mb-1">Buckets</h1>
@@ -12,6 +12,15 @@
         </div>
       </div>
       <div class="flex items-center gap-2">
+        <button
+          v-if="buckets.length > 1"
+          @click="showReorderModal = true"
+          class="w-11 sm:w-28 py-2.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 hover:text-white font-semibold rounded-xl transition-all cursor-pointer text-sm flex items-center justify-center gap-2 active:scale-95 border border-zinc-700/60"
+          title="Reorder"
+        >
+          <ArrowUpDown class="w-4 h-4" />
+          <span class="hidden sm:inline">Reorder</span>
+        </button>
         <button 
           @click="openAddModal" 
           class="w-11 sm:w-28 py-2.5 bg-white hover:bg-zinc-200 text-black font-semibold rounded-xl transition-all shadow-lg shadow-white/5 cursor-pointer text-sm flex items-center justify-center gap-2 active:scale-95"
@@ -22,6 +31,17 @@
         </button>
       </div>
     </div>
+
+    <!-- Shared Habit Edit Modal -->
+    <HabitEditModal
+      v-model="showHabitEditModal"
+      :habit="editingHabit"
+      :friends="friends"
+      :logs="habitLogs"
+      @habit-updated="onHabitUpdatedFromModal"
+      @habit-deleted="onHabitDeletedFromModal"
+      @open-log-menu="onOpenLogMenuFromModal"
+    />
 
     <!-- Bucket List -->
     <div v-motion-fade class="bg-zinc-925/80 backdrop-blur-md sm:rounded-2xl rounded-none shadow-2xl border-y border-x-0 sm:border border-zinc-800/80 divide-y divide-zinc-800/80 overflow-x-auto custom-scrollbar">
@@ -35,90 +55,195 @@
       
         <div 
           v-for="bucket in buckets" :key="bucket.id"
-          @click="openEditModal(bucket)"
-          class="relative p-4 pt-14 sm:pt-4 group transition-all flex flex-wrap items-center justify-between gap-x-8 gap-y-4 cursor-pointer hover:bg-zinc-800/40"
+          :data-bucket-id="bucket.id"
+          draggable="true"
+          @dragstart="onDragStart($event, bucket.id)"
+          @dragover.prevent="onDragOver($event, bucket.id)"
+          @drop.prevent="onDrop($event, bucket.id)"
+          @dragend="onDragEnd"
+          class="relative transition-all border-b border-zinc-800/50 last:border-0"
+          :class="[
+            expandedBucketId === bucket.id ? 'bg-zinc-900/30' : '',
+            draggingId === bucket.id ? 'opacity-30' : 'opacity-100',
+            dragOverId === bucket.id ? 'ring-2 ring-inset ring-white/20 bg-zinc-800/50' : ''
+          ]"
         >
-          <!-- Top Left Badges Container -->
-          <div class="absolute top-3 left-0 sm:top-2 flex items-center gap-2 z-20 transition-all duration-500">
-            <!-- Floating Streak Badge -->
-            <div 
-              v-if="(bucket.currentStreak ?? 0) >= 2"
-              class="flex items-center gap-1.5 px-3 py-1 bg-black border border-l-0 rounded-r-full rounded-l-none transition-all duration-500"
-              :class="[
-                isFaded(bucket) ? 'opacity-30' : 'opacity-100',
-                getStreakTheme(bucket.currentStreak ?? 0).border
-              ]"
-            >
-              <span 
-                class="text-[10px] font-black tracking-tight"
-                :class="getStreakTheme(bucket.currentStreak ?? 0).text"
-              >
-                x{{ bucket.currentStreak }} STREAK
-              </span>
-              <Flame 
-                v-if="(bucket.currentStreak ?? 0) >= 7"
-                class="w-3.5 h-3.5" 
+          <!-- Bucket Header Row -->
+          <div 
+            @click="toggleExpand(bucket.id)"
+            class="relative px-4 pt-14 pb-6 group transition-all flex flex-wrap items-center justify-between gap-x-8 gap-y-4 cursor-pointer hover:bg-zinc-800/40"
+          >
+            <!-- Top Left Badges Container -->
+            <div class="absolute top-3 left-0 sm:top-2 flex items-center gap-2 z-20 transition-all duration-500">
+              <!-- Floating Streak Badge -->
+              <div 
+                v-if="(bucket.currentStreak ?? 0) >= 2"
+                class="flex items-center gap-1.5 px-3 py-1 bg-black border border-l-0 rounded-r-full rounded-l-none transition-all duration-500"
                 :class="[
-                  getStreakTheme(bucket.currentStreak ?? 0).text,
-                  getStreakTheme(bucket.currentStreak ?? 0).fill
+                  isFaded(bucket) ? 'opacity-30' : 'opacity-100',
+                  getStreakTheme(bucket.currentStreak ?? 0).border
                 ]"
-              />
-            </div>
-
-            <!-- Habit count badge -->
-            <div class="flex items-center px-2 py-1 bg-zinc-925 border border-zinc-800 rounded-lg text-[10px] font-bold tracking-tight text-zinc-400 shadow-sm" :class="{'ml-3': (bucket.currentStreak ?? 0) < 2}">
-              {{ bucket.habitIds?.length || 0 }} habit{{ (bucket.habitIds?.length || 0) === 1 ? '' : 's' }}
-            </div>
-          </div>
-
-          <div class="flex items-center gap-3 min-w-[200px] flex-1">
-            <div class="text-left flex flex-col items-start gap-0.5 relative min-w-0 flex-1">
-              <h3 class="font-bold text-zinc-200 leading-tight break-all group-hover:text-white transition-colors">{{ bucket.title }}</h3>
-              <p v-if="bucket.habitIds?.length" class="text-[10px] font-bold uppercase tracking-wider text-zinc-500 truncate w-full">
-                {{ getHabitPreview(bucket) }}
-              </p>
-            </div>
-          </div>
-          
-          <!-- Read-only Timeline -->
-          <div class="flex-1 min-w-[320px] flex justify-center sm:justify-end items-end gap-4 pointer-events-none">
-            <div class="flex justify-evenly items-end w-full max-w-lg">
-              <div v-for="(day, i) in days" :key="i" class="flex flex-col items-center gap-2">
-                <div 
-                  class="text-[10px] uppercase tracking-tighter font-black transition-colors"
-                  :class="isToday(day) ? 'text-white' : 'text-zinc-500'"
+              >
+                <span 
+                  class="text-[10px] font-black tracking-tight"
+                  :class="getStreakTheme(bucket.currentStreak ?? 0).text"
                 >
-                  {{ format(day, 'EEE') }}
+                  x{{ bucket.currentStreak }} STREAK
+                </span>
+                <Flame 
+                  v-if="(bucket.currentStreak ?? 0) >= 7"
+                  class="w-3.5 h-3.5" 
+                  :class="[
+                    getStreakTheme(bucket.currentStreak ?? 0).text,
+                    getStreakTheme(bucket.currentStreak ?? 0).fill
+                  ]"
+                />
+              </div>
+
+              <!-- Habit count badge with Edit Icon -->
+              <div class="flex items-center gap-2 ml-1" :class="{'ml-3': (bucket.currentStreak ?? 0) < 2}">
+                <div class="flex items-center px-2 py-1 bg-zinc-925 border border-zinc-800 rounded-lg text-[10px] font-bold tracking-tight text-zinc-400 shadow-sm">
+                  {{ bucket.habitIds?.length || 0 }} habit{{ (bucket.habitIds?.length || 0) === 1 ? '' : 's' }}
                 </div>
-                
-                <div class="relative">
-                  <div
-                    class="w-9 h-9 rounded-lg flex items-center justify-center transition-all border-2 relative"
-                    :class="[
-                      getStatus(bucket.id, day) === 'completed' ? 'bg-emerald-500 border-emerald-500 shadow-md shadow-emerald-500/20' :
-                      getStatus(bucket.id, day) === 'failed' ? 'bg-rose-500 border-rose-500 shadow-md shadow-rose-500/20' :
-                      getStatus(bucket.id, day) === 'skipped' ? 'bg-zinc-500 border-zinc-500 shadow-none' :
-                      getStatus(bucket.id, day) === 'vacation' ? 'bg-amber-500 border-amber-500 shadow-md shadow-amber-500/20' :
-                      'bg-transparent border-dashed border-zinc-800'
-                    ]"
+                <button 
+                  @click.stop="openEditModal(bucket)"
+                  class="p-1.5 text-zinc-500 hover:text-white hover:bg-white/5 rounded-lg transition-all cursor-pointer"
+                  title="Edit Bucket"
+                >
+                  <Edit2 class="w-3.5 h-3.5" />
+                </button>
+              </div>
+            </div>
+
+            <div class="flex items-center gap-3 min-w-[200px] flex-1">
+              <div class="text-left flex flex-col items-start gap-0.5 relative min-w-0 flex-1">
+                <h3 class="font-bold text-zinc-200 leading-tight break-all group-hover:text-white transition-colors">{{ bucket.title }}</h3>
+                <div v-if="bucket.habitIds?.length" class="mt-0.5 min-w-0 w-full truncate">
+                  <span 
+                    v-for="(habitId, idx) in bucket.habitIds" 
+                    :key="habitId"
+                    @click.stop="openHabitEditModalById(habitId)"
+                    class="text-[10px] font-bold uppercase tracking-wider text-zinc-500 hover:text-white transition-colors cursor-pointer"
                   >
-                    <Check v-if="getStatus(bucket.id, day) === 'completed'" class="w-4 h-4 text-white" />
-                    <XIcon v-else-if="getStatus(bucket.id, day) === 'failed'" class="w-4 h-4 text-white" />
-                    <Minus v-else-if="getStatus(bucket.id, day) === 'skipped'" class="w-4 h-4 text-white" />
-                    <Palmtree v-else-if="getStatus(bucket.id, day) === 'vacation'" class="w-4 h-4 text-white" />
-                  </div>
-                </div>
-
-                <div 
-                  class="text-[10px] font-bold transition-colors"
-                  :class="isToday(day) ? 'text-white' : 'text-zinc-500'"
-                >
-                  {{ format(day, 'd') }}
+                    {{ getHabitTitle(habitId) }}{{ idx === bucket.habitIds.length - 1 ? '' : ', ' }}
+                  </span>
                 </div>
               </div>
             </div>
+            
+            <!-- Read-only Timeline -->
+            <div 
+              class="w-full sm:w-[400px] lg:w-[512px] shrink-0 flex justify-center sm:justify-end items-center gap-4 cursor-pointer"
+              @click.stop="openEditModal(bucket)"
+            >
+              <div class="flex justify-evenly items-end w-full max-w-lg">
+                <div v-for="(day, i) in days" :key="i" class="flex flex-col items-center gap-2 min-w-[40px] sm:min-w-0">
+                  <div 
+                    class="text-[10px] uppercase tracking-tighter font-black transition-colors"
+                    :class="isToday(day) ? 'text-white' : 'text-zinc-500'"
+                  >
+                    {{ format(day, 'EEE') }}
+                  </div>
+                  
+                  <div class="relative">
+                    <div
+                      class="w-9 h-9 rounded-lg flex items-center justify-center transition-all border-2 relative"
+                      :class="[
+                        getBucketStatus(bucket.id, day) === 'completed' ? 'bg-emerald-500 border-emerald-500 shadow-md shadow-emerald-500/20' :
+                        getBucketStatus(bucket.id, day) === 'failed' ? 'bg-rose-500 border-rose-500 shadow-md shadow-rose-500/20' :
+                        getBucketStatus(bucket.id, day) === 'skipped' ? 'bg-zinc-500 border-zinc-500 shadow-none' :
+                        getBucketStatus(bucket.id, day) === 'vacation' ? 'bg-amber-500 border-amber-500 shadow-md shadow-amber-500/20' :
+                        'bg-transparent border-dashed border-zinc-800'
+                      ]"
+                    >
+                      <Check v-if="getBucketStatus(bucket.id, day) === 'completed'" class="w-4 h-4 text-white" />
+                      <XIcon v-else-if="getBucketStatus(bucket.id, day) === 'failed'" class="w-4 h-4 text-white" />
+                      <Minus v-else-if="getBucketStatus(bucket.id, day) === 'skipped'" class="w-4 h-4 text-white" />
+                      <Palmtree v-else-if="getBucketStatus(bucket.id, day) === 'vacation'" class="w-4 h-4 text-white" />
+                    </div>
+                  </div>
+
+                  <div 
+                    class="text-[10px] font-bold transition-colors"
+                    :class="isToday(day) ? 'text-white' : 'text-zinc-500'"
+                  >
+                    {{ format(day, 'd') }}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Chevron (Outside timeline wrapper for independent hit zone) -->
+            <div class="absolute top-4 right-4">
+              <ChevronDown 
+                class="w-5 h-5 text-zinc-500 transition-transform duration-300"
+                :class="{ 'rotate-180': expandedBucketId === bucket.id }"
+              />
+            </div>
           </div>
 
+          <!-- Expanded Content: Habit List -->
+          <Transition
+            enter-active-class="transition-all duration-300 ease-out overflow-hidden"
+            enter-from-class="max-h-0 opacity-0"
+            enter-to-class="max-h-[1000px] opacity-100"
+            leave-active-class="transition-all duration-200 ease-in overflow-hidden"
+            leave-from-class="max-h-[1000px] opacity-100"
+            leave-to-class="max-h-0 opacity-0"
+          >
+            <div v-if="expandedBucketId === bucket.id" class="px-4 sm:px-4 pb-4">
+              <!-- Habit Section Divider -->
+              <div class="flex items-center gap-3 -mt-2 mb-0">
+                <div class="w-8 border-t border-zinc-800/50"></div>
+                <span class="text-zinc-500 text-[10px] font-black tracking-[0.2em] uppercase whitespace-nowrap">Habits</span>
+                <div class="flex-1 border-t border-zinc-800/50"></div>
+              </div>
+
+              <div v-if="getHabitsInBucket(bucket).length === 0" class="py-6 text-center text-zinc-500 text-sm italic">
+                No habits in this bucket.
+              </div>
+              <div v-else class="divide-y divide-zinc-800/30">
+                  <div v-for="(habit, hIdx) in getHabitsInBucket(bucket)" :key="habit.id" 
+                    class="flex flex-wrap items-center justify-between gap-x-8 gap-y-4 pb-4 px-3 -mx-3 rounded-xl transition-all hover:bg-white/[0.03] group/habit-row pt-4"
+                  >
+                <div 
+                  class="flex items-center gap-3 min-w-[200px] flex-1 sm:pl-8 cursor-pointer group/habit"
+                  @click.stop="openHabitEditModal(habit)"
+                >
+                  <div class="min-w-0 flex-1 pr-4">
+                    <span class="text-sm font-bold text-zinc-200 group-hover/habit:text-white transition-colors break-words">{{ habit.title }}</span>
+                  </div>
+                </div>
+                  
+                  <!-- Interactive Logs (Full width on mobile) -->
+                  <div class="w-full sm:w-[400px] lg:w-[512px] shrink-0 flex justify-center sm:justify-end items-center gap-4">
+                    <div class="flex justify-evenly items-center w-full max-w-lg overflow-x-auto sm:overflow-visible custom-scrollbar-hidden pb-1 sm:pb-0">
+                      <div v-for="(day, idx) in days" :key="idx" class="flex flex-col items-center gap-1.5 min-w-[40px] sm:min-w-0">
+                        <button
+                          type="button"
+                          @click.stop="openLogMenu(habit, day, $event)"
+                          class="w-9 h-9 rounded-lg flex items-center justify-center transition-all border-2 cursor-pointer relative"
+                          :class="[
+                            getHabitStatus(habit.id, day) === 'completed' ? 'bg-emerald-500 border-emerald-500 shadow-md shadow-emerald-500/20' :
+                            getHabitStatus(habit.id, day) === 'failed' ? 'bg-rose-500 border-rose-500 shadow-md shadow-rose-500/20' :
+                            getHabitStatus(habit.id, day) === 'skipped' ? 'bg-zinc-500 border-zinc-500 shadow-none' :
+                            getHabitStatus(habit.id, day) === 'vacation' ? 'bg-amber-500 border-amber-500 shadow-md shadow-amber-500/20' :
+                            'bg-transparent border-dashed border-zinc-800 hover:bg-zinc-800/40'
+                          ]"
+                        >
+                          <Check v-if="getHabitStatus(habit.id, day) === 'completed'" class="w-4 h-4 text-white" />
+                          <XIcon v-else-if="getHabitStatus(habit.id, day) === 'failed'" class="w-4 h-4 text-white" />
+                          <Minus v-else-if="getHabitStatus(habit.id, day) === 'skipped'" class="w-4 h-4 text-white" />
+                          <Palmtree v-else-if="getHabitStatus(habit.id, day) === 'vacation'" class="w-4 h-4 text-white" />
+                        </button>
+                      </div>
+                    </div>
+
+                  </div>
+                </div>
+              </div>
+            </div>
+          </Transition>
         </div>
       </template>
     </div>
@@ -379,17 +504,17 @@
                             class="w-8 h-8 rounded-lg flex items-center justify-center transition-all border-2 relative"
                             :class="[
                               (day.getMonth() !== currentCalendarDate.getMonth()) ? 'opacity-30' : '',
-                              getStatus(editingBucket!.id, day) === 'completed' ? 'bg-emerald-500 border-emerald-500 shadow-md shadow-emerald-500/20' :
-                              getStatus(editingBucket!.id, day) === 'failed' ? 'bg-rose-500 border-rose-500 shadow-md shadow-rose-500/20' :
-                              getStatus(editingBucket!.id, day) === 'skipped' ? 'bg-zinc-500 border-zinc-500 shadow-none' :
-                              getStatus(editingBucket!.id, day) === 'vacation' ? 'bg-amber-500 border-amber-500 shadow-md shadow-amber-500/20' :
+                              getBucketStatus(editingBucket!.id, day) === 'completed' ? 'bg-emerald-500 border-emerald-500 shadow-md shadow-emerald-500/20' :
+                              getBucketStatus(editingBucket!.id, day) === 'failed' ? 'bg-rose-500 border-rose-500 shadow-md shadow-rose-500/20' :
+                              getBucketStatus(editingBucket!.id, day) === 'skipped' ? 'bg-zinc-500 border-zinc-500 shadow-none' :
+                              getBucketStatus(editingBucket!.id, day) === 'vacation' ? 'bg-amber-500 border-amber-500 shadow-md shadow-amber-500/20' :
                               'border-dashed border-zinc-800 bg-transparent'
                             ]"
                           >
-                            <Check v-if="getStatus(editingBucket!.id, day) === 'completed'" class="w-3 h-3 text-white" />
-                            <XIcon v-else-if="getStatus(editingBucket!.id, day) === 'failed'" class="w-3 h-3 text-white" />
-                            <Minus v-else-if="getStatus(editingBucket!.id, day) === 'skipped'" class="w-3 h-3 text-white" />
-                            <Palmtree v-else-if="getStatus(editingBucket!.id, day) === 'vacation'" class="w-3 h-3 text-white" />
+                            <Check v-if="getBucketStatus(editingBucket!.id, day) === 'completed'" class="w-3 h-3 text-white" />
+                            <XIcon v-else-if="getBucketStatus(editingBucket!.id, day) === 'failed'" class="w-3 h-3 text-white" />
+                            <Minus v-else-if="getBucketStatus(editingBucket!.id, day) === 'skipped'" class="w-3 h-3 text-white" />
+                            <Palmtree v-else-if="getBucketStatus(editingBucket!.id, day) === 'vacation'" class="w-3 h-3 text-white" />
                           </div>
                         </div>
                         <div 
@@ -498,18 +623,123 @@
       </Transition>
     </Teleport>
 
+    <!-- Reorder Modal -->
+    <Teleport to="body">
+      <Transition
+        enter-active-class="transition duration-300 ease-out"
+        enter-from-class="opacity-0 scale-95"
+        enter-to-class="opacity-100 scale-100"
+        leave-active-class="transition duration-200 ease-in"
+        leave-from-class="opacity-100 scale-100"
+        leave-to-class="opacity-0 scale-95"
+      >
+        <div v-if="showReorderModal" class="fixed inset-0 z-[100] flex flex-col items-center justify-start overflow-y-auto sm:p-4 p-0 sm:py-8">
+          <!-- Backdrop -->
+          <div class="fixed inset-0 bg-black/80 backdrop-blur-md" @click="showReorderModal = false"></div>
+
+          <!-- Modal Content -->
+          <div class="relative my-auto w-full sm:max-w-sm bg-zinc-925 border-t sm:border border-zinc-800 sm:rounded-3xl rounded-t-3xl shadow-2xl overflow-hidden flex flex-col" style="max-height: 80vh">
+            <!-- Header -->
+            <div class="flex items-center justify-between px-5 py-4 border-b border-zinc-800/80 shrink-0">
+              <div>
+                <h2 class="text-base font-bold text-white">Reorder buckets</h2>
+                <p class="text-[11px] text-zinc-500 mt-0.5">Drag to rearrange</p>
+              </div>
+              <button
+                @click="showReorderModal = false"
+                class="px-4 py-2 bg-white hover:bg-zinc-200 text-black text-xs font-bold rounded-lg transition-all cursor-pointer whitespace-nowrap"
+              >
+                Done
+              </button>
+            </div>
+
+            <!-- Compact bucket list -->
+            <div class="overflow-y-auto flex-1 p-2">
+              <div
+                v-for="bucket in buckets"
+                :key="bucket.id"
+                :data-bucket-id="bucket.id"
+                draggable="true"
+                @dragstart="onDragStart($event, bucket.id)"
+                @dragover.prevent="onDragOver($event, bucket.id)"
+                @drop.prevent="onDrop($event, bucket.id)"
+                @dragend="onDragEnd"
+                class="flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all select-none"
+                :class="[
+                  draggingId === bucket.id ? 'opacity-30' : 'opacity-100',
+                  dragOverId === bucket.id ? 'bg-zinc-700/60 ring-1 ring-white/20' : 'hover:bg-zinc-800/60'
+                ]"
+              >
+                <div
+                  class="touch-none shrink-0 text-zinc-500 hover:text-zinc-300 transition-colors"
+                  :class="isDragging ? 'cursor-grabbing' : 'cursor-grab'"
+                  @touchstart.prevent="onGripTouchStart($event, bucket.id)"
+                >
+                  <GripVertical class="w-4 h-4" />
+                </div>
+                <span class="text-sm font-semibold text-zinc-200 truncate flex-1">{{ bucket.title }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
+
+    <!-- Global Log Menu -->
+    <Teleport to="body">
+      <Transition
+        enter-active-class="transition duration-200 ease-out"
+        enter-from-class="opacity-0 scale-95 -translate-y-2"
+        enter-to-class="opacity-100 scale-100 translate-y-0"
+        leave-active-class="transition duration-150 ease-in"
+        leave-from-class="opacity-100 scale-100 translate-y-0"
+        leave-to-class="opacity-0 scale-95 -translate-y-2"
+      >
+        <div 
+          v-if="activeLogMenu && activeHabitForMenu"
+          ref="floatingRef"
+          class="fixed z-[200] bg-zinc-900/95 backdrop-blur-xl border border-zinc-800 rounded-2xl shadow-2xl p-1.5 flex flex-row gap-1.5"
+          :style="floatingStyles"
+          @click.stop
+        >
+          <button
+            v-for="opt in getLogOptions(activeHabitForMenu, activeLogMenu.date)"
+            :key="opt.label"
+            @click.stop="setLogStatus(activeHabitForMenu, activeLogMenu.date, opt.status)"
+            class="w-9 h-9 rounded-lg flex items-center justify-center transition-all border-2 cursor-pointer relative"
+            :class="opt.bgColor"
+            :title="opt.label"
+          >
+            <component :is="opt.icon" class="w-4 h-4" :class="opt.color" />
+          </button>
+
+          <!-- Arrow -->
+          <div 
+            ref="arrowRef"
+            class="absolute w-3 h-3 bg-zinc-900 border-r border-b border-zinc-800 rotate-45"
+            :style="{
+              left: middlewareData.arrow?.x != null ? `${middlewareData.arrow.x}px` : '',
+              top: middlewareData.arrow?.y != null ? `${middlewareData.arrow.y}px` : '',
+              bottom: '-6px'
+            }"
+          ></div>
+        </div>
+      </Transition>
+    </Teleport>
   </div>
 </template>
 
 <script setup lang="ts">
-import { Plus, Trash2, Check, X as XIcon, Minus, ChevronLeft, ChevronRight, Flame, PaintBucket, Palmtree } from 'lucide-vue-next';
-import { format, subDays, startOfMonth, endOfMonth, eachDayOfInterval, addMonths, subMonths, isAfter, startOfDay, parseISO, isToday, startOfWeek, addDays } from 'date-fns';
+import { Plus, Trash2, Check, X as XIcon, Minus, ChevronLeft, ChevronRight, Flame, PaintBucket, Palmtree, Edit2, ChevronDown, ChevronUp, ArrowUpDown, GripVertical } from 'lucide-vue-next';
+import { useFloating, offset, flip, shift, arrow, autoUpdate } from '@floating-ui/vue';
+import { format, subDays, startOfMonth, endOfMonth, eachDayOfInterval, addMonths, subMonths, isAfter, startOfDay, parseISO, isToday, startOfWeek, addDays, isSameDay, isSameWeek, isSameMonth, differenceInDays } from 'date-fns';
 import type { Bucket, BucketLog, Habit } from '~/composables/useHabitsApi';
 
 definePageMeta({ middleware: 'auth' });
 
 const api = useHabitsApi();
 const { user } = useAuth();
+const { friends } = useSocial();
 const { lastSyncTime } = api;
 const { showToast } = useToast();
 
@@ -528,6 +758,7 @@ const newTitle = ref('');
 const newDescription = ref('');
 const newHabitIds = ref<string[]>([]);
 const showModal = ref(false);
+const showReorderModal = ref(false);
 
 const showEditModal = ref(false);
 const showDeleteModal = ref(false);
@@ -542,6 +773,19 @@ const isUpdatingBucket = ref(false);
 
 const currentCalendarDate = ref(new Date());
 const calendarLoading = ref(false);
+
+const expandedBucketId = ref<string | null>(null);
+const activeLogMenu = ref<{ habitId: string, date: Date } | null>(null);
+
+const referenceRef = ref<HTMLElement | null>(null);
+const floatingRef = ref<HTMLElement | null>(null);
+const arrowRef = ref<HTMLElement | null>(null);
+
+const { floatingStyles, middlewareData } = useFloating(referenceRef, floatingRef, {
+  placement: 'top',
+  middleware: [offset(10), flip(), shift(), arrow({ element: arrowRef })],
+  whileElementsMounted: autoUpdate,
+});
 
 const calendarDays = computed(() => {
   const start = startOfMonth(currentCalendarDate.value);
@@ -593,6 +837,129 @@ const today = new Date();
 const days = Array.from({ length: 7 }, (_, i) => addDays(startOfWeek(today, { weekStartsOn: 0 }), i));
 const startDate = format(startOfMonth(subMonths(today, 1)), 'yyyy-MM-dd');
 const endDate = format(endOfMonth(addMonths(today, 1)), 'yyyy-MM-dd');
+
+const toggleExpand = (bucketId: string) => {
+  expandedBucketId.value = expandedBucketId.value === bucketId ? null : bucketId;
+};
+
+const getHabitsInBucket = (bucket: Bucket) => {
+  if (!bucket.habitIds) return [];
+  return availableHabits.value.filter(h => bucket.habitIds.includes(h.id));
+};
+
+const activeHabitForMenu = computed(() => {
+  if (!activeLogMenu.value) return null;
+  return availableHabits.value.find(h => h.id === activeLogMenu.value?.habitId);
+});
+
+const openLogMenu = (habit: Habit, day: Date, event: MouseEvent) => {
+  if (!isMarkable(day)) {
+    showToast('You can only update habits for the last 14 days', 'failed');
+    return;
+  }
+  if (activeLogMenu.value && activeLogMenu.value.habitId === habit.id && isSameDay(activeLogMenu.value.date, day)) {
+    activeLogMenu.value = null;
+    referenceRef.value = null;
+  } else {
+    const el = (event.target as HTMLElement).closest('button');
+    if (el) {
+      referenceRef.value = el;
+      activeLogMenu.value = { habitId: habit.id, date: day };
+    }
+  }
+};
+
+const getLogOptions = (habit: Habit, day: Date) => {
+  const currentStatus = getHabitStatus(habit.id, day);
+  const skipsPeriod = habit.skipsPeriod;
+  const skipsCount = habit.skipsCount ?? 2;
+
+  let maxSkips = 0;
+  let usedSkips = 0;
+  
+  if (skipsPeriod === 'none') {
+    maxSkips = 999;
+    usedSkips = 0;
+  } else if (skipsPeriod === 'weekly') {
+    maxSkips = skipsCount || 0;
+    usedSkips = habitLogs.value.filter(l => 
+      l.habitid === habit.id && 
+      l.status === 'skipped' && 
+      isSameWeek(new Date(l.date), day, { weekStartsOn: 0 })
+    ).length;
+  } else if (skipsPeriod === 'monthly') {
+    maxSkips = skipsCount || 0;
+    usedSkips = habitLogs.value.filter(l => 
+      l.habitid === habit.id && 
+      l.status === 'skipped' && 
+      isSameMonth(new Date(l.date), day)
+    ).length;
+  }
+
+  const options: Array<{ label: string, status: 'completed' | 'failed' | 'skipped' | 'vacation' | null, icon: any, color: string, bgColor: string }> = [];
+  const canSkip = usedSkips < maxSkips;
+
+  if (currentStatus !== 'completed') {
+    options.push({ label: 'Complete', status: 'completed', icon: Check, color: 'text-emerald-500', bgColor: 'bg-emerald-500/10 border-emerald-500/20 hover:bg-emerald-500/20' });
+  }
+  if (currentStatus !== 'failed') {
+    options.push({ label: 'Fail', status: 'failed', icon: XIcon, color: 'text-rose-500', bgColor: 'bg-rose-500/10 border-rose-500/20 hover:bg-rose-500/20' });
+  }
+  if (currentStatus !== 'skipped' && canSkip) {
+    options.push({ label: 'Skip', status: 'skipped', icon: Minus, color: 'text-zinc-500', bgColor: 'bg-zinc-500/10 border-zinc-500/20 hover:bg-zinc-500/20' });
+  }
+  if (currentStatus !== 'vacation') {
+    options.push({ label: 'Vacation', status: 'vacation', icon: Palmtree, color: 'text-amber-500', bgColor: 'bg-amber-500/10 border-amber-500/20 hover:bg-amber-500/20' });
+  }
+  if (currentStatus) {
+    options.push({ label: 'Clear', status: null, icon: Trash2, color: 'text-zinc-400', bgColor: 'bg-zinc-800/50 border-zinc-700/50 hover:bg-zinc-800' });
+  }
+
+  return options;
+};
+
+const setLogStatus = async (habit: Habit, day: Date, status: any) => {
+  const dateStr = format(day, 'yyyy-MM-dd');
+  try {
+    if (status === null) {
+      await api.deleteLog(habit.id, dateStr);
+    } else {
+      await api.upsertLog({
+        habitid: habit.id,
+        date: dateStr,
+        status
+      });
+    }
+    // Refresh only logs to be fast
+    const start = format(startOfMonth(currentCalendarDate.value), 'yyyy-MM-dd');
+    const end = format(endOfMonth(currentCalendarDate.value), 'yyyy-MM-dd');
+    const [newL, newBL] = await Promise.all([
+      api.getLogs(start, end),
+      api.getBucketLogs(start, end)
+    ]);
+    habitLogs.value = newL;
+    bucketLogs.value = newBL;
+    activeLogMenu.value = null;
+  } catch (error) {
+    console.error('[Buckets] Failed to update log:', error);
+    showToast('Failed to update log', 'failed');
+  }
+};
+
+const isMarkable = (day: Date) => {
+  const diff = differenceInDays(startOfDay(today), startOfDay(day));
+  return diff >= 0 && diff <= 14;
+};
+
+const getBucketStatus = (bucketId: string, day: Date) => {
+  const dateStr = format(day, 'yyyy-MM-dd');
+  return bucketLogs.value.find(l => l.bucketid === bucketId && l.date === dateStr)?.status;
+};
+
+const getHabitStatus = (habitId: string, day: Date) => {
+  const dateStr = format(day, 'yyyy-MM-dd');
+  return habitLogs.value.find(l => l.habitid === habitId && l.date === dateStr)?.status;
+};
 
 const autoExpand = (e: Event | HTMLElement) => {
   const el = (e instanceof Event ? e.target : e) as HTMLTextAreaElement;
@@ -659,6 +1026,53 @@ const load = async (silent = false) => {
     loading.value = false;
   }
 };
+
+// --- Habit Editing ---
+const showHabitEditModal = ref(false);
+const editingHabit = ref<Habit | null>(null);
+
+const onHabitUpdatedFromModal = ({ habit, logs: newLogs }: { habit?: Habit, logs?: HabitLog[] }) => {
+  if (habit) {
+    const idx = availableHabits.value.findIndex(h => h.id === habit.id);
+    if (idx >= 0) availableHabits.value[idx] = habit;
+  }
+  if (newLogs) {
+    newLogs.forEach(nl => {
+      const idx = habitLogs.value.findIndex(l => l.id === nl.id);
+      if (idx >= 0) habitLogs.value[idx] = nl;
+      else habitLogs.value.push(nl);
+    });
+  }
+};
+
+const onHabitDeletedFromModal = (habitId: string) => {
+  availableHabits.value = availableHabits.value.filter(h => h.id !== habitId);
+  // Also remove from buckets
+  buckets.value.forEach(b => {
+    if (b.habitIds?.includes(habitId)) {
+      b.habitIds = b.habitIds.filter(id => id !== habitId);
+    }
+  });
+};
+
+const onOpenLogMenuFromModal = ({ habit, day, event }: { habit: Habit, day: Date, event: MouseEvent }) => {
+  openLogMenu(habit, day, event);
+};
+
+const openHabitEditModal = (habit: Habit) => {
+  editingHabit.value = habit;
+  showHabitEditModal.value = true;
+};
+
+const openHabitEditModalById = (habitId: string) => {
+  const habit = availableHabits.value.find(h => h.id === habitId);
+  if (habit) openHabitEditModal(habit);
+};
+
+const getHabitTitle = (habitId: string) => {
+  return availableHabits.value.find(h => h.id === habitId)?.title || 'Unknown Habit';
+};
+
 
 const openAddModal = () => {
   if (buckets.value.length >= 30) {
@@ -754,12 +1168,95 @@ const handleDelete = async () => {
   }
 };
 
+// ── Drag-and-drop reorder ────────────────────────────────────────────────────
+const draggingId = ref<string | null>(null);
+const dragOverId = ref<string | null>(null);
+const isDragging = ref(false);
+
+// Desktop — HTML5 drag events
+const onDragStart = (e: DragEvent, id: string) => {
+  draggingId.value = id;
+  isDragging.value = true;
+  e.dataTransfer!.effectAllowed = 'move';
+};
+
+const onDragOver = (e: DragEvent, id: string) => {
+  e.preventDefault();
+  if (draggingId.value && draggingId.value !== id) dragOverId.value = id;
+};
+
+const onDrop = (e: DragEvent, targetId: string) => {
+  e.preventDefault();
+  if (!draggingId.value || draggingId.value === targetId) return;
+  applyReorder(draggingId.value, targetId);
+};
+
+const onDragEnd = () => {
+  draggingId.value = null;
+  dragOverId.value = null;
+  isDragging.value = false;
+};
+
+// Mobile — touch events (attached to the grip handle)
+const onGripTouchStart = (e: TouchEvent, id: string) => {
+  draggingId.value = id;
+  isDragging.value = true;
+
+  const onTouchMove = (ev: TouchEvent) => {
+    ev.preventDefault();
+    const touch = ev.touches[0];
+    if (!touch) return;
+    const el = document.elementFromPoint(touch.clientX, touch.clientY);
+    const row = el?.closest('[data-bucket-id]') as HTMLElement | null;
+    if (row) {
+      const bid = row.dataset.bucketId;
+      if (bid && bid !== draggingId.value) dragOverId.value = bid;
+    }
+  };
+
+  const onTouchEnd = () => {
+    if (draggingId.value && dragOverId.value && draggingId.value !== dragOverId.value) {
+      applyReorder(draggingId.value, dragOverId.value);
+    }
+    draggingId.value = null;
+    dragOverId.value = null;
+    isDragging.value = false;
+    document.removeEventListener('touchmove', onTouchMove);
+    document.removeEventListener('touchend', onTouchEnd);
+  };
+
+  document.addEventListener('touchmove', onTouchMove, { passive: false });
+  document.addEventListener('touchend', onTouchEnd);
+};
+
+const applyReorder = (fromId: string, toId: string) => {
+  const fromIdx = buckets.value.findIndex(b => b.id === fromId);
+  const toIdx   = buckets.value.findIndex(b => b.id === toId);
+  if (fromIdx === -1 || toIdx === -1) return;
+  const list = [...buckets.value];
+  const [moved] = list.splice(fromIdx, 1) as [Bucket];
+  list.splice(toIdx, 0, moved);
+  buckets.value = list;
+  scheduleReorderSave();
+};
+
+let reorderTimeout: ReturnType<typeof setTimeout> | null = null;
+const scheduleReorderSave = () => {
+  if (reorderTimeout) clearTimeout(reorderTimeout);
+  reorderTimeout = setTimeout(() => {
+    api.reorderBuckets(buckets.value.map(b => b.id));
+  }, 500);
+};
+// ─────────────────────────────────────────────────────────────────────────────
+
 const isAnyModalOpen = computed(() => 
-  showModal.value || showEditModal.value || showDeleteModal.value
+  showModal.value || showEditModal.value || showDeleteModal.value || showReorderModal.value || showHabitEditModal.value
 );
 
 useModalHistory(isAnyModalOpen, () => {
   showModal.value = false;
+  showReorderModal.value = false;
+  showHabitEditModal.value = false;
   if (showEditModal.value && !showDeleteModal.value) {
     // Treat dismissing edit as a save, similar to My Habits
     handleEditDone();

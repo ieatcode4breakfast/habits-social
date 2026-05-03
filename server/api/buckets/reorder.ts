@@ -1,4 +1,5 @@
-import type { IHabit } from '../../models';
+import { useDB } from '../../utils/db';
+import { requireAuth } from '../../utils/auth';
 import { usePusher } from '../../utils/pusher';
 
 export default defineEventHandler(async (event) => {
@@ -10,13 +11,13 @@ export default defineEventHandler(async (event) => {
 
   if (ids.length > 0) {
     await sql.transaction(ids.map((id, index) => 
-      sql`UPDATE habits SET "sortOrder" = ${index}, updatedat = NOW() WHERE id = ${id}::uuid AND ownerid = ${userId}`
+      sql`UPDATE buckets SET "sortOrder" = ${index}, updatedat = NOW() WHERE id = ${id}::uuid AND ownerid = ${userId}`
     ));
 
     // Real-time: Notify other devices
     const pusher = usePusher();
     if (pusher) {
-      await pusher.trigger(`user-${userId}-habits`, 'habit-updated', {});
+      await pusher.trigger(`user-${userId}-buckets`, 'bucket-updated', {});
     }
   }
 
