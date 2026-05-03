@@ -518,7 +518,9 @@ const formatMessage = (msg: string) => {
   content = content.replace(/\[U\](.*?)\[\/U\]/g, '<strong class="text-zinc-100 font-bold">$1</strong>');
   
   // 3. Process Streaks [S:count]...[/S] -> Dynamic Color
-  content = content.replace(/\[S:(\d+)\](.*?)\[\/S\]/g, (_, countStr, text) => {
+  content = content.replace(/\[S:(\d+)(?::(broken))?\](.*?)\[\/S\]/g, (_, countStr, broken, text) => {
+    if (broken) return `<strong class="text-rose-500 font-bold">${text}</strong>`;
+    
     const count = parseInt(countStr);
     let colorClass = 'text-emerald-500'; // Default < 7 days (Green)
     if (count >= 30) colorClass = 'text-yellow-400'; // 30+ days (Gold)

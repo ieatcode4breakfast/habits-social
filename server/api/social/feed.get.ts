@@ -118,13 +118,14 @@ export default defineEventHandler(async (event) => {
 
     const dateFormatted = format(parseISO(log.date), 'MMM d');
 
-    const formatStreak = (days: number) => {
-      if (days < 365) return `[S:${days}]${days}-day streak[/S]`;
+    const formatStreak = (days: number, isBroken: boolean = false) => {
+      const suffix = isBroken ? ':broken' : '';
+      if (days < 365) return `[S:${days}${suffix}]${days}-day streak[/S]`;
       const years = Math.floor(days / 365);
       const rem = days % 365;
       const yt = years === 1 ? '1-year' : `${years}-year`;
-      if (rem === 0) return `[S:${days}]${yt} streak (${days} days)[/S]`;
-      return `[S:${days}]${yt} and ${rem}-day streak (${days} days)[/S]`;
+      if (rem === 0) return `[S:${days}${suffix}]${yt} streak (${days} days)[/S]`;
+      return `[S:${days}${suffix}]${yt} and ${rem}-day streak (${days} days)[/S]`;
     };
     const formatExtensionDuration = (days: number) => {
       if (days < 365) return `[S:${days}]${days} days[/S]`;
@@ -208,7 +209,7 @@ export default defineEventHandler(async (event) => {
     // Trigger 2.3: Streak Broken (Fail/Miss)
     else if (log.status === 'failed' && (log.brokenStreakCount || 0) > 1) {
       type = 'STREAK_BROKEN';
-      message = `failed [H]${log.habitTitle}[/H] for ${dateFormatted}, bringing ${pronoun} ${formatStreak(log.brokenStreakCount as number)} to an end.`;
+      message = `failed [H]${log.habitTitle}[/H] for ${dateFormatted}, bringing ${pronoun} ${formatStreak(log.brokenStreakCount as number, true)} to an end.`;
     }
     // Trigger 2.9: Streak Maintained (Skip)
     else if (log.status === 'skipped' && log.streakCount > 1) {
