@@ -71,7 +71,8 @@
           <!-- Bucket Header Row -->
           <div 
             @click="toggleExpand(bucket.id)"
-            class="relative px-4 pt-14 pb-6 group transition-all flex flex-wrap items-center justify-between gap-x-8 gap-y-4 cursor-pointer hover:bg-zinc-800/40"
+            class="relative px-4 pt-14 group transition-all duration-300 ease-out flex flex-wrap items-center justify-between gap-x-8 gap-y-4 cursor-pointer hover:bg-zinc-800/40"
+            :class="expandedBucketId === bucket.id ? 'pb-4' : 'pb-6'"
           >
             <!-- Top Left Badges Container -->
             <div class="absolute top-3 left-0 sm:top-2 flex items-center gap-2 z-20 transition-all duration-500">
@@ -192,7 +193,7 @@
           >
             <div v-if="expandedBucketId === bucket.id" class="px-4 sm:px-4 pb-2">
               <!-- Habit Section Divider -->
-              <div class="flex items-center gap-3 -mt-2 mb-0">
+              <div class="flex items-center gap-3 mb-0 relative z-10">
                 <div class="w-8 border-t border-zinc-800/50"></div>
                 <span class="text-zinc-500 text-[10px] font-black tracking-[0.2em] uppercase whitespace-nowrap">Habits</span>
                 <div class="flex-1 border-t border-zinc-800/50"></div>
