@@ -118,14 +118,13 @@
             <div class="flex items-center gap-3 min-w-[200px] flex-1">
               <div class="text-left flex flex-col items-start gap-0.5 relative min-w-0 flex-1">
                 <h3 class="font-bold text-zinc-200 leading-tight break-all group-hover:text-white transition-colors">{{ bucket.title }}</h3>
-                <div v-if="bucket.habitIds?.length" class="mt-0.5 min-w-0 w-full truncate">
+                <div v-if="bucket.habitIds?.length" class="mt-0.5 min-w-0 w-full truncate text-zinc-500">
                   <span 
-                    v-for="(habitId, idx) in bucket.habitIds" 
-                    :key="habitId"
-                    @click.stop="openHabitEditModalById(habitId)"
-                    class="text-[10px] font-bold uppercase tracking-wider text-zinc-500 hover:text-white transition-colors cursor-pointer"
+                    v-for="(habit, idx) in getHabitsInBucket(bucket)" 
+                    :key="habit.id"
+                    class="text-[10px] font-bold uppercase tracking-wider text-zinc-500"
                   >
-                    {{ getHabitTitle(habitId) }}{{ idx === bucket.habitIds.length - 1 ? '' : ', ' }}
+                    {{ habit.title }}{{ idx === getHabitsInBucket(bucket).length - 1 ? '' : ', ' }}
                   </span>
                 </div>
               </div>
@@ -191,7 +190,7 @@
             leave-from-class="max-h-[1000px] opacity-100"
             leave-to-class="max-h-0 opacity-0"
           >
-            <div v-if="expandedBucketId === bucket.id" class="px-4 sm:px-4 pb-4">
+            <div v-if="expandedBucketId === bucket.id" class="px-4 sm:px-4 pb-2">
               <!-- Habit Section Divider -->
               <div class="flex items-center gap-3 -mt-2 mb-0">
                 <div class="w-8 border-t border-zinc-800/50"></div>
