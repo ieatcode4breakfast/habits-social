@@ -22,6 +22,10 @@ export default defineNuxtConfig({
   ssr: true,
   nitro: {
     preset: 'cloudflare-module',
+    ignore: [
+      'api/v2/_tests/**',
+      'api/v2/_types/**',
+    ],
     routeRules: {
       '/**': { 
         headers: { 
