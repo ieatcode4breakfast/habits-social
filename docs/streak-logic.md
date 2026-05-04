@@ -32,7 +32,9 @@ The streak state is persisted across the parent entities (`habits` and `buckets`
 > * **Strict:** A "Missing Day" (gap > 1 day) always breaks the chain.
 > * **Security Limit:** Retroactive edits are strictly limited to a **14-day trailing window** to prevent massive historical manipulation.
 
-Streaks are recalculated automatically whenever a habit log or bucket log is created, updated, or deleted.
+Streaks are recalculated automatically whenever:
+1.  A habit log or bucket log is created, updated, or deleted.
+2.  **Bucket Membership Changes**: A habit is added to or removed from a bucket (including automatic removals triggered by sharing revocation or habit deletion).
 
 ### The Forward Cascading Update Flow
 To ensure data integrity when users retroactively log or delete days, the engine uses an incremental forward-cascade approach:

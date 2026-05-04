@@ -24,7 +24,8 @@
     "lucide-vue-next": "^1.0.0",
     "nuxt": "^4.4.2",
     "pusher": "^5.3.3",
-    "pusher-js": "^8.5.0"
+    "pusher-js": "^8.5.0",
+    "zod": "^4.4.2"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.2.2",

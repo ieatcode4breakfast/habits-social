@@ -18,6 +18,12 @@ The server acts as the ultimate source of truth for the system, validating and p
 *   Only after all local dependencies have settled in Dexie should the sync engine queue the root action to be pushed to the server.
 *   The client pushes the *root action* (e.g., the habit log), relying on the server to handle its own cascading calculations (e.g., recalculating the bucket streak).
 
+### Server-Side Cascades
+*   The server is responsible for any secondary data mutations that must happen automatically (e.g., updating a bucket's streak when a contained habit log is added).
+*   **Social & Deletion Cascades**: When a sharing relationship is severed (e.g., unfriending, revoking habit sharing) or an entity is deleted, the server must perform a cascade to maintain data integrity. For example:
+    *   Unfriending must mark all cross-owned bucket habits as `'removed'`.
+    *   Deleting a habit must physically remove it from all buckets and trigger bucket streak re-evaluations.
+
 ### Hybrid Server Validation & Storage
 *   **Server Calculation:** Upon receiving the sync request, the server executes its own logic to process the root action and calculates derived data (like bucket streaks) to store in Neon. This ensures the database has fully calculated state ready for fast queries, feeds, and analytics.
 *   **Initiating Client Trust:** The client that initiated the push trusts its own local calculations and generally *ignores* the server's calculated response to avoid redundant database writes or UI jitter. It only relies on the server's response if it needs conflict resolution.
