@@ -51,7 +51,7 @@ At least one of the following fields must be provided:
 * `username` (string, optional): Must be between 3 and 20 characters. Must be unique across all users.
 * `email` (string, optional): Must be a valid email format. Must be unique across all users.
 * `password` (string, optional): Must be at least 8 characters long.
-* `photourl` (string, optional): Must be a valid URL or an empty string. Can be `null`.
+* `photourl` (string, optional): Must be a valid URL (e.g., DiceBear), Data URL, or an empty string. The server will verify the reachability of public `http/https` URLs. Can be `null`.
 
 **Example Request:**
 ```json
@@ -77,7 +77,7 @@ Returns the newly updated user record. Note: `emailVerifiedAt` will be reset to 
 ```
 
 **Error Responses:**
-* `400 Bad Request`: Validation failed (e.g., username too short, invalid email). The response body will contain detailed validation errors from Zod.
+* `400 Bad Request`: Validation failed (e.g., username too short, invalid email) or the provided `photourl` is unreachable. The response body will contain detailed validation errors from Zod.
 * `401 Unauthorized`: Missing or invalid authentication token.
 * `404 Not Found`: User not found.
 * `409 Conflict`: The requested `username` or `email` is already in use by another account.

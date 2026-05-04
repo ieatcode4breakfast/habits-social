@@ -8,3 +8,10 @@ scratch/
 *.kilocode/
 .claude/
 .rules
+
+# Testing
+test-results/
+playwright-report/
+blob-report/
+playwright/.cache/
+coverage/

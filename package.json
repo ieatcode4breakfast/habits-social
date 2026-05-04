@@ -8,7 +8,10 @@
     "dev": "nuxt dev --host",
     "generate": "nuxt generate",
     "preview": "nuxt preview",
-    "postinstall": "nuxt prepare"
+    "postinstall": "nuxt prepare",
+    "test": "vitest",
+    "test:ui": "vitest --ui",
+    "test:e2e": "playwright test"
   },
   "dependencies": {
     "@floating-ui/vue": "^1.1.11",
@@ -28,8 +31,13 @@
     "zod": "^4.4.2"
   },
   "devDependencies": {
+    "@nuxt/test-utils": "^4.0.3",
+    "@playwright/test": "^1.59.1",
     "@tailwindcss/vite": "^4.2.2",
     "@types/node": "^25.6.0",
-    "tailwindcss": "^4.2.2"
+    "@vitest/ui": "^4.1.5",
+    "happy-dom": "^20.9.0",
+    "tailwindcss": "^4.2.2",
+    "vitest": "^4.1.5"
   }
 }
