@@ -8,7 +8,7 @@ describe('DELETE /api/v2/users/me', () => {
 
   beforeAll(async () => {
     testUser = await createTestUser(`t_del_${Date.now() % 1000000}`, `d_${Date.now()}@ex.com`);
-    handler = (await import('../me.delete')).default;
+    handler = (await import('../users/me.delete')).default;
   });
 
   afterAll(async () => {

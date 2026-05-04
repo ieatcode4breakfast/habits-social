@@ -10,7 +10,7 @@ describe('PUT /api/v2/users/me', () => {
   beforeAll(async () => {
     testUser = await createTestUser(`t_put_${Date.now() % 1000000}`, `p_${Date.now()}@ex.com`);
     otherUser = await createTestUser(`o_put_${Date.now() % 1000000}`, `op_${Date.now()}@ex.com`);
-    handler = (await import('../me.put')).default;
+    handler = (await import('../users/me.put')).default;
   });
 
   afterAll(async () => {

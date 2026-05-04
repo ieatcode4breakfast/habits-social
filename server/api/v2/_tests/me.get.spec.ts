@@ -8,7 +8,7 @@ describe('GET /api/v2/users/me', () => {
 
   beforeAll(async () => {
     testUser = await createTestUser(`t_get_${Date.now() % 1000000}`, `g_${Date.now()}@ex.com`);
-    handler = (await import('../me.get')).default;
+    handler = (await import('../users/me.get')).default;
   });
 
   afterAll(async () => {

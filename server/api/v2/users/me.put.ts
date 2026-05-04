@@ -1,8 +1,8 @@
 import { z } from 'zod';
-import { useDB as _useDB } from '../utils/db';
-import { requireAuth as _requireAuth } from '../utils/auth';
+import { useDB as _useDB } from '../_utils/db';
+import { requireAuth as _requireAuth } from '../_utils/auth';
 import { hash } from 'bcrypt-ts';
-import type { IUser } from '../types';
+import type { IUser } from '../_types';
 
 // Strict schema for updating a user
 const updateProfileSchema = z.object({

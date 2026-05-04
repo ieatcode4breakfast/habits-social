@@ -24,11 +24,11 @@ vi.stubGlobal('$fetch', async (url: string, opts: any) => {
 };
 
 // Global mocks for local utils
-vi.mock('../utils/db', () => ({
+vi.mock('../_utils/db', () => ({
   useDB: () => neon(process.env.DATABASE_URL!)
 }));
 
-vi.mock('../utils/auth', () => ({
+vi.mock('../_utils/auth', () => ({
   requireAuth: async (event: any) => {
     if (event._cookies?.auth_token === 'invalid') {
       throw createError({ statusCode: 401, statusMessage: 'Unauthorized' });

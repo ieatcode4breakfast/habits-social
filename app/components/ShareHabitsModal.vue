@@ -40,14 +40,18 @@
             <div class="space-y-2 mb-2">
               <div v-for="habit in sortedHabits" :key="habit.id" 
                 @click="toggleHabitSelection(habit.id)"
-                class="flex items-center gap-3 p-3 rounded-xl border transition-all cursor-pointer group"
-                :class="selectedHabitIds.includes(habit.id) ? 'bg-white/5 border-white/20' : 'bg-black border-zinc-900 hover:border-zinc-700'"
+                class="flex items-center gap-3 p-3 bg-black border border-zinc-925 rounded-xl cursor-pointer hover:border-zinc-800 transition-colors group"
+                :class="{ 'border-zinc-800/50 bg-white/[0.02]': selectedHabitIds.includes(habit.id) }"
               >
                 <div class="flex-1 text-sm text-zinc-200 font-medium truncate min-w-0">{{ habit.title }}</div>
-                <div class="w-5 h-5 rounded-md border flex items-center justify-center transition-all"
-                  :class="selectedHabitIds.includes(habit.id) ? 'bg-white border-white text-black' : 'border-zinc-700 group-hover:border-zinc-500'"
+                <div class="w-6 h-6 rounded-lg flex items-center justify-center transition-all"
+                  :class="[
+                    selectedHabitIds.includes(habit.id) 
+                      ? 'bg-indigo-500 shadow-lg shadow-indigo-500/20' 
+                      : 'bg-zinc-925'
+                  ]"
                 >
-                  <Check v-if="selectedHabitIds.includes(habit.id)" class="w-3 h-3" />
+                  <Check v-if="selectedHabitIds.includes(habit.id)" class="w-3.5 h-3.5 text-white" />
                 </div>
               </div>
             </div>

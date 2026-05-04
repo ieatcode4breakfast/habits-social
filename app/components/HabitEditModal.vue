@@ -246,11 +246,11 @@
                       class="w-6 h-6 rounded-lg flex items-center justify-center transition-all"
                       :class="[
                         editSharedWithWorking.includes(friend.id) 
-                          ? 'bg-zinc-700 shadow-lg shadow-zinc-700/20' 
+                          ? 'bg-indigo-500 shadow-lg shadow-indigo-500/20' 
                           : 'bg-zinc-925'
                       ]"
                     >
-                      <Check v-if="editSharedWithWorking.includes(friend.id)" class="w-3.5 h-3.5 text-zinc-100" />
+                      <Check v-if="editSharedWithWorking.includes(friend.id)" class="w-3.5 h-3.5 text-white" />
                     </div>
                     <input type="checkbox" :value="friend.id" v-model="editSharedWithWorking" class="hidden" />
                   </label>
