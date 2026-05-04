@@ -27,6 +27,7 @@ Retrieves the profile of the currently authenticated user.
     "email": "user@example.com",
     "username": "user123",
     "photourl": "https://example.com/avatar.jpg",
+    "emailVerifiedAt": "2026-05-04T12:00:00.000Z",
     "createdAt": "2026-05-04T12:00:00.000Z"
   }
 }
@@ -61,7 +62,7 @@ At least one of the following fields must be provided:
 ```
 
 **Success Response (200 OK):**
-Returns the newly updated user record.
+Returns the newly updated user record. Note: `emailVerifiedAt` will be reset to `null` if the `email` is changed.
 ```json
 {
   "data": {
@@ -69,6 +70,7 @@ Returns the newly updated user record.
     "email": "user@example.com",
     "username": "new_username",
     "photourl": "https://example.com/new-avatar.png",
+    "emailVerifiedAt": null,
     "createdAt": "2026-05-04T12:00:00.000Z"
   }
 }

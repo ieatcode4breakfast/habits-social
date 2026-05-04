@@ -4,6 +4,7 @@ export interface IUser {
   username: string;
   passwordHash: string;
   photourl?: string;
+  emailVerifiedAt?: Date | null;
   createdAt: Date;
 }
 

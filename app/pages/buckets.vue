@@ -341,7 +341,17 @@
 
                 <!-- Habits Group -->
                   <div class="space-y-3 pt-4">
-                    <label class="text-xs font-bold uppercase tracking-widest text-zinc-500">Habits in this bucket</label>
+                    <div class="flex items-center justify-between">
+                      <label class="text-xs font-bold uppercase tracking-widest text-zinc-500">Habits in this bucket</label>
+                      <button 
+                        type="button"
+                        @click="toggleSelectAllForAdd"
+                        title="Select/Unselect All"
+                        class="p-1 text-zinc-500 hover:text-white transition-colors cursor-pointer"
+                      >
+                        <CheckSquare class="w-4 h-4" />
+                      </button>
+                    </div>
                     <div class="space-y-2 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
                       <label v-for="habit in sortedHabitsForAdd" :key="habit.id" class="flex items-center justify-between p-3 bg-black border border-zinc-925 rounded-xl cursor-pointer hover:border-zinc-800 transition-colors">
                         <div class="flex items-center gap-3">
@@ -560,6 +570,14 @@
                   <div class="space-y-3 pt-4">
                     <div class="flex items-center justify-between">
                       <label class="text-xs font-bold uppercase tracking-widest text-zinc-500">Habits in this bucket</label>
+                      <button 
+                        type="button"
+                        @click="toggleSelectAllForEdit"
+                        title="Select/Unselect All"
+                        class="p-1 text-zinc-500 hover:text-white transition-colors cursor-pointer"
+                      >
+                        <CheckSquare class="w-4 h-4" />
+                      </button>
                     </div>
                     <div class="space-y-2 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar transition-all duration-300">
                       <label v-for="habit in sortedHabitsForEdit" :key="habit.id" class="flex items-center justify-between p-3 bg-black border border-zinc-925 rounded-xl transition-colors cursor-pointer hover:border-zinc-800">
@@ -590,7 +608,7 @@
                 @click="handleEditDone"
                 class="w-full px-5 py-3 bg-white hover:bg-zinc-200 text-black font-semibold rounded-xl transition-all shadow-lg shadow-white/5 cursor-pointer whitespace-nowrap"
               >
-                Done
+                Save
               </button>
             </div>
           </div>
@@ -723,7 +741,7 @@
 </template>
 
 <script setup lang="ts">
-import { Plus, Trash2, Check, X as XIcon, Minus, ChevronLeft, ChevronRight, Flame, PaintBucket, Palmtree, Edit2, ChevronDown, ChevronUp, ArrowUpDown, GripVertical } from 'lucide-vue-next';
+import { Plus, Trash2, Check, X as XIcon, Minus, ChevronLeft, ChevronRight, Flame, PaintBucket, Palmtree, Edit2, ChevronDown, ChevronUp, ArrowUpDown, GripVertical, CheckSquare } from 'lucide-vue-next';
 import { format, subDays, startOfMonth, endOfMonth, eachDayOfInterval, addMonths, subMonths, isAfter, startOfDay, parseISO, isToday, startOfWeek, addDays, isSameDay, isSameWeek, isSameMonth, differenceInDays } from 'date-fns';
 import type { Bucket, BucketLog, Habit } from '~/composables/useHabitsApi';
 
@@ -804,6 +822,23 @@ const sortedHabitsForEdit = computed(() => {
     return 0; // Stable sort preserves global order
   });
 });
+
+const toggleSelectAllForAdd = () => {
+  if (newHabitIds.value.length === availableHabits.value.length) {
+    newHabitIds.value = [];
+  } else {
+    newHabitIds.value = availableHabits.value.map(h => h.id);
+  }
+};
+
+const toggleSelectAllForEdit = () => {
+  if (editHabitIds.value.length === availableHabits.value.length) {
+    editHabitIds.value = [];
+  } else {
+    editHabitIds.value = availableHabits.value.map(h => h.id);
+  }
+};
+
 
 const prevMonth = () => currentCalendarDate.value = subMonths(currentCalendarDate.value, 1);
 const nextMonth = () => currentCalendarDate.value = addMonths(currentCalendarDate.value, 1);
@@ -1232,10 +1267,6 @@ useModalHistory(isAnyModalOpen, () => {
   showModal.value = false;
   showReorderModal.value = false;
   showHabitEditModal.value = false;
-  if (showEditModal.value && !showDeleteModal.value) {
-    // Treat dismissing edit as a save, similar to My Habits
-    handleEditDone();
-  }
   showEditModal.value = false;
   showDeleteModal.value = false;
 });

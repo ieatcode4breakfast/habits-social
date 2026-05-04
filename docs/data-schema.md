@@ -14,6 +14,7 @@ Represents a registered user of the application.
 | `username` | `string` | User's chosen display name. |
 | `passwordHash` | `string` | Hashed password. |
 | `photourl` | `string` | Optional URL to the user's avatar/profile picture. |
+| `emailVerifiedAt` | `Date` | Optional timestamp indicating when the email was verified. |
 | `createdAt` | `Date` | System timestamp of creation. |
 
 ### Habit

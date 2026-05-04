@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { useDB } from '../../../utils/db';
 import { requireAuth } from '../../../utils/auth';
 import { hash } from 'bcrypt-ts';
+import type { IUser } from '../../../models';
 
 // Strict schema for updating a user
 const updateProfileSchema = z.object({
@@ -36,7 +37,7 @@ export default defineEventHandler(async (event) => {
   if (users.length === 0) {
     throw createError({ statusCode: 404, statusMessage: 'User not found' });
   }
-  const user = users[0];
+  const user = users[0] as IUser;
 
   // 3. Unique constraints checks
   if (username && username !== user.username) {
@@ -57,6 +58,7 @@ export default defineEventHandler(async (event) => {
   const newUsername = username !== undefined ? username : user.username;
   const newEmail = email !== undefined ? email : user.email;
   const newPhotourl = photourl !== undefined ? photourl : user.photourl;
+  const newEmailVerifiedAt = (email !== undefined && email !== user.email) ? null : user.emailVerifiedAt;
   let newPasswordHash = user.passwordHash;
   
   if (password) {
@@ -70,9 +72,10 @@ export default defineEventHandler(async (event) => {
       username = ${newUsername}, 
       email = ${newEmail}, 
       photourl = ${newPhotourl}, 
-      "passwordHash" = ${newPasswordHash}
+      "passwordHash" = ${newPasswordHash},
+      "emailVerifiedAt" = ${newEmailVerifiedAt}
     WHERE id = ${userId}::uuid
-    RETURNING id, email, username, photourl, "createdAt"
+    RETURNING id, email, username, photourl, "emailVerifiedAt", "createdAt"
   `;
 
   return { data: result[0] };

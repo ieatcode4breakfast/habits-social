@@ -261,13 +261,13 @@
 
           <!-- Fixed Footer -->
           <div class="px-8 py-4 border-t border-zinc-800 bg-zinc-925/80 backdrop-blur-md">
-            <button
-              type="button"
-              @click="handleDoneClick"
-              class="w-full px-5 py-3 bg-white hover:bg-zinc-200 text-black font-semibold rounded-xl transition-all shadow-lg shadow-white/5 cursor-pointer whitespace-nowrap"
-            >
-              Done
-            </button>
+              <button
+                type="button"
+                @click="handleDoneClick"
+                class="w-full px-5 py-3 bg-white hover:bg-zinc-200 text-black font-semibold rounded-xl transition-all shadow-lg shadow-white/5 cursor-pointer whitespace-nowrap"
+              >
+                Save
+              </button>
           </div>
         </div>
       </div>
@@ -412,9 +412,10 @@ const isDirty = ref(false);
 
 const close = () => emit('update:modelValue', false);
 
-// Initialize state when habit changes
-watch(() => props.habit, (newHabit) => {
-  if (newHabit && props.modelValue) {
+// Initialize state when modal opens
+watch(() => props.modelValue, (isOpen) => {
+  if (isOpen && props.habit) {
+    const newHabit = props.habit;
     isInitializingEdit.value = true;
     editTitle.value = newHabit.title;
     editDescription.value = newHabit.description || '';
@@ -542,49 +543,13 @@ const cancelSharingSave = () => {
   }
 };
 
-// Auto-save logic
-let autosaveTimeout: any = null;
-watch([editTitle, editDescription, editSkipsCount, editSkipsPeriod], () => {
-  if (props.modelValue && props.habit && !isInitializingEdit.value) {
-    const h = props.habit;
-    if (
-      editTitle.value === h.title &&
-      editDescription.value === (h.description || '') &&
-      editSkipsCount.value === (h.skipsCount ?? 2) &&
-      editSkipsPeriod.value === (h.skipsPeriod || 'weekly')
-    ) {
-      return; // Data matches the server source of truth, no actual user edit
-    }
-    if (editSkipsPeriod.value === 'weekly' && editSkipsCount.value > 6) {
-      editSkipsCount.value = 6;
-    } else if (editSkipsPeriod.value === 'monthly' && editSkipsCount.value > 28) {
-      editSkipsCount.value = 28;
-    }
 
-    isDirty.value = true;
-    if (autosaveTimeout) clearTimeout(autosaveTimeout);
-    autosaveTimeout = setTimeout(() => {
-      updateHabit();
-    }, 750);
-  }
-}, { deep: true });
-
-// Save on close
-watch(() => props.modelValue, (isOpen) => {
-  if (!isOpen && isDirty.value) {
-    updateHabit();
-  }
-});
 
 const updateHabit = async () => {
   if (!props.habit || !editTitle.value.trim() || isUpdatingHabit.value) return;
   
   isUpdatingHabit.value = true;
   isDirty.value = false;
-  if (autosaveTimeout) {
-    clearTimeout(autosaveTimeout);
-    autosaveTimeout = null;
-  }
   try {
     const updated = await api.updateHabit(props.habit.id, { 
       title: editTitle.value.trim(),
@@ -603,11 +568,12 @@ const updateHabit = async () => {
   }
 };
 
-const handleDoneClick = () => {
+const handleDoneClick = async () => {
   if (isEditingSharing.value) {
     reachedConfirmViaDone.value = true;
     showSharingConfirmModal.value = true;
   } else {
+    await updateHabit();
     close();
   }
 };
