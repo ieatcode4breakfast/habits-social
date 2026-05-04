@@ -340,7 +340,7 @@
                 </div>
 
                 <!-- Habits Group -->
-                  <div class="space-y-3 pt-4">
+                  <div class="space-y-2 pt-4">
                     <div class="flex items-center justify-between">
                       <label class="text-xs font-bold uppercase tracking-widest text-zinc-500">Habits in this bucket</label>
                       <button 
@@ -352,6 +352,16 @@
                         <CheckSquare class="w-4 h-4" />
                       </button>
                     </div>
+
+                    <button 
+                      type="button"
+                      @click="openSharedHabitsPicker"
+                      class="text-xs font-black tracking-widest text-blue-600 hover:text-blue-500 transition-colors cursor-pointer flex items-center gap-1.5"
+                    >
+                      <Plus class="w-3 h-3" />
+                      Add habits shared by friends
+                    </button>
+
                     <div class="space-y-2 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
                       <label v-for="habit in sortedHabitsForAdd" :key="habit.id" class="flex items-center justify-between p-3 bg-black border border-zinc-925 rounded-xl cursor-pointer hover:border-zinc-800 transition-colors">
                         <div class="flex items-center gap-3">
@@ -567,7 +577,7 @@
                   </div>
                 </div>
 
-                  <div class="space-y-3 pt-4">
+                  <div class="space-y-2 pt-4">
                     <div class="flex items-center justify-between">
                       <label class="text-xs font-bold uppercase tracking-widest text-zinc-500">Habits in this bucket</label>
                       <button 
@@ -579,6 +589,16 @@
                         <CheckSquare class="w-4 h-4" />
                       </button>
                     </div>
+
+                    <button 
+                      type="button"
+                      @click="openSharedHabitsPicker"
+                      class="text-xs font-black tracking-widest text-blue-600 hover:text-blue-500 transition-colors cursor-pointer flex items-center gap-1.5"
+                    >
+                      <Plus class="w-3 h-3" />
+                      Add habits shared by friends
+                    </button>
+
                     <div class="space-y-2 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar transition-all duration-300">
                       <label v-for="habit in sortedHabitsForEdit" :key="habit.id" class="flex items-center justify-between p-3 bg-black border border-zinc-925 rounded-xl transition-colors cursor-pointer hover:border-zinc-800">
                         <div class="flex items-center gap-3">
@@ -1093,6 +1113,11 @@ const openAddModal = () => {
   newDescription.value = '';
   newHabitIds.value = [];
   showModal.value = true;
+};
+
+const openSharedHabitsPicker = () => {
+  // TODO: Implement shared habits picker
+  showToast('Shared habits picker coming soon!', 'info');
 };
 
 const addBucket = async () => {

@@ -1,0 +1,88 @@
+import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
+import { neon } from '@neondatabase/serverless';
+import { createTestUser, deleteTestUser, createMockEvent } from './test.utils';
+import handler from '../me.put';
+
+vi.mock('../../../../utils/db', () => ({
+  useDB: () => neon(process.env.DATABASE_URL!)
+}));
+
+vi.mock('../../../../utils/auth', () => ({
+  requireAuth: async (event: any) => {
+    if (event._cookies?.auth_token === 'invalid') {
+      throw (global as any).createError({ statusCode: 401, statusMessage: 'Unauthorized' });
+    }
+    return event.context.userId;
+  }
+}));
+
+describe('PUT /api/v2/users/me', () => {
+  let testUser: any;
+  let otherUser: any;
+
+  beforeAll(async () => {
+    testUser = await createTestUser(`t_put_${Date.now() % 1000000}`, `p_${Date.now()}@ex.com`);
+    otherUser = await createTestUser(`o_put_${Date.now() % 1000000}`, `op_${Date.now()}@ex.com`);
+  });
+
+  afterAll(async () => {
+    if (testUser?.id) await deleteTestUser(testUser.id);
+    if (otherUser?.id) await deleteTestUser(otherUser.id);
+  });
+
+  it('should update username successfully', async () => {
+    const newUsername = `upd_${Date.now() % 1000000}`; // Shorter to fit max 20
+    const event = createMockEvent(testUser.id, { username: newUsername });
+    event.context.userId = testUser.id;
+
+    const response = (await handler(event)) as any;
+    expect(response.data!.username).toBe(newUsername);
+    testUser.username = newUsername; // Update local ref for subsequent tests
+  });
+
+  it('should update email and reset emailVerifiedAt', async () => {
+    const newEmail = `n${Date.now()}@ex.com`;
+    const event = createMockEvent(testUser.id, { email: newEmail });
+    event.context.userId = testUser.id;
+
+    const response = (await handler(event)) as any;
+    expect(response.data!.email).toBe(newEmail);
+    expect(response.data!.emailVerifiedAt).toBeNull();
+    testUser.email = newEmail;
+  });
+
+  it('should throw 409 if username is taken', async () => {
+    const event = createMockEvent(testUser.id, { username: otherUser.username });
+    event.context.userId = testUser.id;
+
+    await expect(handler(event)).rejects.toThrow(/username is already taken/i);
+  });
+
+  it('should validate reachable avatar URLs', async () => {
+    // DiceBear URL is reachable
+    const dicebearUrl = 'https://api.dicebear.com/9.x/avataaars/svg?seed=test';
+    const event = createMockEvent(testUser.id, { photourl: dicebearUrl });
+    event.context.userId = testUser.id;
+
+    const response = (await handler(event)) as any;
+    expect(response.data!.photourl).toBe(dicebearUrl);
+  });
+
+  it('should reject unreachable avatar URLs', async () => {
+    const brokenUrl = 'https://api.dicebear.com/9.x/avataaars/svg?seed=invalid&status=404'; // Or just any reachable but 404 URL
+    // Actually, I'll just use a real URL that I know is 404
+    const real404Url = 'https://api.dicebear.com/non-existent-endpoint';
+    const event = createMockEvent(testUser.id, { photourl: real404Url });
+    event.context.userId = testUser.id;
+
+    await expect(handler(event)).rejects.toThrow(/verify avatar URL/i);
+  });
+
+  it('should allow clearing avatar with empty string', async () => {
+    const event = createMockEvent(testUser.id, { photourl: '' });
+    event.context.userId = testUser.id;
+
+    const response = (await handler(event)) as any;
+    expect(response.data!.photourl).toBe('');
+  });
+});
