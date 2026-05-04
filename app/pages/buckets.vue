@@ -356,7 +356,7 @@
                     <button 
                       type="button"
                       @click="openSharedHabitsPicker"
-                      class="text-xs font-black tracking-widest text-blue-600 hover:text-blue-500 transition-colors cursor-pointer flex items-center gap-1.5"
+                      class="text-xs font-bold tracking-widest text-violet-400 hover:bg-white/5 px-2 py-1 -ml-2 rounded-lg transition-all cursor-pointer flex items-center gap-1.5 w-fit"
                     >
                       <Plus class="w-3 h-3" />
                       Add habits shared by friends
@@ -593,7 +593,7 @@
                     <button 
                       type="button"
                       @click="openSharedHabitsPicker"
-                      class="text-xs font-black tracking-widest text-blue-600 hover:text-blue-500 transition-colors cursor-pointer flex items-center gap-1.5"
+                      class="text-xs font-bold tracking-widest text-violet-400 hover:bg-white/5 px-2 py-1 -ml-2 rounded-lg transition-all cursor-pointer flex items-center gap-1.5 w-fit"
                     >
                       <Plus class="w-3 h-3" />
                       Add habits shared by friends
