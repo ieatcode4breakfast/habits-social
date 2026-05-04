@@ -51,6 +51,9 @@ export interface Bucket {
   currentStreak?: number;
   longestStreak?: number;
   streakAnchorDate?: string | null;
+  // Shared metadata
+  sharedMembers?: Array<{ userId: string; username: string; status: string }>;
+  sharedHabits?: Array<{ habitId: string; approvalStatus: string; addedBy: string; habitOwnerId: string }>;
 }
 
 export interface BucketLog {

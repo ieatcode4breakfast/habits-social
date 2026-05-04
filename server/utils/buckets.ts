@@ -141,12 +141,31 @@ export async function syncBucketLogsForHabit(sql: any, habitId: string, userId: 
 
 export async function syncSingleBucketLog(sql: any, bucketId: string, userId: string, date: string) {
   if (!bucketId || bucketId.length < 36) return;
-  const habitsRes = await sql`
-    SELECT habit_id FROM bucket_habits WHERE bucket_id = ${bucketId}::uuid
-  `;
+  
+  // Check if bucket has shared members
+  const sharedMembersRes = await sql`SELECT 1 FROM shared_bucket_members WHERE bucket_id = ${bucketId}::uuid`;
+  const isShared = sharedMembersRes.length > 0;
+
+  let habitsRes;
+  if (isShared) {
+    // For shared buckets, filter habit_id to only current user's (and only accepted)
+    habitsRes = await sql`
+      SELECT bh.habit_id FROM bucket_habits bh
+      JOIN habits h ON bh.habit_id = h.id
+      WHERE bh.bucket_id = ${bucketId}::uuid 
+        AND h.ownerid = ${userId}
+        AND bh.approval_status = 'accepted'
+    `;
+  } else {
+    // Personal bucket logic (old behavior)
+    habitsRes = await sql`
+      SELECT habit_id FROM bucket_habits WHERE bucket_id = ${bucketId}::uuid
+    `;
+  }
   
   if (habitsRes.length === 0) {
-    await sql`DELETE FROM bucketlogs WHERE bucketid = ${bucketId}::uuid AND date = ${date}`;
+    // If it's a shared bucket and user has no accepted habits, they shouldn't have logs yet or they are cleared
+    await sql`DELETE FROM bucketlogs WHERE bucketid = ${bucketId}::uuid AND date = ${date} AND ownerid = ${userId}`;
     await recalculateBucketStreak(sql, bucketId, userId, date);
     return;
   }
@@ -173,7 +192,7 @@ export async function syncSingleBucketLog(sql: any, bucketId: string, userId: st
       finalStatus = 'vacation';
     }
 
-    const logId = `${bucketId}_${date}`;
+    const logId = `${bucketId}_${date}_${userId}`;
     await sql`
       INSERT INTO bucketlogs (id, bucketid, ownerid, date, status, updatedat)
       VALUES (${logId}, ${bucketId}::uuid, ${userId}, ${date}, ${finalStatus}, NOW())
@@ -181,7 +200,7 @@ export async function syncSingleBucketLog(sql: any, bucketId: string, userId: st
       SET status = ${finalStatus}, updatedat = NOW()
     `;
   } else {
-    const logId = `${bucketId}_${date}`;
+    const logId = `${bucketId}_${date}_${userId}`;
     await sql`
       INSERT INTO bucketlogs (id, bucketid, ownerid, date, status, updatedat)
       VALUES (${logId}, ${bucketId}::uuid, ${userId}, ${date}, 'cleared', NOW())
@@ -196,7 +215,23 @@ export async function syncSingleBucketLog(sql: any, bucketId: string, userId: st
 export async function reevaluateBucketLogs(sql: any, bucketId: string, userId: string) {
   await sql`DELETE FROM bucketlogs WHERE bucketid = ${bucketId}::uuid AND ownerid = ${userId}`;
   
-  const habitsRes = await sql`SELECT habit_id FROM bucket_habits WHERE bucket_id = ${bucketId}::uuid`;
+  // Check if bucket has shared members
+  const sharedMembersRes = await sql`SELECT 1 FROM shared_bucket_members WHERE bucket_id = ${bucketId}::uuid`;
+  const isShared = sharedMembersRes.length > 0;
+
+  let habitsRes;
+  if (isShared) {
+    habitsRes = await sql`
+      SELECT bh.habit_id FROM bucket_habits bh
+      JOIN habits h ON bh.habit_id = h.id
+      WHERE bh.bucket_id = ${bucketId}::uuid 
+        AND h.ownerid = ${userId}
+        AND bh.approval_status = 'accepted'
+    `;
+  } else {
+    habitsRes = await sql`SELECT habit_id FROM bucket_habits WHERE bucket_id = ${bucketId}::uuid`;
+  }
+
   if (habitsRes.length === 0) {
     await recalculateBucketStreak(sql, bucketId, userId);
     return;

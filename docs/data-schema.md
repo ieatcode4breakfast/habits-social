@@ -74,6 +74,23 @@ Buckets allow users to group multiple habits and track a collective "meta-streak
 | `createdAt` | `Date` | System timestamp of creation. |
 | `updatedat` | `Date` | System timestamp of the last modification. |
 
+### BucketHabit (Join Table)
+| Field | Type | Description |
+| :--- | :--- | :--- |
+| `bucket_id` | `uuid` | Reference to Bucket. |
+| `habit_id` | `uuid` | Reference to Habit. |
+| `added_by` | `uuid` | User who added the habit. |
+| `approval_status` | `string` | Status for shared buckets (`pending`, `accepted`, `declined`, `removed`). |
+
+### SharedBucketMember
+| Field | Type | Description |
+| :--- | :--- | :--- |
+| `bucket_id` | `uuid` | Reference to Bucket. |
+| `user_id` | `uuid` | Reference to User. |
+| `status` | `string` | Membership status (`pending`, `accepted`, `declined`). |
+| `created_at` | `Date` | |
+| `updated_at` | `Date` | |
+
 ### BucketLog
 A record of a bucket's status for a specific date based on its habits.
 

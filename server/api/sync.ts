@@ -17,8 +17,7 @@ export default defineEventHandler(async (event) => {
   const serverTime = Math.floor(Number(firstRow.now));
 
   // 2. Fetch all deltas in parallel
-  // We use >= to ensure no gaps, client-side 'put' handles duplicates
-  const [habits, buckets, habitLogs, bucketLogs, deletions] = await Promise.all([
+  const [habits, personalBuckets, sharedBuckets, habitLogs, bucketLogs, deletions] = await Promise.all([
     sql`
       SELECT * FROM habits 
       WHERE ownerid = ${userId} 
@@ -26,10 +25,19 @@ export default defineEventHandler(async (event) => {
       ORDER BY "sortOrder" ASC
     `,
     sql`
-      SELECT * FROM buckets 
-      WHERE ownerid = ${userId} 
-      ${lastSynced > 0 ? sql`AND updatedat >= to_timestamp(${lastSynced} / 1000.0)` : sql``}
-      ORDER BY "sortOrder" ASC
+      SELECT b.* FROM buckets b
+      WHERE b.ownerid = ${userId} 
+        AND NOT EXISTS (SELECT 1 FROM shared_bucket_members sbm WHERE sbm.bucket_id = b.id)
+        ${lastSynced > 0 ? sql`AND b.updatedat >= to_timestamp(${lastSynced} / 1000.0)` : sql``}
+      ORDER BY b."sortOrder" ASC
+    `,
+    sql`
+      SELECT b.* FROM buckets b
+      JOIN shared_bucket_members sbm ON b.id = sbm.bucket_id
+      WHERE sbm.user_id = ${userId}
+        AND sbm.status = 'accepted'
+        ${lastSynced > 0 ? sql`AND b.updatedat >= to_timestamp(${lastSynced} / 1000.0)` : sql``}
+      ORDER BY b."sortOrder" ASC
     `,
     sql`
       SELECT * FROM habitlogs 
@@ -56,19 +64,48 @@ export default defineEventHandler(async (event) => {
     `
   ]);
 
-  // 3. For buckets, we need their habit mappings too if they changed
-  // In a truly optimized delta sync, we'd only fetch mappings for changed buckets
-  // But for now, we'll fetch mappings for all returned buckets
+  const buckets = [...personalBuckets, ...sharedBuckets];
+
+  // 3. For buckets, we need their habit mappings and shared metadata too if they changed
   let bucketHabits: any[] = [];
+  let sharedMembers: any[] = [];
   if (buckets.length > 0) {
     const bucketIds = buckets.map((b: any) => b.id);
-    bucketHabits = await sql`SELECT bucket_id, habit_id FROM bucket_habits WHERE bucket_id = ANY(${bucketIds}::uuid[])`;
+    bucketHabits = await sql`
+      SELECT bh.*, h.ownerid as habit_owner_id 
+      FROM bucket_habits bh
+      JOIN habits h ON bh.habit_id = h.id
+      WHERE bh.bucket_id = ANY(${bucketIds}::uuid[])
+        AND (bh.approval_status IS NULL OR bh.approval_status IN ('accepted', 'pending'))
+    `;
+    sharedMembers = await sql`
+      SELECT sbm.*, u.username 
+      FROM shared_bucket_members sbm
+      JOIN users u ON sbm.user_id = u.id
+      WHERE sbm.bucket_id = ANY(${bucketIds}::uuid[])
+    `;
   }
 
   // 4. Normalize and combine
   const normalizedBuckets = buckets.map((b: any) => {
-    const hIds = bucketHabits.filter((bh: any) => bh.bucket_id === b.id).map((bh: any) => bh.habit_id);
-    return normalizeBucket({ ...b, habitIds: hIds });
+    const habits = bucketHabits.filter((bh: any) => bh.bucket_id === b.id);
+    const members = sharedMembers.filter((sbm: any) => sbm.bucket_id === b.id);
+    
+    return normalizeBucket({ 
+      ...b, 
+      habitIds: habits.map((bh: any) => bh.habit_id),
+      sharedMembers: members.map((m: any) => ({
+        userId: m.user_id,
+        username: m.username,
+        status: m.status
+      })),
+      sharedHabits: habits.map((bh: any) => ({
+        habitId: bh.habit_id,
+        approvalStatus: bh.approval_status,
+        addedBy: bh.added_by,
+        habitOwnerId: bh.habit_owner_id
+      }))
+    });
   });
 
   return {
