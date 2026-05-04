@@ -1,28 +1,16 @@
+import './setup';
 import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
-import { neon } from '@neondatabase/serverless';
 import { createTestUser, deleteTestUser, createMockEvent } from './test.utils';
-import handler from '../me.put';
-
-vi.mock('../../../../utils/db', () => ({
-  useDB: () => neon(process.env.DATABASE_URL!)
-}));
-
-vi.mock('../../../../utils/auth', () => ({
-  requireAuth: async (event: any) => {
-    if (event._cookies?.auth_token === 'invalid') {
-      throw (global as any).createError({ statusCode: 401, statusMessage: 'Unauthorized' });
-    }
-    return event.context.userId;
-  }
-}));
 
 describe('PUT /api/v2/users/me', () => {
   let testUser: any;
   let otherUser: any;
+  let handler: any;
 
   beforeAll(async () => {
     testUser = await createTestUser(`t_put_${Date.now() % 1000000}`, `p_${Date.now()}@ex.com`);
     otherUser = await createTestUser(`o_put_${Date.now() % 1000000}`, `op_${Date.now()}@ex.com`);
+    handler = (await import('../me.put')).default;
   });
 
   afterAll(async () => {

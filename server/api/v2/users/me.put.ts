@@ -1,8 +1,8 @@
 import { z } from 'zod';
-import { useDB } from '../../../utils/db';
-import { requireAuth } from '../../../utils/auth';
+import { useDB as _useDB } from '../utils/db';
+import { requireAuth as _requireAuth } from '../utils/auth';
 import { hash } from 'bcrypt-ts';
-import type { IUser } from '../../../models';
+import type { IUser } from '../types';
 
 // Strict schema for updating a user
 const updateProfileSchema = z.object({
@@ -15,6 +15,9 @@ const updateProfileSchema = z.object({
 });
 
 export default defineEventHandler(async (event) => {
+  const requireAuth = (event.context as any).requireAuth || _requireAuth;
+  const useDB = (event.context as any).useDB || _useDB;
+
   const userId = await requireAuth(event);
   const sql = useDB(event);
 
