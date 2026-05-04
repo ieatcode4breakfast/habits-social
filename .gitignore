@@ -8,6 +8,7 @@ scratch/
 *.kilocode/
 .claude/
 .rules
+.kilo/
 
 # Testing
 test-results/
