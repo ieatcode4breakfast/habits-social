@@ -18,13 +18,17 @@ export const deleteTestUser = async (userId: string) => {
   await sql`DELETE FROM users WHERE id = ${userId}::uuid`;
 };
 
-export const createMockEvent = (userId: string, body: any = {}, cookies: any = {}) => {
+export const createMockEvent = (userId: string, body: any = {}, cookies: any = {}, params: any = {}, query: any = {}, method: string = 'GET') => {
   return {
     _body: body,
     _cookies: {
       auth_token: 'mock-token', 
       ...cookies
     },
+    _params: params,
+    _query: query,
+    _method: method,
+    method,
     context: {
       userId,
       requireAuth: async (event: any) => {
@@ -33,7 +37,34 @@ export const createMockEvent = (userId: string, body: any = {}, cookies: any = {
         }
         return event.context.userId;
       },
-      useDB: () => neon(process.env.DATABASE_URL!)
+      useDB: () => neon(process.env.DATABASE_URL!),
+      generateToken: async (uid: string) => `mock-token-${uid}`
     }
   } as any;
+};
+
+export const createTestHabit = async (ownerid: string, title: string) => {
+  const result = await sql`
+    INSERT INTO habits (ownerid, title, description, "skipsCount", "skipsPeriod", color, sharedwith, "sortOrder", "createdAt", updatedat)
+    VALUES (${ownerid}, ${title}, '', 2, 'weekly', '#6366f1', '{}', 0, NOW(), NOW())
+    RETURNING id, title, ownerid
+  `;
+  return result[0];
+};
+
+export const deleteTestHabit = async (habitId: string) => {
+  await sql`DELETE FROM habits WHERE id = ${habitId}::uuid`;
+};
+
+export const createTestBucket = async (ownerid: string, title: string) => {
+  const result = await sql`
+    INSERT INTO buckets (id, ownerid, title, description, color, "sortOrder", "createdAt", updatedat)
+    VALUES (gen_random_uuid(), ${ownerid}, ${title}, '', '#6366f1', 0, NOW(), NOW())
+    RETURNING id, title, ownerid
+  `;
+  return result[0];
+};
+
+export const deleteTestBucket = async (bucketId: string) => {
+  await sql`DELETE FROM buckets WHERE id = ${bucketId}::uuid`;
 };

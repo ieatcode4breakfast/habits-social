@@ -1,0 +1,72 @@
+import { z } from 'zod';
+import { useDB as _useDB } from '../_utils/db';
+import { requireAuth as _requireAuth } from '../_utils/auth';
+import { normalizeHabit } from '../_utils/normalize';
+import { habitUpdateSchema } from '../_utils/validation';
+
+export default defineEventHandler(async (event) => {
+  const requireAuth = (event.context as any).requireAuth || _requireAuth;
+  const useDB = (event.context as any).useDB || _useDB;
+  const userId = await requireAuth(event);
+  const sql = useDB(event);
+  const id = getRouterParam(event, 'id');
+
+  if (!id) {
+    throw createError({ statusCode: 400, statusMessage: 'Bad Request' });
+  }
+
+  const habits = await sql`SELECT * FROM habits WHERE id = ${id}::uuid AND ownerid = ${userId}`;
+  if (habits.length === 0) {
+    throw createError({ statusCode: 404, statusMessage: 'Not found' });
+  }
+  const habit = habits[0];
+
+  if (event.method === 'GET') {
+    return { data: normalizeHabit(habit) };
+  }
+
+  if (event.method === 'PUT') {
+    const body = await readBody(event);
+    const validation = habitUpdateSchema.safeParse(body);
+    if (!validation.success) {
+      throw createError({ statusCode: 400, statusMessage: 'Validation Failed', data: validation.error.flatten() });
+    }
+
+    const data = validation.data;
+
+    const title = data.title !== undefined ? data.title : habit.title;
+    const description = data.description !== undefined ? data.description : habit.description;
+    const color = data.color !== undefined ? data.color : habit.color;
+    const sharedwith = data.sharedwith !== undefined ? data.sharedwith : habit.sharedwith;
+    const sortOrder = data.sortOrder !== undefined ? data.sortOrder : habit.sortOrder;
+    const user_date = data.user_date !== undefined ? data.user_date : habit.user_date;
+
+    let skipsPeriod = data.skipsPeriod !== undefined ? data.skipsPeriod : habit.skipsPeriod;
+    let skipsCount = data.skipsCount !== undefined ? data.skipsCount : habit.skipsCount;
+    if (skipsPeriod === 'none') {
+      skipsCount = 0;
+    } else if (skipsPeriod === 'weekly') {
+      skipsCount = Math.max(0, Math.min(6, skipsCount));
+    } else if (skipsPeriod === 'monthly') {
+      skipsCount = Math.max(0, Math.min(28, skipsCount));
+    }
+
+    const result = await sql`
+      UPDATE habits
+      SET title = ${title}, description = ${description}, "skipsCount" = ${skipsCount}, "skipsPeriod" = ${skipsPeriod}, color = ${color}, sharedwith = ${sharedwith}, "sortOrder" = ${sortOrder}, user_date = ${user_date}, updatedat = NOW()
+      WHERE id = ${id}::uuid
+      RETURNING *
+    `;
+
+    if (result.length === 0) {
+      throw createError({ statusCode: 404, statusMessage: 'Not found after update' });
+    }
+
+    return { data: normalizeHabit(result[0]) };
+  }
+
+  if (event.method === 'DELETE') {
+    await sql`DELETE FROM habits WHERE id = ${id}::uuid`;
+    return { data: { success: true } };
+  }
+});

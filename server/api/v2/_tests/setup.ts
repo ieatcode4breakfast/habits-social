@@ -13,6 +13,19 @@ vi.stubGlobal('defineEventHandler', (handler: any) => handler);
 vi.stubGlobal('createError', createError);
 vi.stubGlobal('readBody', async (event: any) => event._body);
 vi.stubGlobal('getCookie', (event: any, name: string) => event._cookies?.[name]);
+vi.stubGlobal('getRouterParam', (event: any, name: string) => event._params?.[name]);
+vi.stubGlobal('getQuery', (event: any) => event._query || {});
+vi.stubGlobal('getMethod', (event: any) => event._method || 'GET');
+vi.stubGlobal('setResponseHeader', () => {});
+vi.stubGlobal('setHeader', () => {});
+
+vi.stubGlobal('setCookie', (event: any, name: string, value: string, opts?: any) => {
+  if (!event._cookies) event._cookies = {};
+  event._cookies[name] = value;
+});
+vi.stubGlobal('deleteCookie', (event: any, name: string) => {
+  if (event._cookies) delete event._cookies[name];
+});
 
 vi.stubGlobal('$fetch', async (url: string, opts: any) => {
   const res = await fetch(url, { ...opts, signal: opts.timeout ? AbortSignal.timeout(opts.timeout) : undefined });
@@ -34,5 +47,10 @@ vi.mock('../_utils/auth', () => ({
       throw createError({ statusCode: 401, statusMessage: 'Unauthorized' });
     }
     return event.context.userId;
-  }
+  },
+  getUserFromEvent: async (event: any) => {
+    if (event._cookies?.auth_token === 'invalid') return null;
+    return event.context?.userId || null;
+  },
+  generateToken: async (userId: string) => `mock-token-${userId}`
 }));
