@@ -94,6 +94,7 @@ export default defineEventHandler(async (event) => {
             )
         `;
 
+        const removedForeignHabits = [];
         for (const h of foreignHabitIds) {
           const isFriend = friendships.some((f: any) => 
             (f.initiatorid === userId && f.receiverid === h.ownerid) ||
@@ -104,8 +105,22 @@ export default defineEventHandler(async (event) => {
           if (isFriend && isSharedWithMe) {
             validForeignHabits.push(h);
             uniqueForeignOwners.add(h.ownerid);
+          } else if (isFriend) {
+            removedForeignHabits.push(h);
           }
         }
+
+        // Insert/Update removed foreign habits
+        for (const h of removedForeignHabits) {
+          await sql`
+            INSERT INTO bucket_habits (bucket_id, habit_id, added_by, approval_status)
+            VALUES (${id}::uuid, ${h.id}::uuid, ${userId}, 'removed')
+            ON CONFLICT (bucket_id, habit_id) DO UPDATE SET 
+              approval_status = 'removed',
+              added_by = EXCLUDED.added_by
+          `;
+        }
+
 
         // Update bucket_habits
         await sql`

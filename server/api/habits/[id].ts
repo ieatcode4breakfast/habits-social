@@ -2,6 +2,7 @@ import { format } from 'date-fns';
 import type { IHabit } from '../../models';
 import { usePusher } from '../../utils/pusher';
 import { reevaluateBucketLogs } from '../../utils/buckets';
+import { markBucketHabitsRemoved } from '../../utils/shared-buckets';
 
 const normalizeHabit = (h: any) => {
   if (!h) return h;
@@ -55,9 +56,18 @@ export default defineEventHandler(async (event) => {
     const updatedHabit = normalizeHabit(result[0]);
 
     // Category 3: Detect newly shared recipients and record share events
-    const oldShared = new Set((habit.sharedwith || []).map(String));
-    const newRecipients = (sharedwith as string[]).filter((rid: string) => !oldShared.has(String(rid)));
+    const oldSharedSet = new Set((habit.sharedwith || []).map(String));
+    const newSharedSet = new Set((sharedwith as string[]).map(String));
+    
+    const newRecipients = (sharedwith as string[]).filter((rid: string) => !oldSharedSet.has(String(rid)));
+    const removedRecipients = Array.from(oldSharedSet).filter((rid: string) => !newSharedSet.has(String(rid)));
+
+    if (removedRecipients.length > 0) {
+      await markBucketHabitsRemoved(sql, [id as string], removedRecipients);
+    }
+
     if (newRecipients.length > 0 && body.user_date) {
+
       const now = new Date();
       for (const recipientId of newRecipients) {
         await sql`
@@ -80,7 +90,11 @@ export default defineEventHandler(async (event) => {
     const buckets = await sql`SELECT bucket_id FROM bucket_habits WHERE habit_id = ${id}::uuid`;
     const bucketIds = buckets.map(b => b.bucket_id);
     
+    // Physically remove from bucket_habits first to prevent orphaned rows
+    await sql`DELETE FROM bucket_habits WHERE habit_id = ${id}::uuid`;
+    
     await sql`DELETE FROM habits WHERE id = ${id}::uuid`;
+
     await sql`INSERT INTO sync_deletions (ownerid, entity_id, entity_type) VALUES (${userId}, ${id}::uuid, 'habit')`;
 
     for (const bid of bucketIds) {

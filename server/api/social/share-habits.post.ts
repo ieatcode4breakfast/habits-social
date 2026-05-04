@@ -1,3 +1,5 @@
+import { markBucketHabitsRemoved } from '../../utils/shared-buckets';
+
 export default defineEventHandler(async (event) => {
   const sql = useDB(event);
   const userId = await requireAuth(event);
@@ -37,6 +39,11 @@ export default defineEventHandler(async (event) => {
         AND ownerid = ${userId}
     `;
   }
+
+  if (toRemove.length > 0) {
+    await markBucketHabitsRemoved(sql, toRemove, [targetId]);
+  }
+
 
   // 3. Add sharing for newly selected habits
   for (const habitId of toAdd) {
