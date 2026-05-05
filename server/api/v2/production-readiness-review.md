@@ -17,17 +17,8 @@ A. CRITICAL ISSUES (Must fix before deployment)
 
 B. WARNINGS (Highly recommended to address)
 
-4. Timing Attack on Login (User Enumeration) - ADDRESSED
-`auth/login.post.ts` only executes the CPU-intensive `bcrypt.compare()` when the user exists. If the user does not exist, the endpoint returns much faster, leaking the existence of the account.
-- **Fix**: When the user is not found, execute a dummy `bcrypt.compare(password, DUMMY_HASH)` (e.g., a precomputed string) before returning to equalize response times.
-
-5. Resetting Foreign Habit Approval on Bucket Update - ADDRESSED
-`buckets/[id].ts` (PUT, lines 138-146) unconditionally sets `approval_status = 'pending'` for every foreign habit via `ON CONFLICT ... DO UPDATE`. If a foreign habit was already `accepted`, saving the bucket again revokes that acceptance and forces re-approval.
-- **Fix**: Only set `approval_status = 'pending'` in the `DO UPDATE` if the existing row's status was `'removed'` or the insert was new. Alternatively, use `COALESCE` to preserve the existing accepted status.
-
-6. Streak Recalculation Ignores Skip Policy - comment: fail on gaps is desired behavior
-`_utils/streaks.ts` fetches `skipsPeriod` and `skipsCount` from the habit but never references them during gap detection. Allowed "skip" days (`skipped` or `vacation` status) still break the streak because the code resets on any gap > 1 day.
-- **Fix**: Implement skip-budget logic that tracks remaining skips within the `skipsPeriod` window and only breaks the streak when the budget is exhausted.
+6. Streak Recalculation Ignores Skip Policy — RESOLVED (By Design)
+`docs/streak-logic.md:46-48` specifies that gap detection always resets the streak and skipped days are ignored. The skip budget (`skipsPeriod`/`skipsCount`) is a frontend-only UI gate (see `LogMenu.vue:84-107`) and must not affect server-side streak recalculation. The unused column fetches in `_utils/streaks.ts` have been removed.
 
 7. Unvalidated `lastSynced` Parameter Causes SQL Errors
 `buckets/index.ts` (GET) and `habitlogs/index.ts` (GET) pass `Number(query.lastSynced)` directly to `to_timestamp()` without checking `isNaN`. If the client sends a non-numeric value, the query will fail or behave unpredictably. (`habits/index.ts` correctly validates this.)
