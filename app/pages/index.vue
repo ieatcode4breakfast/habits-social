@@ -6,11 +6,11 @@
         <UserAvatar 
           v-if="user"
           :src="user.photourl" 
-          container-class="w-12 h-12 bg-zinc-925 rounded-2xl shadow-sm"
+          container-class="w-10 h-10 bg-zinc-925 rounded-xl shadow-sm"
           icon-class="w-6 h-6 text-zinc-600"
         />
         <div>
-          <h1 class="text-xl font-bold tracking-tight text-white mb-1">My habits</h1>
+          <h1 class="text-base font-bold tracking-tight text-white mb-1">My habits</h1>
           <p class="text-zinc-400 text-xs">{{ habits.length }} habit{{ habits.length === 1 ? '' : 's' }}</p>
         </div>
       </div>
@@ -39,9 +39,7 @@
     <div v-motion-fade class="bg-zinc-925/80 backdrop-blur-md sm:rounded-2xl rounded-none shadow-2xl border-y border-x-0 sm:border border-zinc-800/80 divide-y divide-zinc-800/80 relative">
       <!-- Global Sticky Date Header -->
       <div class="sticky top-[57px] z-30 bg-zinc-925/95 backdrop-blur-md border-b border-zinc-800/80 px-4 py-2 flex items-center justify-between gap-4 sm:rounded-t-2xl">
-        <div class="flex-1 min-w-[120px] sm:min-w-[200px] text-[10px] font-black tracking-widest text-zinc-500 uppercase">
-          Habits
-        </div>
+        <div class="flex-1 min-w-[120px] sm:min-w-[200px]"></div>
         <div class="w-[240px] sm:w-[320px] lg:w-[400px] shrink-0">
           <div class="flex justify-between items-end w-full">
             <div v-for="(day, i) in days" :key="i" class="flex flex-col items-center w-7 sm:w-9">

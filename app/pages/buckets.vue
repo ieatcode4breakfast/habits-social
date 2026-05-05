@@ -3,11 +3,11 @@
     <!-- Header -->
     <div class="px-4 sm:px-0 flex items-end justify-between gap-4 sticky top-[57px] z-40 bg-black pt-2 pb-2 sm:pt-4">
       <div class="flex items-center gap-4">
-        <div class="w-12 h-12 bg-zinc-925 rounded-2xl shadow-lg flex items-center justify-center border border-zinc-800">
+        <div class="w-10 h-10 bg-zinc-925 rounded-xl shadow-lg flex items-center justify-center border border-zinc-800">
           <PaintBucket class="w-6 h-6 text-zinc-400" />
         </div>
         <div>
-          <h1 class="text-xl font-bold tracking-tight text-white mb-1">Buckets</h1>
+          <h1 class="text-base font-bold tracking-tight text-white mb-1">Buckets</h1>
           <p class="text-zinc-400 text-xs">{{ buckets.length }} bucket{{ buckets.length === 1 ? '' : 's' }}</p>
         </div>
       </div>
@@ -47,9 +47,7 @@
     <div v-motion-fade class="bg-zinc-925/80 backdrop-blur-md sm:rounded-2xl rounded-none shadow-2xl border-y border-x-0 sm:border border-zinc-800/80 divide-y divide-zinc-800/80 relative">
       <!-- Global Sticky Date Header -->
       <div class="sticky top-[57px] z-30 bg-zinc-925/95 backdrop-blur-md border-b border-zinc-800/80 px-4 py-2 flex items-center justify-between gap-4 sm:rounded-t-2xl">
-        <div class="flex-1 min-w-[120px] sm:min-w-[200px] text-[10px] font-black tracking-widest text-zinc-500 uppercase">
-          Buckets
-        </div>
+        <div class="flex-1 min-w-[120px] sm:min-w-[200px]"></div>
         <div class="w-[240px] sm:w-[320px] lg:w-[400px] shrink-0">
           <div class="flex justify-between items-end w-full">
             <div v-for="(day, i) in days" :key="i" class="flex flex-col items-center w-7 sm:w-9">
@@ -1111,7 +1109,7 @@ const openAddModal = () => {
 
 const openSharedHabitsPicker = () => {
   // TODO: Implement shared habits picker
-  showToast('Shared habits picker coming soon!', 'info');
+  showToast('Shared habits picker coming soon!', 'skipped');
 };
 
 const addBucket = async () => {

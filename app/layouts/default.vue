@@ -44,26 +44,23 @@
     </main>
     <!-- Mobile Bottom Navigation -->
     <nav v-if="user" class="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-nav-bg border-t border-white/5 px-6 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))]">
-      <div class="flex items-center justify-around gap-8">
-        <NuxtLink to="/" class="flex flex-col items-center gap-1 group transition-colors" :class="$route.path === '/' ? 'text-white' : 'text-zinc-500'">
-          <div class="p-1 rounded-lg transition-colors" :class="$route.path === '/' ? 'bg-white/10' : 'group-hover:bg-white/5'">
-            <LayoutDashboard class="w-6 h-6" />
+      <div class="flex items-center justify-around">
+        <NuxtLink to="/" class="flex items-center group transition-colors" :class="$route.path === '/' ? 'text-white' : 'text-zinc-500'">
+          <div class="p-2 rounded-xl transition-all duration-300" :class="$route.path === '/' ? 'bg-white/10 scale-110' : 'group-hover:bg-white/5'">
+            <Target class="w-6 h-6" />
           </div>
-          <span class="text-[10px] font-bold uppercase tracking-widest">My Habits</span>
         </NuxtLink>
-        <NuxtLink to="/buckets" class="flex flex-col items-center gap-1 group transition-colors" :class="$route.path === '/buckets' ? 'text-white' : 'text-zinc-500'">
-          <div class="p-1 rounded-lg transition-colors" :class="$route.path === '/buckets' ? 'bg-white/10' : 'group-hover:bg-white/5'">
+        <NuxtLink to="/buckets" class="flex items-center group transition-colors" :class="$route.path === '/buckets' ? 'text-white' : 'text-zinc-500'">
+          <div class="p-2 rounded-xl transition-all duration-300" :class="$route.path === '/buckets' ? 'bg-white/10 scale-110' : 'group-hover:bg-white/5'">
             <PaintBucket class="w-6 h-6" />
           </div>
-          <span class="text-[10px] font-bold uppercase tracking-widest">Buckets</span>
         </NuxtLink>
-        <NuxtLink to="/social" class="flex flex-col items-center gap-1 group transition-colors relative" :class="$route.path === '/social' ? 'text-white' : 'text-zinc-500'">
-          <div class="p-1 rounded-lg transition-colors" :class="$route.path === '/social' ? 'bg-white/10' : 'group-hover:bg-white/5'">
+        <NuxtLink to="/social" class="flex items-center group transition-colors relative" :class="$route.path === '/social' ? 'text-white' : 'text-zinc-500'">
+          <div class="p-2 rounded-xl transition-all duration-300" :class="$route.path === '/social' ? 'bg-white/10 scale-110' : 'group-hover:bg-white/5'">
             <Users class="w-6 h-6" />
           </div>
           <!-- Badge -->
-          <div v-if="pendingCount > 0 && $route.path !== '/social'" class="absolute top-0 right-1 w-2.5 h-2.5 bg-rose-500 rounded-full border-2 border-black"></div>
-          <span class="text-[10px] font-bold uppercase tracking-widest">Social</span>
+          <div v-if="pendingCount > 0 && $route.path !== '/social'" class="absolute top-1 right-1 w-2.5 h-2.5 bg-rose-500 rounded-full border-2 border-zinc-950"></div>
         </NuxtLink>
       </div>
     </nav>
@@ -74,7 +71,7 @@
 </template>
 
 <script setup lang="ts">
-import { LogOut, LayoutDashboard, Users, User as UserIcon, PaintBucket } from 'lucide-vue-next';
+import { LogOut, Target, Users, User as UserIcon, PaintBucket } from 'lucide-vue-next';
 
 const { user, fetchUser } = useAuth();
 const { pendingCount, init: initSocial, cleanup: cleanupSocial, logoutCleanup } = useSocial();
