@@ -18,12 +18,22 @@ export default defineEventHandler(async (event) => {
 
   const { targetUserId, habitIds, user_date } = validation.data;
 
-  const [target] = await sql`SELECT username FROM users WHERE id = ${targetUserId}::uuid`;
-  if (!target) {
-    throw createError({ statusCode: 404, statusMessage: 'Target user not found' });
-  }
-
   const targetId = String(targetUserId);
+  
+  // Verify accepted friendship exists
+  const [friendship] = await sql`
+    SELECT 1 FROM friendships 
+    WHERE status = 'accepted'
+      AND (
+        ("initiatorId" = ${userId}::uuid AND "receiverId" = ${targetId}::uuid)
+        OR 
+        ("initiatorId" = ${targetId}::uuid AND "receiverId" = ${userId}::uuid)
+      )
+  `;
+
+  if (!friendship) {
+    throw createError({ statusCode: 403, statusMessage: 'You can only share habits with friends' });
+  }
 
   // Get currently shared habits for this user/target combo
   const currentShared = await sql`
@@ -65,7 +75,7 @@ export default defineEventHandler(async (event) => {
         AND NOT (${targetId} = ANY(sharedwith))
       RETURNING id
     `;
-    actuallySharedIds.push(...result.map(r => r.id));
+    actuallySharedIds.push(...result.map((r: any) => r.id));
   }
 
   // Record share event for all newly shared habits

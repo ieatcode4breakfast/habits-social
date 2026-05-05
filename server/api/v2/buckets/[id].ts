@@ -140,7 +140,10 @@ export default defineEventHandler(async (event) => {
           INSERT INTO bucket_habits (bucket_id, habit_id, added_by, approval_status)
           VALUES (${id}::uuid, ${h.id}::uuid, ${userId}, 'pending')
           ON CONFLICT (bucket_id, habit_id) DO UPDATE SET 
-            approval_status = 'pending',
+            approval_status = CASE 
+              WHEN bucket_habits.approval_status = 'accepted' THEN 'accepted' 
+              ELSE 'pending' 
+            END,
             added_by = EXCLUDED.added_by
         `;
       }

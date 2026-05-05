@@ -18,6 +18,8 @@ export default defineEventHandler(async (event) => {
   const user = users[0];
 
   if (!user) {
+    // Mitigate timing attack: perform a dummy comparison if user is not found
+    await compare(password, '$2b$10$N9qo8uLOickgx2ZMRZoMyeIjZAgNIhp.pX7wMQRpM64ls7ZSXH0uz');
     throw createError({ statusCode: 400, statusMessage: 'Invalid username, email or password' });
   }
 
