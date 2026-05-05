@@ -75,6 +75,7 @@ export default defineEventHandler(async (event) => {
         "streakCount" = EXCLUDED."streakCount",
         "brokenStreakCount" = EXCLUDED."brokenStreakCount",
         updatedat = NOW()
+      WHERE habitlogs.ownerid = EXCLUDED.ownerid
       RETURNING *
     `;
 

@@ -40,12 +40,12 @@ export default defineEventHandler(async (event) => {
   const actuallySharedIds: string[] = [];
 
   // Remove sharing for habits no longer selected
-  for (const habitId of toRemove) {
+  if (toRemove.length > 0) {
     await sql`
-      UPDATE habits 
+      UPDATE habits
       SET sharedwith = array_remove(sharedwith, ${targetId}),
           updatedat = NOW()
-      WHERE id = ${habitId}::uuid
+      WHERE id = ANY(${toRemove}::uuid[])
         AND ownerid = ${userId}
     `;
   }
@@ -55,19 +55,17 @@ export default defineEventHandler(async (event) => {
   }
 
   // Add sharing for newly selected habits
-  for (const habitId of toAdd) {
+  if (toAdd.length > 0) {
     const result = await sql`
-      UPDATE habits 
+      UPDATE habits
       SET sharedwith = array_append(sharedwith, ${targetId}),
           updatedat = NOW()
-      WHERE id = ${habitId}::uuid
+      WHERE id = ANY(${toAdd}::uuid[])
         AND ownerid = ${userId}
         AND NOT (${targetId} = ANY(sharedwith))
       RETURNING id
     `;
-    if (result.length > 0) {
-      actuallySharedIds.push(habitId);
-    }
+    actuallySharedIds.push(...result.map(r => r.id));
   }
 
   // Record share event for all newly shared habits

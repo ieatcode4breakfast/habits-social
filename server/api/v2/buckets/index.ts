@@ -72,6 +72,7 @@ export default defineEventHandler(async (event) => {
         color = EXCLUDED.color,
         "sortOrder" = EXCLUDED."sortOrder",
         updatedat = NOW()
+      WHERE buckets.ownerid = EXCLUDED.ownerid
       RETURNING *
     `;
 

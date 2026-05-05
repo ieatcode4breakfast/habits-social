@@ -1,0 +1,80 @@
+Here is the production-readiness review for all files under `server/api/v2`.
+
+CRITICAL ISSUES (Must fix before deployment)
+
+1. Authorization Bypass via `ON CONFLICT` (Data Overwrite) - ADDRESSED
+`bucketlogs/index.ts` (POST), `habitlogs/index.ts` (POST), and `buckets/index.ts` (POST) use `INSERT ... ON CONFLICT (id) DO UPDATE` without a `WHERE` clause restricting updates to rows owned by the authenticated user. Unlike `habits/index.ts` which correctly includes `WHERE habits.ownerid = EXCLUDED.ownerid`, these endpoints allow any user to overwrite another user's records by providing a known ID. For bucketlogs, IDs are deterministic (`${bucketId}_${date}_${userId}`), making targeted overwrites trivial.
+- **Fix**: Add `WHERE <table>.ownerid = EXCLUDED.ownerid` to every `ON CONFLICT DO UPDATE`. Example for `bucketlogs`:
+  `ON CONFLICT (id) DO UPDATE SET ... WHERE bucketlogs.ownerid = EXCLUDED.ownerid`
+
+2. Exposure of Private Email Addresses
+`users/search.get.ts` (line 14) and `users/[id]/profile.get.ts` (line 16) include `email` in the `SELECT` list and return it in the JSON payload. This exposes Personally Identifiable Information (PII) to any authenticated user.
+- **Fix**: Remove `email` from both `SELECT` clauses. If contact data is needed for a feature, gate it behind explicit privacy settings.
+
+3. Unverified Friendship During Sharing
+`social/share-habits.post.ts` allows any authenticated user to share habits with any other user ID, regardless of friendship status. This circumvents the social-graph protections and enables spam/harassment.
+- **Fix**: Before processing, verify an `accepted` friendship exists between `userId` and `targetUserId`.
+
+WARNINGS (Highly recommended to address)
+
+4. Timing Attack on Login (User Enumeration)
+`auth/login.post.ts` only executes the CPU-intensive `bcrypt.compare()` when the user exists. If the user does not exist, the endpoint returns much faster, leaking the existence of the account.
+- **Fix**: When the user is not found, execute a dummy `bcrypt.compare(password, DUMMY_HASH)` (e.g., a precomputed string) before returning to equalize response times.
+
+5. Resetting Foreign Habit Approval on Bucket Update
+`buckets/[id].ts` (PUT, lines 138-146) unconditionally sets `approval_status = 'pending'` for every foreign habit via `ON CONFLICT ... DO UPDATE`. If a foreign habit was already `accepted`, saving the bucket again revokes that acceptance and forces re-approval.
+- **Fix**: Only set `approval_status = 'pending'` in the `DO UPDATE` if the existing row's status was `'removed'` or the insert was new. Alternatively, use `COALESCE` to preserve the existing accepted status.
+
+6. Streak Recalculation Ignores Skip Policy
+`_utils/streaks.ts` fetches `skipsPeriod` and `skipsCount` from the habit but never references them during gap detection. Allowed "skip" days (`skipped` or `vacation` status) still break the streak because the code resets on any gap > 1 day.
+- **Fix**: Implement skip-budget logic that tracks remaining skips within the `skipsPeriod` window and only breaks the streak when the budget is exhausted.
+
+7. Unvalidated `lastSynced` Parameter Causes SQL Errors
+`buckets/index.ts` (GET) and `habitlogs/index.ts` (GET) pass `Number(query.lastSynced)` directly to `to_timestamp()` without checking `isNaN`. If the client sends a non-numeric value, the query will fail or behave unpredictably. (`habits/index.ts` correctly validates this.)
+- **Fix**: Add the same `if (isNaN(lastSynced))` guard that `habits/index.ts` uses.
+
+8. Accepting Your Own Friend Request
+`friendships/[id].ts` (PUT) allows the initiator of a friendship to accept it. Only the receiver should be able to accept a pending request.
+- **Fix**: Verify `friendship.receiverId === userId` before updating the status to `'accepted'`.
+
+9. No Rate Limiting on Authentication & Search
+`auth/register.post.ts`, `auth/login.post.ts`, and `users/search.get.ts` have no rate limiting. This exposes the application to brute-force attacks, credential stuffing, and scraping.
+- **Fix**: Apply rate limiting at the gateway (Cloudflare, nginx) or implement application-level request throttling (e.g., `h3-rate-limiter`).
+
+10. Multi-Step Mutations Lack Transactions
+Most endpoints perform multiple sequential SQL writes (e.g., habit deletion + bucket log re-evaluation, bucket update + shared member cleanup) without wrapping them in a database transaction. A partial failure leaves data in an inconsistent state.
+- **Fix**: Use `sql.begin()` (or `sql.transaction()`) from `@neondatabase/serverless` to group logically atomic operations.
+
+11. Password Length DoS Vector
+`auth/register.post.ts` does not enforce a maximum password length before hashing. bcrypt truncates at 72 bytes, but hashing extremely large payloads wastes CPU and can be abused for denial-of-service.
+- **Fix**: Reject passwords longer than 128 characters in the validation layer.
+
+12. Timezone Sensitivity in Date Normalization
+`_utils/normalize.ts` uses `date-fns` `format(new Date(dateStr), 'yyyy-MM-dd')`, which formats in the server's local timezone. If the server is not UTC, timestamps near midnight can produce incorrect calendar dates.
+- **Fix**: Use UTC-aware formatting (e.g., `formatInTimeZone` from `date-fns-tz`) or standardize on UTC server time.
+
+13. Search Param Type Safety
+`users/search.get.ts` (line 10) does `String(username)`. If the query parser returns an object or array, this produces `"[object Object]"`. Also, an extremely long input string wastes DB cycles on `ILIKE`.
+- **Fix**: Validate that `username` is a string and cap its length (e.g., max 100 chars) before the query.
+
+14. User Deletion Assumes Database Cascades
+`users/me.delete.ts` attempts a bare `DELETE FROM users`. If foreign key constraints lack `ON DELETE CASCADE`, the endpoint will crash with a 500 error.
+- **Fix**: Either confirm cascading is configured at the schema level, or wrap explicit dependent-row deletions in a transaction.
+
+15. PII Leak via Registration Error Messages
+`auth/register.post.ts` returns distinct error messages for existing email vs. existing username, allowing an attacker to enumerate registered accounts.
+- **Fix**: Return a single generic message for both conflicts (e.g., "Email or username already taken").
+
+16. Token Invalidation on Password Change
+`users/me.put.ts` updates `passwordHash` but does not invalidate existing JWTs. A leaked token remains valid for up to 7 days after a password change.
+- **Fix**: Consider versioning passwords (e.g., add a `tokenVersion` column to users, embed it in the JWT, and increment it on password change) or rely on short-lived tokens with refresh logic.
+
+NITPICKS & BEST PRACTICES
+
+17. `/auth/me.get.ts` returns HTTP 200 `{ data: null }` for unauthenticated clients. Standard REST semantics expect 401. If the frontend relies on this behavior, document it explicitly in a comment.
+18. Dead code in `buckets/index.ts`: `const bucketId = data.id || \`\${userId}_${Date.now()}\`;` is computed but never referenced.
+19. Avoid `SELECT *` in production queries. `auth/login.post.ts`, `users/me.put.ts`, and `friendships/index.ts` all select more columns than needed, increasing the risk of accidental PII leakage and unnecessary data transfer.
+20. Zod schema duplication: `users/me.put.ts` defines `updateProfileSchema` inline, while `_utils/validation.ts` exports a nearly identical one. Consolidate schemas to prevent future drift.
+21. `friendships/[id].ts` (DELETE) updates `sharedwith` arrays in four sequential `UPDATE` statements. If the schema uses `text[]`, ensure `array_remove` handles these correctly for large arrays, or consider normalizing sharing relationships into a junction table.
+22. In `social/habit-details.get.ts` and `social/friend-data.get.ts`, `startDateStr` and `endDateStr` are accepted from query params without validating they conform to `YYYY-MM-DD`. Invalid formats will result in SQL errors or incorrect filtering.
+23. `habits/reorder.ts` and `buckets/reorder.ts` perform N sequential `UPDATE` calls inside a loop. While N is capped by the app limit (30), consider using a single bulk update with `CASE` or `UNNEST` for atomicity and efficiency.

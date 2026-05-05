@@ -17,6 +17,9 @@ export default defineEventHandler(async (event) => {
     let habits;
     if (query.lastSynced) {
       const lastSynced = Number(query.lastSynced);
+      if (isNaN(lastSynced)) {
+        throw createError({ statusCode: 400, statusMessage: 'Invalid lastSynced parameter' });
+      }
       habits = await sql`
         SELECT * FROM habits 
         WHERE ownerid = ${userId} 
@@ -71,6 +74,7 @@ export default defineEventHandler(async (event) => {
         "sortOrder" = EXCLUDED."sortOrder",
         user_date = EXCLUDED.user_date,
         updatedat = NOW()
+      WHERE habits.ownerid = EXCLUDED.ownerid
       RETURNING *
     `;
 

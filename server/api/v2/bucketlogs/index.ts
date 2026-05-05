@@ -61,6 +61,7 @@ export default defineEventHandler(async (event) => {
         "streakCount" = EXCLUDED."streakCount",
         "brokenStreakCount" = EXCLUDED."brokenStreakCount",
         updatedat = NOW()
+      WHERE bucketlogs.ownerid = EXCLUDED.ownerid
       RETURNING *
     `;
 

@@ -13,7 +13,7 @@ export default defineEventHandler(async (event) => {
   }
 
   const [profile] = await sql`
-    SELECT id, username, email, photourl FROM users WHERE id = ${id}::uuid
+    SELECT id, username, photourl FROM users WHERE id = ${id}::uuid
   `;
 
   if (!profile) {

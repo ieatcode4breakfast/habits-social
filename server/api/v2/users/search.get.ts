@@ -11,7 +11,7 @@ export default defineEventHandler(async (event) => {
   if (!username) return { data: [] };
 
   const results = await sql`
-    SELECT id, username, email, photourl FROM users 
+    SELECT id, username, photourl FROM users 
     WHERE username ILIKE ${'%' + String(username) + '%'} 
       AND id != ${userId}::uuid
     LIMIT 25

@@ -56,14 +56,12 @@ describe('PUT /api/v2/users/me', () => {
     expect(response.data!.photourl).toBe(dicebearUrl);
   });
 
-  it('should reject unreachable avatar URLs', async () => {
-    const brokenUrl = 'https://api.dicebear.com/9.x/avataaars/svg?seed=invalid&status=404'; // Or just any reachable but 404 URL
-    // Actually, I'll just use a real URL that I know is 404
-    const real404Url = 'https://api.dicebear.com/non-existent-endpoint';
-    const event = createMockEvent(testUser.id, { photourl: real404Url });
+  it('should reject invalid avatar URL formats', async () => {
+    const invalidUrl = 'not-a-valid-url';
+    const event = createMockEvent(testUser.id, { photourl: invalidUrl });
     event.context.userId = testUser.id;
 
-    await expect(handler(event)).rejects.toThrow(/verify avatar URL/i);
+    await expect(handler(event)).rejects.toThrow(/Validation Failed/i);
   });
 
   it('should allow clearing avatar with empty string', async () => {

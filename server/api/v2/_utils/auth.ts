@@ -7,8 +7,11 @@ const getSecret = (event?: H3Event) => {
     config = useRuntimeConfig(event);
   } catch (e) {}
   
-  const secret = (config.jwtSecret as string) || process.env.JWT_SECRET || 'fallback-secret-for-dev';
-  return new TextEncoder().encode(secret);
+  const secret = (config.jwtSecret as string) || process.env.JWT_SECRET;
+  if (!secret && process.env.NODE_ENV === 'production') {
+    throw new Error('FATAL: JWT_SECRET environment variable is missing.');
+  }
+  return new TextEncoder().encode(secret || 'fallback-secret-for-dev');
 };
 
 export const generateToken = async (userId: string | number, event: H3Event): Promise<string> => {

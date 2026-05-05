@@ -9,7 +9,7 @@ const updateProfileSchema = z.object({
   username: z.string().min(3).max(20).optional(),
   email: z.string().email().optional(),
   password: z.string().min(8).optional(),
-  photourl: z.string().or(z.literal('')).nullable().optional()
+  photourl: z.string().url().or(z.literal('')).nullable().optional()
 }).refine(data => Object.keys(data).length > 0, {
   message: "At least one field (username, email, password, photourl) must be provided to update"
 });
@@ -35,22 +35,6 @@ export default defineEventHandler(async (event) => {
 
   const { username, email, password, photourl } = validation.data;
 
-  // 1.5. Verify photourl works if provided
-  if (photourl && photourl.startsWith('http')) {
-    try {
-      const response = await $fetch.raw(photourl, { method: 'HEAD', timeout: 5000 });
-      if (!response.ok) {
-        throw createError({ statusCode: 400, statusMessage: 'The provided avatar URL is unreachable' });
-      }
-    } catch (err) {
-      // If HEAD fails, try a simple GET as some CDNs block HEAD
-      try {
-        await $fetch(photourl, { method: 'GET', timeout: 5000 });
-      } catch (innerErr) {
-        throw createError({ statusCode: 400, statusMessage: 'Failed to verify avatar URL. Please ensure it is a public, reachable image.' });
-      }
-    }
-  }
 
   // 2. Fetch current user
   const users = await sql`SELECT * FROM users WHERE id = ${userId}::uuid`;
