@@ -1,5 +1,5 @@
-import { useDB as _useDB } from '../_utils/db';
-import { requireAuth as _requireAuth } from '../_utils/auth';
+import { useDB as _useDB } from '../../_utils/db';
+import { requireAuth as _requireAuth } from '../../_utils/auth';
 
 export default defineEventHandler(async (event) => {
   const requireAuth = (event.context as any).requireAuth || _requireAuth;
