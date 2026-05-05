@@ -4,6 +4,8 @@ import { useDB as _useDB } from '../_utils/db';
 import { requireAuth as _requireAuth } from '../_utils/auth';
 import { normalizeLog } from '../_utils/normalize';
 import { habitLogSchema } from '../_utils/validation';
+import { recalculateHabitStreak } from '../_utils/streaks';
+import { syncBucketLogsForHabit } from '../_utils/buckets';
 
 export default defineEventHandler(async (event) => {
   const requireAuth = (event.context as any).requireAuth || _requireAuth;
@@ -75,6 +77,10 @@ export default defineEventHandler(async (event) => {
         updatedat = NOW()
       RETURNING *
     `;
+
+    // Recalculate streaks and auto-generate bucket logs server-side
+    await recalculateHabitStreak(sql, data.habitid, userId, data.date);
+    await syncBucketLogsForHabit(sql, data.habitid, userId, data.date);
 
     return { data: normalizeLog(result[0]) };
   }

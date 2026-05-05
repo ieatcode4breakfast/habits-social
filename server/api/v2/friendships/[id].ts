@@ -1,5 +1,6 @@
 import { useDB as _useDB } from '../_utils/db';
 import { requireAuth as _requireAuth } from '../_utils/auth';
+import { reevaluateBucketLogs } from '../_utils/buckets';
 
 export default defineEventHandler(async (event) => {
   const requireAuth = (event.context as any).requireAuth || _requireAuth;
@@ -38,9 +39,38 @@ export default defineEventHandler(async (event) => {
       if (!isParticipant) {
         throw createError({ statusCode: 403, statusMessage: 'Forbidden' });
       }
+
+      const u1 = friendship.initiatorId;
+      const u2 = friendship.receiverId;
+
+      // Cascade 'removed' status for cross-owned bucket habits BEFORE removing sharing flags
+      const affected = await sql`
+        UPDATE bucket_habits bh
+        SET approval_status = 'removed'
+        FROM buckets b, habits h
+        WHERE bh.bucket_id = b.id AND bh.habit_id = h.id
+          AND (
+            (h.ownerid = ${u1}::uuid AND b.ownerid = ${u2}::uuid)
+            OR (h.ownerid = ${u2}::uuid AND b.ownerid = ${u1}::uuid)
+          )
+          AND bh.approval_status != 'removed'
+        RETURNING bh.bucket_id, b.ownerid
+      `;
+
+      for (const row of affected) {
+        await reevaluateBucketLogs(sql, row.bucket_id, row.ownerid);
+      }
+
+      await sql`UPDATE habits SET sharedwith = array_remove(sharedwith, ${u2}) WHERE ownerid = ${u1}`;
+      await sql`UPDATE habits SET sharedwith = array_remove(sharedwith, ${u1}) WHERE ownerid = ${u2}`;
+      await sql`UPDATE habitlogs SET sharedwith = array_remove(sharedwith, ${u2}) WHERE ownerid = ${u1}`;
+      await sql`UPDATE habitlogs SET sharedwith = array_remove(sharedwith, ${u1}) WHERE ownerid = ${u2}`;
+
+      await sql`DELETE FROM friendships WHERE id = ${id}::uuid`;
+    } else {
+      await sql`DELETE FROM friendships WHERE id = ${id}::uuid`;
     }
 
-    await sql`DELETE FROM friendships WHERE id = ${id}::uuid`;
     return { data: { success: true } };
   }
 });

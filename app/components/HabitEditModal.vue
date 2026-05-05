@@ -187,10 +187,10 @@
                             ['border-dashed border-zinc-800 bg-transparent', isMarkable(day) ? 'hover:bg-zinc-925' : '']
                           ]"
                         >
-                          <Check v-if="getStatus(day) === 'completed'" class="w-3 h-3 text-white" />
-                          <XIcon v-else-if="getStatus(day) === 'failed'" class="w-3 h-3 text-white" />
-                          <span v-else-if="getStatus(day) === 'skipped'" class="w-3 h-0.5 bg-white rounded-full"></span>
-                          <Palmtree v-else-if="getStatus(day) === 'vacation'" class="w-3 h-3 text-white" />
+                          <Check v-if="getStatus(day) === 'completed'" class="w-4 h-4 text-white" />
+                          <XIcon v-else-if="getStatus(day) === 'failed'" class="w-4 h-4 text-white" />
+                          <span v-else-if="getStatus(day) === 'skipped'" class="w-4 h-0.5 bg-white rounded-full"></span>
+                          <Palmtree v-else-if="getStatus(day) === 'vacation'" class="w-4 h-4 text-white" />
                         </button>
                       </div>
                       <div class="text-[9px] font-bold" :class="[

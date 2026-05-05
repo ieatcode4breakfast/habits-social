@@ -76,10 +76,8 @@ export default defineEventHandler(async (event) => {
       throw createError({ statusCode: 400, statusMessage: 'bucketid and date are required' });
     }
 
-    await sql`
-      DELETE FROM bucketlogs 
-      WHERE bucketid = ${bucketId}::uuid AND ownerid = ${userId} AND date = ${dateStr}
-    `;
+    // Bucket logs are synthesized server-side based on habit logs.
+    // We treat explicit client deletions as a no-op to protect server derived data.
 
     return { data: { success: true } };
   }

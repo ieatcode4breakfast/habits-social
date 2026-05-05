@@ -27,10 +27,10 @@ export default defineEventHandler(async (event) => {
   }
 
   const token = await generateToken(user.id, event);
-  setCookie(event, 'auth_token', token, { httpOnly: true, maxAge: 60 * 60 * 24 * 7, path: '/', sameSite: 'strict' });
 
   return {
     data: {
+      token,
       id: user.id,
       email: user.email,
       username: user.username,

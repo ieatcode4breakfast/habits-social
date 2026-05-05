@@ -1,7 +1,8 @@
 <template>
-  <div class="space-y-1 relative">
-    <!-- Header -->
-    <div class="px-4 sm:px-0 flex items-end justify-between gap-4 sticky top-[57px] z-40 bg-black pt-2 pb-2 sm:pt-4">
+  <div class="relative">
+    <!-- Sticky Header + Date Row -->
+    <div class="sticky top-[57px] z-40">
+    <div class="px-4 sm:px-0 flex items-end justify-between gap-4 bg-black pt-2 pb-2 sm:pt-4">
       <div class="flex items-center gap-4">
         <UserAvatar 
           v-if="user"
@@ -34,17 +35,14 @@
         </button>
       </div>
     </div>
-
-    <!-- Habit List (Single Card) -->
-    <div v-motion-fade class="bg-zinc-925/80 backdrop-blur-md sm:rounded-2xl rounded-none shadow-2xl border-y border-x-0 sm:border border-zinc-800/80 divide-y divide-zinc-800/80 relative">
-      <!-- Global Sticky Date Header -->
-      <div class="sticky top-[57px] z-30 bg-zinc-925/95 backdrop-blur-md border-b border-zinc-800/80 px-4 py-2 flex items-center justify-between gap-4 sm:rounded-t-2xl">
-        <div class="flex-1 min-w-[120px] sm:min-w-[200px]"></div>
-        <div class="w-[240px] sm:w-[320px] lg:w-[400px] shrink-0">
-          <div class="flex justify-between items-end w-full">
-            <div v-for="(day, i) in days" :key="i" class="flex flex-col items-center w-7 sm:w-9">
+    <!-- Date Header -->
+    <div class="bg-zinc-925/95 backdrop-blur-md border-b border-t border-x-0 sm:border-x border-zinc-800/80 py-2 sm:rounded-t-2xl flex flex-col items-stretch sm:flex-row sm:items-center sm:justify-between gap-x-4 gap-y-2 sm:px-4">
+        <div class="w-full px-4 sm:px-0 sm:flex-1 sm:min-w-[200px] hidden sm:block pr-0 sm:pr-2"></div>
+        <div class="w-full sm:w-[320px] lg:w-[400px] shrink-0 px-2 sm:px-0">
+          <div class="flex justify-evenly sm:justify-between items-end w-full">
+            <div v-for="(day, i) in days" :key="i" class="flex flex-col items-center w-8">
               <div 
-                class="text-[9px] sm:text-[10px] uppercase tracking-tighter font-black transition-colors"
+                class="text-[10px] uppercase tracking-tighter font-black transition-colors"
                 :class="isToday(day) ? 'text-white' : 'text-zinc-500'"
               >
                 {{ format(day, 'EEE') }}
@@ -58,7 +56,11 @@
             </div>
           </div>
         </div>
-      </div>
+    </div>
+    </div>
+
+    <!-- Habit List (Single Card) -->
+    <div v-motion-fade class="bg-zinc-925/80 backdrop-blur-md sm:rounded-b-2xl rounded-none shadow-2xl border-b border-x-0 sm:border-x sm:border-b border-zinc-800/80 divide-y divide-zinc-800/80 relative">
 
       <div v-if="loading" class="flex justify-center p-12">
         <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
@@ -77,13 +79,13 @@
         @drop.prevent="onDrop($event, habit.id)"
         @dragend="onDragEnd"
         @click="openEditModal(habit)"
-        class="relative px-4 py-3 group transition-all flex flex-nowrap items-center justify-between gap-4 cursor-pointer hover:bg-zinc-800/40"
+        class="relative py-3 group transition-all flex flex-col items-stretch sm:flex-row sm:items-center sm:justify-between gap-x-4 gap-y-2 cursor-pointer hover:bg-zinc-800/40 sm:px-4"
         :class="[
           draggingId === habit.id ? 'opacity-30' : 'opacity-100',
           dragOverId === habit.id ? 'ring-2 ring-inset ring-white/20 bg-zinc-800/50' : ''
         ]"
       >
-        <div class="flex-1 min-w-[120px] sm:min-w-[200px] flex flex-col gap-1 pr-2">
+        <div class="w-full px-4 sm:px-0 sm:flex-1 sm:min-w-[200px] flex flex-col gap-1 pr-0 sm:pr-2">
           <div class="flex items-center gap-2 flex-wrap sm:flex-nowrap">
             <h3 class="text-sm font-bold text-zinc-200 leading-tight break-all group-hover:text-white transition-colors">{{ habit.title }}</h3>
             <!-- Compact Streak Badge -->
@@ -104,7 +106,7 @@
                 ]"
               />
               <span 
-                class="text-[9px] font-black tracking-tight"
+                class="text-[10px] font-black tracking-tight"
                 :class="getStreakTheme(habit.currentStreak ?? 0).text"
               >
                 x{{ habit.currentStreak }}
@@ -112,19 +114,19 @@
             </div>
           </div>
           <!-- Frequency Text -->
-          <div class="text-[9px] sm:text-[10px] font-semibold tracking-tight text-zinc-500">
+          <div class="text-[10px] font-semibold tracking-tight text-zinc-500">
             {{ getFrequencyText(habit) }}
           </div>
         </div>
         
         <!-- Checkboxes Section -->
-        <div class="w-[240px] sm:w-[320px] lg:w-[400px] shrink-0">
-          <div class="flex justify-between items-center w-full">
-            <div v-for="(day, i) in days" :key="i" class="flex justify-center w-7 sm:w-9">
+        <div class="w-full sm:w-[320px] lg:w-[400px] shrink-0 px-2 sm:px-0">
+          <div class="flex justify-evenly sm:justify-between items-center w-full">
+            <div v-for="(day, i) in days" :key="i" class="flex justify-center w-8">
               <div class="relative">
                 <button
                   @click.stop="openLogMenu(habit, day, $event)"
-                  class="w-7 h-7 sm:w-9 sm:h-9 rounded-lg flex items-center justify-center transition-all border-2 relative"
+                  class="w-8 h-8 rounded-lg flex items-center justify-center transition-all border-2 relative"
                   :class="[
                     isMarkable(day) ? 'cursor-pointer' : 'cursor-default',
                     getStatus(habit.id, day) === 'completed' ? 'bg-emerald-500 border-emerald-500 shadow-md shadow-emerald-500/20' :
@@ -134,10 +136,10 @@
                     ['bg-transparent border-dashed border-zinc-800', isMarkable(day) ? 'hover:bg-zinc-925' : '']
                   ]"
                 >
-                  <Check v-if="getStatus(habit.id, day) === 'completed'" class="w-3 h-3 sm:w-4 sm:h-4 text-white" />
-                  <XIcon v-else-if="getStatus(habit.id, day) === 'failed'" class="w-3 h-3 sm:w-4 sm:h-4 text-white" />
-                  <Minus v-else-if="getStatus(habit.id, day) === 'skipped'" class="w-3 h-3 sm:w-4 sm:h-4 text-white" />
-                  <Palmtree v-else-if="getStatus(habit.id, day) === 'vacation'" class="w-3 h-3 sm:w-4 sm:h-4 text-white" />
+                  <Check v-if="getStatus(habit.id, day) === 'completed'" class="w-4 h-4 text-white" />
+                  <XIcon v-else-if="getStatus(habit.id, day) === 'failed'" class="w-4 h-4 text-white" />
+                  <Minus v-else-if="getStatus(habit.id, day) === 'skipped'" class="w-4 h-4 text-white" />
+                  <Palmtree v-else-if="getStatus(habit.id, day) === 'vacation'" class="w-4 h-4 text-white" />
                 </button>
               </div>
             </div>

@@ -106,7 +106,7 @@
               </div>
               
               <div
-                class="w-9 h-9 rounded-lg flex items-center justify-center border-2 transition-all relative"
+                class="w-8 h-8 rounded-lg flex items-center justify-center border-2 transition-all relative"
                 :class="[
                   getStatus(habit.id, day) === 'completed' ? 'bg-emerald-500 border-emerald-500 shadow-md shadow-emerald-500/20' :
                   getStatus(habit.id, day) === 'failed' ? 'bg-rose-500 border-rose-500 shadow-md shadow-rose-500/20' :

@@ -1,7 +1,8 @@
 <template>
-  <div class="space-y-1 relative">
-    <!-- Header -->
-    <div class="px-4 sm:px-0 flex items-end justify-between gap-4 sticky top-[57px] z-40 bg-black pt-2 pb-2 sm:pt-4">
+  <div class="relative">
+    <!-- Sticky Header + Date Row -->
+    <div class="sticky top-[57px] z-40">
+    <div class="px-4 sm:px-0 flex items-end justify-between gap-4 bg-black pt-2 pb-2 sm:pt-4">
       <div class="flex items-center gap-4">
         <div class="w-10 h-10 bg-zinc-925 rounded-xl shadow-lg flex items-center justify-center border border-zinc-800">
           <PaintBucket class="w-6 h-6 text-zinc-400" />
@@ -31,28 +32,14 @@
         </button>
       </div>
     </div>
-
-    <!-- Shared Habit Edit Modal -->
-    <HabitEditModal
-      v-model="showHabitEditModal"
-      :habit="editingHabit"
-      :friends="friends"
-      :logs="habitLogs"
-      @habit-updated="onHabitUpdatedFromModal"
-      @habit-deleted="onHabitDeletedFromModal"
-      @open-log-menu="openLogMenu"
-    />
-
-    <!-- Bucket List -->
-    <div v-motion-fade class="bg-zinc-925/80 backdrop-blur-md sm:rounded-2xl rounded-none shadow-2xl border-y border-x-0 sm:border border-zinc-800/80 divide-y divide-zinc-800/80 relative">
-      <!-- Global Sticky Date Header -->
-      <div class="sticky top-[57px] z-30 bg-zinc-925/95 backdrop-blur-md border-b border-zinc-800/80 px-4 py-2 flex items-center justify-between gap-4 sm:rounded-t-2xl">
-        <div class="flex-1 min-w-[120px] sm:min-w-[200px]"></div>
-        <div class="w-[240px] sm:w-[320px] lg:w-[400px] shrink-0">
-          <div class="flex justify-between items-end w-full">
-            <div v-for="(day, i) in days" :key="i" class="flex flex-col items-center w-7 sm:w-9">
+    <!-- Date Header -->
+    <div class="bg-zinc-925/95 backdrop-blur-md border-b border-t border-x-0 sm:border-x border-zinc-800/80 py-2 sm:rounded-t-2xl flex flex-col items-stretch sm:flex-row sm:items-center sm:justify-between gap-x-4 gap-y-2 sm:px-4">
+        <div class="w-full px-4 sm:px-0 sm:flex-1 sm:min-w-[200px] hidden sm:block pr-0 sm:pr-2"></div>
+        <div class="w-full sm:w-[320px] lg:w-[400px] shrink-0 px-2 sm:px-0">
+          <div class="flex justify-evenly sm:justify-between items-end w-full">
+            <div v-for="(day, i) in days" :key="i" class="flex flex-col items-center w-8">
               <div 
-                class="text-[9px] sm:text-[10px] uppercase tracking-tighter font-black transition-colors"
+                class="text-[10px] uppercase tracking-tighter font-black transition-colors"
                 :class="isToday(day) ? 'text-white' : 'text-zinc-500'"
               >
                 {{ format(day, 'EEE') }}
@@ -66,7 +53,22 @@
             </div>
           </div>
         </div>
-      </div>
+    </div>
+    </div>
+
+    <!-- Shared Habit Edit Modal -->
+    <HabitEditModal
+      v-model="showHabitEditModal"
+      :habit="editingHabit"
+      :friends="friends"
+      :logs="habitLogs"
+      @habit-updated="onHabitUpdatedFromModal"
+      @habit-deleted="onHabitDeletedFromModal"
+      @open-log-menu="openLogMenu"
+    />
+
+    <!-- Bucket List -->
+    <div v-motion-fade class="bg-zinc-925/80 backdrop-blur-md sm:rounded-b-2xl rounded-none shadow-2xl border-b border-x-0 sm:border-x sm:border-b border-zinc-800/80 divide-y divide-zinc-800/80 relative">
 
       <div v-if="loading" class="flex justify-center p-12">
         <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
@@ -86,7 +88,6 @@
           @dragend="onDragEnd"
           class="relative transition-all border-b border-zinc-800/50 last:border-0"
           :class="[
-            expandedBucketId === bucket.id ? 'bg-zinc-900/30' : '',
             draggingId === bucket.id ? 'opacity-30' : 'opacity-100',
             dragOverId === bucket.id ? 'ring-2 ring-inset ring-white/20 bg-zinc-800/50' : ''
           ]"
@@ -94,19 +95,14 @@
           <!-- Bucket Header Row -->
           <div 
             @click="toggleExpand(bucket.id)"
-            class="relative px-4 py-3 group transition-all duration-300 ease-out flex flex-nowrap items-center justify-between gap-4 cursor-pointer hover:bg-zinc-800/40"
-            :class="expandedBucketId === bucket.id ? 'bg-white/5' : ''"
+            class="relative py-3 group transition-all duration-300 ease-out flex flex-col items-stretch sm:flex-row sm:items-center sm:justify-between gap-x-4 gap-y-2 cursor-pointer hover:bg-zinc-800/40 sm:px-4"
           >
-            <!-- Chevron -->
-            <div class="absolute -left-2 top-1/2 -translate-y-1/2 hidden sm:block">
-              <ChevronDown 
-                class="w-4 h-4 text-zinc-600 transition-transform duration-300"
-                :class="{ '-rotate-90': expandedBucketId !== bucket.id }"
-              />
-            </div>
-
-            <div class="flex-1 min-w-[120px] sm:min-w-[200px] flex flex-col gap-0.5 pr-2">
+            <div class="w-full px-4 sm:px-0 sm:flex-1 sm:min-w-[200px] flex flex-col gap-0.5 pr-0 sm:pr-2">
               <div class="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+                <ChevronRight 
+                  class="w-4 h-4 text-zinc-600 transition-transform duration-300"
+                  :class="expandedBucketId === bucket.id ? 'rotate-90 text-white' : ''"
+                />
                 <h3 class="text-sm font-bold text-zinc-200 leading-tight break-all group-hover:text-white transition-colors">{{ bucket.title }}</h3>
                 
                 <!-- Streak Badge -->
@@ -127,7 +123,7 @@
                     ]"
                   />
                   <span 
-                    class="text-[9px] font-black tracking-tight"
+                    class="text-[10px] font-black tracking-tight"
                     :class="getStreakTheme(bucket.currentStreak ?? 0).text"
                   >
                     x{{ bucket.currentStreak }}
@@ -135,27 +131,26 @@
                 </div>
               </div>
               
-              <div class="flex items-center gap-2">
-                <div class="text-[9px] sm:text-[10px] font-semibold tracking-tight text-zinc-500 flex items-center gap-1">
-                  {{ bucket.habitIds?.length || 0 }} habit{{ (bucket.habitIds?.length || 0) === 1 ? '' : 's' }}
+              <div class="hidden sm:flex items-center gap-2">
+                <div class="flex items-center gap-2 text-[10px] text-zinc-500 font-medium ml-6">
+                  <span>{{ getHabitsInBucket(bucket).length }} habits</span>
                   <button 
                     @click.stop="openEditModal(bucket)"
-                    class="p-0.5 text-zinc-500 hover:text-white rounded transition-all cursor-pointer inline-flex items-center"
-                    title="Edit Bucket"
+                    class="p-1 hover:bg-white/10 rounded transition-colors"
                   >
-                    <Edit2 class="w-3 h-3" />
+                    <Edit2 class="w-3 h-3 text-zinc-600" />
                   </button>
                 </div>
               </div>
             </div>
             
             <!-- Read-only Timeline -->
-            <div class="w-[240px] sm:w-[320px] lg:w-[400px] shrink-0">
-              <div class="flex justify-between items-center w-full">
-                <div v-for="(day, i) in days" :key="i" class="flex justify-center w-7 sm:w-9">
+            <div class="w-full sm:w-[320px] lg:w-[400px] shrink-0 px-2 sm:px-0">
+              <div class="flex justify-evenly sm:justify-between items-center w-full">
+                <div v-for="(day, i) in days" :key="i" class="flex justify-center w-8">
                   <div class="relative">
                     <div
-                      class="w-7 h-7 sm:w-9 sm:h-9 rounded-lg flex items-center justify-center transition-all border-2 relative"
+                      class="w-8 h-8 rounded-lg flex items-center justify-center transition-all border-2 relative"
                       :class="[
                         getBucketStatus(bucket.id, day) === 'completed' ? 'bg-emerald-500 border-emerald-500 shadow-md shadow-emerald-500/20' :
                         getBucketStatus(bucket.id, day) === 'failed' ? 'bg-rose-500 border-rose-500 shadow-md shadow-rose-500/20' :
@@ -164,15 +159,29 @@
                         'bg-transparent border-dashed border-zinc-800'
                       ]"
                     >
-                      <Check v-if="getBucketStatus(bucket.id, day) === 'completed'" class="w-3 h-3 sm:w-4 sm:h-4 text-white" />
-                      <XIcon v-else-if="getBucketStatus(bucket.id, day) === 'failed'" class="w-3 h-3 sm:w-4 sm:h-4 text-white" />
-                      <Minus v-else-if="getBucketStatus(bucket.id, day) === 'skipped'" class="w-3 h-3 sm:w-4 sm:h-4 text-white" />
-                      <Palmtree v-else-if="getBucketStatus(bucket.id, day) === 'vacation'" class="w-3 h-3 sm:w-4 sm:h-4 text-white" />
+                      <Check v-if="getBucketStatus(bucket.id, day) === 'completed'" class="w-4 h-4 text-white" />
+                      <XIcon v-else-if="getBucketStatus(bucket.id, day) === 'failed'" class="w-4 h-4 text-white" />
+                      <Minus v-else-if="getBucketStatus(bucket.id, day) === 'skipped'" class="w-4 h-4 text-white" />
+                      <Palmtree v-else-if="getBucketStatus(bucket.id, day) === 'vacation'" class="w-4 h-4 text-white" />
                     </div>
                   </div>
                 </div>
               </div>
             </div>
+
+            <!-- Mobile Habit Count: below timeline -->
+            <div class="sm:hidden px-4 pt-1">
+              <div class="flex items-center gap-2 text-[10px] text-zinc-500 font-medium ml-6">
+                <span>{{ getHabitsInBucket(bucket).length }} habits</span>
+                <button 
+                  @click.stop="openEditModal(bucket)"
+                  class="p-1 hover:bg-white/10 rounded transition-colors"
+                >
+                  <Edit2 class="w-3 h-3 text-zinc-600" />
+                </button>
+              </div>
+            </div>
+
           </div>
 
           <!-- Expanded Content: Habit List -->
@@ -184,25 +193,20 @@
             leave-from-class="max-h-[1000px] opacity-100"
             leave-to-class="max-h-0 opacity-0"
           >
-            <div v-if="expandedBucketId === bucket.id" class="px-4 sm:px-4 pb-2">
-              <!-- Habit Section Divider -->
-              <div class="flex items-center gap-3 mb-0 relative z-10">
-                <div class="w-8 border-t border-zinc-800/50"></div>
-                <span class="text-zinc-500 text-[10px] font-black tracking-[0.2em] uppercase whitespace-nowrap">Habits</span>
-                <div class="flex-1 border-t border-zinc-800/50"></div>
-              </div>
+            <div v-if="expandedBucketId === bucket.id" class="border-t border-zinc-800/50">
 
               <div v-if="getHabitsInBucket(bucket).length === 0" class="py-6 text-center text-zinc-500 text-sm italic">
                 No habits in this bucket.
               </div>
               <div v-else class="divide-y divide-zinc-800/30">
                   <div v-for="(habit, hIdx) in getHabitsInBucket(bucket)" :key="habit.id" 
-                    class="flex flex-nowrap items-center justify-between gap-4 py-2 px-4 rounded-xl transition-all hover:bg-white/[0.03] group/habit-row"
+                    class="flex flex-col items-stretch sm:flex-row sm:items-center sm:justify-between gap-x-4 gap-y-2 py-3 rounded-xl transition-all hover:bg-white/[0.03] group/habit-row sm:px-4"
                   >
                     <div 
-                      class="flex-1 min-w-[120px] sm:min-w-[200px] flex items-center gap-2 cursor-pointer group/habit sm:pl-8"
+                      class="w-full px-4 sm:px-0 sm:flex-1 sm:min-w-[200px] flex items-center gap-2 cursor-pointer group/habit"
                       @click.stop="openHabitEditModal(habit)"
                     >
+                      <div class="w-4 h-4 shrink-0"></div>
                       <div class="min-w-0 flex-1 flex items-center gap-2">
                         <span class="text-xs sm:text-sm font-bold text-zinc-400 group-hover/habit:text-white transition-colors truncate">{{ habit.title }}</span>
                         
@@ -224,7 +228,7 @@
                             ]"
                           />
                           <span 
-                            class="text-[9px] font-black tracking-tight"
+                            class="text-[10px] font-black tracking-tight"
                             :class="getStreakTheme(habit.currentStreak ?? 0).text"
                           >
                             x{{ habit.currentStreak }}
@@ -234,13 +238,13 @@
                     </div>
                   
                     <!-- Interactive Logs -->
-                    <div class="w-[240px] sm:w-[320px] lg:w-[400px] shrink-0">
-                      <div class="flex justify-between items-center w-full">
-                        <div v-for="(day, idx) in days" :key="idx" class="flex justify-center w-7 sm:w-9">
+                    <div class="w-full sm:w-[320px] lg:w-[400px] shrink-0 px-2 sm:px-0">
+                      <div class="flex justify-evenly sm:justify-between items-center w-full">
+                        <div v-for="(day, idx) in days" :key="idx" class="flex justify-center w-8">
                           <button
                             type="button"
                             @click.stop="openLogMenu(habit, day, $event)"
-                            class="w-7 h-7 sm:w-9 sm:h-9 rounded-lg flex items-center justify-center transition-all border-2 relative"
+                            class="w-8 h-8 rounded-lg flex items-center justify-center transition-all border-2 relative"
                             :class="[
                               isMarkable(day) ? 'cursor-pointer' : 'cursor-default',
                               getHabitStatus(habit.id, day) === 'completed' ? 'bg-emerald-500 border-emerald-500 shadow-md shadow-emerald-500/20' :
@@ -250,10 +254,10 @@
                               ['bg-transparent border-dashed border-zinc-800', isMarkable(day) ? 'hover:bg-zinc-800/40' : '']
                             ]"
                           >
-                            <Check v-if="getHabitStatus(habit.id, day) === 'completed'" class="w-3 h-3 sm:w-4 sm:h-4 text-white" />
-                            <XIcon v-else-if="getHabitStatus(habit.id, day) === 'failed'" class="w-3 h-3 sm:w-4 sm:h-4 text-white" />
-                            <Minus v-else-if="getHabitStatus(habit.id, day) === 'skipped'" class="w-3 h-3 sm:w-4 sm:h-4 text-white" />
-                            <Palmtree v-else-if="getHabitStatus(habit.id, day) === 'vacation'" class="w-3 h-3 sm:w-4 sm:h-4 text-white" />
+                            <Check v-if="getHabitStatus(habit.id, day) === 'completed'" class="w-4 h-4 text-white" />
+                            <XIcon v-else-if="getHabitStatus(habit.id, day) === 'failed'" class="w-4 h-4 text-white" />
+                            <Minus v-else-if="getHabitStatus(habit.id, day) === 'skipped'" class="w-4 h-4 text-white" />
+                            <Palmtree v-else-if="getHabitStatus(habit.id, day) === 'vacation'" class="w-4 h-4 text-white" />
                           </button>
                         </div>
                       </div>
@@ -549,10 +553,10 @@
                               'border-dashed border-zinc-800 bg-transparent'
                             ]"
                           >
-                            <Check v-if="getBucketStatus(editingBucket!.id, day) === 'completed'" class="w-3 h-3 text-white" />
-                            <XIcon v-else-if="getBucketStatus(editingBucket!.id, day) === 'failed'" class="w-3 h-3 text-white" />
-                            <Minus v-else-if="getBucketStatus(editingBucket!.id, day) === 'skipped'" class="w-3 h-3 text-white" />
-                            <Palmtree v-else-if="getBucketStatus(editingBucket!.id, day) === 'vacation'" class="w-3 h-3 text-white" />
+                            <Check v-if="getBucketStatus(editingBucket!.id, day) === 'completed'" class="w-4 h-4 text-white" />
+                            <XIcon v-else-if="getBucketStatus(editingBucket!.id, day) === 'failed'" class="w-4 h-4 text-white" />
+                            <Minus v-else-if="getBucketStatus(editingBucket!.id, day) === 'skipped'" class="w-4 h-4 text-white" />
+                            <Palmtree v-else-if="getBucketStatus(editingBucket!.id, day) === 'vacation'" class="w-4 h-4 text-white" />
                           </div>
                         </div>
                         <div 

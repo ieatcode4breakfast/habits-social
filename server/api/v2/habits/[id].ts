@@ -3,6 +3,8 @@ import { useDB as _useDB } from '../_utils/db';
 import { requireAuth as _requireAuth } from '../_utils/auth';
 import { normalizeHabit } from '../_utils/normalize';
 import { habitUpdateSchema } from '../_utils/validation';
+import { reevaluateBucketLogs } from '../_utils/buckets';
+import { markBucketHabitsRemoved } from '../_utils/shared-buckets';
 
 export default defineEventHandler(async (event) => {
   const requireAuth = (event.context as any).requireAuth || _requireAuth;
@@ -62,11 +64,44 @@ export default defineEventHandler(async (event) => {
       throw createError({ statusCode: 404, statusMessage: 'Not found after update' });
     }
 
-    return { data: normalizeHabit(result[0]) };
+    const updatedHabit = normalizeHabit(result[0]);
+
+    // Detect newly shared recipients and record share events
+    const oldSharedSet = new Set((habit.sharedwith || []).map(String));
+    const newSharedSet = new Set((sharedwith as string[] || []).map(String));
+    
+    const newRecipients = (sharedwith as string[] || []).filter((rid: string) => !oldSharedSet.has(String(rid)));
+    const removedRecipients = Array.from(oldSharedSet).filter((rid: string) => !newSharedSet.has(String(rid)));
+
+    if (removedRecipients.length > 0) {
+      await markBucketHabitsRemoved(sql, [id as string], removedRecipients);
+    }
+
+    if (newRecipients.length > 0 && body.user_date) {
+      const now = new Date();
+      for (const recipientId of newRecipients) {
+        await sql`
+          INSERT INTO share_events (ownerid, recipientid, habitids, user_date, created_at)
+          VALUES (${userId}, ${recipientId}, ARRAY[${id}::uuid], ${body.user_date}, ${now})
+        `;
+      }
+    }
+
+    return { data: updatedHabit };
   }
 
   if (event.method === 'DELETE') {
+    const buckets = await sql`SELECT bucket_id FROM bucket_habits WHERE habit_id = ${id}::uuid`;
+    const bucketIds = buckets.map(b => b.bucket_id);
+    
+    await sql`DELETE FROM bucket_habits WHERE habit_id = ${id}::uuid`;
     await sql`DELETE FROM habits WHERE id = ${id}::uuid`;
+    await sql`INSERT INTO sync_deletions (ownerid, entity_id, entity_type, created_at) VALUES (${userId}, ${id}::uuid, 'habit', NOW())`;
+
+    for (const bid of bucketIds) {
+      await reevaluateBucketLogs(sql, bid, userId);
+    }
+
     return { data: { success: true } };
   }
 });

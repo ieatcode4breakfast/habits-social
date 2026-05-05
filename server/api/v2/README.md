@@ -27,7 +27,8 @@ If you need a utility that exists elsewhere in the codebase, **copy it into `_ut
 - **DO NOT** account for its logic or state in the primary sync or API flows.
 
 ### 🚫 CRITICAL RESTRICTIONS (Outbound)
-- **DO NOT** import anything from outside `server/api/v2/` into this module.
+- **DO NOT** import anything from outside `server/api/v2/` into this module (except configuration globals like `useRuntimeConfig`).
+- **DO NOT** trigger side-effects intended for the front-end (e.g. WebSockets, Push notifications, modifying cookies). `v2` is a PURE CRUD LAYER.
 - **DO NOT** use shared utilities, composables, or types from the parent project.
 - **DO NOT** rely on any file, module, or dependency that lives outside this directory tree.
 

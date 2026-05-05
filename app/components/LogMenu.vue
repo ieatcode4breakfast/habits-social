@@ -19,7 +19,7 @@
           v-for="opt in options"
           :key="opt.label"
           @click.stop="handleSelect(opt.status)"
-          class="w-9 h-9 rounded-lg flex items-center justify-center transition-all border-2 cursor-pointer relative"
+          class="w-8 h-8 rounded-lg flex items-center justify-center transition-all border-2 cursor-pointer relative"
           :class="opt.bgColor"
           :title="opt.label"
         >

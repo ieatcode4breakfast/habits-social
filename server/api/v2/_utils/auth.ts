@@ -22,7 +22,14 @@ export const generateToken = async (userId: string | number, event: H3Event): Pr
 
 export const getUserFromEvent = async (event: H3Event): Promise<string | null> => {
   const secret = getSecret(event);
-  const token = getCookie(event, 'auth_token');
+  
+  const authHeader = getHeader(event, 'authorization');
+  let token = null;
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    token = authHeader.substring(7);
+  } else {
+    token = getCookie(event, 'auth_token');
+  }
 
   if (!token) return null;
   try {

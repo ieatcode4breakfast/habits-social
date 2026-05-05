@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { useDB as _useDB } from '../_utils/db';
 import { requireAuth as _requireAuth } from '../_utils/auth';
 import { shareHabitsSchema } from '../_utils/validation';
+import { markBucketHabitsRemoved } from '../_utils/shared-buckets';
 
 export default defineEventHandler(async (event) => {
   const requireAuth = (event.context as any).requireAuth || _requireAuth;
@@ -47,6 +48,10 @@ export default defineEventHandler(async (event) => {
       WHERE id = ${habitId}::uuid
         AND ownerid = ${userId}
     `;
+  }
+
+  if (toRemove.length > 0) {
+    await markBucketHabitsRemoved(sql, toRemove, [targetId]);
   }
 
   // Add sharing for newly selected habits
