@@ -93,9 +93,10 @@ export default defineEventHandler(async (event) => {
       email = ${newEmail}, 
       photourl = ${newPhotourl}, 
       "passwordHash" = ${newPasswordHash},
-      "emailVerifiedAt" = ${newEmailVerifiedAt}
+      "emailVerifiedAt" = ${newEmailVerifiedAt},
+      "updatedAt" = NOW()
     WHERE id = ${userId}::uuid
-    RETURNING id, email, username, photourl, "emailVerifiedAt", "createdAt"
+    RETURNING id, email, username, photourl, "emailVerifiedAt", "createdAt", "updatedAt"
   `;
 
   return { data: result[0] };

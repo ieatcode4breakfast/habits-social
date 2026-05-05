@@ -49,7 +49,7 @@ export default defineEventHandler(async (event) => {
 
   const result = await sql`
     UPDATE users 
-    SET username = ${newUsername}, email = ${newEmail}, photourl = ${newPhotourl}, "passwordHash" = ${newPasswordHash}
+    SET username = ${newUsername}, email = ${newEmail}, photourl = ${newPhotourl}, "passwordHash" = ${newPasswordHash}, "updatedAt" = NOW()
     WHERE id = ${userId}::uuid
     RETURNING *
   `;

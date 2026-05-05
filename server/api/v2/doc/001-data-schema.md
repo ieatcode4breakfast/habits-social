@@ -16,6 +16,7 @@ Represents a registered user of the application.
 | `photourl` | `string` | Optional URL to the user's avatar/profile picture. |
 | `emailVerifiedAt` | `Date` | Optional timestamp indicating when the email was verified. |
 | `createdAt` | `Date` | System timestamp of creation. |
+| `updatedAt` | `Date` | System timestamp of the last modification. |
 
 ### Habit
 Represents a recurring task or behavior a user intends to track.

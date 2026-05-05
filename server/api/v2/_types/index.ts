@@ -6,6 +6,7 @@ export interface IUser {
   photourl?: string | null;
   emailVerifiedAt?: Date | null;
   createdAt: Date;
+  updatedAt: Date;
 }
 
 export interface IHabit {
