@@ -24,13 +24,13 @@ export default defineEventHandler(async (event) => {
         SELECT * FROM buckets 
         WHERE ownerid = ${userId} 
           AND updatedat >= to_timestamp(${lastSynced} / 1000.0)
-        ORDER BY "sortOrder" ASC, "createdAt" ASC
+        ORDER BY "sortOrder" ASC, "createdAt" DESC
       `;
     } else {
       buckets = await sql`
         SELECT * FROM buckets 
         WHERE ownerid = ${userId} 
-        ORDER BY "sortOrder" ASC, "createdAt" ASC
+        ORDER BY "sortOrder" ASC, "createdAt" DESC
       `;
     }
 
@@ -57,8 +57,7 @@ export default defineEventHandler(async (event) => {
     }
 
     const data = validation.data;
-    const countResult = await sql`SELECT COUNT(*) FROM buckets WHERE ownerid = ${userId}`;
-    const nextSortOrder = data.sortOrder !== undefined ? data.sortOrder : (parseInt(countResult[0]?.count) || 0);
+    const nextSortOrder = data.sortOrder !== undefined ? data.sortOrder : 0;
 
     if (nextSortOrder >= 30) {
       throw createError({ statusCode: 400, statusMessage: 'Bucket limit of 30 reached' });

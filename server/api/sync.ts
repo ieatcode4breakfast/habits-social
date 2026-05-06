@@ -22,14 +22,14 @@ export default defineEventHandler(async (event) => {
       SELECT * FROM habits 
       WHERE ownerid = ${userId} 
       ${lastSynced > 0 ? sql`AND updatedat >= to_timestamp(${lastSynced} / 1000.0)` : sql``}
-      ORDER BY "sortOrder" ASC
+      ORDER BY "sortOrder" ASC, "createdAt" DESC
     `,
     sql`
       SELECT b.* FROM buckets b
       WHERE b.ownerid = ${userId} 
         AND NOT EXISTS (SELECT 1 FROM shared_bucket_members sbm WHERE sbm.bucket_id = b.id)
         ${lastSynced > 0 ? sql`AND b.updatedat >= to_timestamp(${lastSynced} / 1000.0)` : sql``}
-      ORDER BY b."sortOrder" ASC
+      ORDER BY b."sortOrder" ASC, b."createdAt" DESC
     `,
     sql`
       SELECT b.* FROM buckets b
@@ -37,7 +37,7 @@ export default defineEventHandler(async (event) => {
       WHERE sbm.user_id = ${userId}
         AND sbm.status = 'accepted'
         ${lastSynced > 0 ? sql`AND b.updatedat >= to_timestamp(${lastSynced} / 1000.0)` : sql``}
-      ORDER BY b."sortOrder" ASC
+      ORDER BY b."sortOrder" ASC, b."createdAt" DESC
     `,
     sql`
       SELECT * FROM habitlogs 

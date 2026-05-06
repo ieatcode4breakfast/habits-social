@@ -1,6 +1,9 @@
 <template>
   <div class="min-h-[100dvh] text-zinc-100 flex flex-col transition-colors duration-300">
-    <header class="sticky top-0 z-50 h-[57px] bg-nav-bg border-b border-white/10">
+    <header 
+      class="sticky top-0 z-50 h-[57px] bg-nav-bg border-b border-white/10"
+      :class="{ 'hidden md:block': $route.path !== '/social' }"
+    >
       <div class="h-full max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between">
         <div class="flex items-center gap-2">
           <NuxtLink to="/" class="flex items-center gap-2 group">

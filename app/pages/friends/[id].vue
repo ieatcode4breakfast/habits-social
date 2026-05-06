@@ -1,7 +1,7 @@
 <template>
   <div class="space-y-1 relative">
     <!-- Header -->
-    <div class="px-4 sm:px-0 flex items-end justify-between gap-4 sticky top-[57px] z-40 bg-black pt-2 pb-2 sm:pt-4">
+    <div class="px-4 sm:px-0 flex items-end justify-between gap-4 sticky top-0 md:top-[57px] z-40 bg-black pt-2 pb-2 sm:pt-4">
       <div class="flex items-center gap-1">
         <button @click="handleBack" class="inline-flex items-center justify-center p-1 -ml-1 text-zinc-500 hover:text-white transition-all flex-shrink-0 cursor-pointer">
           <ChevronLeft class="w-6 h-6" />

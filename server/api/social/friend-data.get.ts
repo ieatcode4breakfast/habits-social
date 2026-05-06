@@ -11,7 +11,7 @@ export default defineEventHandler(async (event) => {
     SELECT * FROM habits 
     WHERE ownerid = ${fId}
     AND ${String(userId)} = ANY(sharedwith)
-    ORDER BY "sortOrder" ASC
+    ORDER BY "sortOrder" ASC, "createdAt" DESC
   `;
 
   if (habits.length === 0) {

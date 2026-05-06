@@ -30,7 +30,7 @@ export default defineEventHandler(async (event) => {
           WHERE b.ownerid = ${userId} 
             AND b.updatedat >= to_timestamp(${lastSynced} / 1000.0)
             AND NOT EXISTS (SELECT 1 FROM shared_bucket_members sbm WHERE sbm.bucket_id = b.id)
-          ORDER BY b."sortOrder" ASC, b."createdAt" ASC
+          ORDER BY b."sortOrder" ASC, b."createdAt" DESC
         `;
         
         // Shared buckets the user owns or participates in
@@ -40,7 +40,7 @@ export default defineEventHandler(async (event) => {
           WHERE sbm.user_id = ${userId}
             AND sbm.status = 'accepted'
             AND b.updatedat >= to_timestamp(${lastSynced} / 1000.0)
-          ORDER BY b."sortOrder" ASC, b."createdAt" ASC
+          ORDER BY b."sortOrder" ASC, b."createdAt" DESC
         `;
         userBuckets = [...personalBuckets, ...sharedBuckets];
       } else {
@@ -49,7 +49,7 @@ export default defineEventHandler(async (event) => {
           SELECT b.* FROM buckets b
           WHERE b.ownerid = ${userId} 
             AND NOT EXISTS (SELECT 1 FROM shared_bucket_members sbm WHERE sbm.bucket_id = b.id)
-          ORDER BY b."sortOrder" ASC, b."createdAt" ASC
+          ORDER BY b."sortOrder" ASC, b."createdAt" DESC
         `;
         
         // Shared buckets
@@ -58,7 +58,7 @@ export default defineEventHandler(async (event) => {
           JOIN shared_bucket_members sbm ON b.id = sbm.bucket_id
           WHERE sbm.user_id = ${userId}
             AND sbm.status = 'accepted'
-          ORDER BY b."sortOrder" ASC, b."createdAt" ASC
+          ORDER BY b."sortOrder" ASC, b."createdAt" DESC
         `;
         userBuckets = [...personalBuckets, ...sharedBuckets];
       }
@@ -120,8 +120,7 @@ export default defineEventHandler(async (event) => {
     try {
       const body = await readBody(event);
       
-      const countResult = await sql`SELECT COUNT(*) FROM buckets WHERE ownerid = ${userId}`;
-      const nextSortOrder = parseInt(countResult[0]?.count) || 0;
+      const nextSortOrder = 0;
 
       if (nextSortOrder >= 30) {
         throw createError({ statusCode: 400, statusMessage: 'Bucket limit of 30 reached' });

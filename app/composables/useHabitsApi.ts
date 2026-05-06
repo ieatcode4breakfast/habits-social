@@ -23,6 +23,7 @@ export interface Habit {
   color: string;
   sharedwith: string[];
   sortOrder?: number;
+  createdAt?: string;
   currentStreak?: number;
   longestStreak?: number;
   streakAnchorDate?: string | null;
@@ -48,6 +49,7 @@ export interface Bucket {
   color: string;
   habitIds: string[];
   sortOrder?: number;
+  createdAt?: string;
   currentStreak?: number;
   longestStreak?: number;
   streakAnchorDate?: string | null;
@@ -100,7 +102,13 @@ export const useHabitsApi = () => {
   // --- Habits ---
   const getHabits = async () => {
     const habits = await db.habits.where('ownerid').equals(getOwnerId()).toArray();
-    return habits.sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
+    return habits.sort((a, b) => {
+      const orderDiff = (a.sortOrder || 0) - (b.sortOrder || 0);
+      if (orderDiff !== 0) return orderDiff;
+      const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+      const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+      return dateB - dateA;
+    });
   };
 
   const createHabit = async (data: Partial<Habit>) => {
@@ -109,6 +117,8 @@ export const useHabitsApi = () => {
       id: data.id || generateId(),
       ownerid: getOwnerId(),
       synced: 0,
+      sortOrder: data.sortOrder ?? 0,
+      createdAt: data.createdAt || new Date().toISOString(),
       updatedAt: Date.now()
     });
     await db.habits.put(newHabit);
@@ -248,7 +258,13 @@ export const useHabitsApi = () => {
   // --- Buckets ---
   const getBuckets = async () => {
     const buckets = await db.buckets.where('ownerid').equals(getOwnerId()).toArray();
-    return buckets.sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
+    return buckets.sort((a, b) => {
+      const orderDiff = (a.sortOrder || 0) - (b.sortOrder || 0);
+      if (orderDiff !== 0) return orderDiff;
+      const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+      const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+      return dateB - dateA;
+    });
   };
 
   const createBucket = async (data: Partial<Bucket>) => {
@@ -257,6 +273,8 @@ export const useHabitsApi = () => {
       id: data.id || generateId(),
       ownerid: getOwnerId(),
       synced: 0,
+      sortOrder: data.sortOrder ?? 0,
+      createdAt: data.createdAt || new Date().toISOString(),
       updatedAt: Date.now()
     });
     await db.buckets.put(newBucket);

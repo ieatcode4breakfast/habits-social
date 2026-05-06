@@ -1,7 +1,7 @@
 <template>
   <div class="relative">
     <!-- Sticky Header + Date Row -->
-    <div class="sticky top-[57px] z-40">
+    <div class="sticky top-0 md:top-[57px] z-40">
     <div class="px-4 sm:px-0 flex items-end justify-between gap-4 bg-black pt-2 pb-2 sm:pt-4">
       <div class="flex items-center gap-4">
         <UserAvatar 
@@ -762,7 +762,7 @@ const addHabit = async () => {
       color: '#6366f1',
       user_date: format(new Date(), 'yyyy-MM-dd')
     });
-    habits.value.push(habit);
+    habits.value.unshift(habit);
     newTitle.value = '';
     newDescription.value = '';
     newSkipsCount.value = 2;

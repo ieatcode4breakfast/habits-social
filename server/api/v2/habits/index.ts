@@ -24,13 +24,13 @@ export default defineEventHandler(async (event) => {
         SELECT * FROM habits 
         WHERE ownerid = ${userId} 
           AND updatedat >= to_timestamp(${lastSynced} / 1000.0)
-        ORDER BY "sortOrder" ASC, "createdAt" ASC
+        ORDER BY "sortOrder" ASC, "createdAt" DESC
       `;
     } else {
       habits = await sql`
         SELECT * FROM habits 
         WHERE ownerid = ${userId} 
-        ORDER BY "sortOrder" ASC, "createdAt" ASC
+        ORDER BY "sortOrder" ASC, "createdAt" DESC
       `;
     }
     return { data: habits.map(normalizeHabit) };
@@ -44,8 +44,7 @@ export default defineEventHandler(async (event) => {
     }
 
     const data = validation.data;
-    const countResult = await sql`SELECT COUNT(*) FROM habits WHERE ownerid = ${userId}`;
-    const nextSortOrder = data.sortOrder !== undefined ? data.sortOrder : (parseInt(countResult[0]?.count) || 0);
+    const nextSortOrder = data.sortOrder !== undefined ? data.sortOrder : 0;
 
     if (nextSortOrder >= 30) {
       throw createError({ statusCode: 400, statusMessage: 'Habit limit of 30 reached' });

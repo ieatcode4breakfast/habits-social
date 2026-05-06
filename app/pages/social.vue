@@ -83,7 +83,7 @@
                 </div>
                 <div class="flex items-center gap-2 mt-1">
 
-                  <span class="text-[10px] font-bold uppercase tracking-wider text-zinc-500 break-words">
+                  <span class="text-[10px] font-bold uppercase tracking-wider text-zinc-500 truncate block">
                     {{ item.habit.title }}
                   </span>
                 </div>
