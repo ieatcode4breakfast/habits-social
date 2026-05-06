@@ -44,13 +44,13 @@ describe('User Validation Schemas', () => {
       expect(result.success).toBe(false);
     });
 
-    it('should reject invalid photourl', () => {
-      const result = registerSchema.safeParse({ ...validData, photourl: 'not-a-url' });
+    it('should reject invalid photoUrl', () => {
+      const result = registerSchema.safeParse({ ...validData, photoUrl: 'not-a-url' });
       expect(result.success).toBe(false);
     });
 
-    it('should accept valid photourl', () => {
-      const result = registerSchema.safeParse({ ...validData, photourl: 'https://example.com/pic.jpg' });
+    it('should accept valid photoUrl', () => {
+      const result = registerSchema.safeParse({ ...validData, photoUrl: 'https://example.com/pic.jpg' });
       expect(result.success).toBe(true);
     });
   });
@@ -76,13 +76,13 @@ describe('User Validation Schemas', () => {
       expect(result.success).toBe(false);
     });
 
-    it('should allow clearing photourl with empty string', () => {
-      const result = updateProfileSchema.safeParse({ photourl: '' });
+    it('should allow clearing photoUrl with empty string', () => {
+      const result = updateProfileSchema.safeParse({ photoUrl: '' });
       expect(result.success).toBe(true);
     });
 
-    it('should allow clearing photourl with null', () => {
-      const result = updateProfileSchema.safeParse({ photourl: null });
+    it('should allow clearing photoUrl with null', () => {
+      const result = updateProfileSchema.safeParse({ photoUrl: null });
       expect(result.success).toBe(true);
     });
   });

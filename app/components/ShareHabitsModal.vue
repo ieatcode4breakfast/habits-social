@@ -140,7 +140,7 @@ const executeBatchShare = async () => {
       body: { 
         targetUserId: props.targetUser.id, 
         habitIds: selectedHabitIds.value,
-        user_date: format(new Date(), 'yyyy-MM-dd')
+        userDate: format(new Date(), 'yyyy-MM-dd')
       } 
     });
     emit('shared');

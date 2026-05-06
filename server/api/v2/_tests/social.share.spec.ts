@@ -34,7 +34,7 @@ describe('POST /api/v2/social/share-habits', () => {
 
   it('should allow sharing once an accepted friendship exists', async () => {
     const fs = await createFriendship(userA.id, userB.id, 'accepted');
-    friendshipId = fs.id;
+    friendshipId = fs!.id;
 
     const event = createMockEvent(userA.id, {
       targetUserId: userB.id,

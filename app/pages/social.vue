@@ -122,7 +122,7 @@
           <div v-for="req in pendingIncoming" :key="req.id" class="flex items-center justify-between bg-transparent border-none p-4 hover:bg-white/5 transition-colors rounded-none md:rounded-xl">
             <NuxtLink :to="`/friends/${req.initiatorId}?from=${activeTab}`" class="flex items-center gap-3 hover:opacity-80 transition-opacity">
               <UserAvatar 
-                :src="profilesMap[req.initiatorId]?.photourl" 
+                :src="profilesMap[req.initiatorId]?.photoUrl" 
                 container-class="w-10 h-10 bg-zinc-950"
                 icon-class="w-5 h-5 text-zinc-600"
               />
@@ -156,7 +156,7 @@
           <div v-for="res in searchResults" :key="res.id" class="flex items-center justify-between bg-transparent border-none p-4 hover:bg-white/5 transition-colors rounded-none md:rounded-xl">
             <NuxtLink :to="`/friends/${res.id}?from=${activeTab}`" class="flex items-center gap-3 hover:opacity-80 transition-opacity">
               <UserAvatar 
-                :src="res.photourl" 
+                :src="res.photoUrl" 
                 container-class="w-10 h-10 bg-zinc-950"
                 icon-class="w-5 h-5 text-zinc-600"
               />
@@ -198,7 +198,7 @@
             class="flex items-center gap-4 p-4 bg-transparent border-none transition-all group cursor-pointer hover:bg-white/5 rounded-none md:rounded-xl"
           >
             <UserAvatar 
-              :src="profilesMap[getFriendId(f)]?.photourl" 
+              :src="profilesMap[getFriendId(f)]?.photoUrl" 
               container-class="w-12 h-12 bg-zinc-950"
               icon-class="w-6 h-6 text-zinc-600"
             />
@@ -352,7 +352,7 @@ const activeTab = computed({
   set: (val) => navigateTo({ query: { ...route.query, tab: val } } as any, { replace: true })
 });
 
-interface UserProfile { id: string; email: string; username: string; photourl?: string; }
+interface UserProfile { id: string; email: string; username: string; photoUrl?: string; }
 interface Friendship { 
   id: string; 
   participants: string[]; 
@@ -432,7 +432,7 @@ const isFutureDay = (day: Date) => isAfter(startOfDay(day), startOfDay(new Date(
 
 const getStatus = (habitId: string, day: Date) => {
   const dateStr = format(day, 'yyyy-MM-dd');
-  return selectedHabitLogs.value.find(l => l.habitid === habitId && l.date === dateStr)?.status;
+  return selectedHabitLogs.value.find(l => l.habitId === habitId && l.date === dateStr)?.status;
 };
 
 const isFaded = (habit: any) => {
@@ -769,7 +769,7 @@ const executeBatchShare = async () => {
     body: { 
       targetUserId: userBeingSharedWith.value.id, 
       habitIds: selectedHabitIds.value,
-      user_date: format(new Date(), 'yyyy-MM-dd')
+      userDate: format(new Date(), 'yyyy-MM-dd')
     } 
   });
   showShareModal.value = false;

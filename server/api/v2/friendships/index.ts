@@ -13,18 +13,18 @@ export default defineEventHandler(async (event) => {
     setResponseHeader(event, 'Cache-Control', 'no-cache, no-store, must-revalidate');
 
     const userFriendships = await sql`
-      SELECT id, "initiatorId", "receiverId", status, "initiatorFavorite", "receiverFavorite", "createdAt", "updatedAt" FROM friendships 
-      WHERE "initiatorId" = ${userId} OR "receiverId" = ${userId}
+      SELECT id, initiator_id, receiver_id, status, initiator_favorite, receiver_favorite, created_at, updated_at FROM friendships 
+      WHERE initiator_id = ${userId} OR receiver_id = ${userId}
     `;
 
-    const friendIds = userFriendships.map((f: any) =>
-      String(f.initiatorId) === String(userId) ? f.receiverId : f.initiatorId
+    const friendIds = (userFriendships as any[]).map((f: any) =>
+      String(f.initiator_id) === String(userId) ? f.receiver_id : f.initiator_id
     );
 
     let profiles: any[] = [];
     if (friendIds.length > 0) {
       profiles = await sql`
-        SELECT id, email, username, photourl FROM users 
+        SELECT id, username, photo_url FROM users 
         WHERE id = ANY(${friendIds}::uuid[])
       `;
     }
@@ -53,24 +53,24 @@ export default defineEventHandler(async (event) => {
 
     const existing = await sql`
       SELECT 1 FROM friendships 
-      WHERE ("initiatorId" = ${userId} AND "receiverId" = ${targetUserId})
-         OR ("initiatorId" = ${targetUserId} AND "receiverId" = ${userId})
+      WHERE (initiator_id = ${userId} AND receiver_id = ${targetUserId})
+         OR (initiator_id = ${targetUserId} AND receiver_id = ${userId})
     `;
 
-    if (existing.length > 0) {
+    if ((existing as any[]).length > 0) {
       throw createError({ statusCode: 409, statusMessage: 'Friendship already exists' });
     }
 
     const result = await sql`
-      INSERT INTO friendships ("initiatorId", "receiverId", status, "createdAt", "updatedAt")
+      INSERT INTO friendships (initiator_id, receiver_id, status, created_at, updated_at)
       VALUES (${userId}, ${targetUserId}, 'pending', NOW(), NOW())
-      RETURNING id, "initiatorId", "receiverId", status, "initiatorFavorite", "receiverFavorite", "createdAt", "updatedAt"
+      RETURNING id, initiator_id, receiver_id, status, initiator_favorite, receiver_favorite, created_at, updated_at
     `;
 
-    if (!result[0]) {
+    if (!(result as any[])[0]) {
       throw createError({ statusCode: 500, statusMessage: 'Failed to create friendship' });
     }
 
-    return { data: result[0] };
+    return { data: (result as any[])[0] };
   }
 });

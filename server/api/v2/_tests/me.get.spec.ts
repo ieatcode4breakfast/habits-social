@@ -27,7 +27,7 @@ describe('GET /api/v2/users/me', () => {
     expect(response.data!.id).toBe(testUser.id);
     expect(response.data!.username).toBe(testUser.username);
     expect(response.data!.email).toBe(testUser.email);
-    expect(response.data!).toHaveProperty('photourl');
+    expect(response.data!).toHaveProperty('photoUrl');
     expect(response.data!).toHaveProperty('createdAt');
   });
 

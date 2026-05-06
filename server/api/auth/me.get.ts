@@ -1,4 +1,4 @@
-import type { IUser } from '../../models';
+import { normalizeUser } from '../v2/_utils/normalize';
 
 export default defineEventHandler(async (event) => {
   const sql = useDB(event);
@@ -9,18 +9,13 @@ export default defineEventHandler(async (event) => {
   }
 
   const users = await sql`SELECT * FROM users WHERE id = ${userId}::uuid`;
-  const user = users[0] as IUser | undefined;
+  const user = (users as any[])[0];
 
   if (!user) {
     throw createError({ statusCode: 404, statusMessage: 'User not found' });
   }
 
   return { 
-    user: {
-      id: user.id,
-      email: user.email,
-      username: user.username,
-      photourl: user.photourl
-    } 
+    user: normalizeUser(user)
   };
 });

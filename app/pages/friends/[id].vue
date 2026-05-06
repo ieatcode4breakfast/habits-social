@@ -8,7 +8,7 @@
         </button>
         <div v-if="profile" class="flex items-center gap-4 ml-1">
           <UserAvatar 
-            :src="profile.photourl" 
+            :src="profile.photoUrl" 
             container-class="w-12 h-12 bg-zinc-925 rounded-2xl shadow-sm"
             icon-class="w-6 h-6 text-zinc-600"
           />
@@ -270,7 +270,7 @@ const openShareModal = async () => {
   myHabits.value = habitsData;
   // Pre-select habits already shared with this friend
   selectedHabitIds.value = habitsData
-    .filter((h: any) => h.sharedwith?.includes(friendId))
+    .filter((h: any) => h.sharedWith?.includes(friendId))
     .map((h: any) => h.id);
   
   shareModalTitle.value = 'Share Habits';
@@ -412,13 +412,13 @@ const getFrequencyText = (habit: Habit) => {
   let skipped = 0;
   if (period === 'weekly') {
     skipped = logs.value.filter(l => 
-      l.habitid === habit.id && 
+      l.habitId === habit.id && 
       l.status === 'skipped' && 
       isSameWeek(new Date(l.date), now, { weekStartsOn: 0 })
     ).length;
   } else if (period === 'monthly') {
     skipped = logs.value.filter(l => 
-      l.habitid === habit.id && 
+      l.habitId === habit.id && 
       l.status === 'skipped' && 
       isSameMonth(new Date(l.date), now)
     ).length;
@@ -440,7 +440,7 @@ const openHabitDetails = (habit: Habit) => {
 
 const getStatus = (habitId: string, day: Date) => {
   const dateStr = format(day, 'yyyy-MM-dd');
-  return logs.value.find(l => l.habitid === habitId && l.date === dateStr)?.status;
+  return logs.value.find(l => l.habitId === habitId && l.date === dateStr)?.status;
 };
 
 const load = async () => {
@@ -472,7 +472,7 @@ const load = async () => {
 
 const isCompleted = (habitId: string, day: Date) => {
   const dateStr = format(day, 'yyyy-MM-dd');
-  return logs.value.some(l => l.habitid === habitId && l.date === dateStr && l.status === 'completed');
+  return logs.value.some(l => l.habitId === habitId && l.date === dateStr && l.status === 'completed');
 };
 
 // --- Dynamic Log Fetching ---

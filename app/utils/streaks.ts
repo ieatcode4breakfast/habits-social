@@ -13,8 +13,8 @@ export const recalculateLocalHabitStreak = async (habitId: string, ownerId: stri
 
   if (fromDate) {
     const prevLogs = await db.habitLogs
-      .where('ownerid').equals(ownerId)
-      .filter(l => l.habitid === habitId && l.date < fromDate)
+      .where('ownerId').equals(ownerId)
+      .filter(l => l.habitId === habitId && l.date < fromDate)
       .toArray();
 
     if (prevLogs.length > 0) {
@@ -27,8 +27,8 @@ export const recalculateLocalHabitStreak = async (habitId: string, ownerId: stri
   }
 
   const logs = await db.habitLogs
-    .where('ownerid').equals(ownerId)
-    .filter(l => l.habitid === habitId && (!queryStartDate || l.date >= queryStartDate))
+    .where('ownerId').equals(ownerId)
+    .filter(l => l.habitId === habitId && (!queryStartDate || l.date >= queryStartDate))
     .toArray();
     
   logs.sort((a, b) => a.date.localeCompare(b.date));
@@ -125,8 +125,8 @@ export const recalculateLocalBucketStreak = async (bucketId: string, ownerId: st
 
   if (fromDate) {
     const prevLogs = await db.bucketLogs
-      .where('ownerid').equals(ownerId)
-      .filter(l => l.bucketid === bucketId && l.date < fromDate)
+      .where('ownerId').equals(ownerId)
+      .filter(l => l.bucketId === bucketId && l.date < fromDate)
       .toArray();
 
     if (prevLogs.length > 0) {
@@ -138,8 +138,8 @@ export const recalculateLocalBucketStreak = async (bucketId: string, ownerId: st
   }
 
   const logs = await db.bucketLogs
-    .where('ownerid').equals(ownerId)
-    .filter(l => l.bucketid === bucketId && (!queryStartDate || l.date >= queryStartDate))
+    .where('ownerId').equals(ownerId)
+    .filter(l => l.bucketId === bucketId && (!queryStartDate || l.date >= queryStartDate))
     .toArray();
     
   logs.sort((a, b) => a.date.localeCompare(b.date));

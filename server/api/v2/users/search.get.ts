@@ -13,7 +13,7 @@ export default defineEventHandler(async (event) => {
   const sanitizedUsername = username.slice(0, 100);
 
   const results = await sql`
-    SELECT id, username, photourl FROM users 
+    SELECT id, username, photo_url FROM users 
     WHERE username ILIKE ${'%' + sanitizedUsername + '%'} 
       AND id != ${userId}::uuid
     LIMIT 25

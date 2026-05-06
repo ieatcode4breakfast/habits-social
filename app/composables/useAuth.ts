@@ -1,5 +1,5 @@
 export const useAuth = () => {
-  const user = useState<{ id: string; email: string; username: string; photourl?: string } | null>('auth-user', () => null);
+  const user = useState<{ id: string; email: string; username: string; photoUrl?: string } | null>('auth-user', () => null);
 
   const fetchUser = async () => {
     try {

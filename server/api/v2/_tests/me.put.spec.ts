@@ -56,27 +56,27 @@ describe('PUT /api/v2/users/me', () => {
   it('should validate reachable avatar URLs', async () => {
     // DiceBear URL is reachable
     const dicebearUrl = 'https://api.dicebear.com/9.x/avataaars/svg?seed=test';
-    const event = createMockEvent(testUser.id, { photourl: dicebearUrl });
+    const event = createMockEvent(testUser.id, { photoUrl: dicebearUrl });
     event.context.userId = testUser.id;
 
     const response = (await handler(event)) as any;
-    expect(response.data!.photourl).toBe(dicebearUrl);
+    expect(response.data!.photoUrl).toBe(dicebearUrl);
   });
 
   it('should reject invalid avatar URL formats', async () => {
     const invalidUrl = 'not-a-valid-url';
-    const event = createMockEvent(testUser.id, { photourl: invalidUrl });
+    const event = createMockEvent(testUser.id, { photoUrl: invalidUrl });
     event.context.userId = testUser.id;
 
     await expect(handler(event)).rejects.toThrow(/Invalid URL/i);
   });
 
   it('should allow clearing avatar with empty string', async () => {
-    const event = createMockEvent(testUser.id, { photourl: '' });
+    const event = createMockEvent(testUser.id, { photoUrl: '' });
     event.context.userId = testUser.id;
 
     const response = (await handler(event)) as any;
-    expect(response.data!.photourl).toBe('');
+    expect(response.data!.photoUrl).toBe('');
   });
 
   it('should reject empty update body', async () => {

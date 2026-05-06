@@ -955,7 +955,7 @@ const setLogStatus = async (habit: Habit, day: Date, status: any) => {
       await api.deleteLog(habit.id, dateStr);
     } else {
       await api.upsertLog({
-        habitid: habit.id,
+        habitId: habit.id,
         date: dateStr,
         status
       });
@@ -983,12 +983,12 @@ const isMarkable = (day: Date) => {
 
 const getBucketStatus = (bucketId: string, day: Date) => {
   const dateStr = format(day, 'yyyy-MM-dd');
-  return bucketLogs.value.find(l => l.bucketid === bucketId && l.date === dateStr)?.status;
+  return bucketLogs.value.find(l => l.bucketId === bucketId && l.date === dateStr)?.status;
 };
 
 const getHabitStatus = (habitId: string, day: Date) => {
   const dateStr = format(day, 'yyyy-MM-dd');
-  return habitLogs.value.find(l => l.habitid === habitId && l.date === dateStr)?.status;
+  return habitLogs.value.find(l => l.habitId === habitId && l.date === dateStr)?.status;
 };
 
 const autoExpand = (e: Event | HTMLElement) => {
@@ -1025,7 +1025,7 @@ const isFaded = (item: Bucket | Habit) => {
 
 const getStatus = (bucketId: string, day: Date): 'completed' | 'failed' | 'skipped' | 'vacation' | 'cleared' | null => {
   const dateStr = format(day, 'yyyy-MM-dd');
-  const log = bucketLogs.value.find(l => l.bucketid === bucketId && l.date === dateStr);
+  const log = bucketLogs.value.find(l => l.bucketId === bucketId && l.date === dateStr);
   return (log?.status as any) || null;
 };
 

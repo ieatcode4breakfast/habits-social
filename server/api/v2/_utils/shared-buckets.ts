@@ -14,19 +14,19 @@ export async function markBucketHabitsRemoved(sql: any, habitIds: string[], targ
     FROM buckets b
     WHERE bh.bucket_id = b.id
       AND bh.habit_id = ANY(${habitIds}::uuid[])
-      AND b.ownerid = ANY(${targetUserIds}::uuid[])
+      AND b.owner_id = ANY(${targetUserIds}::uuid[])
       AND bh.approval_status != 'removed'
-    RETURNING bh.bucket_id, b.ownerid
+    RETURNING bh.bucket_id, b.owner_id
   `;
 
   if (affected.length === 0) return;
 
   // Get unique bucket/owner pairs
   const uniqueBuckets = Array.from(
-    new Map(affected.map((a: any) => [`${a.bucket_id}-${a.ownerid}`, a])).values()
-  ) as { bucket_id: string; ownerid: string }[];
+    new Map(affected.map((a: any) => [`${a.bucket_id}-${a.owner_id}`, a])).values()
+  ) as { bucket_id: string; owner_id: string }[];
 
-  for (const { bucket_id, ownerid } of uniqueBuckets) {
-    await reevaluateBucketLogs(sql, bucket_id, ownerid);
+  for (const { bucket_id, owner_id } of uniqueBuckets) {
+    await reevaluateBucketLogs(sql, bucket_id, owner_id);
   }
 }

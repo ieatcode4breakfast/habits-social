@@ -1,7 +1,7 @@
 import { useDB as _useDB } from '../_utils/db';
 import { requireAuth as _requireAuth } from '../_utils/auth';
 import { hash } from 'bcrypt-ts';
-import type { IUser } from '../_types';
+import { normalizeUser } from '../_utils/normalize';
 import { updateProfileSchema, throwZodError } from '../_utils/validation';
 
 export default defineEventHandler(async (event) => {
@@ -19,27 +19,27 @@ export default defineEventHandler(async (event) => {
     return throwZodError(validation.error);
   }
 
-  const { username, email, password, photourl } = validation.data;
+  const { username, email, password, photoUrl } = validation.data;
 
 
   // 2. Fetch current user
-  const users = await sql`SELECT id, email, username, photourl, "passwordHash", "emailVerifiedAt" FROM users WHERE id = ${userId}::uuid`;
-  if (users.length === 0) {
+  const users = await sql`SELECT id, email, username, photo_url, password_hash, email_verified_at FROM users WHERE id = ${userId}::uuid`;
+  if ((users as any[]).length === 0) {
     throw createError({ statusCode: 404, statusMessage: 'User not found' });
   }
-  const user = users[0] as IUser;
+  const user = (users as any[])[0];
 
   // 3. Unique constraints checks
   if (username && username !== user.username) {
     const existingUsername = await sql`SELECT 1 FROM users WHERE username ILIKE ${username} AND id != ${userId}::uuid`;
-    if (existingUsername.length > 0) {
+    if ((existingUsername as any[]).length > 0) {
       throw createError({ statusCode: 409, statusMessage: 'This username is already taken' });
     }
   }
 
   if (email && email !== user.email) {
     const existingEmail = await sql`SELECT 1 FROM users WHERE email ILIKE ${email} AND id != ${userId}::uuid`;
-    if (existingEmail.length > 0) {
+    if ((existingEmail as any[]).length > 0) {
       throw createError({ statusCode: 409, statusMessage: 'An account with this email already exists' });
     }
   }
@@ -47,9 +47,9 @@ export default defineEventHandler(async (event) => {
   // 4. Prepare update values
   const newUsername = username !== undefined ? username : user.username;
   const newEmail = email !== undefined ? email : user.email;
-  const newPhotourl = photourl !== undefined ? photourl : user.photourl;
-  const newEmailVerifiedAt = (email !== undefined && email !== user.email) ? null : user.emailVerifiedAt;
-  let newPasswordHash = user.passwordHash;
+  const newPhotoUrl = photoUrl !== undefined ? photoUrl : user.photo_url;
+  const newEmailVerifiedAt = (email !== undefined && email !== user.email) ? null : user.email_verified_at;
+  let newPasswordHash = user.password_hash;
   
   if (password) {
     newPasswordHash = await hash(password, 10);
@@ -61,13 +61,13 @@ export default defineEventHandler(async (event) => {
     SET 
       username = ${newUsername}, 
       email = ${newEmail}, 
-      photourl = ${newPhotourl}, 
-      "passwordHash" = ${newPasswordHash},
-      "emailVerifiedAt" = ${newEmailVerifiedAt},
-      "updatedAt" = NOW()
+      photo_url = ${newPhotoUrl}, 
+      password_hash = ${newPasswordHash},
+      email_verified_at = ${newEmailVerifiedAt},
+      updated_at = NOW()
     WHERE id = ${userId}::uuid
-    RETURNING id, email, username, photourl, "emailVerifiedAt", "createdAt", "updatedAt"
+    RETURNING id, email, username, photo_url, email_verified_at, created_at, updated_at
   `;
 
-  return { data: result[0] };
+  return { data: normalizeUser((result as any[])[0]) };
 });

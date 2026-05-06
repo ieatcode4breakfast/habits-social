@@ -236,7 +236,7 @@
                   <label v-for="friend in sortedFriendsForEdit" :key="friend.id" class="flex items-center justify-between p-3 bg-black border border-zinc-925 rounded-xl transition-colors" :class="isEditingSharing ? 'cursor-pointer hover:border-zinc-800' : 'cursor-default pointer-events-none'">
                     <div class="flex items-center gap-3">
                       <UserAvatar 
-                        :src="friend.photourl" 
+                        :src="friend.photoUrl" 
                         container-class="w-8 h-8 bg-zinc-925"
                         icon-class="w-4 h-4 text-zinc-600"
                       />
@@ -421,8 +421,8 @@ watch(() => props.modelValue, (isOpen) => {
     editDescription.value = newHabit.description || '';
     editSkipsCount.value = newHabit.skipsCount ?? 2;
     editSkipsPeriod.value = newHabit.skipsPeriod as any || 'weekly';
-    editSharedWith.value = [...(newHabit.sharedwith || [])];
-    editSharedWithWorking.value = [...(newHabit.sharedwith || [])];
+    editSharedWith.value = [...(newHabit.sharedWith || [])];
+    editSharedWithWorking.value = [...(newHabit.sharedWith || [])];
     isEditingSharing.value = false;
     currentCalendarDate.value = new Date();
     
@@ -488,7 +488,7 @@ watch(currentCalendarDate, async (newDate) => {
 const getStatus = (day: Date) => {
   if (!props.habit) return undefined;
   const dateStr = format(day, 'yyyy-MM-dd');
-  return props.logs.find(l => l.habitid === props.habit?.id && l.date === dateStr)?.status;
+  return props.logs.find(l => l.habitId === props.habit?.id && l.date === dateStr)?.status;
 };
 
 const openLogMenu = (day: Date, event: MouseEvent) => {
@@ -556,8 +556,8 @@ const updateHabit = async () => {
       description: editDescription.value.trim(),
       skipsCount: editSkipsCount.value,
       skipsPeriod: editSkipsPeriod.value,
-      sharedwith: editSharedWith.value,
-      user_date: format(new Date(), 'yyyy-MM-dd'),
+      sharedWith: editSharedWith.value,
+      userDate: format(new Date(), 'yyyy-MM-dd'),
     });
     emit('habit-updated', { habit: updated });
   } catch (error) {

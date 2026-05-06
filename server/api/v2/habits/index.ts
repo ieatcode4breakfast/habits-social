@@ -21,19 +21,19 @@ export default defineEventHandler(async (event) => {
         throw createError({ statusCode: 400, statusMessage: 'Invalid lastSynced parameter' });
       }
       habits = await sql`
-        SELECT id, ownerid, title, description, "skipsCount", "skipsPeriod", color, sharedwith, "sortOrder", "currentStreak", "longestStreak", "streakAnchorDate", user_date, "createdAt", updatedat FROM habits 
-        WHERE ownerid = ${userId} 
-          AND updatedat >= to_timestamp(${lastSynced} / 1000.0)
-        ORDER BY "sortOrder" ASC, "createdAt" DESC
+        SELECT id, owner_id, title, description, skips_count, skips_period, color, shared_with, sort_order, current_streak, longest_streak, streak_anchor_date, user_date, created_at, updated_at FROM habits 
+        WHERE owner_id = ${userId} 
+          AND updated_at >= to_timestamp(${lastSynced} / 1000.0)
+        ORDER BY sort_order ASC, created_at DESC
       `;
     } else {
       habits = await sql`
-        SELECT id, ownerid, title, description, "skipsCount", "skipsPeriod", color, sharedwith, "sortOrder", "currentStreak", "longestStreak", "streakAnchorDate", user_date, "createdAt", updatedat FROM habits 
-        WHERE ownerid = ${userId} 
-        ORDER BY "sortOrder" ASC, "createdAt" DESC
+        SELECT id, owner_id, title, description, skips_count, skips_period, color, shared_with, sort_order, current_streak, longest_streak, streak_anchor_date, user_date, created_at, updated_at FROM habits 
+        WHERE owner_id = ${userId} 
+        ORDER BY sort_order ASC, created_at DESC
       `;
     }
-    return { data: habits.map(normalizeHabit) };
+    return { data: (habits as any[]).map(normalizeHabit) };
   }
 
   if (event.method === 'POST') {
@@ -61,26 +61,26 @@ export default defineEventHandler(async (event) => {
     }
 
     const result = await sql`
-      INSERT INTO habits (id, ownerid, title, description, "skipsCount", "skipsPeriod", color, sharedwith, "sortOrder", user_date, "createdAt", updatedat)
-      VALUES (COALESCE(${data.id}::uuid, gen_random_uuid()), ${userId}, ${data.title}, ${data.description}, ${skipsCount}, ${skipsPeriod}, ${data.color}, ${data.sharedwith}, ${nextSortOrder}, ${data.user_date || null}, NOW(), NOW())
+      INSERT INTO habits (id, owner_id, title, description, skips_count, skips_period, color, shared_with, sort_order, user_date, created_at, updated_at)
+      VALUES (COALESCE(${data.id}::uuid, gen_random_uuid()), ${userId}, ${data.title}, ${data.description}, ${skipsCount}, ${skipsPeriod}, ${data.color}, ${data.sharedWith}, ${nextSortOrder}, ${data.userDate || null}, NOW(), NOW())
       ON CONFLICT (id) DO UPDATE SET
         title = EXCLUDED.title,
         description = EXCLUDED.description,
-        "skipsCount" = EXCLUDED."skipsCount",
-        "skipsPeriod" = EXCLUDED."skipsPeriod",
+        skips_count = EXCLUDED.skips_count,
+        skips_period = EXCLUDED.skips_period,
         color = EXCLUDED.color,
-        sharedwith = EXCLUDED.sharedwith,
-        "sortOrder" = EXCLUDED."sortOrder",
+        shared_with = EXCLUDED.shared_with,
+        sort_order = EXCLUDED.sort_order,
         user_date = EXCLUDED.user_date,
-        updatedat = NOW()
-      WHERE habits.ownerid = EXCLUDED.ownerid
-      RETURNING id, ownerid, title, description, "skipsCount", "skipsPeriod", color, sharedwith, "sortOrder", "currentStreak", "longestStreak", "streakAnchorDate", user_date, "createdAt", updatedat
+        updated_at = NOW()
+      WHERE habits.owner_id = EXCLUDED.owner_id
+      RETURNING id, owner_id, title, description, skips_count, skips_period, color, shared_with, sort_order, current_streak, longest_streak, streak_anchor_date, user_date, created_at, updated_at
     `;
 
-    if (!result[0]) {
+    if (!(result as any[])[0]) {
       throw createError({ statusCode: 500, statusMessage: 'Failed to create habit' });
     }
 
-    return { data: normalizeHabit(result[0]) };
+    return { data: normalizeHabit((result as any[])[0]) };
   }
 });

@@ -17,11 +17,12 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: 'Bad Request' });
   }
 
-  const buckets = await sql`SELECT id, ownerid, title, description, color, "sortOrder", "currentStreak", "longestStreak", "streakAnchorDate", "createdAt", updatedat FROM buckets WHERE id = ${id}::uuid AND ownerid = ${userId}`;
-  if (buckets.length === 0) {
+  const buckets = await sql`SELECT id, owner_id, title, description, color, sort_order, current_streak, longest_streak, streak_anchor_date, created_at, updated_at FROM buckets WHERE id = ${id}::uuid AND owner_id = ${userId}`;
+  if ((buckets as any[]).length === 0) {
     throw createError({ statusCode: 404, statusMessage: 'Not found' });
   }
-  const bucket = buckets[0];
+  const bucketRaw = (buckets as any[])[0];
+  const bucket = normalizeBucket(bucketRaw);
 
   if (event.method === 'GET') {
     const habits = await sql`
@@ -30,7 +31,7 @@ export default defineEventHandler(async (event) => {
       WHERE bucket_id = ${id}::uuid 
         AND (approval_status IS NULL OR approval_status IN ('accepted', 'pending'))
     `;
-    return { data: { ...normalizeBucket(bucket), habitIds: habits.map((h: any) => h.habit_id) } };
+    return { data: { ...bucket, habitIds: (habits as any[]).map((h: any) => h.habit_id) } };
   }
 
   if (event.method === 'PUT') {
@@ -48,61 +49,65 @@ export default defineEventHandler(async (event) => {
 
     const result = await sql`
       UPDATE buckets
-      SET title = ${title}, description = ${description}, color = ${color}, "sortOrder" = ${sortOrder}, updatedat = NOW()
+      SET title = ${title}, description = ${description}, color = ${color}, sort_order = ${sortOrder}, updated_at = NOW()
       WHERE id = ${id}::uuid
-      RETURNING id, ownerid, title, description, color, "sortOrder", "currentStreak", "longestStreak", "streakAnchorDate", "createdAt", updatedat
+      RETURNING id, owner_id, title, description, color, sort_order, current_streak, longest_streak, streak_anchor_date, created_at, updated_at
     `;
 
-    if (result.length === 0) {
+    if ((result as any[]).length === 0) {
       throw createError({ statusCode: 404, statusMessage: 'Not found after update' });
     }
 
-    const updatedBucket = result[0];
+    const updatedBucketRaw = (result as any[])[0];
+    const updatedBucket = normalizeBucket(updatedBucketRaw);
 
     if (data.habitIds !== undefined) {
       const habitIds = data.habitIds as string[];
       
-      const foreignHabitIds: any[] = [];
+      const foreignHabitRows: any[] = [];
       const ownHabitIds: string[] = [];
 
       let habitsInfo: any[] = [];
       if (habitIds.length > 0) {
-        habitsInfo = await sql`SELECT id, ownerid, sharedwith FROM habits WHERE id = ANY(${habitIds}::uuid[])`;
+        habitsInfo = await sql`SELECT id, owner_id, shared_with FROM habits WHERE id = ANY(${habitIds}::uuid[])`;
       }
 
       for (const hid of habitIds) {
-        const habit = habitsInfo.find((h: any) => h.id === hid);
-        if (habit && habit.ownerid !== userId) {
-          foreignHabitIds.push(habit);
-        } else if (habit) {
-          ownHabitIds.push(hid);
+        const hRaw = (habitsInfo as any[]).find((h: any) => h.id === hid);
+        if (hRaw) {
+          const h = normalizeHabit(hRaw);
+          if (h.ownerId !== userId) {
+            foreignHabitRows.push(h);
+          } else {
+            ownHabitIds.push(hid);
+          }
         }
       }
 
       const validForeignHabits = [];
       const uniqueForeignOwners = new Set<string>();
 
-      if (foreignHabitIds.length > 0) {
-        const foreignOwnerIds = [...new Set(foreignHabitIds.map(h => h.ownerid))];
+      if (foreignHabitRows.length > 0) {
+        const foreignOwnerIds = [...new Set(foreignHabitRows.map(h => h.ownerId))];
         const friendships = await sql`
-          SELECT "initiatorId", "receiverId" FROM friendships 
+          SELECT initiator_id, receiver_id FROM friendships 
           WHERE status = 'accepted'
             AND (
-              ("initiatorId" = ${userId} AND "receiverId" = ANY(${foreignOwnerIds}::uuid[]))
-              OR ("receiverId" = ${userId} AND "initiatorId" = ANY(${foreignOwnerIds}::uuid[]))
+              (initiator_id = ${userId} AND receiver_id = ANY(${foreignOwnerIds}))
+              OR (receiver_id = ${userId} AND initiator_id = ANY(${foreignOwnerIds}))
             )
         `;
 
-        for (const h of foreignHabitIds) {
-          const isFriend = friendships.some((f: any) => 
-            (String(f.initiatorId) === String(userId) && String(f.receiverId) === String(h.ownerid)) ||
-            (String(f.receiverId) === String(userId) && String(f.initiatorId) === String(h.ownerid))
+        for (const h of foreignHabitRows) {
+          const isFriend = (friendships as any[]).some((f: any) => 
+            (String(f.initiator_id) === String(userId) && String(f.receiver_id) === String(h.ownerId)) ||
+            (String(f.receiver_id) === String(userId) && String(f.initiator_id) === String(h.ownerId))
           );
-          const isSharedWithMe = h.sharedwith && h.sharedwith.includes(userId);
+          const isSharedWithMe = h.sharedWith && h.sharedWith.includes(userId);
 
           if (isFriend && isSharedWithMe) {
             validForeignHabits.push(h);
-            uniqueForeignOwners.add(h.ownerid);
+            uniqueForeignOwners.add(h.ownerId);
           }
         }
       }
@@ -150,14 +155,11 @@ export default defineEventHandler(async (event) => {
 
       // Manage shared_bucket_members - Invites
       for (const foreignOwnerId of uniqueForeignOwners) {
-        const res = await sql`
+        await sql`
           INSERT INTO shared_bucket_members (bucket_id, user_id, status)
           VALUES (${id}::uuid, ${foreignOwnerId}::uuid, 'pending')
           ON CONFLICT (bucket_id, user_id) DO NOTHING
-          RETURNING *
         `;
-        
-
       }
 
       // Manage shared_bucket_members - Evictions
@@ -165,18 +167,18 @@ export default defineEventHandler(async (event) => {
         SELECT user_id FROM shared_bucket_members WHERE bucket_id = ${id}::uuid AND user_id != ${userId}::uuid
       `;
 
-      for (const member of currentMembers) {
+      for (const member of (currentMembers as any[])) {
         const memberId = member.user_id;
         const activeHabits = await sql`
           SELECT bh.habit_id 
           FROM bucket_habits bh
           JOIN habits h ON bh.habit_id = h.id
           WHERE bh.bucket_id = ${id}::uuid 
-            AND h.ownerid = ${memberId}::uuid
+            AND h.owner_id = ${memberId}::uuid
             AND (bh.approval_status IS NULL OR bh.approval_status IN ('accepted', 'pending'))
         `;
 
-        if (activeHabits.length === 0) {
+        if ((activeHabits as any[]).length === 0) {
           await sql`
             DELETE FROM shared_bucket_members 
             WHERE bucket_id = ${id}::uuid AND user_id = ${memberId}::uuid
@@ -187,23 +189,21 @@ export default defineEventHandler(async (event) => {
       await reevaluateBucketLogs(sql, id as string, userId);
     }
 
-    const habits = await sql`
+    const habitsResult = await sql`
       SELECT habit_id 
       FROM bucket_habits 
       WHERE bucket_id = ${id}::uuid 
         AND (approval_status IS NULL OR approval_status IN ('accepted', 'pending'))
     `;
     
-    return { data: { ...normalizeBucket(updatedBucket), habitIds: habits.map((h: any) => h.habit_id) } };
+    return { data: { ...updatedBucket, habitIds: (habitsResult as any[]).map((h: any) => h.habit_id) } };
   }
 
   if (event.method === 'DELETE') {
-    const buckets = await sql`SELECT bucket_id FROM bucket_habits WHERE bucket_id = ${id}::uuid`;
-    
     await sql`DELETE FROM shared_bucket_members WHERE bucket_id = ${id}::uuid`;
     await sql`DELETE FROM bucket_habits WHERE bucket_id = ${id}::uuid`;
     await sql`DELETE FROM buckets WHERE id = ${id}::uuid`;
-    await sql`INSERT INTO sync_deletions (ownerid, entity_id, entity_type, created_at) VALUES (${userId}, ${id}::uuid, 'bucket', NOW())`;
+    await sql`INSERT INTO sync_deletions (owner_id, entity_id, entity_type, created_at) VALUES (${userId}, ${id}::uuid, 'bucket', NOW())`;
 
     return { data: { success: true } };
   }

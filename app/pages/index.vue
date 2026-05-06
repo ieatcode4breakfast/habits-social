@@ -6,7 +6,7 @@
       <div class="flex items-center gap-4">
         <UserAvatar 
           v-if="user"
-          :src="user.photourl" 
+          :src="user.photoUrl" 
           container-class="w-10 h-10 bg-zinc-925 rounded-xl shadow-sm"
           icon-class="w-6 h-6 text-zinc-600"
         />
@@ -262,7 +262,7 @@
                     <label v-for="friend in friends" :key="friend.id" class="flex items-center justify-between p-3 bg-black border border-zinc-925 rounded-xl cursor-pointer hover:border-zinc-800 transition-colors">
                       <div class="flex items-center gap-3">
                         <UserAvatar 
-                          :src="friend.photourl" 
+                          :src="friend.photoUrl" 
                           container-class="w-8 h-8 bg-zinc-925"
                           icon-class="w-4 h-4 text-zinc-600"
                         />
@@ -421,7 +421,7 @@ const friends = computed(() => {
 
 const sortedFriendsForEdit = computed(() => {
   if (!editingHabit.value) return friends.value;
-  const sharedIds = new Set(editingHabit.value.sharedwith || []);
+  const sharedIds = new Set(editingHabit.value.sharedWith || []);
   return [...friends.value].sort((a, b) => {
     const aShared = sharedIds.has(a.id);
     const bShared = sharedIds.has(b.id);
@@ -593,13 +593,13 @@ const getFrequencyText = (habit: Habit) => {
   let skipped = 0;
   if (period === 'weekly') {
     skipped = logs.value.filter(l => 
-      l.habitid === habit.id && 
+      l.habitId === habit.id && 
       l.status === 'skipped' && 
       isSameWeek(new Date(l.date), now, { weekStartsOn: 0 })
     ).length;
   } else if (period === 'monthly') {
     skipped = logs.value.filter(l => 
-      l.habitid === habit.id && 
+      l.habitId === habit.id && 
       l.status === 'skipped' && 
       isSameMonth(new Date(l.date), now)
     ).length;
@@ -636,7 +636,7 @@ const load = async (silent = false) => {
 
 const getStatus = (habitId: string, day: Date) => {
   const dateStr = format(day, 'yyyy-MM-dd');
-  return logs.value.find(l => l.habitid === habitId && l.date === dateStr)?.status;
+  return logs.value.find(l => l.habitId === habitId && l.date === dateStr)?.status;
 };
 
 const activeLogMenu = ref<{ habitId: string, date: Date } | null>(null);
@@ -682,11 +682,11 @@ const setLogStatus = async (habit: Habit, day: Date, nextStatus: 'completed' | '
     } else {
       logs.value.push({
         id: `temp-${Date.now()}`,
-        habitid: habit.id,
-        ownerid: user.value?.id || '',
+        habitId: habit.id,
+        ownerId: user.value?.id || '',
         date: dateStr,
         status: nextStatus,
-        sharedwith: habit.sharedwith || []
+        sharedWith: habit.sharedWith || []
       });
     }
     
@@ -695,7 +695,7 @@ const setLogStatus = async (habit: Habit, day: Date, nextStatus: 'completed' | '
     else if (nextStatus === 'skipped') showToast('Skipped', 'skipped');
     else if (nextStatus === 'vacation') showToast('On Vacation!', 'skipped');
   } else {
-    logs.value = logs.value.filter(l => !(l.habitid === habit.id && l.date === dateStr));
+    logs.value = logs.value.filter(l => !(l.habitId === habit.id && l.date === dateStr));
     showToast('Cleared', 'cleared');
   }
 
@@ -705,14 +705,14 @@ const setLogStatus = async (habit: Habit, day: Date, nextStatus: 'completed' | '
   try {
     if (nextStatus) {
       const { log, habit: updatedHabit } = await api.upsertLog({ 
-        habitid: habit.id, 
+        habitId: habit.id, 
         date: dateStr, 
         status: nextStatus, 
-        sharedwith: habit.sharedwith 
+        sharedWith: habit.sharedWith 
       });
       
       // Update with real server data (ensures correct IDs and recalculated streaks)
-      const idx = logs.value.findIndex(l => l.habitid === habit.id && l.date === dateStr);
+      const idx = logs.value.findIndex(l => l.habitId === habit.id && l.date === dateStr);
       if (idx >= 0) logs.value[idx] = log;
       
       const habitIdx = habits.value.findIndex(h => h.id === habit.id);
@@ -721,7 +721,7 @@ const setLogStatus = async (habit: Habit, day: Date, nextStatus: 'completed' | '
       const { log, habit: updatedHabit } = await api.deleteLog(habit.id, dateStr);
       
       // Update logs array with the 'cleared' record
-      const idx = logs.value.findIndex(l => l.habitid === habit.id && l.date === dateStr);
+      const idx = logs.value.findIndex(l => l.habitId === habit.id && l.date === dateStr);
       if (idx >= 0) logs.value[idx] = log;
       else logs.value.push(log);
 
@@ -758,9 +758,9 @@ const addHabit = async () => {
       description: newDescription.value.trim(),
       skipsCount: newSkipsCount.value,
       skipsPeriod: newSkipsPeriod.value,
-      sharedwith: newSharedWith.value,
+      sharedWith: newSharedWith.value,
       color: '#6366f1',
-      user_date: format(new Date(), 'yyyy-MM-dd')
+      userDate: format(new Date(), 'yyyy-MM-dd')
     });
     habits.value.unshift(habit);
     newTitle.value = '';
@@ -843,7 +843,7 @@ watch(() => user.value?.id, (newId) => {
         // Update specific log
         const logIdx = logs.value.findIndex(l => 
           l.id === data.log.id || 
-          (l.habitid === data.log.habitid && l.date === data.log.date)
+          (l.habitId === data.log.habitId && l.date === data.log.date)
         );
         if (logIdx >= 0) logs.value[logIdx] = data.log;
         else logs.value.push(data.log);
@@ -858,10 +858,10 @@ watch(() => user.value?.id, (newId) => {
         }
 
       } else if (eventName === 'habit-deleted') {
-        const hid = data?.habitId || data?.habitid;
+        const hid = data?.habitId;
         if (hid && data?.date) {
           // Specific log was deleted
-          logs.value = logs.value.filter(l => !(l.habitid === hid && l.date === data.date));
+          logs.value = logs.value.filter(l => !(l.habitId === hid && l.date === data.date));
           if (data.habit) {
             const habitIdx = habits.value.findIndex(h => h.id === data.habit.id);
             if (habitIdx >= 0) habits.value[habitIdx] = data.habit;
@@ -871,7 +871,7 @@ watch(() => user.value?.id, (newId) => {
         } else if (hid) {
           // Entire habit was deleted
           habits.value = habits.value.filter(h => h.id !== hid);
-          logs.value = logs.value.filter(l => l.habitid !== hid);
+          logs.value = logs.value.filter(l => l.habitId !== hid);
           // Trigger sync to purge from Dexie
           api.sync();
         } else {

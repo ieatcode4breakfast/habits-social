@@ -18,7 +18,7 @@ export default defineEventHandler(async (event) => {
   const { ids } = validation.data;
   if (ids.length > 0) {
     for (let i = 0; i < ids.length; i++) {
-      await sql`UPDATE buckets SET "sortOrder" = ${i}, updatedat = NOW() WHERE id = ${ids[i]}::uuid AND ownerid = ${userId}`;
+      await sql`UPDATE buckets SET sort_order = ${i}, updated_at = NOW() WHERE id = ${ids[i]}::uuid AND owner_id = ${userId}`;
     }
   }
 

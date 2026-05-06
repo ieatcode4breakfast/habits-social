@@ -17,8 +17,8 @@ export default defineEventHandler(async (event) => {
 
   const { identifier, password } = validation.data;
 
-  const users = await sql`SELECT id, email, username, photourl, "passwordHash" FROM users WHERE email ILIKE ${identifier} OR username ILIKE ${identifier}`;
-  const user = users[0];
+  const users = await sql`SELECT id, email, username, photo_url, password_hash FROM users WHERE email ILIKE ${identifier} OR username ILIKE ${identifier}`;
+  const user = (users as any[])[0];
 
   if (!user) {
     // Mitigate timing attack: perform a dummy comparison if user is not found
@@ -26,7 +26,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: 'Invalid username, email or password' });
   }
 
-  const isMatch = await compare(password, user.passwordHash);
+  const isMatch = await compare(password, user.password_hash);
   if (!isMatch) {
     throw createError({ statusCode: 400, statusMessage: 'Invalid username, email or password' });
   }
@@ -39,7 +39,7 @@ export default defineEventHandler(async (event) => {
       id: user.id,
       email: user.email,
       username: user.username,
-      photourl: user.photourl
+      photoUrl: user.photo_url
     }
   };
 });

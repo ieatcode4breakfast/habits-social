@@ -186,7 +186,7 @@ const isFutureDay = (day: Date) => isAfter(startOfDay(day), startOfDay(new Date(
 const getStatus = (day: Date) => {
   if (!props.habit) return undefined;
   const dateStr = format(day, 'yyyy-MM-dd');
-  return props.logs?.find((l: any) => l.habitid === props.habit.id && l.date === dateStr)?.status;
+  return props.logs?.find((l: any) => l.habitId === props.habit.id && l.date === dateStr)?.status;
 };
 
 const isFaded = (habit: any) => {

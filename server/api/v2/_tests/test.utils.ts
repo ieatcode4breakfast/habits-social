@@ -7,7 +7,7 @@ const sql = neon(process.env.DATABASE_URL!);
 export const createTestUser = async (username: string, email: string) => {
   const passwordHash = await hash('password123', 10);
   const result = await sql`
-    INSERT INTO users (username, email, "passwordHash", "createdAt")
+    INSERT INTO users (username, email, password_hash, created_at)
     VALUES (${username}, ${email}, ${passwordHash}, NOW())
     RETURNING id, username, email
   `;
@@ -45,9 +45,9 @@ export const createMockEvent = (userId: string, body: any = {}, cookies: any = {
 
 export const createTestHabit = async (ownerid: string, title: string) => {
   const result = await sql`
-    INSERT INTO habits (ownerid, title, description, "skipsCount", "skipsPeriod", color, sharedwith, "sortOrder", "createdAt", updatedat)
+    INSERT INTO habits (owner_id, title, description, skips_count, skips_period, color, shared_with, sort_order, created_at, updated_at)
     VALUES (${ownerid}, ${title}, '', 2, 'weekly', '#6366f1', '{}', 0, NOW(), NOW())
-    RETURNING id, title, ownerid
+    RETURNING id, title, owner_id
   `;
   return result[0];
 };
@@ -58,9 +58,9 @@ export const deleteTestHabit = async (habitId: string) => {
 
 export const createTestBucket = async (ownerid: string, title: string) => {
   const result = await sql`
-    INSERT INTO buckets (id, ownerid, title, description, color, "sortOrder", "createdAt", updatedat)
+    INSERT INTO buckets (id, owner_id, title, description, color, sort_order, created_at, updated_at)
     VALUES (gen_random_uuid(), ${ownerid}, ${title}, '', '#6366f1', 0, NOW(), NOW())
-    RETURNING id, title, ownerid
+    RETURNING id, title, owner_id
   `;
   return result[0];
 };
@@ -71,7 +71,7 @@ export const deleteTestBucket = async (bucketId: string) => {
 
 export const createFriendship = async (initiatorId: string, receiverId: string, status: string = 'accepted') => {
   const result = await sql`
-    INSERT INTO friendships (id, "initiatorId", "receiverId", status, "createdAt", "updatedAt")
+    INSERT INTO friendships (id, initiator_id, receiver_id, status, created_at, updated_at)
     VALUES (gen_random_uuid(), ${initiatorId}, ${receiverId}, ${status}, NOW(), NOW())
     RETURNING id, status
   `;
@@ -85,7 +85,7 @@ export const deleteFriendship = async (friendshipId: string) => {
 export const shareHabitWithUser = async (habitId: string, targetUserId: string) => {
   await sql`
     UPDATE habits 
-    SET sharedwith = array_append(sharedwith, ${targetUserId}) 
+    SET shared_with = array_append(shared_with, ${targetUserId}) 
     WHERE id = ${habitId}::uuid
   `;
 };

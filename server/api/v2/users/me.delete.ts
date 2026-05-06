@@ -17,9 +17,9 @@ export default defineEventHandler(async (event) => {
     RETURNING id
   `;
 
-  if (result.length === 0) {
+  if ((result as any[]).length === 0) {
     throw createError({ statusCode: 404, statusMessage: 'User not found' });
   }
 
-  return { message: 'User deleted successfully', data: result[0] };
+  return { message: 'User deleted successfully', data: (result as any[])[0] };
 });

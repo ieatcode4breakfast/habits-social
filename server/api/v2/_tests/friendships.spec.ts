@@ -15,7 +15,7 @@ describe('PUT /api/v2/friendships/[id]', () => {
     
     // User A requests User B
     const fs = await createFriendship(userA.id, userB.id, 'pending');
-    friendshipId = fs.id;
+    friendshipId = fs!.id;
   });
 
   afterAll(async () => {

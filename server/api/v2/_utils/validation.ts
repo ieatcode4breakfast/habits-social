@@ -33,11 +33,11 @@ const userBaseSchema = z.object({
   username: z.string().min(3).max(20),
   email: z.string().email(),
   password: z.string().min(8).max(128),
-  photourl: z.string().url().or(z.literal('')).nullable()
+  photoUrl: z.string().url().or(z.literal('')).nullable()
 });
 
 export const registerSchema = userBaseSchema.extend({
-  photourl: userBaseSchema.shape.photourl.optional()
+  photoUrl: userBaseSchema.shape.photoUrl.optional()
 });
 
 export const loginSchema = z.object({
@@ -57,9 +57,9 @@ export const habitSchema = z.object({
   skipsCount: z.number().int().min(0).max(28).optional(),
   skipsPeriod: z.enum(['none', 'weekly', 'monthly']).optional().default('weekly'),
   color: z.string().max(50).optional().default('#6366f1'),
-  sharedwith: z.array(z.string().uuid()).optional().default([]),
+  sharedWith: z.array(z.string().uuid()).optional().default([]),
   sortOrder: z.number().int().optional(),
-  user_date: z.string().optional()
+  userDate: z.string().optional()
 });
 
 export const habitUpdateSchema = z.object({
@@ -68,17 +68,17 @@ export const habitUpdateSchema = z.object({
   skipsCount: z.number().int().min(0).max(28).optional(),
   skipsPeriod: z.enum(['none', 'weekly', 'monthly']).optional(),
   color: z.string().max(50).optional(),
-  sharedwith: z.array(z.string().uuid()).optional(),
+  sharedWith: z.array(z.string().uuid()).optional(),
   sortOrder: z.number().int().optional(),
-  user_date: z.string().optional()
+  userDate: z.string().optional()
 });
 
 export const habitLogSchema = z.object({
   id: z.string().optional(),
-  habitid: z.string().uuid(),
+  habitId: z.string().uuid(),
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   status: z.enum(['completed', 'skipped', 'failed', 'cleared', 'vacation']),
-  sharedwith: z.array(z.string().uuid()).optional().default([]),
+  sharedWith: z.array(z.string().uuid()).optional().default([]),
   streakCount: z.number().int().min(0).optional(),
   brokenStreakCount: z.number().int().min(0).optional()
 });
@@ -102,7 +102,7 @@ export const bucketUpdateSchema = z.object({
 
 export const bucketLogSchema = z.object({
   id: z.string().optional(),
-  bucketid: z.string().uuid(),
+  bucketId: z.string().uuid(),
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   status: z.enum(['completed', 'skipped', 'failed', 'cleared', 'vacation']),
   streakCount: z.number().int().min(0).optional(),
@@ -121,7 +121,7 @@ export const favoriteSchema = z.object({
 export const shareHabitsSchema = z.object({
   targetUserId: z.string().uuid(),
   habitIds: z.array(z.string().uuid()),
-  user_date: z.string().optional()
+  userDate: z.string().optional()
 });
 
 export const reorderSchema = z.object({

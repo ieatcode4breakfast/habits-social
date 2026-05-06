@@ -19,25 +19,25 @@ export default defineEventHandler(async (event) => {
   const friendshipCheck = await sql`
     SELECT 1 FROM friendships 
     WHERE status = 'accepted'
-      AND (("initiatorId" = ${userId} AND "receiverId" = ${fId}) 
-        OR ("initiatorId" = ${fId} AND "receiverId" = ${userId}))
+      AND ((initiator_id = ${userId} AND receiver_id = ${fId}) 
+        OR (initiator_id = ${fId} AND receiver_id = ${userId}))
   `;
-  if (friendshipCheck.length === 0) {
+  if ((friendshipCheck as any[]).length === 0) {
     throw createError({ statusCode: 403, statusMessage: 'You are not friends with this user' });
   }
 
   const habits = await sql`
-    SELECT id, ownerid, title, description, "skipsCount", "skipsPeriod", color, sharedwith, "sortOrder", "currentStreak", "longestStreak", "streakAnchorDate", user_date, "createdAt", updatedat FROM habits 
-    WHERE ownerid = ${fId}
-    AND ${String(userId)} = ANY(sharedwith)
-    ORDER BY "sortOrder" ASC, "createdAt" DESC
+    SELECT id, owner_id, title, description, skips_count, skips_period, color, shared_with, sort_order, current_streak, longest_streak, streak_anchor_date, user_date, created_at, updated_at FROM habits 
+    WHERE owner_id = ${fId}
+    AND ${String(userId)} = ANY(shared_with)
+    ORDER BY sort_order ASC, created_at DESC
   `;
 
-  if (habits.length === 0) {
+  if ((habits as any[]).length === 0) {
     return { data: { habits: [], logs: [] } };
   }
 
-  const habitIdSet = new Set(habits.map((h: any) => String(h.id)));
+  const habitIdSet = new Set((habits as any[]).map((h: any) => String(h.id)));
 
   const query = getQuery(event);
   let startDateStr = query.startDate ? String(query.startDate) : '';
@@ -57,19 +57,19 @@ export default defineEventHandler(async (event) => {
     startDateStr = cutoff.toISOString().slice(0, 10);
   }
 
-  const allLogs = await sql`
-    SELECT id, habitid, ownerid, date, status, "streakCount", "brokenStreakCount", sharedwith, updatedat FROM habitlogs 
-    WHERE ownerid = ${fId}
+  const allLogsRaw = await sql`
+    SELECT id, habit_id, owner_id, date, status, streak_count, broken_streak_count, shared_with, updated_at FROM habit_logs 
+    WHERE owner_id = ${fId}
     AND date >= ${startDateStr}
     ${endDateStr ? sql`AND date <= ${endDateStr}` : sql``}
     ORDER BY date DESC
   `;
 
-  const logs = allLogs.filter((l: any) => habitIdSet.has(String(l.habitid)));
+  const logs = (allLogsRaw as any[]).filter((l: any) => habitIdSet.has(String(l.habitid)));
 
   return {
     data: {
-      habits: habits.map(normalizeHabit),
+      habits: (habits as any[]).map(normalizeHabit),
       logs: logs.map(normalizeLog)
     }
   };

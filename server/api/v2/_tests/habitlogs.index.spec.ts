@@ -32,7 +32,7 @@ describe('POST /api/v2/habitlogs', () => {
     // User A logs
     const eventA = createMockEvent(userA.id, {
       id: logAId,
-      habitid: habitA.id,
+      habitId: habitA.id,
       date: dateStr,
       status: 'completed'
     }, {}, {}, {}, 'POST');
@@ -41,7 +41,7 @@ describe('POST /api/v2/habitlogs', () => {
     // User B attempts overwrite
     const eventB = createMockEvent(userB.id, {
       id: logAId,
-      habitid: habitB.id,
+      habitId: habitB.id,
       date: dateStr,
       status: 'failed'
     }, {}, {}, {}, 'POST');

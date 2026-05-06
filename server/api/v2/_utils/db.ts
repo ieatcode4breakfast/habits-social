@@ -1,5 +1,6 @@
 import { neon } from '@neondatabase/serverless';
 import type { H3Event } from 'h3';
+import { toCamelCase } from '../../../utils/transform';
 
 export const useDB = (event?: H3Event) => {
   let config: any = {};
@@ -22,5 +23,14 @@ export const useDB = (event?: H3Event) => {
     throw createError({ statusCode: 500, statusMessage: 'Database configuration missing' });
   }
 
-  return neon(uri);
+  const sql = neon(uri);
+
+  // Wrap the sql function to automatically convert results to camelCase
+  const wrappedSql = async (...args: any[]) => {
+    // @ts-ignore
+    const result = await sql(...args);
+    return toCamelCase(result);
+  };
+
+  return wrappedSql as typeof sql;
 };

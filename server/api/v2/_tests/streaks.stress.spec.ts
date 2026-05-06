@@ -27,8 +27,8 @@ describe('Streak Calculation Engine - Stress Testing', () => {
 
   afterAll(async () => {
     // Delete logs explicitly as cascade might not be guaranteed in tests
-    await sql`DELETE FROM habitlogs WHERE ownerid = ${user?.id}`;
-    await sql`DELETE FROM bucketlogs WHERE ownerid = ${user?.id}`;
+    await sql`DELETE FROM habit_logs WHERE owner_id = ${user?.id}`;
+    await sql`DELETE FROM bucket_logs WHERE owner_id = ${user?.id}`;
     if (habit?.id) await deleteTestHabit(habit.id);
     if (bucket?.id) await deleteTestBucket(bucket.id);
     if (user?.id) await deleteTestUser(user.id);
@@ -63,7 +63,7 @@ describe('Streak Calculation Engine - Stress Testing', () => {
 
     // Batch insert directly into DB to bypass API 14-day limit
     await sql`
-      INSERT INTO habitlogs (id, habitid, ownerid, date, status, "streakCount", "brokenStreakCount", updatedat)
+      INSERT INTO habit_logs (id, habit_id, owner_id, date, status, streak_count, broken_streak_count, updated_at)
       SELECT * FROM UNNEST(
         ${ids}::text[], 
         ${habitIds}::uuid[], 
@@ -80,15 +80,15 @@ describe('Streak Calculation Engine - Stress Testing', () => {
     const habitResult = await recalculateHabitStreak(sql, habit.id, user.id);
     
     // Assert habit counts
-    expect(habitResult!.currentStreak).toBe(STREAK_DAYS);
-    expect(habitResult!.longestStreak).toBe(STREAK_DAYS);
+    expect(habitResult!.current_streak).toBe(STREAK_DAYS);
+    expect(habitResult!.longest_streak).toBe(STREAK_DAYS);
 
     // 3. Trigger bucket reevaluation
     await reevaluateBucketLogs(sql, bucket.id, user.id);
     
-    const bucketRes = await sql`SELECT "currentStreak", "longestStreak" FROM buckets WHERE id = ${bucket.id}::uuid`;
-    expect(bucketRes[0]!.currentStreak).toBe(STREAK_DAYS);
-    expect(bucketRes[0]!.longestStreak).toBe(STREAK_DAYS);
+    const bucketRes = await sql`SELECT current_streak, longest_streak FROM buckets WHERE id = ${bucket.id}::uuid`;
+    expect(bucketRes[0]!.current_streak).toBe(STREAK_DAYS);
+    expect(bucketRes[0]!.longest_streak).toBe(STREAK_DAYS);
   }, 60000);
 
   it('should correctly reset streaks on a gap and recalculate forward', async () => {
@@ -99,7 +99,7 @@ describe('Streak Calculation Engine - Stress Testing', () => {
     const dateStr6 = formatISO(day6, { representation: 'date' });
 
     await sql`
-      INSERT INTO habitlogs (id, habitid, ownerid, date, status, updatedat)
+      INSERT INTO habit_logs (id, habit_id, owner_id, date, status, updated_at)
       VALUES (${habit.id + '_' + dateStr6}, ${habit.id}::uuid, ${user.id}, ${dateStr6}, 'completed', NOW())
     `;
 
@@ -108,14 +108,14 @@ describe('Streak Calculation Engine - Stress Testing', () => {
     // Due to the 1-day gap (day 5), the streak should reset. 
     // The previous 5 streak remains the longest.
     // The current is 1 (for day 6).
-    expect(habitResult!.currentStreak).toBe(1);
-    expect(habitResult!.longestStreak).toBe(5);
+    expect(habitResult!.current_streak).toBe(1);
+    expect(habitResult!.longest_streak).toBe(5);
 
     // Bucket should follow same logic
     await syncSingleBucketLog(sql, bucket.id, user.id, dateStr6);
-    const bucketRes = await sql`SELECT "currentStreak", "longestStreak" FROM buckets WHERE id = ${bucket.id}::uuid`;
-    expect(bucketRes[0]!.currentStreak).toBe(1);
-    expect(bucketRes[0]!.longestStreak).toBe(5);
+    const bucketRes = await sql`SELECT current_streak, longest_streak FROM buckets WHERE id = ${bucket.id}::uuid`;
+    expect(bucketRes[0]!.current_streak).toBe(1);
+    expect(bucketRes[0]!.longest_streak).toBe(5);
   }, 60000);
 
   it('should correctly cascade a failure inserted into the middle of the history', async () => {
@@ -125,26 +125,26 @@ describe('Streak Calculation Engine - Stress Testing', () => {
     const dateStr2 = formatISO(day2, { representation: 'date' });
 
     await sql`
-      UPDATE habitlogs SET status = 'failed' 
-      WHERE habitid = ${habit.id}::uuid AND ownerid = ${user.id} AND date = ${dateStr2}
+      UPDATE habit_logs SET status = 'failed' 
+      WHERE habit_id = ${habit.id}::uuid AND owner_id = ${user.id} AND date = ${dateStr2}
     `;
 
     // Recalculate forward from day 2
     const habitResult = await recalculateHabitStreak(sql, habit.id, user.id, dateStr2);
     
-    expect(habitResult!.currentStreak).toBe(1);
+    expect(habitResult!.current_streak).toBe(1);
     // Fixed: incremental updates should now correctly shrink longestStreak
-    expect(habitResult!.longestStreak).toBe(2); // Days 3,4 = 2 days
+    expect(habitResult!.longest_streak).toBe(2); // Days 3,4 = 2 days
 
     // Ensure the log stamped the broken streak correctly
-    const failedLog = await sql`SELECT "brokenStreakCount" FROM habitlogs WHERE id = ${`${habit.id}_${dateStr2}`}`;
-    expect(failedLog[0]!.brokenStreakCount).toBe(2); // Broke the initial 2 day streak (Days 0,1)
+    const failedLog = await sql`SELECT broken_streak_count FROM habit_logs WHERE id = ${`${habit.id}_${dateStr2}`}`;
+    expect(failedLog[0]!.broken_streak_count).toBe(2); // Broke the initial 2 day streak (Days 0,1)
 
     // Reevaluate Bucket
     await reevaluateBucketLogs(sql, bucket.id, user.id);
-    const bucketRes = await sql`SELECT "currentStreak", "longestStreak" FROM buckets WHERE id = ${bucket.id}::uuid`;
-    expect(bucketRes[0]!.currentStreak).toBe(1);
-    expect(bucketRes[0]!.longestStreak).toBe(2);
+    const bucketRes = await sql`SELECT current_streak, longest_streak FROM buckets WHERE id = ${bucket.id}::uuid`;
+    expect(bucketRes[0]!.current_streak).toBe(1);
+    expect(bucketRes[0]!.longest_streak).toBe(2);
   }, 60000);
 });
 

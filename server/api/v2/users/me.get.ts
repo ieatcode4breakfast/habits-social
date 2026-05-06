@@ -1,5 +1,6 @@
 import { useDB as _useDB } from '../_utils/db';
 import { requireAuth as _requireAuth } from '../_utils/auth';
+import { normalizeUser } from '../_utils/normalize';
 
 export default defineEventHandler(async (event) => {
   const requireAuth = (event.context as any).requireAuth || _requireAuth;
@@ -8,11 +9,11 @@ export default defineEventHandler(async (event) => {
   const userId = await requireAuth(event);
   const sql = useDB(event);
 
-  const users = await sql`SELECT id, email, username, photourl, "emailVerifiedAt", "createdAt", "updatedAt" FROM users WHERE id = ${userId}::uuid`;
+  const users = await sql`SELECT id, email, username, photo_url, email_verified_at, created_at, updated_at FROM users WHERE id = ${userId}::uuid`;
   
-  if (users.length === 0) {
+  if ((users as any[]).length === 0) {
     throw createError({ statusCode: 404, statusMessage: 'User not found' });
   }
 
-  return { data: users[0] };
+  return { data: normalizeUser((users as any[])[0]) };
 });

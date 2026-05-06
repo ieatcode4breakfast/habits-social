@@ -3,7 +3,7 @@ import { parseISO, startOfDay, differenceInDays } from 'date-fns';
 export async function recalculateHabitStreak(sql: any, habitId: string, userId: string, fromDate?: string) {
   if (!habitId || habitId.length < 36) return;
   // 1. Fetch habit info
-  const habitRes = await sql`SELECT "longestStreak", "streakAnchorDate" FROM habits WHERE id = ${habitId}::uuid`;
+  const habitRes = await sql`SELECT longest_streak, streak_anchor_date FROM habits WHERE id = ${habitId}::uuid`;
   if (!habitRes || habitRes.length === 0) return;
   const habit = habitRes[0];
 
@@ -15,26 +15,26 @@ export async function recalculateHabitStreak(sql: any, habitId: string, userId: 
   // 2. If incremental, find the starting point state from the log just before fromDate
   if (fromDate) {
     const prevLog = await sql`
-      SELECT "streakCount", date FROM habitlogs 
-      WHERE habitid = ${habitId}::uuid AND ownerid = ${userId} AND date < ${fromDate}
+      SELECT streak_count, date FROM habit_logs 
+      WHERE habit_id = ${habitId}::uuid AND owner_id = ${userId} AND date < ${fromDate}
       ORDER BY date DESC LIMIT 1
     `;
     if (prevLog && prevLog.length > 0) {
-      runningStreak = prevLog[0].streakCount;
+      runningStreak = prevLog[0].streak_count;
       lastDate = startOfDay(parseISO(prevLog[0].date));
     }
 
     const maxRes = await sql`
-      SELECT MAX("streakCount") as max_streak FROM habitlogs 
-      WHERE habitid = ${habitId}::uuid AND ownerid = ${userId} AND date < ${fromDate}
+      SELECT MAX(streak_count) as max_streak FROM habit_logs 
+      WHERE habit_id = ${habitId}::uuid AND owner_id = ${userId} AND date < ${fromDate}
     `;
     maxStreak = maxRes[0]?.max_streak || 0;
   }
 
   // 3. Fetch logs from starting point onwards
   const logs = await sql`
-    SELECT id, date, status, "streakCount", "brokenStreakCount" FROM habitlogs 
-    WHERE habitid = ${habitId}::uuid AND ownerid = ${userId}
+    SELECT id, date, status, streak_count, broken_streak_count FROM habit_logs 
+    WHERE habit_id = ${habitId}::uuid AND owner_id = ${userId}
     ${queryStartDate ? sql`AND date >= ${queryStartDate}` : sql``}
     ORDER BY date ASC
   `;
@@ -44,9 +44,9 @@ export async function recalculateHabitStreak(sql: any, habitId: string, userId: 
     if (!fromDate) {
       const result = await sql`
         UPDATE habits 
-        SET "currentStreak" = 0, "streakAnchorDate" = NULL, updatedat = NOW()
-        WHERE id = ${habitId}::uuid AND ownerid = ${userId}
-        RETURNING id, ownerid, "currentStreak", "longestStreak", "streakAnchorDate", updatedat
+        SET current_streak = 0, streak_anchor_date = NULL, updated_at = NOW()
+        WHERE id = ${habitId}::uuid AND owner_id = ${userId}
+        RETURNING id, owner_id, current_streak, longest_streak, streak_anchor_date, updated_at
       `;
       return result[0];
     }
@@ -55,16 +55,16 @@ export async function recalculateHabitStreak(sql: any, habitId: string, userId: 
     // to match the state of the last known log (runningStreak from prevLog).
     const result = await sql`
       UPDATE habits 
-      SET "currentStreak" = ${runningStreak}, 
-          updatedat = NOW()
-      WHERE id = ${habitId}::uuid AND ownerid = ${userId}
-      RETURNING id, ownerid, "currentStreak", "longestStreak", "streakAnchorDate", updatedat
+      SET current_streak = ${runningStreak}, 
+          updated_at = NOW()
+      WHERE id = ${habitId}::uuid AND owner_id = ${userId}
+      RETURNING id, owner_id, current_streak, longest_streak, streak_anchor_date, updated_at
     `;
     return result[0];
   }
 
   // 4. The Cascading Update: Iterate through timeline and calculate counts
-  let streakAnchorDate: string | null = habit.streakAnchorDate;
+  let streakAnchorDate: string | null = habit.streak_anchor_date;
   const updates: any[] = [];
 
   for (const log of logs) {
@@ -98,7 +98,7 @@ export async function recalculateHabitStreak(sql: any, habitId: string, userId: 
     }
 
     // Only update if values changed (Optimization)
-    if (log.streakCount !== runningStreak || log.brokenStreakCount !== brokenStreakCount) {
+    if (log.streak_count !== runningStreak || log.broken_streak_count !== brokenStreakCount) {
       updates.push({
         id: log.id,
         streakCount: runningStreak,
@@ -116,10 +116,10 @@ export async function recalculateHabitStreak(sql: any, habitId: string, userId: 
     const bscs = updates.map(u => u.brokenStreakCount);
 
     await sql`
-      UPDATE habitlogs AS h SET
-        "streakCount" = v.sc,
-        "brokenStreakCount" = v.bsc,
-        updatedat = NOW()
+      UPDATE habit_logs AS h SET
+        streak_count = v.sc,
+        broken_streak_count = v.bsc,
+        updated_at = NOW()
       FROM (
         SELECT * FROM UNNEST(${ids}::text[], ${scs}::int[], ${bscs}::int[])
         AS t(id, sc, bsc)
@@ -132,12 +132,12 @@ export async function recalculateHabitStreak(sql: any, habitId: string, userId: 
   const result = await sql`
     UPDATE habits 
     SET 
-      "currentStreak" = ${runningStreak}, 
-      "longestStreak" = ${maxStreak},
-      "streakAnchorDate" = ${streakAnchorDate},
-      updatedat = NOW()
-    WHERE id = ${habitId}::uuid AND ownerid = ${userId}
-    RETURNING id, ownerid, "currentStreak", "longestStreak", "streakAnchorDate", updatedat
+      current_streak = ${runningStreak}, 
+      longest_streak = ${maxStreak},
+      streak_anchor_date = ${streakAnchorDate},
+      updated_at = NOW()
+    WHERE id = ${habitId}::uuid AND owner_id = ${userId}
+    RETURNING id, owner_id, current_streak, longest_streak, streak_anchor_date, updated_at
   `;
 
   return result[0];

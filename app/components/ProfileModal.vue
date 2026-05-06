@@ -30,7 +30,7 @@
               <form id="profileForm" @submit.prevent="triggerProfileUpdate" class="space-y-4">
                 <!-- Avatar Selection -->
                 <AvatarPicker 
-                  v-model="profileForm.photourl" 
+                  v-model="profileForm.photoUrl" 
                   label="Avatar"
                 />
 
@@ -220,7 +220,7 @@
           
           <div class="relative my-auto w-full max-w-sm bg-zinc-925 border border-zinc-800 rounded-3xl shadow-2xl p-8 text-center">
             <UserAvatar 
-              :src="profileForm.photourl" 
+              :src="profileForm.photoUrl" 
               container-class="w-24 h-24 rounded-3xl bg-white/5 border-2 border-zinc-800 mx-auto mb-6"
               icon-class="w-10 h-10 text-zinc-500"
             />
@@ -282,7 +282,7 @@ const profileForm = reactive({
   email: '',
   password: '',
   confirmPassword: '',
-  photourl: ''
+  photoUrl: ''
 });
 
 const initialProfileSnapshot = ref<any>(null);
@@ -294,7 +294,7 @@ const hasUnsavedChanges = computed(() => {
     profileForm.email !== initialProfileSnapshot.value.email ||
     profileForm.password !== '' ||
     profileForm.confirmPassword !== '' ||
-    profileForm.photourl !== initialProfileSnapshot.value.photourl
+    profileForm.photoUrl !== initialProfileSnapshot.value.photoUrl
   );
 });
 
@@ -328,7 +328,7 @@ watch(() => props.modelValue, (open) => {
     initialProfileSnapshot.value = {
       username: profileForm.username,
       email: profileForm.email,
-      photourl: profileForm.photourl
+      photoUrl: profileForm.photoUrl
     };
   }
 });
@@ -373,7 +373,7 @@ const handleUpdateProfile = async () => {
         username: profileForm.username,
         email: profileForm.email,
         password: profileForm.password || undefined,
-        photourl: profileForm.photourl
+        photoUrl: profileForm.photoUrl
       }
     });
     await fetchUser();

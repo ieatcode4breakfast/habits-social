@@ -10,102 +10,102 @@ export default defineEventHandler(async (event) => {
 
   // Get friend IDs (only accepted friendships)
   const friendships = await sql`
-    SELECT "initiatorId", "receiverId"
+    SELECT initiator_id, receiver_id
     FROM friendships 
-    WHERE ("initiatorId" = ${userId} OR "receiverId" = ${userId}) 
+    WHERE (initiator_id = ${userId} OR receiver_id = ${userId}) 
       AND status = 'accepted'
   `;
 
-  const friendIds = friendships.map((f: any) => f.initiatorId === userId ? f.receiverId : f.initiatorId);
+  const friendIds = (friendships as any[]).map((f: any) => f.initiator_id === userId ? f.receiver_id : f.initiator_id);
   const hasFriends = friendIds.length > 0;
 
   // Habit logs with friend visibility
-  const logs = hasFriends ? await sql`
+  const logsRaw = hasFriends ? await sql`
     SELECT 
-      l.*, 
-      h.title as "habitTitle",
+      l.id, l.habit_id, l.owner_id, l.date, l.status, l.streak_count, l.broken_streak_count, l.shared_with, l.updated_at,
+      h.title as habit_title,
       u.username, 
-      u.photourl
-    FROM habitlogs l
-    JOIN habits h ON l.habitid::uuid = h.id
-    JOIN users u ON l.ownerid::uuid = u.id
-    WHERE (l.ownerid::text = ANY(${friendIds}) AND ${userId}::text = ANY(h.sharedwith))
-      OR (l.ownerid::text = ${userId}::text)
-    ORDER BY l.date DESC, l.updatedat DESC, l.id DESC
+      u.photo_url
+    FROM habit_logs l
+    JOIN habits h ON l.habit_id::uuid = h.id
+    JOIN users u ON l.owner_id::uuid = u.id
+    WHERE (l.owner_id::text = ANY(${friendIds}) AND ${userId}::text = ANY(h.shared_with))
+      OR (l.owner_id::text = ${userId}::text)
+    ORDER BY l.date DESC, l.updated_at DESC, l.id DESC
     LIMIT 100
   ` : await sql`
     SELECT 
-      l.*, 
-      h.title as "habitTitle",
+      l.id, l.habit_id, l.owner_id, l.date, l.status, l.streak_count, l.broken_streak_count, l.shared_with, l.updated_at,
+      h.title as habit_title,
       u.username, 
-      u.photourl
-    FROM habitlogs l
-    JOIN habits h ON l.habitid::uuid = h.id
-    JOIN users u ON l.ownerid::uuid = u.id
-    WHERE l.ownerid::text = ${userId}::text
-    ORDER BY l.date DESC, l.updatedat DESC, l.id DESC
+      u.photo_url
+    FROM habit_logs l
+    JOIN habits h ON l.habit_id::uuid = h.id
+    JOIN users u ON l.owner_id::uuid = u.id
+    WHERE l.owner_id::text = ${userId}::text
+    ORDER BY l.date DESC, l.updated_at DESC, l.id DESC
     LIMIT 100
   `;
 
-  // Habits committed (new habits with user_date)
-  const commitments = hasFriends ? await sql`
-    SELECT h.id, h.ownerid, h.user_date as date, h."createdAt" as updatedat,
-           h.title as "habitTitle",
-           u.username, u.photourl
+  // Habits committed (new habits with userDate)
+  const commitmentsRaw = hasFriends ? await sql`
+    SELECT h.id, h.owner_id, h.user_date as date, h.created_at as updatedat,
+           h.title as habit_title,
+           u.username, u.photo_url
     FROM habits h
-    JOIN users u ON h.ownerid::uuid = u.id
+    JOIN users u ON h.owner_id::uuid = u.id
     WHERE h.user_date IS NOT NULL
       AND (
-        h.ownerid::text = ${userId}::text
-        OR (h.ownerid::text = ANY(${friendIds}) AND ${userId}::text = ANY(h.sharedwith))
+        h.owner_id::text = ${userId}::text
+        OR (h.owner_id::text = ANY(${friendIds}) AND ${userId}::text = ANY(h.shared_with))
       )
-    ORDER BY h.user_date DESC, h."createdAt" DESC
+    ORDER BY h.user_date DESC, h.created_at DESC
     LIMIT 100
   ` : await sql`
-    SELECT h.id, h.ownerid, h.user_date as date, h."createdAt" as updatedat,
-           h.title as "habitTitle",
-           u.username, u.photourl
+    SELECT h.id, h.owner_id, h.user_date as date, h.created_at as updatedat,
+           h.title as habit_title,
+           u.username, u.photo_url
     FROM habits h
-    JOIN users u ON h.ownerid::uuid = u.id
+    JOIN users u ON h.owner_id::uuid = u.id
     WHERE h.user_date IS NOT NULL
-      AND h.ownerid::text = ${userId}::text
-    ORDER BY h.user_date DESC, h."createdAt" DESC
+      AND h.owner_id::text = ${userId}::text
+    ORDER BY h.user_date DESC, h.created_at DESC
     LIMIT 100
   `;
 
   // Share events
-  const shareEvents = hasFriends ? await sql`
-    SELECT se.id, se.ownerid, se.recipientid, se.habitids,
+  const shareEventsRaw = hasFriends ? await sql`
+    SELECT se.id, se.owner_id, se.recipient_id, se.habit_ids,
            se.user_date as date, se.created_at as updatedat,
-           u.username, u.photourl,
+           u.username, u.photo_url,
            ru.username as recipient_username
     FROM share_events se
-    JOIN users u ON se.ownerid::uuid = u.id
-    JOIN users ru ON se.recipientid::uuid = ru.id
+    JOIN users u ON se.owner_id::uuid = u.id
+    JOIN users ru ON se.recipient_id::uuid = ru.id
     WHERE (
-        (se.ownerid::text = ANY(${friendIds}) AND se.recipientid::text = ${userId}::text)
-        OR se.ownerid::text = ${userId}::text
+        (se.owner_id::text = ANY(${friendIds}) AND se.recipient_id::text = ${userId}::text)
+        OR se.owner_id::text = ${userId}::text
       )
     ORDER BY se.user_date DESC, se.created_at DESC
     LIMIT 100
   ` : await sql`
-    SELECT se.id, se.ownerid, se.recipientid, se.habitids,
+    SELECT se.id, se.owner_id, se.recipient_id, se.habit_ids,
            se.user_date as date, se.created_at as updatedat,
-           u.username, u.photourl,
+           u.username, u.photo_url,
            ru.username as recipient_username
     FROM share_events se
-    JOIN users u ON se.ownerid::uuid = u.id
-    JOIN users ru ON se.recipientid::uuid = ru.id
-    WHERE se.ownerid::text = ${userId}::text
+    JOIN users u ON se.owner_id::uuid = u.id
+    JOIN users ru ON se.recipient_id::uuid = ru.id
+    WHERE se.owner_id::text = ${userId}::text
     ORDER BY se.user_date DESC, se.created_at DESC
     LIMIT 100
   `;
 
   // Merge and sort by date desc, timestamp desc
   const allItems = [
-    ...logs.map((l: any) => ({ type: 'log', date: l.date, timestamp: l.updatedat, data: l })),
-    ...commitments.map((c: any) => ({ type: 'commitment', date: c.date, timestamp: c.updatedat, data: c })),
-    ...shareEvents.map((s: any) => ({ type: 'share', date: s.date, timestamp: s.updatedat, data: s }))
+    ...(logsRaw as any[]).map((l: any) => ({ type: 'log', date: l.date, timestamp: l.updated_at, data: l })),
+    ...(commitmentsRaw as any[]).map((c: any) => ({ type: 'commitment', date: c.date, timestamp: c.updatedat, data: c })),
+    ...(shareEventsRaw as any[]).map((s: any) => ({ type: 'share', date: s.date, timestamp: s.updatedat, data: s }))
   ];
 
   allItems.sort((a: any, b: any) => {

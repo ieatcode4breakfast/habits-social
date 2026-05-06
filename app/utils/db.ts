@@ -31,11 +31,11 @@ export class MyDatabase extends Dexie {
 
   constructor() {
     super('HabitsSocialDB');
-    this.version(3).stores({
-      habits: 'id, ownerid, synced, updatedAt',
-      habitLogs: 'id, habitid, ownerid, date, synced, updatedAt',
-      buckets: 'id, ownerid, synced, updatedAt',
-      bucketLogs: 'id, bucketid, ownerid, date, synced, updatedAt',
+    this.version(4).stores({
+      habits: 'id, ownerId, synced, updatedAt',
+      habitLogs: 'id, habitId, ownerId, date, synced, updatedAt',
+      buckets: 'id, ownerId, synced, updatedAt',
+      bucketLogs: 'id, bucketId, ownerId, date, synced, updatedAt',
       syncQueue: '++id, type, action'
     });
   }

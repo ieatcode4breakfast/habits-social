@@ -17,13 +17,13 @@ export default defineEventHandler(async (event) => {
 
   const { friendshipId, favorite } = validation.data;
 
-  const [friendship] = await sql`SELECT id, "initiatorId", "receiverId" FROM friendships WHERE id = ${friendshipId}::uuid`;
+  const [friendship] = await sql`SELECT id, initiator_id, receiver_id FROM friendships WHERE id = ${friendshipId}::uuid`;
   if (!friendship) {
     throw createError({ statusCode: 404, statusMessage: 'Friendship not found' });
   }
 
-  const isInitiator = String(friendship.initiatorId) === String(userId);
-  const isReceiver = String(friendship.receiverId) === String(userId);
+  const isInitiator = String((friendship as any).initiator_id) === String(userId);
+  const isReceiver = String((friendship as any).receiver_id) === String(userId);
 
   if (!isInitiator && !isReceiver) {
     throw createError({ statusCode: 403, statusMessage: 'Not authorized' });
@@ -33,18 +33,18 @@ export default defineEventHandler(async (event) => {
   if (isInitiator) {
     result = await sql`
       UPDATE friendships 
-      SET "initiatorFavorite" = ${favorite}, "updatedAt" = NOW()
+      SET initiator_favorite = ${favorite}, updated_at = NOW()
       WHERE id = ${friendshipId}::uuid
-      RETURNING id, "initiatorId", "receiverId", status, "initiatorFavorite", "receiverFavorite", "createdAt", "updatedAt"
+      RETURNING id, initiator_id, receiver_id, status, initiator_favorite, receiver_favorite, created_at, updated_at
     `;
   } else {
     result = await sql`
       UPDATE friendships 
-      SET "receiverFavorite" = ${favorite}, "updatedAt" = NOW()
+      SET receiver_favorite = ${favorite}, updated_at = NOW()
       WHERE id = ${friendshipId}::uuid
-      RETURNING id, "initiatorId", "receiverId", status, "initiatorFavorite", "receiverFavorite", "createdAt", "updatedAt"
+      RETURNING id, initiator_id, receiver_id, status, initiator_favorite, receiver_favorite, created_at, updated_at
     `;
   }
 
-  return { data: result[0] };
+  return { data: (result as any[])[0] };
 });

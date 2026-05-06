@@ -12,9 +12,11 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: 'Bad Request' });
   }
 
-  const [profile] = await sql`
-    SELECT id, username, photourl FROM users WHERE id = ${id}::uuid
+  const result = await sql`
+    SELECT id, username, photo_url FROM users WHERE id = ${id}::uuid
   `;
+
+  const profile = (result as any[])[0];
 
   if (!profile) {
     throw createError({ statusCode: 404, statusMessage: 'User not found' });

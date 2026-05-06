@@ -30,7 +30,7 @@ describe('POST /api/v2/bucketlogs', () => {
     const logAId = `test_log_a_${Date.now()}`;
     const eventA = createMockEvent(userA.id, {
       id: logAId,
-      bucketid: bucketA.id,
+      bucketId: bucketA.id,
       date: dateStr,
       status: 'completed'
     }, {}, {}, {}, 'POST');
@@ -40,7 +40,7 @@ describe('POST /api/v2/bucketlogs', () => {
     // User B attempts to overwrite User A's log using the same ID, but their own bucket
     const eventB = createMockEvent(userB.id, {
       id: logAId, // The malicious part
-      bucketid: bucketB.id,
+      bucketId: bucketB.id,
       date: dateStr,
       status: 'failed'
     }, {}, {}, {}, 'POST');
@@ -59,6 +59,6 @@ describe('POST /api/v2/bucketlogs', () => {
     const targetLog = logsA.data.find((l: any) => l.id === logAId);
     expect(targetLog).toBeDefined();
     expect(targetLog.status).toBe('completed'); // Not 'failed'
-    expect(targetLog.bucketid).toBe(bucketA.id); // Not bucketB.id
+    expect(targetLog.bucketId).toBe(bucketA.id); // Not bucketB.id
   });
 });

@@ -19,7 +19,7 @@ describe('GET /api/v2/social/feed', () => {
 
     // Make them friends and share the habit
     const fs = await createFriendship(userA.id, userB.id, 'accepted');
-    friendshipId = fs.id;
+    friendshipId = fs!.id;
 
     const shareHandler = (await import('../social/share-habits.post')).default;
     const shareEvent = createMockEvent(userA.id, { targetUserId: userB.id, habitIds: [habitA.id] }, {}, {}, {}, 'POST');
@@ -38,7 +38,7 @@ describe('GET /api/v2/social/feed', () => {
     const dateStr = new Date().toISOString().split('T')[0];
     const logEvent = createMockEvent(userA.id, {
       id: `test_flog_${Date.now()}`,
-      habitid: habitA.id,
+      habitId: habitA.id,
       date: dateStr,
       status: 'completed'
     }, {}, {}, {}, 'POST');
@@ -52,8 +52,8 @@ describe('GET /api/v2/social/feed', () => {
     expect(Array.isArray(response.data)).toBe(true);
     
     // B should see A's log
-    const foundLog = response.data.find((item: any) => item.type === 'log' && item.data.habitid === habitA.id);
+    const foundLog = response.data.find((item: any) => item.type === 'log' && item.data.habit_id === habitA.id);
     expect(foundLog).toBeDefined();
-    expect(foundLog.data.ownerid).toBe(userA.id);
+    expect(foundLog.data.owner_id).toBe(userA.id);
   });
 });

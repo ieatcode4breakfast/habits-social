@@ -16,32 +16,32 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: 'Validation Failed', data: validation.error.flatten() });
   }
 
-  const { targetUserId, habitIds, user_date } = validation.data;
+  const { targetUserId, habitIds, userDate } = validation.data;
 
   const targetId = String(targetUserId);
   
   // Verify accepted friendship exists
-  const [friendship] = await sql`
+  const friendship = await sql`
     SELECT 1 FROM friendships 
     WHERE status = 'accepted'
       AND (
-        ("initiatorId" = ${userId} AND "receiverId" = ${targetId})
+        (initiator_id = ${userId} AND receiver_id = ${targetId})
         OR 
-        ("initiatorId" = ${targetId} AND "receiverId" = ${userId})
+        (initiator_id = ${targetId} AND receiver_id = ${userId})
       )
   `;
 
-  if (!friendship) {
+  if ((friendship as any[]).length === 0) {
     throw createError({ statusCode: 403, statusMessage: 'You can only share habits with friends' });
   }
 
   // Get currently shared habits for this user/target combo
   const currentShared = await sql`
     SELECT id FROM habits 
-    WHERE ownerid = ${userId} 
-      AND ${targetId}::text = ANY(sharedwith)
+    WHERE owner_id = ${userId} 
+      AND ${targetId}::text = ANY(shared_with)
   `;
-  const currentSharedIds = currentShared.map((h: any) => String(h.id));
+  const currentSharedIds = (currentShared as any[]).map((h: any) => String(h.id));
   const newSharedIds = habitIds.map((id: string) => String(id));
 
   const toAdd = newSharedIds.filter((id: string) => !currentSharedIds.includes(id));
@@ -53,10 +53,10 @@ export default defineEventHandler(async (event) => {
   if (toRemove.length > 0) {
     await sql`
       UPDATE habits
-      SET sharedwith = array_remove(sharedwith, ${targetId}),
-          updatedat = NOW()
+      SET shared_with = array_remove(shared_with, ${targetId}),
+          updated_at = NOW()
       WHERE id = ANY(${toRemove}::uuid[])
-        AND ownerid = ${userId}
+        AND owner_id = ${userId}
     `;
   }
 
@@ -68,21 +68,21 @@ export default defineEventHandler(async (event) => {
   if (toAdd.length > 0) {
     const result = await sql`
       UPDATE habits
-      SET sharedwith = array_append(sharedwith, ${targetId}),
-          updatedat = NOW()
+      SET shared_with = array_append(shared_with, ${targetId}),
+          updated_at = NOW()
       WHERE id = ANY(${toAdd}::uuid[])
-        AND ownerid = ${userId}
-        AND NOT (${targetId} = ANY(sharedwith))
+        AND owner_id = ${userId}
+        AND NOT (${targetId} = ANY(shared_with))
       RETURNING id
     `;
-    actuallySharedIds.push(...result.map((r: any) => r.id));
+    actuallySharedIds.push(...(result as any[]).map((r: any) => r.id));
   }
 
   // Record share event for all newly shared habits
-  if (actuallySharedIds.length > 0 && user_date) {
+  if (actuallySharedIds.length > 0 && userDate) {
     await sql`
-      INSERT INTO share_events (ownerid, recipientid, habitids, user_date, created_at)
-      VALUES (${userId}, ${targetId}, ${actuallySharedIds}::uuid[], ${user_date}, NOW())
+      INSERT INTO share_events (owner_id, recipient_id, habit_ids, user_date, created_at)
+      VALUES (${userId}, ${targetId}, ${actuallySharedIds}::uuid[], ${userDate}, NOW())
     `;
   }
 

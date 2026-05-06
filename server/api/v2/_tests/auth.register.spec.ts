@@ -70,12 +70,12 @@ describe('POST /api/v2/auth/register', () => {
     await expect(handler(event)).rejects.toThrow(/Too big/i);
   });
 
-  it('should reject invalid photourl during registration', async () => {
+  it('should reject invalid photoUrl during registration', async () => {
     const event = createMockEvent('', { 
       email: `a@b.com`, 
       password: 'password123', 
       username: `u_${Date.now()}`,
-      photourl: 'malicious-string'
+      photoUrl: 'malicious-string'
     });
     await expect(handler(event)).rejects.toThrow(/Invalid url/i);
   });

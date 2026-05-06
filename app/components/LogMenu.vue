@@ -78,7 +78,7 @@ const options = computed(() => {
   if (!props.habit || !props.date) return [];
 
   const dateStr = format(props.date, 'yyyy-MM-dd');
-  const currentStatus = props.logs.find(l => l.habitid === props.habit?.id && l.date === dateStr)?.status;
+  const currentStatus = props.logs.find(l => l.habitId === props.habit?.id && l.date === dateStr)?.status;
   
   // Use effective settings if provided, otherwise fallback to habit's own settings
   const skipsPeriod = props.skipsPeriod || props.habit.skipsPeriod;
@@ -93,14 +93,14 @@ const options = computed(() => {
   } else if (skipsPeriod === 'weekly') {
     maxSkips = skipsCount || 0;
     usedSkips = props.logs.filter(l => 
-      l.habitid === props.habit?.id && 
+      l.habitId === props.habit?.id && 
       l.status === 'skipped' && 
       isSameWeek(new Date(l.date), props.date!, { weekStartsOn: 0 })
     ).length;
   } else if (skipsPeriod === 'monthly') {
     maxSkips = skipsCount || 0;
     usedSkips = props.logs.filter(l => 
-      l.habitid === props.habit?.id && 
+      l.habitId === props.habit?.id && 
       l.status === 'skipped' && 
       isSameMonth(new Date(l.date), props.date!)
     ).length;

@@ -18,22 +18,22 @@ export default defineEventHandler(async (event) => {
     if (query.lastSynced) {
       const lastSynced = Number(query.lastSynced);
       logs = await sql`
-        SELECT id, bucketid, ownerid, date, status, "streakCount", "brokenStreakCount", updatedat FROM bucketlogs 
-        WHERE ownerid = ${userId} 
-          AND updatedat >= to_timestamp(${lastSynced} / 1000.0)
+        SELECT id, bucket_id, owner_id, date, status, streak_count, broken_streak_count, updated_at FROM bucket_logs 
+        WHERE owner_id = ${userId} 
+          AND updated_at >= to_timestamp(${lastSynced} / 1000.0)
       `;
     } else if (query.startDate && query.endDate) {
       logs = await sql`
-        SELECT id, bucketid, ownerid, date, status, "streakCount", "brokenStreakCount", updatedat FROM bucketlogs 
-        WHERE ownerid = ${userId} 
+        SELECT id, bucket_id, owner_id, date, status, streak_count, broken_streak_count, updated_at FROM bucket_logs 
+        WHERE owner_id = ${userId} 
           AND date >= ${String(query.startDate)} 
           AND date <= ${String(query.endDate)}
       `;
     } else {
-      logs = await sql`SELECT id, bucketid, ownerid, date, status, "streakCount", "brokenStreakCount", updatedat FROM bucketlogs WHERE ownerid = ${userId}`;
+      logs = await sql`SELECT id, bucket_id, owner_id, date, status, streak_count, broken_streak_count, updated_at FROM bucket_logs WHERE owner_id = ${userId}`;
     }
 
-    return { data: logs.map(normalizeLog) };
+    return { data: (logs as any[]).map(normalizeLog) };
   }
 
   if (event.method === 'POST') {
@@ -46,35 +46,35 @@ export default defineEventHandler(async (event) => {
     const data = validation.data;
 
     // Validate bucket exists and is owned by user
-    const bucketCheck = await sql`SELECT id FROM buckets WHERE id = ${data.bucketid}::uuid AND ownerid = ${userId}`;
-    if (bucketCheck.length === 0) {
+    const bucketCheck = await sql`SELECT id FROM buckets WHERE id = ${data.bucketId}::uuid AND owner_id = ${userId}`;
+    if ((bucketCheck as any[]).length === 0) {
       throw createError({ statusCode: 404, statusMessage: 'Bucket not found' });
     }
 
-    const logId = data.id || `${data.bucketid}_${data.date}`;
+    const logId = data.id || `${data.bucketId}_${data.date}`;
 
     const result = await sql`
-      INSERT INTO bucketlogs (id, bucketid, ownerid, date, status, "streakCount", "brokenStreakCount", updatedat)
-      VALUES (${logId}, ${data.bucketid}::uuid, ${userId}, ${data.date}, ${data.status}, ${data.streakCount ?? 0}, ${data.brokenStreakCount ?? 0}, NOW())
+      INSERT INTO bucket_logs (id, bucket_id, owner_id, date, status, streak_count, broken_streak_count, updated_at)
+      VALUES (${logId}, ${data.bucketId}::uuid, ${userId}, ${data.date}, ${data.status}, ${data.streakCount ?? 0}, ${data.brokenStreakCount ?? 0}, NOW())
       ON CONFLICT (id) DO UPDATE SET
         status = EXCLUDED.status,
-        "streakCount" = EXCLUDED."streakCount",
-        "brokenStreakCount" = EXCLUDED."brokenStreakCount",
-        updatedat = NOW()
-      WHERE bucketlogs.ownerid = EXCLUDED.ownerid
-      RETURNING id, bucketid, ownerid, date, status, "streakCount", "brokenStreakCount", updatedat
+        streak_count = EXCLUDED.streak_count,
+        broken_streak_count = EXCLUDED.broken_streak_count,
+        updated_at = NOW()
+      WHERE bucket_logs.owner_id = EXCLUDED.owner_id
+      RETURNING id, bucket_id, owner_id, date, status, streak_count, broken_streak_count, updated_at
     `;
 
-    return { data: normalizeLog(result[0]) };
+    return { data: normalizeLog((result as any[])[0]) };
   }
 
   if (event.method === 'DELETE') {
     const query = getQuery(event);
-    const bucketId = String(query.bucketid || '');
+    const bucketId = String(query.bucketId || '');
     const dateStr = String(query.date || '');
 
     if (!bucketId || !dateStr) {
-      throw createError({ statusCode: 400, statusMessage: 'bucketid and date are required' });
+      throw createError({ statusCode: 400, statusMessage: 'bucketId and date are required' });
     }
 
     // Bucket logs are synthesized server-side based on habit logs.

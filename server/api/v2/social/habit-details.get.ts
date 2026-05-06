@@ -19,16 +19,16 @@ export default defineEventHandler(async (event) => {
 
   // Fetch habit and check ownership/visibility
   const habits = await sql`
-    SELECT id, ownerid, title, description, "skipsCount", "skipsPeriod", color, sharedwith, "sortOrder", "currentStreak", "longestStreak", "streakAnchorDate", user_date, "createdAt", updatedat FROM habits 
+    SELECT id, owner_id, title, description, skips_count, skips_period, color, shared_with, sort_order, current_streak, longest_streak, streak_anchor_date, user_date, created_at, updated_at FROM habits 
     WHERE id = ${hIdStr}
-    AND (ownerid = ${uIdStr} OR ${uIdStr} = ANY(sharedwith))
+    AND (owner_id = ${uIdStr} OR ${uIdStr} = ANY(shared_with))
   `;
 
-  if (habits.length === 0) {
+  if ((habits as any[]).length === 0) {
     throw createError({ statusCode: 404, statusMessage: 'Habit not found or not shared with you' });
   }
 
-  const habit = habits[0];
+  const habit = (habits as any[])[0];
 
   // Fetch logs. Default to last 60 days if no range provided.
   const query = getQuery(event);
@@ -50,8 +50,8 @@ export default defineEventHandler(async (event) => {
   }
 
   const logs = await sql`
-    SELECT id, habitid, ownerid, date, status, "streakCount", "brokenStreakCount", sharedwith, updatedat FROM habitlogs 
-    WHERE habitid = ${hIdStr}
+    SELECT id, habit_id, owner_id, date, status, streak_count, broken_streak_count, shared_with, updated_at FROM habit_logs 
+    WHERE habit_id = ${hIdStr}
     AND date >= ${startDateStr}
     ${endDateStr ? sql`AND date <= ${endDateStr}` : sql``}
     ORDER BY date DESC
@@ -60,7 +60,7 @@ export default defineEventHandler(async (event) => {
   return {
     data: {
       habit: normalizeHabit(habit),
-      logs: logs.map(normalizeLog)
+      logs: (logs as any[]).map(normalizeLog)
     }
   };
 });

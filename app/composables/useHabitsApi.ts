@@ -15,35 +15,35 @@ const generateId = () => {
 
 export interface Habit {
   id: string;
-  ownerid: string;
+  ownerId: string;
   title: string;
   description: string;
   skipsCount: number;
   skipsPeriod: 'none' | 'weekly' | 'monthly';
   color: string;
-  sharedwith: string[];
+  sharedWith: string[];
   sortOrder?: number;
   createdAt?: string;
   currentStreak?: number;
   longestStreak?: number;
   streakAnchorDate?: string | null;
-  user_date?: string;
+  userDate?: string;
 }
 
 export interface HabitLog {
   id: string;
-  habitid: string;
-  ownerid: string;
+  habitId: string;
+  ownerId: string;
   date: string;
   status: 'completed' | 'skipped' | 'failed' | 'vacation' | 'cleared';
-  sharedwith: string[];
+  sharedWith: string[];
   streakCount?: number;
   brokenStreakCount?: number;
 }
 
 export interface Bucket {
   id: string;
-  ownerid: string;
+  ownerId: string;
   title: string;
   description: string;
   color: string;
@@ -60,8 +60,8 @@ export interface Bucket {
 
 export interface BucketLog {
   id: string;
-  bucketid: string;
-  ownerid: string;
+  bucketId: string;
+  ownerId: string;
   date: string;
   status: 'completed' | 'skipped' | 'failed' | 'vacation' | 'cleared';
   streakCount?: number;
@@ -101,7 +101,7 @@ export const useHabitsApi = () => {
 
   // --- Habits ---
   const getHabits = async () => {
-    const habits = await db.habits.where('ownerid').equals(getOwnerId()).toArray();
+    const habits = await db.habits.where('ownerId').equals(getOwnerId()).toArray();
     return habits.sort((a, b) => {
       const orderDiff = (a.sortOrder || 0) - (b.sortOrder || 0);
       if (orderDiff !== 0) return orderDiff;
@@ -115,7 +115,7 @@ export const useHabitsApi = () => {
     const newHabit: any = toPlain({
       ...data,
       id: data.id || generateId(),
-      ownerid: getOwnerId(),
+      ownerId: getOwnerId(),
       synced: 0,
       sortOrder: data.sortOrder ?? 0,
       createdAt: data.createdAt || new Date().toISOString(),
@@ -148,7 +148,7 @@ export const useHabitsApi = () => {
     }
 
     await db.habits.delete(id);
-    await db.habitLogs.where({ habitid: id }).delete();
+    await db.habitLogs.where({ habitId: id }).delete();
     await removeHabitFromBuckets(id);
     triggerSync();
   };
@@ -176,13 +176,13 @@ export const useHabitsApi = () => {
   // --- Habit Logs ---
   const getLogs = async (startDate: string, endDate: string) => {
     return await db.habitLogs
-      .where('ownerid').equals(getOwnerId())
+      .where('ownerId').equals(getOwnerId())
       .filter(log => log.date >= startDate && log.date <= endDate)
       .toArray();
   };
 
   const syncLocalBucketLogs = async (habitId: string, date: string) => {
-    const allBuckets = await db.buckets.where('ownerid').equals(getOwnerId()).toArray();
+    const allBuckets = await db.buckets.where('ownerId').equals(getOwnerId()).toArray();
     const affectedBuckets = allBuckets.filter(b => b.habitIds?.includes(habitId));
 
     for (const bucket of affectedBuckets) {
@@ -190,11 +190,11 @@ export const useHabitsApi = () => {
       if (habitsInBucket.length === 0) continue;
 
       const logs = await db.habitLogs
-        .where('ownerid').equals(getOwnerId())
-        .filter(l => habitsInBucket.includes(l.habitid) && l.date === date && l.status !== 'cleared')
+        .where('ownerId').equals(getOwnerId())
+        .filter(l => habitsInBucket.includes(l.habitId) && l.date === date && l.status !== 'cleared')
         .toArray();
 
-      const uniqueLoggedHabits = new Set(logs.map(l => l.habitid));
+      const uniqueLoggedHabits = new Set(logs.map(l => l.habitId));
       if (uniqueLoggedHabits.size === habitsInBucket.length) {
         let finalStatus: 'completed' | 'failed' | 'skipped' | 'vacation' = 'completed';
         const statuses = logs.map(l => l.status);
@@ -205,8 +205,8 @@ export const useHabitsApi = () => {
 
         await db.bucketLogs.put({
           id: `${bucket.id}_${date}`,
-          bucketid: bucket.id,
-          ownerid: getOwnerId(),
+          bucketId: bucket.id,
+          ownerId: getOwnerId(),
           date: date,
           status: finalStatus,
           synced: 0,
@@ -215,8 +215,8 @@ export const useHabitsApi = () => {
       } else {
         await db.bucketLogs.put({
           id: `${bucket.id}_${date}`,
-          bucketid: bucket.id,
-          ownerid: getOwnerId(),
+          bucketId: bucket.id,
+          ownerId: getOwnerId(),
           date: date,
           status: 'cleared',
           synced: 0,
@@ -227,20 +227,20 @@ export const useHabitsApi = () => {
     }
   };
 
-  const upsertLog = async (data: { habitid: string; date: string; status: string; sharedwith?: string[] }) => {
-    const logId = `${data.habitid}_${data.date}`;
+  const upsertLog = async (data: { habitId: string; date: string; status: string; sharedWith?: string[] }) => {
+    const logId = `${data.habitId}_${data.date}`;
     const newLog: any = toPlain({
       id: logId,
       ...data,
-      ownerid: getOwnerId(),
+      ownerId: getOwnerId(),
       synced: 0,
       updatedAt: Date.now()
     });
     await db.habitLogs.put(newLog);
 
-    await recalculateLocalHabitStreak(data.habitid, getOwnerId(), data.date);
-    const habit = await db.habits.get(data.habitid);
-    await syncLocalBucketLogs(data.habitid, data.date);
+    await recalculateLocalHabitStreak(data.habitId, getOwnerId(), data.date);
+    const habit = await db.habits.get(data.habitId);
+    await syncLocalBucketLogs(data.habitId, data.date);
 
     triggerSync();
     return { log: newLog, habit: habit! };
@@ -248,7 +248,7 @@ export const useHabitsApi = () => {
 
   const deleteLog = async (habitId: string, date: string) => {
     const result = await upsertLog({
-      habitid: habitId,
+      habitId: habitId,
       date,
       status: 'cleared'
     });
@@ -257,7 +257,7 @@ export const useHabitsApi = () => {
 
   // --- Buckets ---
   const getBuckets = async () => {
-    const buckets = await db.buckets.where('ownerid').equals(getOwnerId()).toArray();
+    const buckets = await db.buckets.where('ownerId').equals(getOwnerId()).toArray();
     return buckets.sort((a, b) => {
       const orderDiff = (a.sortOrder || 0) - (b.sortOrder || 0);
       if (orderDiff !== 0) return orderDiff;
@@ -271,7 +271,7 @@ export const useHabitsApi = () => {
     const newBucket: any = toPlain({
       ...data,
       id: data.id || generateId(),
-      ownerid: getOwnerId(),
+      ownerId: getOwnerId(),
       synced: 0,
       sortOrder: data.sortOrder ?? 0,
       createdAt: data.createdAt || new Date().toISOString(),
@@ -303,13 +303,13 @@ export const useHabitsApi = () => {
       await db.syncQueue.add({ type: 'bucket', action: 'DELETE', payload: { id } });
     }
     await db.buckets.delete(id);
-    await db.bucketLogs.where({ bucketid: id }).delete();
+    await db.bucketLogs.where({ bucketId: id }).delete();
     triggerSync();
   };
 
   const getBucketLogs = async (startDate: string, endDate: string) => {
     return await db.bucketLogs
-      .where('ownerid').equals(getOwnerId())
+      .where('ownerId').equals(getOwnerId())
       .filter(log => log.date >= startDate && log.date <= endDate)
       .toArray();
   };
@@ -395,14 +395,14 @@ export const useHabitsApi = () => {
               } catch (err: any) {
                 if (err.statusCode === 404) {
                   await db.habits.delete(h.id);
-                  await db.habitLogs.where({ habitid: h.id }).delete();
+                  await db.habitLogs.where({ habitId: h.id }).delete();
                   await removeHabitFromBuckets(h.id);
                   continue;
                 }
                 throw err;
               }
             }
-            await db.habits.update(h.id, { synced: 1, id: remote.id, user_date: remote.user_date });
+            await db.habits.update(h.id, { synced: 1, id: remote.id, userDate: remote.userDate });
           } catch (e) {
             console.warn('[Sync] Habit push failed:', e);
           }
@@ -414,10 +414,11 @@ export const useHabitsApi = () => {
           if (!stillExists) continue;
 
           try {
-            const { habit } = await $fetch<{ log: HabitLog, habit: Habit }>('/api/habitlogs', {
+            const response = await $fetch<{ log: HabitLog, habit: Habit }>('/api/habitlogs', {
               method: 'POST',
               body: l
             });
+            const { habit } = response;
             await db.habitLogs.update(l.id, { synced: 1 });
             if (habit) {
               await db.habits.update(habit.id, { synced: 1 });
@@ -513,11 +514,11 @@ export const useHabitsApi = () => {
             for (const d of remoteDeletions) {
               if (d.type === 'habit') {
                 await db.habits.delete(d.id);
-                await db.habitLogs.where({ habitid: d.id }).delete();
+                await db.habitLogs.where({ habitId: d.id }).delete();
                 await removeHabitFromBuckets(d.id);
               } else if (d.type === 'bucket') {
                 await db.buckets.delete(d.id);
-                await db.bucketLogs.where({ bucketid: d.id }).delete();
+                await db.bucketLogs.where({ bucketId: d.id }).delete();
               }
             }
           }

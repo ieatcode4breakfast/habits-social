@@ -3,7 +3,7 @@ export interface IUser {
   email: string;
   username: string;
   passwordHash: string;
-  photourl?: string | null;
+  photoUrl?: string | null;
   emailVerifiedAt?: Date | null;
   createdAt: Date;
   updatedAt: Date;
@@ -11,37 +11,37 @@ export interface IUser {
 
 export interface IHabit {
   id?: string;
-  ownerid: string;
+  ownerId: string;
   title: string;
   description: string;
   skipsCount: number;
   skipsPeriod: string;
   color: string;
-  sharedwith: string[];
+  sharedWith: string[];
   sortOrder: number;
   currentStreak: number;
   longestStreak: number;
   streakAnchorDate: Date | null;
-  user_date?: string | null;
+  userDate?: string | null;
   createdAt: Date;
-  updatedat: Date;
+  updatedAt: Date;
 }
 
 export interface IHabitLog {
   id?: string;
-  habitid: string;
-  ownerid: string;
+  habitId: string;
+  ownerId: string;
   date: string;
   status: string;
   streakCount: number;
   brokenStreakCount?: number;
-  sharedwith: string[];
-  updatedat: Date;
+  sharedWith: string[];
+  updatedAt: Date;
 }
 
 export interface IBucket {
   id?: string;
-  ownerid: string;
+  ownerId: string;
   title: string;
   description?: string;
   color?: string;
@@ -50,18 +50,18 @@ export interface IBucket {
   longestStreak: number;
   streakAnchorDate: Date | null;
   createdAt: Date;
-  updatedat: Date;
+  updatedAt: Date;
 }
 
 export interface IBucketLog {
   id?: string;
-  bucketid: string;
-  ownerid: string;
+  bucketId: string;
+  ownerId: string;
   date: string;
   status: string;
   streakCount: number;
   brokenStreakCount?: number;
-  updatedat: Date;
+  updatedAt: Date;
 }
 
 export interface IFriendship {
@@ -77,16 +77,16 @@ export interface IFriendship {
 
 export interface IShareEvent {
   id?: string;
-  ownerid: string;
-  recipientid: string;
-  habitids: string[];
-  user_date: string;
-  created_at: Date;
+  ownerId: string;
+  recipientId: string;
+  habitIds: string[];
+  userDate: string;
+  createdAt: Date;
 }
 
 export interface ISyncDeletion {
-  ownerid: string;
-  entity_id: string;
-  entity_type: string;
-  created_at: Date;
+  ownerId: string;
+  entityId: string;
+  entityType: string;
+  createdAt: Date;
 }

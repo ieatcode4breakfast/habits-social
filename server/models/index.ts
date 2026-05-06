@@ -3,7 +3,7 @@ export interface IUser {
   email: string;
   username: string;
   passwordHash: string;
-  photourl?: string;
+  photoUrl?: string;
   emailVerifiedAt?: Date | null;
   createdAt: Date;
   updatedAt: Date;
@@ -11,41 +11,41 @@ export interface IUser {
 
 export interface IHabit {
   id?: string;
-  ownerid: string;
+  ownerId: string;
   title: string;
   description: string;
   skipsCount: number;
   skipsPeriod: string;
   color: string;
-  sharedwith: string[];
+  sharedWith: string[];
   sortOrder: number;
   currentStreak: number;
   longestStreak: number;
   streakAnchorDate: Date | null;
-  user_date?: string;
+  userDate?: string;
   createdAt: Date;
-  updatedat: Date;
+  updatedAt: Date;
 }
 
 export interface IShareEvent {
   id?: string;
-  ownerid: string;
-  recipientid: string;
-  habitids: string[];
-  user_date: string;
-  created_at: Date;
+  ownerId: string;
+  recipientId: string;
+  habitIds: string[];
+  userDate: string;
+  createdAt: Date;
 }
 
 export interface IHabitLog {
   id?: string;
-  habitid: string;
-  ownerid: string;
+  habitId: string;
+  ownerId: string;
   date: string;
   status: string;
   streakCount: number;
   brokenStreakCount?: number;
-  sharedwith: string[];
-  updatedat: Date;
+  sharedWith: string[];
+  updatedAt: Date;
 }
 
 export interface IFriendship {
@@ -61,7 +61,7 @@ export interface IFriendship {
 
 export interface IBucket {
   id?: string;
-  ownerid: string;
+  ownerId: string;
   title: string;
   description?: string;
   color?: string;
@@ -70,36 +70,36 @@ export interface IBucket {
   streakAnchorDate: Date | null;
   sortOrder: number;
   createdAt: Date;
-  updatedat: Date;
+  updatedAt: Date;
   // Shared metadata
   sharedMembers?: ISharedBucketMember[];
   sharedHabits?: IBucketHabit[];
 }
 
 export interface ISharedBucketMember {
-  bucket_id: string;
-  user_id: string;
+  bucketId: string;
+  userId: string;
   username?: string;
   status: 'pending' | 'accepted' | 'declined';
-  created_at?: Date;
-  updated_at?: Date;
+  createdAt?: Date;
+  updatedAt?: Date;
 }
 
 export interface IBucketHabit {
-  bucket_id: string;
-  habit_id: string;
-  added_by: string;
-  approval_status: 'pending' | 'accepted' | 'declined' | 'removed';
+  bucketId: string;
+  habitId: string;
+  addedBy: string;
+  approvalStatus: 'pending' | 'accepted' | 'declined' | 'removed';
   habitOwnerId?: string;
 }
 
 export interface IBucketLog {
   id?: string;
-  bucketid: string;
-  ownerid: string;
+  bucketId: string;
+  ownerId: string;
   date: string;
   status: string;
   streakCount: number;
   brokenStreakCount?: number;
-  updatedat: Date;
+  updatedAt: Date;
 }
