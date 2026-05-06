@@ -20,6 +20,9 @@ export default defineEventHandler(async (event) => {
     let logs;
     if (query.lastSynced) {
       const lastSynced = Number(query.lastSynced);
+      if (isNaN(lastSynced)) {
+        throw createError({ statusCode: 400, statusMessage: 'Invalid lastSynced parameter' });
+      }
       logs = await sql`
         SELECT * FROM habitlogs 
         WHERE ownerid = ${userId} 

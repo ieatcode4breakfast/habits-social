@@ -18,7 +18,7 @@ export default defineEventHandler(async (event) => {
       UPDATE friendships 
       SET status = 'accepted', "updatedAt" = NOW()
       WHERE id = ${id}::uuid
-        AND ("initiatorId" = ${userId} OR "receiverId" = ${userId})
+        AND "receiverId" = ${userId}
       RETURNING *
     `;
 

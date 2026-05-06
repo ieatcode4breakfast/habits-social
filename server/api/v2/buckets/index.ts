@@ -17,6 +17,9 @@ export default defineEventHandler(async (event) => {
     let buckets;
     if (query.lastSynced) {
       const lastSynced = Number(query.lastSynced);
+      if (isNaN(lastSynced)) {
+        throw createError({ statusCode: 400, statusMessage: 'Invalid lastSynced parameter' });
+      }
       buckets = await sql`
         SELECT * FROM buckets 
         WHERE ownerid = ${userId} 

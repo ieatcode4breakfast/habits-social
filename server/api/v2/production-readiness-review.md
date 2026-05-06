@@ -20,11 +20,11 @@ B. WARNINGS (Highly recommended to address)
 6. Streak Recalculation Ignores Skip Policy — RESOLVED (By Design)
 `docs/streak-logic.md:46-48` specifies that gap detection always resets the streak and skipped days are ignored. The skip budget (`skipsPeriod`/`skipsCount`) is a frontend-only UI gate (see `LogMenu.vue:84-107`) and must not affect server-side streak recalculation. The unused column fetches in `_utils/streaks.ts` have been removed.
 
-7. Unvalidated `lastSynced` Parameter Causes SQL Errors
+7. Unvalidated `lastSynced` Parameter Causes SQL Errors - ADDRESSED
 `buckets/index.ts` (GET) and `habitlogs/index.ts` (GET) pass `Number(query.lastSynced)` directly to `to_timestamp()` without checking `isNaN`. If the client sends a non-numeric value, the query will fail or behave unpredictably. (`habits/index.ts` correctly validates this.)
 - **Fix**: Add the same `if (isNaN(lastSynced))` guard that `habits/index.ts` uses.
 
-8. Accepting Your Own Friend Request
+8. Accepting Your Own Friend Request - ADDRESSED
 `friendships/[id].ts` (PUT) allows the initiator of a friendship to accept it. Only the receiver should be able to accept a pending request.
 - **Fix**: Verify `friendship.receiverId === userId` before updating the status to `'accepted'`.
 
@@ -69,3 +69,27 @@ C. NITPICKS & BEST PRACTICES
 21. `friendships/[id].ts` (DELETE) updates `sharedwith` arrays in four sequential `UPDATE` statements. If the schema uses `text[]`, ensure `array_remove` handles these correctly for large arrays, or consider normalizing sharing relationships into a junction table.
 22. In `social/habit-details.get.ts` and `social/friend-data.get.ts`, `startDateStr` and `endDateStr` are accepted from query params without validating they conform to `YYYY-MM-DD`. Invalid formats will result in SQL errors or incorrect filtering.
 23. `habits/reorder.ts` and `buckets/reorder.ts` perform N sequential `UPDATE` calls inside a loop. While N is capped by the app limit (30), consider using a single bulk update with `CASE` or `UNNEST` for atomicity and efficiency.
+
+### D. PRIORITIZED TO-DO LIST (By Complexity)
+
+#### 🟢 Phase 1: Easiest & Lowest Risk (Quick Wins)
+- [ ] **Item 18**: Remove dead code in `buckets/index.ts` (`const bucketId = data.id || ...`).
+- [ ] **Item 11**: Enforce max password length (128 chars) in `auth/register.post.ts`.
+- [ ] **Item 15**: Use generic registration conflict error message in `auth/register.post.ts`.
+- [ ] **Item 13**: Cap `username` length and ensure string type in `users/search.get.ts`.
+- [ ] **Item 17**: Change unauthenticated `/auth/me.get.ts` response from 200 to 401.
+- [ ] **Item 22**: Validate `YYYY-MM-DD` date format in social query params.
+- [ ] **Item 7**: Add `isNaN` guard for `lastSynced` in `buckets/index.ts` and `habitlogs/index.ts`.
+
+#### 🟡 Phase 2: Low to Medium Complexity
+- [ ] **Item 20**: Consolidate Zod schemas for user profile updates.
+- [ ] **Item 19**: Replace `SELECT *` with explicit column lists in identified endpoints.
+- [ ] **Item 12**: Standardize UTC date normalization.
+
+#### 🔴 Phase 3: Higher Complexity (Strategic)
+- [ ] **Item 10**: Wrap multi-step mutations in database transactions.
+- [ ] **Item 16**: Implement token invalidation on password change.
+- [ ] **Item 14**: Verify/implement cascading deletes for user accounts.
+- [ ] **Item 23**: Bulk update optimization for reorder endpoints.
+- [ ] **Item 9**: Implement rate limiting on authentication and search endpoints.
+- [ ] **Item 21**: Normalize sharing relationships or ensure safe array updates for `sharedwith`.
