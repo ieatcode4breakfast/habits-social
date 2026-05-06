@@ -340,7 +340,7 @@
           <div class="fixed inset-0 bg-black/80 backdrop-blur-md" @click="showReorderModal = false"></div>
 
           <!-- Modal Content -->
-          <div class="relative my-auto w-full sm:max-w-sm bg-zinc-925 border-t sm:border border-zinc-800 sm:rounded-3xl rounded-t-3xl shadow-2xl overflow-hidden flex flex-col" style="max-height: 80vh">
+          <div class="relative my-auto w-full sm:max-w-sm bg-zinc-925 border-t sm:border border-zinc-800 sm:rounded-3xl rounded-3xl shadow-2xl overflow-hidden flex flex-col" style="max-height: 80vh">
             <!-- Header -->
             <div class="flex items-center justify-between px-5 py-4 border-b border-zinc-800/80 shrink-0">
               <div>
