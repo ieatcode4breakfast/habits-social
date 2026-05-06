@@ -10,6 +10,7 @@ export async function recalculateHabitStreak(sql: any, habitId: string, userId: 
   let runningStreak = 0;
   let lastDate: Date | null = null;
   let queryStartDate = fromDate;
+  let maxStreak = 0;
 
   // 2. If incremental, find the starting point state from the log just before fromDate
   if (fromDate) {
@@ -22,6 +23,12 @@ export async function recalculateHabitStreak(sql: any, habitId: string, userId: 
       runningStreak = prevLog[0].streakCount;
       lastDate = startOfDay(parseISO(prevLog[0].date));
     }
+
+    const maxRes = await sql`
+      SELECT MAX("streakCount") as max_streak FROM habitlogs 
+      WHERE habitid = ${habitId}::uuid AND ownerid = ${userId} AND date < ${fromDate}
+    `;
+    maxStreak = maxRes[0]?.max_streak || 0;
   }
 
   // 3. Fetch logs from starting point onwards
@@ -57,7 +64,6 @@ export async function recalculateHabitStreak(sql: any, habitId: string, userId: 
   }
 
   // 4. The Cascading Update: Iterate through timeline and calculate counts
-  let maxStreak = habit.longestStreak || 0;
   let streakAnchorDate: string | null = habit.streakAnchorDate;
   const updates: any[] = [];
 

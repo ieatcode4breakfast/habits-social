@@ -25,9 +25,9 @@ export default defineEventHandler(async (event) => {
     SELECT 1 FROM friendships 
     WHERE status = 'accepted'
       AND (
-        ("initiatorId" = ${userId}::uuid AND "receiverId" = ${targetId}::uuid)
+        ("initiatorId" = ${userId} AND "receiverId" = ${targetId})
         OR 
-        ("initiatorId" = ${targetId}::uuid AND "receiverId" = ${userId}::uuid)
+        ("initiatorId" = ${targetId} AND "receiverId" = ${userId})
       )
   `;
 
@@ -39,7 +39,7 @@ export default defineEventHandler(async (event) => {
   const currentShared = await sql`
     SELECT id FROM habits 
     WHERE ownerid = ${userId} 
-      AND ${targetId} = ANY(sharedwith)
+      AND ${targetId}::text = ANY(sharedwith)
   `;
   const currentSharedIds = currentShared.map((h: any) => String(h.id));
   const newSharedIds = habitIds.map((id: string) => String(id));

@@ -68,3 +68,28 @@ export const createTestBucket = async (ownerid: string, title: string) => {
 export const deleteTestBucket = async (bucketId: string) => {
   await sql`DELETE FROM buckets WHERE id = ${bucketId}::uuid`;
 };
+
+export const createFriendship = async (initiatorId: string, receiverId: string, status: string = 'accepted') => {
+  const result = await sql`
+    INSERT INTO friendships (id, "initiatorId", "receiverId", status, "createdAt", "updatedAt")
+    VALUES (gen_random_uuid(), ${initiatorId}, ${receiverId}, ${status}, NOW(), NOW())
+    RETURNING id, status
+  `;
+  return result[0];
+};
+
+export const deleteFriendship = async (friendshipId: string) => {
+  await sql`DELETE FROM friendships WHERE id = ${friendshipId}::uuid`;
+};
+
+export const shareHabitWithUser = async (habitId: string, targetUserId: string) => {
+  await sql`
+    UPDATE habits 
+    SET sharedwith = array_append(sharedwith, ${targetUserId}) 
+    WHERE id = ${habitId}::uuid
+  `;
+};
+
+export const generateMassiveString = (length: number = 10001) => {
+  return 'A'.repeat(length);
+};

@@ -28,6 +28,20 @@ describe('GET /api/v2/habits', () => {
     expect(response.data.length).toBeGreaterThanOrEqual(1);
     expect(response.data.find((h: any) => h.id === testHabit.id)).toBeDefined();
   });
+
+  it('should safely reject invalid lastSynced strings (PRR-7)', async () => {
+    const event = createMockEvent(testUser.id, {}, {}, {}, { lastSynced: 'not-a-number' }, 'GET');
+    event.context.userId = testUser.id;
+
+    await expect(handler(event)).rejects.toThrow(/Invalid lastSynced/i);
+  });
+
+  it('should safely handle NaN lastSynced (PRR-7)', async () => {
+    const event = createMockEvent(testUser.id, {}, {}, {}, { lastSynced: 'NaN' }, 'GET');
+    event.context.userId = testUser.id;
+
+    await expect(handler(event)).rejects.toThrow(/Invalid lastSynced/i);
+  });
 });
 
 describe('POST /api/v2/habits', () => {

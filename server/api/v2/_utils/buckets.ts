@@ -9,6 +9,7 @@ export async function recalculateBucketStreak(sql: any, bucketId: string, userId
   let runningStreak = 0;
   let lastDate: Date | null = null;
   let queryStartDate = fromDate;
+  let maxStreak = 0;
 
   if (fromDate) {
     const prevLog = await sql`
@@ -20,6 +21,12 @@ export async function recalculateBucketStreak(sql: any, bucketId: string, userId
       runningStreak = prevLog[0].streakCount;
       lastDate = startOfDay(parseISO(prevLog[0].date));
     }
+
+    const maxRes = await sql`
+      SELECT MAX("streakCount") as max_streak FROM bucketlogs 
+      WHERE bucketid = ${bucketId}::uuid AND ownerid = ${userId} AND date < ${fromDate}
+    `;
+    maxStreak = maxRes[0]?.max_streak || 0;
   }
 
   const logs = await sql`
@@ -50,7 +57,6 @@ export async function recalculateBucketStreak(sql: any, bucketId: string, userId
     return result[0];
   }
 
-  let maxStreak = bucket.longestStreak || 0;
   let streakAnchorDate: string | null = bucket.streakAnchorDate;
   const updates: any[] = [];
 
