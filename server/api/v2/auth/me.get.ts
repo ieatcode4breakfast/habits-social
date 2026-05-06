@@ -9,7 +9,7 @@ export default defineEventHandler(async (event) => {
   const userId = await getUserFromEvent(event);
 
   if (!userId) {
-    return { data: null };
+    throw createError({ statusCode: 401, statusMessage: 'Unauthorized' });
   }
 
   const users = await sql`SELECT id, email, username, photourl FROM users WHERE id = ${userId}::uuid`;

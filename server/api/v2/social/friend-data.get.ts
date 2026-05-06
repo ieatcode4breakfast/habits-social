@@ -40,8 +40,16 @@ export default defineEventHandler(async (event) => {
   const habitIdSet = new Set(habits.map((h: any) => String(h.id)));
 
   const query = getQuery(event);
-  let startDateStr = String(query.startDate || '');
-  let endDateStr = String(query.endDate || '');
+  let startDateStr = query.startDate ? String(query.startDate) : '';
+  let endDateStr = query.endDate ? String(query.endDate) : '';
+
+  const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+  if (startDateStr && !dateRegex.test(startDateStr)) {
+    throw createError({ statusCode: 400, statusMessage: 'Invalid startDate format. Use YYYY-MM-DD' });
+  }
+  if (endDateStr && !dateRegex.test(endDateStr)) {
+    throw createError({ statusCode: 400, statusMessage: 'Invalid endDate format. Use YYYY-MM-DD' });
+  }
 
   if (!startDateStr) {
     const cutoff = new Date();

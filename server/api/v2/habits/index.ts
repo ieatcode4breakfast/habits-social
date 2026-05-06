@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { useDB as _useDB } from '../_utils/db';
 import { requireAuth as _requireAuth } from '../_utils/auth';
 import { normalizeHabit } from '../_utils/normalize';
-import { habitSchema } from '../_utils/validation';
+import { habitSchema, throwZodError } from '../_utils/validation';
 
 export default defineEventHandler(async (event) => {
   const requireAuth = (event.context as any).requireAuth || _requireAuth;
@@ -40,7 +40,7 @@ export default defineEventHandler(async (event) => {
     const body = await readBody(event);
     const validation = habitSchema.safeParse(body);
     if (!validation.success) {
-      throw createError({ statusCode: 400, statusMessage: 'Validation Failed', data: validation.error.flatten() });
+      return throwZodError(validation.error);
     }
 
     const data = validation.data;

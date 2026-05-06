@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { useDB as _useDB } from '../_utils/db';
 import { requireAuth as _requireAuth } from '../_utils/auth';
 import { normalizeBucket } from '../_utils/normalize';
-import { bucketSchema } from '../_utils/validation';
+import { bucketSchema, throwZodError } from '../_utils/validation';
 
 export default defineEventHandler(async (event) => {
   const requireAuth = (event.context as any).requireAuth || _requireAuth;
@@ -53,7 +53,7 @@ export default defineEventHandler(async (event) => {
     const body = await readBody(event);
     const validation = bucketSchema.safeParse(body);
     if (!validation.success) {
-      throw createError({ statusCode: 400, statusMessage: 'Validation Failed', data: validation.error.flatten() });
+      return throwZodError(validation.error);
     }
 
     const data = validation.data;
@@ -63,7 +63,6 @@ export default defineEventHandler(async (event) => {
       throw createError({ statusCode: 400, statusMessage: 'Bucket limit of 30 reached' });
     }
 
-    const bucketId = data.id || `${userId}_${Date.now()}`;
 
     const result = await sql`
       INSERT INTO buckets (id, ownerid, title, description, color, "sortOrder", "createdAt", updatedat)

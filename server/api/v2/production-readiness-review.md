@@ -36,7 +36,7 @@ B. WARNINGS (Highly recommended to address)
 Most endpoints perform multiple sequential SQL writes (e.g., habit deletion + bucket log re-evaluation, bucket update + shared member cleanup) without wrapping them in a database transaction. A partial failure leaves data in an inconsistent state.
 - **Fix**: Use `sql.begin()` (or `sql.transaction()`) from `@neondatabase/serverless` to group logically atomic operations.
 
-11. Password Length DoS Vector
+11. Password Length DoS Vector - ADDRESSED
 `auth/register.post.ts` does not enforce a maximum password length before hashing. bcrypt truncates at 72 bytes, but hashing extremely large payloads wastes CPU and can be abused for denial-of-service.
 - **Fix**: Reject passwords longer than 128 characters in the validation layer.
 
@@ -45,14 +45,14 @@ Most endpoints perform multiple sequential SQL writes (e.g., habit deletion + bu
 - **Fix**: Use UTC-aware formatting (e.g., `formatInTimeZone` from `date-fns-tz`) or standardize on UTC server time.
 
 13. Search Param Type Safety
-`users/search.get.ts` (line 10) does `String(username)`. If the query parser returns an object or array, this produces `"[object Object]"`. Also, an extremely long input string wastes DB cycles on `ILIKE`.
+`users/search.get.ts` (line 10) does `String(username)`. If the query parser returns an object or array, this produces `"[object Object]"`. Also, an extremely long input string wastes DB cycles on `ILIKE`. - ADDRESSED
 - **Fix**: Validate that `username` is a string and cap its length (e.g., max 100 chars) before the query.
 
 14. User Deletion Assumes Database Cascades
 `users/me.delete.ts` attempts a bare `DELETE FROM users`. If foreign key constraints lack `ON DELETE CASCADE`, the endpoint will crash with a 500 error.
 - **Fix**: Either confirm cascading is configured at the schema level, or wrap explicit dependent-row deletions in a transaction.
 
-15. PII Leak via Registration Error Messages
+15. PII Leak via Registration Error Messages - ADDRESSED
 `auth/register.post.ts` returns distinct error messages for existing email vs. existing username, allowing an attacker to enumerate registered accounts.
 - **Fix**: Return a single generic message for both conflicts (e.g., "Email or username already taken").
 
@@ -62,24 +62,15 @@ Most endpoints perform multiple sequential SQL writes (e.g., habit deletion + bu
 
 C. NITPICKS & BEST PRACTICES
 
-17. `/auth/me.get.ts` returns HTTP 200 `{ data: null }` for unauthenticated clients. Standard REST semantics expect 401. If the frontend relies on this behavior, document it explicitly in a comment.
-18. Dead code in `buckets/index.ts`: `const bucketId = data.id || \`\${userId}_${Date.now()}\`;` is computed but never referenced.
+17. `/auth/me.get.ts` returns HTTP 200 `{ data: null }` for unauthenticated clients. Standard REST semantics expect 401. If the frontend relies on this behavior, document it explicitly in a comment. - ADDRESSED
+18. Dead code in `buckets/index.ts`: `const bucketId = data.id || \`\${userId}_${Date.now()}\`;` is computed but never referenced. - ADDRESSED
 19. Avoid `SELECT *` in production queries. `auth/login.post.ts`, `users/me.put.ts`, and `friendships/index.ts` all select more columns than needed, increasing the risk of accidental PII leakage and unnecessary data transfer.
 20. Zod schema duplication: `users/me.put.ts` defines `updateProfileSchema` inline, while `_utils/validation.ts` exports a nearly identical one. Consolidate schemas to prevent future drift.
 21. `friendships/[id].ts` (DELETE) updates `sharedwith` arrays in four sequential `UPDATE` statements. If the schema uses `text[]`, ensure `array_remove` handles these correctly for large arrays, or consider normalizing sharing relationships into a junction table.
-22. In `social/habit-details.get.ts` and `social/friend-data.get.ts`, `startDateStr` and `endDateStr` are accepted from query params without validating they conform to `YYYY-MM-DD`. Invalid formats will result in SQL errors or incorrect filtering.
+22. In `social/habit-details.get.ts` and `social/friend-data.get.ts`, `startDateStr` and `endDateStr` are accepted from query params without validating they conform to `YYYY-MM-DD`. Invalid formats will result in SQL errors or incorrect filtering. - ADDRESSED
 23. `habits/reorder.ts` and `buckets/reorder.ts` perform N sequential `UPDATE` calls inside a loop. While N is capped by the app limit (30), consider using a single bulk update with `CASE` or `UNNEST` for atomicity and efficiency.
 
 ### D. PRIORITIZED TO-DO LIST (By Complexity)
-
-#### 🟢 Phase 1: Easiest & Lowest Risk (Quick Wins)
-- [ ] **Item 18**: Remove dead code in `buckets/index.ts` (`const bucketId = data.id || ...`).
-- [ ] **Item 11**: Enforce max password length (128 chars) in `auth/register.post.ts`.
-- [ ] **Item 15**: Use generic registration conflict error message in `auth/register.post.ts`.
-- [ ] **Item 13**: Cap `username` length and ensure string type in `users/search.get.ts`.
-- [ ] **Item 17**: Change unauthenticated `/auth/me.get.ts` response from 200 to 401.
-- [ ] **Item 22**: Validate `YYYY-MM-DD` date format in social query params.
-- [ ] **Item 7**: Add `isNaN` guard for `lastSynced` in `buckets/index.ts` and `habitlogs/index.ts`.
 
 #### 🟡 Phase 2: Low to Medium Complexity
 - [ ] **Item 20**: Consolidate Zod schemas for user profile updates.

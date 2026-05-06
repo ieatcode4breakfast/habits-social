@@ -1,5 +1,28 @@
 import { z } from 'zod';
 
+/**
+ * Extracts a single, human-readable error message from a Zod validation error.
+ */
+export const getZodErrorMessage = (error: z.ZodError): string => {
+  const [issue] = error.issues;
+  if (issue) {
+    const path = issue.path.join('.');
+    return path ? `${path}: ${issue.message}` : issue.message;
+  }
+  return 'Validation Failed';
+};
+
+/**
+ * Throws a consistent 400 error for Zod validation failures.
+ */
+export const throwZodError = (error: z.ZodError) => {
+  throw createError({
+    statusCode: 400,
+    statusMessage: getZodErrorMessage(error),
+    data: error.flatten()
+  });
+};
+
 export const isValidEmail = (email: string): boolean => {
   const EMAIL_REGEX = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
   if (!email || email.length > 255) return false;
@@ -8,7 +31,7 @@ export const isValidEmail = (email: string): boolean => {
 
 export const registerSchema = z.object({
   email: z.string().email(),
-  password: z.string().min(8),
+  password: z.string().min(8).max(128),
   username: z.string().min(3).max(20),
   photourl: z.string().max(2000).optional()
 });
@@ -21,7 +44,7 @@ export const loginSchema = z.object({
 export const updateProfileSchema = z.object({
   username: z.string().min(3).max(20).optional(),
   email: z.string().email().optional(),
-  password: z.string().min(8).optional(),
+  password: z.string().min(8).max(128).optional(),
   photourl: z.string().or(z.literal('')).nullable().optional()
 }).refine(data => Object.keys(data).length > 0, {
   message: "At least one field must be provided"

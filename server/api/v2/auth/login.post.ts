@@ -1,6 +1,7 @@
 import { compare } from 'bcrypt-ts';
 import { useDB as _useDB } from '../_utils/db';
 import { generateToken as _generateToken } from '../_utils/auth';
+import { loginSchema, throwZodError } from '../_utils/validation';
 
 export default defineEventHandler(async (event) => {
   const useDB = (event.context as any).useDB || _useDB;
@@ -8,11 +9,13 @@ export default defineEventHandler(async (event) => {
   const sql = useDB(event);
 
   const body = await readBody(event);
-  const { identifier, password } = body;
+  const validation = loginSchema.safeParse(body);
 
-  if (!identifier || !password) {
-    throw createError({ statusCode: 400, statusMessage: 'Email/Username and password are required' });
+  if (!validation.success) {
+    return throwZodError(validation.error);
   }
+
+  const { identifier, password } = validation.data;
 
   const users = await sql`SELECT * FROM users WHERE email = ${identifier} OR username = ${identifier}`;
   const user = users[0];

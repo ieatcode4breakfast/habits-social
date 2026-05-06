@@ -3,7 +3,7 @@ import { parseISO, startOfDay, subDays, addDays, isBefore, isAfter } from 'date-
 import { useDB as _useDB } from '../_utils/db';
 import { requireAuth as _requireAuth } from '../_utils/auth';
 import { normalizeLog } from '../_utils/normalize';
-import { habitLogSchema } from '../_utils/validation';
+import { habitLogSchema, throwZodError } from '../_utils/validation';
 import { recalculateHabitStreak } from '../_utils/streaks';
 import { syncBucketLogsForHabit } from '../_utils/buckets';
 
@@ -46,7 +46,7 @@ export default defineEventHandler(async (event) => {
     const body = await readBody(event);
     const validation = habitLogSchema.safeParse(body);
     if (!validation.success) {
-      throw createError({ statusCode: 400, statusMessage: 'Validation Failed', data: validation.error.flatten() });
+      return throwZodError(validation.error);
     }
 
     const data = validation.data;

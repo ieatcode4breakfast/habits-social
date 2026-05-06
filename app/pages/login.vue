@@ -83,6 +83,7 @@
                 placeholder="Password"
                 required
                 minlength="8"
+                maxlength="128"
                 class="w-full pl-10 pr-12 py-3 bg-black border border-zinc-800 rounded-xl text-white placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-zinc-600 focus:border-transparent transition-all text-sm"
               />
               <button type="button" @click="showPassword = !showPassword" class="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300 cursor-pointer">
@@ -99,6 +100,7 @@
                 :type="showPassword ? 'text' : 'password'"
                 placeholder="Confirm Password"
                 required
+                maxlength="128"
                 class="w-full pl-10 pr-12 py-3 bg-black border border-zinc-800 rounded-xl text-white placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-zinc-600 focus:border-transparent transition-all text-sm"
               />
               <button type="button" @click="showPassword = !showPassword" class="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300 cursor-pointer">
@@ -173,8 +175,8 @@ const handleSubmit = async () => {
       loading.value = false;
       return;
     }
-    if (password.value.length < 8) {
-      error.value = 'Password must be at least 8 characters long.';
+    if (password.value.length < 8 || password.value.length > 128) {
+      error.value = 'Password must be between 8 and 128 characters long.';
       loading.value = false;
       return;
     }

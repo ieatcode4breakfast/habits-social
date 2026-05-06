@@ -1,18 +1,8 @@
-import { z } from 'zod';
 import { useDB as _useDB } from '../_utils/db';
 import { requireAuth as _requireAuth } from '../_utils/auth';
 import { hash } from 'bcrypt-ts';
 import type { IUser } from '../_types';
-
-// Strict schema for updating a user
-const updateProfileSchema = z.object({
-  username: z.string().min(3).max(20).optional(),
-  email: z.string().email().optional(),
-  password: z.string().min(8).optional(),
-  photourl: z.string().url().or(z.literal('')).nullable().optional()
-}).refine(data => Object.keys(data).length > 0, {
-  message: "At least one field (username, email, password, photourl) must be provided to update"
-});
+import { updateProfileSchema, throwZodError } from '../_utils/validation';
 
 export default defineEventHandler(async (event) => {
   const requireAuth = (event.context as any).requireAuth || _requireAuth;
@@ -26,11 +16,7 @@ export default defineEventHandler(async (event) => {
   const validation = updateProfileSchema.safeParse(body);
   
   if (!validation.success) {
-    throw createError({ 
-      statusCode: 400, 
-      statusMessage: 'Validation Failed', 
-      data: validation.error.flatten() 
-    });
+    return throwZodError(validation.error);
   }
 
   const { username, email, password, photourl } = validation.data;
