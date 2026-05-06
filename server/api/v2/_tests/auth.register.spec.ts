@@ -60,4 +60,24 @@ describe('POST /api/v2/auth/register', () => {
     const event = createMockEvent('', { email: `a@b.com`, password: '123', username: `u_${Date.now()}` });
     await expect(handler(event)).rejects.toThrow(/Too small/i);
   });
+
+  it('should reject extremely long password (DoS protection)', async () => {
+    const event = createMockEvent('', { 
+      email: `a@b.com`, 
+      password: 'p'.repeat(129), 
+      username: `u_${Date.now()}` 
+    });
+    await expect(handler(event)).rejects.toThrow(/Too big/i);
+  });
+
+  it('should reject invalid photourl during registration', async () => {
+    const event = createMockEvent('', { 
+      email: `a@b.com`, 
+      password: 'password123', 
+      username: `u_${Date.now()}`,
+      photourl: 'malicious-string'
+    });
+    await expect(handler(event)).rejects.toThrow(/Invalid url/i);
+  });
 });
+

@@ -29,11 +29,15 @@ export const isValidEmail = (email: string): boolean => {
   return EMAIL_REGEX.test(email);
 };
 
-export const registerSchema = z.object({
+const userBaseSchema = z.object({
+  username: z.string().min(3).max(20),
   email: z.string().email(),
   password: z.string().min(8).max(128),
-  username: z.string().min(3).max(20),
-  photourl: z.string().max(2000).optional()
+  photourl: z.string().url().or(z.literal('')).nullable()
+});
+
+export const registerSchema = userBaseSchema.extend({
+  photourl: userBaseSchema.shape.photourl.optional()
 });
 
 export const loginSchema = z.object({
@@ -41,14 +45,10 @@ export const loginSchema = z.object({
   password: z.string().min(1)
 });
 
-export const updateProfileSchema = z.object({
-  username: z.string().min(3).max(20).optional(),
-  email: z.string().email().optional(),
-  password: z.string().min(8).max(128).optional(),
-  photourl: z.string().url().or(z.literal('')).nullable().optional()
-}).refine(data => Object.keys(data).length > 0, {
+export const updateProfileSchema = userBaseSchema.partial().refine(data => Object.keys(data).length > 0, {
   message: "At least one field must be provided"
 });
+
 
 export const habitSchema = z.object({
   id: z.string().uuid().optional(),

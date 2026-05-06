@@ -78,4 +78,12 @@ describe('PUT /api/v2/users/me', () => {
     const response = (await handler(event)) as any;
     expect(response.data!.photourl).toBe('');
   });
+
+  it('should reject empty update body', async () => {
+    const event = createMockEvent(testUser.id, {});
+    event.context.userId = testUser.id;
+
+    await expect(handler(event)).rejects.toThrow(/At least one field must be provided/i);
+  });
 });
+
