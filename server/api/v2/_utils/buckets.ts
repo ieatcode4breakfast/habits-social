@@ -23,7 +23,7 @@ export async function recalculateBucketStreak(sql: any, bucketId: string, userId
   }
 
   const logs = await sql`
-    SELECT * FROM bucketlogs 
+    SELECT id, date, status, "streakCount", "brokenStreakCount" FROM bucketlogs 
     WHERE bucketid = ${bucketId}::uuid AND ownerid = ${userId}
     ${queryStartDate ? sql`AND date >= ${queryStartDate}` : sql``}
     ORDER BY date ASC
@@ -35,7 +35,7 @@ export async function recalculateBucketStreak(sql: any, bucketId: string, userId
         UPDATE buckets 
         SET "currentStreak" = 0, "streakAnchorDate" = NULL, updatedat = NOW()
         WHERE id = ${bucketId}::uuid AND ownerid = ${userId}
-        RETURNING *
+        RETURNING id, ownerid, "currentStreak", "longestStreak", "streakAnchorDate", updatedat
       `;
       return result[0];
     }
@@ -45,7 +45,7 @@ export async function recalculateBucketStreak(sql: any, bucketId: string, userId
       SET "currentStreak" = ${runningStreak}, 
           updatedat = NOW()
       WHERE id = ${bucketId}::uuid AND ownerid = ${userId}
-      RETURNING *
+      RETURNING id, ownerid, "currentStreak", "longestStreak", "streakAnchorDate", updatedat
     `;
     return result[0];
   }
@@ -117,7 +117,7 @@ export async function recalculateBucketStreak(sql: any, bucketId: string, userId
       "streakAnchorDate" = ${streakAnchorDate},
       updatedat = NOW()
     WHERE id = ${bucketId}::uuid AND ownerid = ${userId}
-    RETURNING *
+    RETURNING id, ownerid, "currentStreak", "longestStreak", "streakAnchorDate", updatedat
   `;
   
   return result[0];

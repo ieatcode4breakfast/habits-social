@@ -21,14 +21,14 @@ export default defineEventHandler(async (event) => {
         throw createError({ statusCode: 400, statusMessage: 'Invalid lastSynced parameter' });
       }
       buckets = await sql`
-        SELECT * FROM buckets 
+        SELECT id, ownerid, title, description, color, "sortOrder", "currentStreak", "longestStreak", "streakAnchorDate", "createdAt", updatedat FROM buckets 
         WHERE ownerid = ${userId} 
           AND updatedat >= to_timestamp(${lastSynced} / 1000.0)
         ORDER BY "sortOrder" ASC, "createdAt" DESC
       `;
     } else {
       buckets = await sql`
-        SELECT * FROM buckets 
+        SELECT id, ownerid, title, description, color, "sortOrder", "currentStreak", "longestStreak", "streakAnchorDate", "createdAt", updatedat FROM buckets 
         WHERE ownerid = ${userId} 
         ORDER BY "sortOrder" ASC, "createdAt" DESC
       `;
@@ -38,7 +38,7 @@ export default defineEventHandler(async (event) => {
 
     const bucketIds = buckets.map((b: any) => b.id);
     const bucketHabits = await sql`
-      SELECT * FROM bucket_habits WHERE bucket_id = ANY(${bucketIds}::uuid[])
+      SELECT bucket_id, habit_id FROM bucket_habits WHERE bucket_id = ANY(${bucketIds}::uuid[])
     `;
 
     const bucketsWithHabits = buckets.map((b: any) => ({
@@ -74,7 +74,7 @@ export default defineEventHandler(async (event) => {
         "sortOrder" = EXCLUDED."sortOrder",
         updatedat = NOW()
       WHERE buckets.ownerid = EXCLUDED.ownerid
-      RETURNING *
+      RETURNING id, ownerid, title, description, color, "sortOrder", "currentStreak", "longestStreak", "streakAnchorDate", "createdAt", updatedat
     `;
 
     const newBucket = result[0];

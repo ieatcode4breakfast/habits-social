@@ -17,7 +17,7 @@ export default defineEventHandler(async (event) => {
 
   // Verify friendship exists and is accepted
   const friendshipCheck = await sql`
-    SELECT * FROM friendships 
+    SELECT 1 FROM friendships 
     WHERE status = 'accepted'
       AND (("initiatorId" = ${userId} AND "receiverId" = ${fId}) 
         OR ("initiatorId" = ${fId} AND "receiverId" = ${userId}))
@@ -27,7 +27,7 @@ export default defineEventHandler(async (event) => {
   }
 
   const habits = await sql`
-    SELECT * FROM habits 
+    SELECT id, ownerid, title, description, "skipsCount", "skipsPeriod", color, sharedwith, "sortOrder", "currentStreak", "longestStreak", "streakAnchorDate", user_date, "createdAt", updatedat FROM habits 
     WHERE ownerid = ${fId}
     AND ${String(userId)} = ANY(sharedwith)
     ORDER BY "sortOrder" ASC, "createdAt" DESC
@@ -58,7 +58,7 @@ export default defineEventHandler(async (event) => {
   }
 
   const allLogs = await sql`
-    SELECT * FROM habitlogs 
+    SELECT id, habitid, ownerid, date, status, "streakCount", "brokenStreakCount", sharedwith, updatedat FROM habitlogs 
     WHERE ownerid = ${fId}
     AND date >= ${startDateStr}
     ${endDateStr ? sql`AND date <= ${endDateStr}` : sql``}

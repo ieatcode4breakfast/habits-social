@@ -23,7 +23,7 @@ export default defineEventHandler(async (event) => {
 
 
   // 2. Fetch current user
-  const users = await sql`SELECT * FROM users WHERE id = ${userId}::uuid`;
+  const users = await sql`SELECT id, email, username, photourl, "passwordHash", "emailVerifiedAt" FROM users WHERE id = ${userId}::uuid`;
   if (users.length === 0) {
     throw createError({ statusCode: 404, statusMessage: 'User not found' });
   }

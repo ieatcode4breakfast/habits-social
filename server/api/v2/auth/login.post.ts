@@ -17,7 +17,7 @@ export default defineEventHandler(async (event) => {
 
   const { identifier, password } = validation.data;
 
-  const users = await sql`SELECT * FROM users WHERE email ILIKE ${identifier} OR username ILIKE ${identifier}`;
+  const users = await sql`SELECT id, email, username, photourl, "passwordHash" FROM users WHERE email ILIKE ${identifier} OR username ILIKE ${identifier}`;
   const user = users[0];
 
   if (!user) {

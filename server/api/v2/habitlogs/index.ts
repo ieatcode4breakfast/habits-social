@@ -24,19 +24,19 @@ export default defineEventHandler(async (event) => {
         throw createError({ statusCode: 400, statusMessage: 'Invalid lastSynced parameter' });
       }
       logs = await sql`
-        SELECT * FROM habitlogs 
+        SELECT id, habitid, ownerid, date, status, "streakCount", "brokenStreakCount", sharedwith, updatedat FROM habitlogs 
         WHERE ownerid = ${userId} 
           AND updatedat >= to_timestamp(${lastSynced} / 1000.0)
       `;
     } else if (query.startDate && query.endDate) {
       logs = await sql`
-        SELECT * FROM habitlogs 
+        SELECT id, habitid, ownerid, date, status, "streakCount", "brokenStreakCount", sharedwith, updatedat FROM habitlogs 
         WHERE ownerid = ${userId} 
           AND date >= ${String(query.startDate)} 
           AND date <= ${String(query.endDate)}
       `;
     } else {
-      logs = await sql`SELECT * FROM habitlogs WHERE ownerid = ${userId}`;
+      logs = await sql`SELECT id, habitid, ownerid, date, status, "streakCount", "brokenStreakCount", sharedwith, updatedat FROM habitlogs WHERE ownerid = ${userId}`;
     }
 
     return { data: logs.map(normalizeLog) };
@@ -79,7 +79,7 @@ export default defineEventHandler(async (event) => {
         "brokenStreakCount" = EXCLUDED."brokenStreakCount",
         updatedat = NOW()
       WHERE habitlogs.ownerid = EXCLUDED.ownerid
-      RETURNING *
+      RETURNING id, habitid, ownerid, date, status, "streakCount", "brokenStreakCount", sharedwith, updatedat
     `;
 
     // Recalculate streaks and auto-generate bucket logs server-side

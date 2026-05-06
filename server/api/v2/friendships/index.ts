@@ -13,7 +13,7 @@ export default defineEventHandler(async (event) => {
     setResponseHeader(event, 'Cache-Control', 'no-cache, no-store, must-revalidate');
 
     const userFriendships = await sql`
-      SELECT * FROM friendships 
+      SELECT id, "initiatorId", "receiverId", status, "initiatorFavorite", "receiverFavorite", "createdAt", "updatedAt" FROM friendships 
       WHERE "initiatorId" = ${userId} OR "receiverId" = ${userId}
     `;
 
@@ -52,7 +52,7 @@ export default defineEventHandler(async (event) => {
     }
 
     const existing = await sql`
-      SELECT * FROM friendships 
+      SELECT 1 FROM friendships 
       WHERE ("initiatorId" = ${userId} AND "receiverId" = ${targetUserId})
          OR ("initiatorId" = ${targetUserId} AND "receiverId" = ${userId})
     `;
@@ -64,7 +64,7 @@ export default defineEventHandler(async (event) => {
     const result = await sql`
       INSERT INTO friendships ("initiatorId", "receiverId", status, "createdAt", "updatedAt")
       VALUES (${userId}, ${targetUserId}, 'pending', NOW(), NOW())
-      RETURNING *
+      RETURNING id, "initiatorId", "receiverId", status, "initiatorFavorite", "receiverFavorite", "createdAt", "updatedAt"
     `;
 
     if (!result[0]) {

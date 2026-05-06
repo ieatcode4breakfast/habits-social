@@ -18,19 +18,19 @@ export default defineEventHandler(async (event) => {
     if (query.lastSynced) {
       const lastSynced = Number(query.lastSynced);
       logs = await sql`
-        SELECT * FROM bucketlogs 
+        SELECT id, bucketid, ownerid, date, status, "streakCount", "brokenStreakCount", updatedat FROM bucketlogs 
         WHERE ownerid = ${userId} 
           AND updatedat >= to_timestamp(${lastSynced} / 1000.0)
       `;
     } else if (query.startDate && query.endDate) {
       logs = await sql`
-        SELECT * FROM bucketlogs 
+        SELECT id, bucketid, ownerid, date, status, "streakCount", "brokenStreakCount", updatedat FROM bucketlogs 
         WHERE ownerid = ${userId} 
           AND date >= ${String(query.startDate)} 
           AND date <= ${String(query.endDate)}
       `;
     } else {
-      logs = await sql`SELECT * FROM bucketlogs WHERE ownerid = ${userId}`;
+      logs = await sql`SELECT id, bucketid, ownerid, date, status, "streakCount", "brokenStreakCount", updatedat FROM bucketlogs WHERE ownerid = ${userId}`;
     }
 
     return { data: logs.map(normalizeLog) };
@@ -62,7 +62,7 @@ export default defineEventHandler(async (event) => {
         "brokenStreakCount" = EXCLUDED."brokenStreakCount",
         updatedat = NOW()
       WHERE bucketlogs.ownerid = EXCLUDED.ownerid
-      RETURNING *
+      RETURNING id, bucketid, ownerid, date, status, "streakCount", "brokenStreakCount", updatedat
     `;
 
     return { data: normalizeLog(result[0]) };

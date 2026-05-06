@@ -19,7 +19,7 @@ export default defineEventHandler(async (event) => {
       SET status = 'accepted', "updatedAt" = NOW()
       WHERE id = ${id}::uuid
         AND "receiverId" = ${userId}
-      RETURNING *
+      RETURNING id, "initiatorId", "receiverId", status, "initiatorFavorite", "receiverFavorite", "createdAt", "updatedAt"
     `;
 
     if (result.length === 0) {
@@ -31,7 +31,7 @@ export default defineEventHandler(async (event) => {
 
   if (event.method === 'DELETE') {
     const friendshipsList = await sql`
-      SELECT * FROM friendships WHERE id = ${id}::uuid
+      SELECT id, "initiatorId", "receiverId", status FROM friendships WHERE id = ${id}::uuid
     `;
     if (friendshipsList.length > 0) {
       const friendship = friendshipsList[0];

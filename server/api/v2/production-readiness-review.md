@@ -40,7 +40,7 @@ Most endpoints perform multiple sequential SQL writes (e.g., habit deletion + bu
 `auth/register.post.ts` does not enforce a maximum password length before hashing. bcrypt truncates at 72 bytes, but hashing extremely large payloads wastes CPU and can be abused for denial-of-service.
 - **Fix**: Reject passwords longer than 128 characters in the validation layer.
 
-12. Timezone Sensitivity in Date Normalization
+12. Timezone Sensitivity in Date Normalization - ADDRESSED
 `_utils/normalize.ts` uses `date-fns` `format(new Date(dateStr), 'yyyy-MM-dd')`, which formats in the server's local timezone. If the server is not UTC, timestamps near midnight can produce incorrect calendar dates.
 - **Fix**: Use UTC-aware formatting (e.g., `formatInTimeZone` from `date-fns-tz`) or standardize on UTC server time.
 
@@ -73,8 +73,8 @@ C. NITPICKS & BEST PRACTICES
 ### D. PRIORITIZED TO-DO LIST (By Complexity)
 
 #### 🟡 Phase 2: Low to Medium Complexity
-- [ ] **Item 19**: Replace `SELECT *` with explicit column lists in identified endpoints.
-- [ ] **Item 12**: Standardize UTC date normalization.
+- [x] **Item 19**: Replace `SELECT *` with explicit column lists in identified endpoints. - ADDRESSED
+- [x] **Item 12**: Standardize UTC date normalization. - ADDRESSED
 
 #### 🔴 Phase 3: Higher Complexity (Strategic)
 - [ ] **Item 10**: Wrap multi-step mutations in database transactions.

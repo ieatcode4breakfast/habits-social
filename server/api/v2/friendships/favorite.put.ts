@@ -17,7 +17,7 @@ export default defineEventHandler(async (event) => {
 
   const { friendshipId, favorite } = validation.data;
 
-  const [friendship] = await sql`SELECT * FROM friendships WHERE id = ${friendshipId}::uuid`;
+  const [friendship] = await sql`SELECT id, "initiatorId", "receiverId" FROM friendships WHERE id = ${friendshipId}::uuid`;
   if (!friendship) {
     throw createError({ statusCode: 404, statusMessage: 'Friendship not found' });
   }
@@ -35,14 +35,14 @@ export default defineEventHandler(async (event) => {
       UPDATE friendships 
       SET "initiatorFavorite" = ${favorite}, "updatedAt" = NOW()
       WHERE id = ${friendshipId}::uuid
-      RETURNING *
+      RETURNING id, "initiatorId", "receiverId", status, "initiatorFavorite", "receiverFavorite", "createdAt", "updatedAt"
     `;
   } else {
     result = await sql`
       UPDATE friendships 
       SET "receiverFavorite" = ${favorite}, "updatedAt" = NOW()
       WHERE id = ${friendshipId}::uuid
-      RETURNING *
+      RETURNING id, "initiatorId", "receiverId", status, "initiatorFavorite", "receiverFavorite", "createdAt", "updatedAt"
     `;
   }
 

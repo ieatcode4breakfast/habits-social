@@ -17,7 +17,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: 'Bad Request' });
   }
 
-  const habits = await sql`SELECT * FROM habits WHERE id = ${id}::uuid AND ownerid = ${userId}`;
+  const habits = await sql`SELECT id, ownerid, title, description, "skipsCount", "skipsPeriod", color, sharedwith, "sortOrder", "currentStreak", "longestStreak", "streakAnchorDate", user_date, "createdAt", updatedat FROM habits WHERE id = ${id}::uuid AND ownerid = ${userId}`;
   if (habits.length === 0) {
     throw createError({ statusCode: 404, statusMessage: 'Not found' });
   }
@@ -57,7 +57,7 @@ export default defineEventHandler(async (event) => {
       UPDATE habits
       SET title = ${title}, description = ${description}, "skipsCount" = ${skipsCount}, "skipsPeriod" = ${skipsPeriod}, color = ${color}, sharedwith = ${sharedwith}, "sortOrder" = ${sortOrder}, user_date = ${user_date}, updatedat = NOW()
       WHERE id = ${id}::uuid
-      RETURNING *
+      RETURNING id, ownerid, title, description, "skipsCount", "skipsPeriod", color, sharedwith, "sortOrder", "currentStreak", "longestStreak", "streakAnchorDate", user_date, "createdAt", updatedat
     `;
 
     if (result.length === 0) {
@@ -71,7 +71,7 @@ export default defineEventHandler(async (event) => {
     const newSharedSet = new Set((sharedwith as string[] || []).map(String));
     
     const newRecipients = (sharedwith as string[] || []).filter((rid: string) => !oldSharedSet.has(String(rid)));
-    const removedRecipients = Array.from(oldSharedSet).filter((rid: string) => !newSharedSet.has(String(rid)));
+    const removedRecipients = Array.from(oldSharedSet).filter((rid) => !newSharedSet.has(String(rid))) as string[];
 
     if (removedRecipients.length > 0) {
       await markBucketHabitsRemoved(sql, [id as string], removedRecipients);
@@ -92,7 +92,7 @@ export default defineEventHandler(async (event) => {
 
   if (event.method === 'DELETE') {
     const buckets = await sql`SELECT bucket_id FROM bucket_habits WHERE habit_id = ${id}::uuid`;
-    const bucketIds = buckets.map(b => b.bucket_id);
+    const bucketIds = buckets.map((b: any) => b.bucket_id);
     
     await sql`DELETE FROM bucket_habits WHERE habit_id = ${id}::uuid`;
     await sql`DELETE FROM habits WHERE id = ${id}::uuid`;

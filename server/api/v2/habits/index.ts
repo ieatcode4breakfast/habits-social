@@ -21,14 +21,14 @@ export default defineEventHandler(async (event) => {
         throw createError({ statusCode: 400, statusMessage: 'Invalid lastSynced parameter' });
       }
       habits = await sql`
-        SELECT * FROM habits 
+        SELECT id, ownerid, title, description, "skipsCount", "skipsPeriod", color, sharedwith, "sortOrder", "currentStreak", "longestStreak", "streakAnchorDate", user_date, "createdAt", updatedat FROM habits 
         WHERE ownerid = ${userId} 
           AND updatedat >= to_timestamp(${lastSynced} / 1000.0)
         ORDER BY "sortOrder" ASC, "createdAt" DESC
       `;
     } else {
       habits = await sql`
-        SELECT * FROM habits 
+        SELECT id, ownerid, title, description, "skipsCount", "skipsPeriod", color, sharedwith, "sortOrder", "currentStreak", "longestStreak", "streakAnchorDate", user_date, "createdAt", updatedat FROM habits 
         WHERE ownerid = ${userId} 
         ORDER BY "sortOrder" ASC, "createdAt" DESC
       `;
@@ -74,7 +74,7 @@ export default defineEventHandler(async (event) => {
         user_date = EXCLUDED.user_date,
         updatedat = NOW()
       WHERE habits.ownerid = EXCLUDED.ownerid
-      RETURNING *
+      RETURNING id, ownerid, title, description, "skipsCount", "skipsPeriod", color, sharedwith, "sortOrder", "currentStreak", "longestStreak", "streakAnchorDate", user_date, "createdAt", updatedat
     `;
 
     if (!result[0]) {

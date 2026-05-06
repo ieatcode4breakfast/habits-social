@@ -19,7 +19,7 @@ export default defineEventHandler(async (event) => {
 
   // Fetch habit and check ownership/visibility
   const habits = await sql`
-    SELECT * FROM habits 
+    SELECT id, ownerid, title, description, "skipsCount", "skipsPeriod", color, sharedwith, "sortOrder", "currentStreak", "longestStreak", "streakAnchorDate", user_date, "createdAt", updatedat FROM habits 
     WHERE id = ${hIdStr}
     AND (ownerid = ${uIdStr} OR ${uIdStr} = ANY(sharedwith))
   `;
@@ -50,7 +50,7 @@ export default defineEventHandler(async (event) => {
   }
 
   const logs = await sql`
-    SELECT * FROM habitlogs 
+    SELECT id, habitid, ownerid, date, status, "streakCount", "brokenStreakCount", sharedwith, updatedat FROM habitlogs 
     WHERE habitid = ${hIdStr}
     AND date >= ${startDateStr}
     ${endDateStr ? sql`AND date <= ${endDateStr}` : sql``}

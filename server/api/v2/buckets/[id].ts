@@ -17,7 +17,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: 'Bad Request' });
   }
 
-  const buckets = await sql`SELECT * FROM buckets WHERE id = ${id}::uuid AND ownerid = ${userId}`;
+  const buckets = await sql`SELECT id, ownerid, title, description, color, "sortOrder", "currentStreak", "longestStreak", "streakAnchorDate", "createdAt", updatedat FROM buckets WHERE id = ${id}::uuid AND ownerid = ${userId}`;
   if (buckets.length === 0) {
     throw createError({ statusCode: 404, statusMessage: 'Not found' });
   }
@@ -50,7 +50,7 @@ export default defineEventHandler(async (event) => {
       UPDATE buckets
       SET title = ${title}, description = ${description}, color = ${color}, "sortOrder" = ${sortOrder}, updatedat = NOW()
       WHERE id = ${id}::uuid
-      RETURNING *
+      RETURNING id, ownerid, title, description, color, "sortOrder", "currentStreak", "longestStreak", "streakAnchorDate", "createdAt", updatedat
     `;
 
     if (result.length === 0) {
@@ -85,7 +85,7 @@ export default defineEventHandler(async (event) => {
       if (foreignHabitIds.length > 0) {
         const foreignOwnerIds = [...new Set(foreignHabitIds.map(h => h.ownerid))];
         const friendships = await sql`
-          SELECT * FROM friendships 
+          SELECT "initiatorId", "receiverId" FROM friendships 
           WHERE status = 'accepted'
             AND (
               ("initiatorId" = ${userId} AND "receiverId" = ANY(${foreignOwnerIds}::uuid[]))

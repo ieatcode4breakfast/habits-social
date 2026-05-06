@@ -26,7 +26,7 @@ export async function recalculateHabitStreak(sql: any, habitId: string, userId: 
 
   // 3. Fetch logs from starting point onwards
   const logs = await sql`
-    SELECT * FROM habitlogs 
+    SELECT id, date, status, "streakCount", "brokenStreakCount" FROM habitlogs 
     WHERE habitid = ${habitId}::uuid AND ownerid = ${userId}
     ${queryStartDate ? sql`AND date >= ${queryStartDate}` : sql``}
     ORDER BY date ASC
@@ -39,7 +39,7 @@ export async function recalculateHabitStreak(sql: any, habitId: string, userId: 
         UPDATE habits 
         SET "currentStreak" = 0, "streakAnchorDate" = NULL, updatedat = NOW()
         WHERE id = ${habitId}::uuid AND ownerid = ${userId}
-        RETURNING *
+        RETURNING id, ownerid, "currentStreak", "longestStreak", "streakAnchorDate", updatedat
       `;
       return result[0];
     }
@@ -51,7 +51,7 @@ export async function recalculateHabitStreak(sql: any, habitId: string, userId: 
       SET "currentStreak" = ${runningStreak}, 
           updatedat = NOW()
       WHERE id = ${habitId}::uuid AND ownerid = ${userId}
-      RETURNING *
+      RETURNING id, ownerid, "currentStreak", "longestStreak", "streakAnchorDate", updatedat
     `;
     return result[0];
   }
@@ -131,7 +131,7 @@ export async function recalculateHabitStreak(sql: any, habitId: string, userId: 
       "streakAnchorDate" = ${streakAnchorDate},
       updatedat = NOW()
     WHERE id = ${habitId}::uuid AND ownerid = ${userId}
-    RETURNING *
+    RETURNING id, ownerid, "currentStreak", "longestStreak", "streakAnchorDate", updatedat
   `;
 
   return result[0];
