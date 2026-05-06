@@ -46,6 +46,13 @@ describe('PUT /api/v2/users/me', () => {
     await expect(handler(event)).rejects.toThrow(/username is already taken/i);
   });
 
+  it('should throw 409 if username is taken case-insensitively', async () => {
+    const event = createMockEvent(testUser.id, { username: otherUser.username.toUpperCase() });
+    event.context.userId = testUser.id;
+
+    await expect(handler(event)).rejects.toThrow(/username is already taken/i);
+  });
+
   it('should validate reachable avatar URLs', async () => {
     // DiceBear URL is reachable
     const dicebearUrl = 'https://api.dicebear.com/9.x/avataaars/svg?seed=test';
@@ -61,7 +68,7 @@ describe('PUT /api/v2/users/me', () => {
     const event = createMockEvent(testUser.id, { photourl: invalidUrl });
     event.context.userId = testUser.id;
 
-    await expect(handler(event)).rejects.toThrow(/Validation Failed/i);
+    await expect(handler(event)).rejects.toThrow(/Invalid URL/i);
   });
 
   it('should allow clearing avatar with empty string', async () => {

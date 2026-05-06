@@ -32,6 +32,20 @@ describe('POST /api/v2/auth/login', () => {
     expect(response.data.id).toBe(testUser.id);
   });
 
+  it('should login case-insensitively', async () => {
+    // Test with mixed case email
+    const emailUpper = testUser.email.toUpperCase();
+    const event1 = createMockEvent('', { identifier: emailUpper, password: 'password123' });
+    const response1 = (await handler(event1)) as any;
+    expect(response1.data.id).toBe(testUser.id);
+
+    // Test with mixed case username
+    const usernameUpper = testUser.username.toUpperCase();
+    const event2 = createMockEvent('', { identifier: usernameUpper, password: 'password123' });
+    const response2 = (await handler(event2)) as any;
+    expect(response2.data.id).toBe(testUser.id);
+  });
+
   it('should reject invalid credentials', async () => {
     const event = createMockEvent('', { identifier: testUser.email, password: 'wrongpassword' });
     await expect(handler(event)).rejects.toThrow(/Invalid username/i);

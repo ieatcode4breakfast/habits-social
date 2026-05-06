@@ -65,7 +65,7 @@ C. NITPICKS & BEST PRACTICES
 17. `/auth/me.get.ts` returns HTTP 200 `{ data: null }` for unauthenticated clients. Standard REST semantics expect 401. If the frontend relies on this behavior, document it explicitly in a comment. - ADDRESSED
 18. Dead code in `buckets/index.ts`: `const bucketId = data.id || \`\${userId}_${Date.now()}\`;` is computed but never referenced. - ADDRESSED
 19. Avoid `SELECT *` in production queries. `auth/login.post.ts`, `users/me.put.ts`, and `friendships/index.ts` all select more columns than needed, increasing the risk of accidental PII leakage and unnecessary data transfer.
-20. Zod schema duplication: `users/me.put.ts` defines `updateProfileSchema` inline, while `_utils/validation.ts` exports a nearly identical one. Consolidate schemas to prevent future drift.
+20. Zod schema duplication: `users/me.put.ts` defines `updateProfileSchema` inline, while `_utils/validation.ts` exports a nearly identical one. Consolidate schemas to prevent future drift. - ADDRESSED
 21. `friendships/[id].ts` (DELETE) updates `sharedwith` arrays in four sequential `UPDATE` statements. If the schema uses `text[]`, ensure `array_remove` handles these correctly for large arrays, or consider normalizing sharing relationships into a junction table.
 22. In `social/habit-details.get.ts` and `social/friend-data.get.ts`, `startDateStr` and `endDateStr` are accepted from query params without validating they conform to `YYYY-MM-DD`. Invalid formats will result in SQL errors or incorrect filtering. - ADDRESSED
 23. `habits/reorder.ts` and `buckets/reorder.ts` perform N sequential `UPDATE` calls inside a loop. While N is capped by the app limit (30), consider using a single bulk update with `CASE` or `UNNEST` for atomicity and efficiency.
@@ -73,7 +73,6 @@ C. NITPICKS & BEST PRACTICES
 ### D. PRIORITIZED TO-DO LIST (By Complexity)
 
 #### 🟡 Phase 2: Low to Medium Complexity
-- [ ] **Item 20**: Consolidate Zod schemas for user profile updates.
 - [ ] **Item 19**: Replace `SELECT *` with explicit column lists in identified endpoints.
 - [ ] **Item 12**: Standardize UTC date normalization.
 

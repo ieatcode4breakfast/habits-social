@@ -30,19 +30,34 @@ describe('POST /api/v2/auth/register', () => {
 
   it('should reject duplicate email', async () => {
     const testUser = await createTestUser(`dup_${Date.now() % 1000000}`, `dup_${Date.now()}@ex.com`);
-    const event = createMockEvent('', { email: testUser.email, password: 'password123', username: `u_${Date.now()}` });
+    const event = createMockEvent('', { email: testUser!.email, password: 'password123', username: `u_${Date.now()}` });
 
-    await expect(handler(event)).rejects.toThrow(/already exists/i);
-    await deleteTestUser(testUser.id);
+    await expect(handler(event)).rejects.toThrow(/already taken/i);
+    await deleteTestUser(testUser!.id);
+  });
+
+  it('should reject duplicate username case-insensitively', async () => {
+    const originalUsername = `CaseUser_${Date.now() % 1000}`;
+    const testUser = await createTestUser(originalUsername, `case_${Date.now()}@ex.com`);
+    
+    // Attempt to register with same username but different case
+    const event = createMockEvent('', { 
+      email: `different_${Date.now()}@ex.com`, 
+      password: 'password123', 
+      username: originalUsername.toUpperCase() 
+    });
+
+    await expect(handler(event)).rejects.toThrow(/already taken/i);
+    await deleteTestUser(testUser!.id);
   });
 
   it('should reject invalid email', async () => {
     const event = createMockEvent('', { email: 'not-an-email', password: 'password123', username: `u_${Date.now()}` });
-    await expect(handler(event)).rejects.toThrow(/valid email/i);
+    await expect(handler(event)).rejects.toThrow(/Invalid email/i);
   });
 
   it('should reject short password', async () => {
     const event = createMockEvent('', { email: `a@b.com`, password: '123', username: `u_${Date.now()}` });
-    await expect(handler(event)).rejects.toThrow(/at least 8 characters/i);
+    await expect(handler(event)).rejects.toThrow(/Too small/i);
   });
 });

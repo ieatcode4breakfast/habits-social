@@ -17,7 +17,7 @@ export default defineEventHandler(async (event) => {
 
   const { email, password, username, photourl } = validation.data;
 
-  const existingUser = await sql`SELECT 1 FROM users WHERE email = ${email} OR username = ${username}`;
+  const existingUser = await sql`SELECT 1 FROM users WHERE email ILIKE ${email} OR username ILIKE ${username}`;
   if (existingUser.length > 0) {
     throw createError({ statusCode: 409, statusMessage: 'Email or username already taken' });
   }

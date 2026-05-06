@@ -31,14 +31,14 @@ export default defineEventHandler(async (event) => {
 
   // 3. Unique constraints checks
   if (username && username !== user.username) {
-    const existingUsername = await sql`SELECT 1 FROM users WHERE username = ${username} AND id != ${userId}::uuid`;
+    const existingUsername = await sql`SELECT 1 FROM users WHERE username ILIKE ${username} AND id != ${userId}::uuid`;
     if (existingUsername.length > 0) {
       throw createError({ statusCode: 409, statusMessage: 'This username is already taken' });
     }
   }
 
   if (email && email !== user.email) {
-    const existingEmail = await sql`SELECT 1 FROM users WHERE email = ${email} AND id != ${userId}::uuid`;
+    const existingEmail = await sql`SELECT 1 FROM users WHERE email ILIKE ${email} AND id != ${userId}::uuid`;
     if (existingEmail.length > 0) {
       throw createError({ statusCode: 409, statusMessage: 'An account with this email already exists' });
     }
