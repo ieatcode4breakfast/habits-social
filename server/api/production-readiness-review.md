@@ -72,11 +72,7 @@ C. NITPICKS & BEST PRACTICES
 
 ### D. PRIORITIZED TO-DO LIST (By Complexity)
 
-#### 🟡 Phase 2: Low to Medium Complexity
-- [x] **Item 19**: Replace `SELECT *` with explicit column lists in identified endpoints. - ADDRESSED
-- [x] **Item 12**: Standardize UTC date normalization. - ADDRESSED
-
-#### 🔴 Phase 3: Higher Complexity (Strategic)
+#### 🔴 Phase 3: Higher Complexity (Strategic) (SKIP FOR NOW - DO NOT IMPLEMENT)
 - [ ] **Item 10**: Wrap multi-step mutations in database transactions.
 - [ ] **Item 16**: Implement token invalidation on password change.
 - [ ] **Item 14**: Verify/implement cascading deletes for user accounts.
