@@ -1,113 +1,108 @@
-import { format } from 'date-fns';
-import type { IHabit } from '../../models';
-import { usePusher } from '../../utils/pusher';
+import { z } from 'zod';
+import { useDB as _useDB } from '../../utils/db';
+import { requireAuth as _requireAuth } from '../../utils/auth';
+import { normalizeHabit } from '../../utils/normalize';
+import { habitUpdateSchema } from '../../utils/validation';
 import { reevaluateBucketLogs } from '../../utils/buckets';
 import { markBucketHabitsRemoved } from '../../utils/shared-buckets';
 
-const normalizeHabit = (h: any) => {
-  if (!h) return h;
-  const normalized = { ...h };
-  if (normalized.streakAnchorDate) {
-    normalized.streakAnchorDate = format(new Date(normalized.streakAnchorDate), 'yyyy-MM-dd');
-  }
-  return normalized;
-};
-
 export default defineEventHandler(async (event) => {
-  const sql = useDB(event);
+  const requireAuth = (event.context as any).requireAuth || _requireAuth;
+  const useDB = (event.context as any).useDB || _useDB;
   const userId = await requireAuth(event);
+  const sql = useDB(event);
   const id = getRouterParam(event, 'id');
 
-  if (!id) throw createError({ statusCode: 400, statusMessage: 'Bad Request' });
+  if (!id) {
+    throw createError({ statusCode: 400, statusMessage: 'Bad Request' });
+  }
 
-  const habits = await sql`SELECT * FROM habits WHERE id = ${id}::uuid AND ownerid = ${userId}`;
-  if (habits.length === 0) throw createError({ statusCode: 404, statusMessage: 'Not found' });
-  const habit = habits[0] as IHabit;
+  const habits = await sql`SELECT id, owner_id, title, description, skips_count, skips_period, color, shared_with, sort_order, current_streak, longest_streak, streak_anchor_date, user_date, created_at, updated_at FROM habits WHERE id = ${id}::uuid AND owner_id = ${userId}`;
+  if ((habits as any[]).length === 0) {
+    throw createError({ statusCode: 404, statusMessage: 'Not found' });
+  }
+  const habit = normalizeHabit((habits as any[])[0]);
+
+  if (event.method === 'GET') {
+    return { data: habit };
+  }
 
   if (event.method === 'PUT') {
     const body = await readBody(event);
-    
-    const title = body.title !== undefined ? body.title : habit.title;
-    const description = body.description !== undefined ? body.description : habit.description;
-    const skipsPeriod = body.skipsPeriod !== undefined ? body.skipsPeriod : habit.skipsPeriod;
-    const rawSkipsCount = body.skipsCount !== undefined ? body.skipsCount : habit.skipsCount;
-    
-    let skipsCount = rawSkipsCount;
+    const validation = habitUpdateSchema.safeParse(body);
+    if (!validation.success) {
+      throw createError({ statusCode: 400, statusMessage: 'Validation Failed', data: validation.error.flatten() });
+    }
+
+    const data = validation.data;
+
+    const title = data.title !== undefined ? data.title : habit.title;
+    const description = data.description !== undefined ? data.description : habit.description;
+    const color = data.color !== undefined ? data.color : habit.color;
+    const sharedWith = data.sharedWith !== undefined ? data.sharedWith : habit.sharedWith;
+    const sortOrder = data.sortOrder !== undefined ? data.sortOrder : habit.sortOrder;
+    const userDate = data.userDate !== undefined ? data.userDate : habit.userDate;
+
+    let skipsPeriod = data.skipsPeriod !== undefined ? data.skipsPeriod : habit.skipsPeriod;
+    let skipsCount = data.skipsCount !== undefined ? data.skipsCount : habit.skipsCount;
     if (skipsPeriod === 'none') {
       skipsCount = 0;
     } else if (skipsPeriod === 'weekly') {
-      skipsCount = Math.max(0, Math.min(6, rawSkipsCount));
+      skipsCount = Math.max(0, Math.min(6, skipsCount));
     } else if (skipsPeriod === 'monthly') {
-      skipsCount = Math.max(0, Math.min(28, rawSkipsCount));
+      skipsCount = Math.max(0, Math.min(28, skipsCount));
     }
-    const color = body.color !== undefined ? body.color : habit.color;
-    const sharedwith = body.sharedwith && Array.isArray(body.sharedwith) ? body.sharedwith : habit.sharedwith;
-    const sortOrder = body.sortOrder !== undefined ? body.sortOrder : habit.sortOrder;
 
     const result = await sql`
       UPDATE habits
-      SET title = ${title}, description = ${description}, "skipsCount" = ${skipsCount}, "skipsPeriod" = ${skipsPeriod}, color = ${color}, sharedwith = ${sharedwith}, "sortOrder" = ${sortOrder}, updatedat = NOW()
+      SET title = ${title}, description = ${description}, skips_count = ${skipsCount}, skips_period = ${skipsPeriod}, color = ${color}, shared_with = ${sharedWith}, sort_order = ${sortOrder}, user_date = ${userDate}, updated_at = NOW()
       WHERE id = ${id}::uuid
-      RETURNING *
+      RETURNING id, owner_id, title, description, skips_count, skips_period, color, shared_with, sort_order, current_streak, longest_streak, streak_anchor_date, user_date, created_at, updated_at
     `;
 
-    if (result.length === 0) throw createError({ statusCode: 404, statusMessage: 'Not found after update' });
+    if ((result as any[]).length === 0) {
+      throw createError({ statusCode: 404, statusMessage: 'Not found after update' });
+    }
 
-    const updatedHabit = normalizeHabit(result[0]);
+    const updatedHabitData = (result as any[])[0];
+    const updatedHabit = normalizeHabit(updatedHabitData);
 
-    // Category 3: Detect newly shared recipients and record share events
-    const oldSharedSet = new Set((habit.sharedwith || []).map(String));
-    const newSharedSet = new Set((sharedwith as string[]).map(String));
+    // Detect newly shared recipients and record share events
+    const oldSharedSet = new Set((habit.sharedWith || []).map(String));
+    const newSharedSet = new Set((sharedWith as string[] || []).map(String));
     
-    const newRecipients = (sharedwith as string[]).filter((rid: string) => !oldSharedSet.has(String(rid)));
-    const removedRecipients = Array.from(oldSharedSet).filter((rid: string) => !newSharedSet.has(String(rid)));
+    const newRecipients = (sharedWith as string[] || []).filter((rid: string) => !oldSharedSet.has(String(rid)));
+    const removedRecipients = Array.from(oldSharedSet).filter((rid) => !newSharedSet.has(String(rid))) as string[];
 
     if (removedRecipients.length > 0) {
       await markBucketHabitsRemoved(sql, [id as string], removedRecipients);
     }
 
-    if (newRecipients.length > 0 && body.user_date) {
-
+    if (newRecipients.length > 0 && userDate) {
       const now = new Date();
       for (const recipientId of newRecipients) {
         await sql`
-          INSERT INTO share_events (ownerid, recipientid, habitids, user_date, created_at)
-          VALUES (${userId}, ${recipientId}, ARRAY[${id}::uuid], ${body.user_date}, ${now})
+          INSERT INTO share_events (owner_id, recipient_id, habit_ids, user_date, created_at)
+          VALUES (${userId}, ${recipientId}, ARRAY[${id}::uuid], ${userDate}, ${now})
         `;
       }
     }
 
-    // Real-time: Notify other devices
-    const pusher = usePusher();
-    if (pusher) {
-      await pusher.trigger(`user-${userId}-habits`, 'habit-updated', { habitId: id });
-    }
-
-    return updatedHabit;
+    return { data: updatedHabit };
   }
 
   if (event.method === 'DELETE') {
     const buckets = await sql`SELECT bucket_id FROM bucket_habits WHERE habit_id = ${id}::uuid`;
-    const bucketIds = buckets.map(b => b.bucket_id);
+    const bucketIds = (buckets as any[]).map((b: any) => b.bucketId);
     
-    // Physically remove from bucket_habits first to prevent orphaned rows
     await sql`DELETE FROM bucket_habits WHERE habit_id = ${id}::uuid`;
-    
     await sql`DELETE FROM habits WHERE id = ${id}::uuid`;
-
-    await sql`INSERT INTO sync_deletions (ownerid, entity_id, entity_type) VALUES (${userId}, ${id}::uuid, 'habit')`;
+    await sql`INSERT INTO sync_deletions (owner_id, entity_id, entity_type, created_at) VALUES (${userId}, ${id}::uuid, 'habit', NOW())`;
 
     for (const bid of bucketIds) {
       await reevaluateBucketLogs(sql, bid, userId);
     }
 
-    // Real-time: Notify other devices
-    const pusher = usePusher();
-    if (pusher) {
-      await pusher.trigger(`user-${userId}-habits`, 'habit-deleted', { habitId: id });
-      await pusher.trigger(`user-${userId}-buckets`, 'bucket-needs-refresh', { habitDeleted: true });
-    }
-
-    return { success: true };
+    return { data: { success: true } };
   }
 });

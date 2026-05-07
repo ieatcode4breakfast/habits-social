@@ -2,9 +2,16 @@ import { SignJWT, jwtVerify } from 'jose';
 import type { H3Event } from 'h3';
 
 const getSecret = (event?: H3Event) => {
-  const config = useRuntimeConfig(event);
-  const secret = (config.jwtSecret as string) || process.env.JWT_SECRET || 'fallback-secret-for-dev';
-  return new TextEncoder().encode(secret);
+  let config: any = {};
+  try {
+    config = useRuntimeConfig(event);
+  } catch (e) {}
+  
+  const secret = (config.jwtSecret as string) || process.env.JWT_SECRET;
+  if (!secret && process.env.NODE_ENV === 'production') {
+    throw new Error('FATAL: JWT_SECRET environment variable is missing.');
+  }
+  return new TextEncoder().encode(secret || 'fallback-secret-for-dev');
 };
 
 export const generateToken = async (userId: string | number, event: H3Event): Promise<string> => {
@@ -18,7 +25,14 @@ export const generateToken = async (userId: string | number, event: H3Event): Pr
 
 export const getUserFromEvent = async (event: H3Event): Promise<string | null> => {
   const secret = getSecret(event);
-  const token = getCookie(event, 'auth_token');
+  
+  const authHeader = getHeader(event, 'authorization');
+  let token = null;
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    token = authHeader.substring(7);
+  } else {
+    token = getCookie(event, 'auth_token');
+  }
 
   if (!token) return null;
   try {

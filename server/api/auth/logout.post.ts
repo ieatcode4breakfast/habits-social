@@ -1,4 +1,3 @@
-export default defineEventHandler((event) => {
-  deleteCookie(event, 'auth_token');
-  return { success: true };
+export default defineEventHandler(() => {
+  return { data: { success: true } };
 });

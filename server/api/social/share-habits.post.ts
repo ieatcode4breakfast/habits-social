@@ -1,42 +1,62 @@
+import { z } from 'zod';
+import { useDB as _useDB } from '../../utils/db';
+import { requireAuth as _requireAuth } from '../../utils/auth';
+import { shareHabitsSchema } from '../../utils/validation';
 import { markBucketHabitsRemoved } from '../../utils/shared-buckets';
 
 export default defineEventHandler(async (event) => {
-  const sql = useDB(event);
+  const requireAuth = (event.context as any).requireAuth || _requireAuth;
+  const useDB = (event.context as any).useDB || _useDB;
   const userId = await requireAuth(event);
+  const sql = useDB(event);
 
-  const { targetUserId, habitIds, user_date } = await readBody(event);
-  if (!targetUserId || !Array.isArray(habitIds)) {
-    throw createError({ statusCode: 400, statusMessage: 'Missing targetUserId or habitIds array' });
+  const body = await readBody(event);
+  const validation = shareHabitsSchema.safeParse(body);
+  if (!validation.success) {
+    throw createError({ statusCode: 400, statusMessage: 'Validation Failed', data: validation.error.flatten() });
   }
 
-  const [target] = await sql`SELECT username FROM users WHERE id = ${targetUserId}::uuid`;
-
-  if (!target) throw createError({ statusCode: 404, statusMessage: 'Target user not found' });
+  const { targetUserId, habitIds, userDate } = validation.data;
 
   const targetId = String(targetUserId);
+  
+  // Verify accepted friendship exists
+  const friendship = await sql`
+    SELECT 1 FROM friendships 
+    WHERE status = 'accepted'
+      AND (
+        (initiator_id = ${userId} AND receiver_id = ${targetId})
+        OR 
+        (initiator_id = ${targetId} AND receiver_id = ${userId})
+      )
+  `;
 
-  // 1. Get currently shared habits for this user/target combo
+  if ((friendship as any[]).length === 0) {
+    throw createError({ statusCode: 403, statusMessage: 'You can only share habits with friends' });
+  }
+
+  // Get currently shared habits for this user/target combo
   const currentShared = await sql`
     SELECT id FROM habits 
-    WHERE ownerid = ${userId} 
-      AND ${targetId} = ANY(sharedwith)
+    WHERE owner_id = ${userId} 
+      AND ${targetId}::text = ANY(shared_with)
   `;
-  const currentSharedIds = currentShared.map(h => String(h.id));
-  const newSharedIds = habitIds.map(id => String(id));
+  const currentSharedIds = (currentShared as any[]).map((h: any) => String(h.id));
+  const newSharedIds = habitIds.map((id: string) => String(id));
 
-  const toAdd = newSharedIds.filter(id => !currentSharedIds.includes(id));
-  const toRemove = currentSharedIds.filter(id => !newSharedIds.includes(id));
+  const toAdd = newSharedIds.filter((id: string) => !currentSharedIds.includes(id));
+  const toRemove = currentSharedIds.filter((id: string) => !newSharedIds.includes(id));
 
   const actuallySharedIds: string[] = [];
 
-  // 2. Remove sharing for habits no longer selected
-  for (const habitId of toRemove) {
+  // Remove sharing for habits no longer selected
+  if (toRemove.length > 0) {
     await sql`
-      UPDATE habits 
-      SET sharedwith = array_remove(sharedwith, ${targetId}),
-          updatedat = NOW()
-      WHERE id = ${habitId}::uuid
-        AND ownerid = ${userId}
+      UPDATE habits
+      SET shared_with = array_remove(shared_with, ${targetId}),
+          updated_at = NOW()
+      WHERE id = ANY(${toRemove}::uuid[])
+        AND owner_id = ${userId}
     `;
   }
 
@@ -44,31 +64,27 @@ export default defineEventHandler(async (event) => {
     await markBucketHabitsRemoved(sql, toRemove, [targetId]);
   }
 
-
-  // 3. Add sharing for newly selected habits
-  for (const habitId of toAdd) {
+  // Add sharing for newly selected habits
+  if (toAdd.length > 0) {
     const result = await sql`
-      UPDATE habits 
-      SET sharedwith = array_append(sharedwith, ${targetId}),
-          updatedat = NOW()
-      WHERE id = ${habitId}::uuid
-        AND ownerid = ${userId}
-        AND NOT (${targetId} = ANY(sharedwith))
+      UPDATE habits
+      SET shared_with = array_append(shared_with, ${targetId}),
+          updated_at = NOW()
+      WHERE id = ANY(${toAdd}::uuid[])
+        AND owner_id = ${userId}
+        AND NOT (${targetId} = ANY(shared_with))
       RETURNING id
     `;
-    if (result.length > 0) {
-      actuallySharedIds.push(habitId);
-    }
+    actuallySharedIds.push(...(result as any[]).map((r: any) => r.id));
   }
 
-  // Category 3: Record a single grouped share event for all NEWLY shared habits
-  if (actuallySharedIds.length > 0 && user_date) {
+  // Record share event for all newly shared habits
+  if (actuallySharedIds.length > 0 && userDate) {
     await sql`
-      INSERT INTO share_events (ownerid, recipientid, habitids, user_date, created_at)
-      VALUES (${userId}, ${targetId}, ${actuallySharedIds}::uuid[], ${user_date}, NOW())
+      INSERT INTO share_events (owner_id, recipient_id, habit_ids, user_date, created_at)
+      VALUES (${userId}, ${targetId}, ${actuallySharedIds}::uuid[], ${userDate}, NOW())
     `;
   }
 
-  return { success: true };
+  return { data: { success: true } };
 });
-

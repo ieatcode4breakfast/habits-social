@@ -1,29 +1,55 @@
-import type { IHabit, IHabitLog } from '../../models';
+import { useDB as _useDB } from '../../utils/db';
+import { requireAuth as _requireAuth } from '../../utils/auth';
+import { normalizeHabit, normalizeLog } from '../../utils/normalize';
 
 export default defineEventHandler(async (event) => {
-  const sql = useDB(event);
+  const requireAuth = (event.context as any).requireAuth || _requireAuth;
+  const useDB = (event.context as any).useDB || _useDB;
   const userId = await requireAuth(event);
+  const sql = useDB(event);
+
   const { friendId } = getQuery(event);
   const fId = String(friendId);
 
-  // Fetch habits owned by friend that are shared with the current user
-  const habits = await sql`
-    SELECT * FROM habits 
-    WHERE ownerid = ${fId}
-    AND ${String(userId)} = ANY(sharedwith)
-    ORDER BY "sortOrder" ASC, "createdAt" DESC
-  `;
-
-  if (habits.length === 0) {
-    return { habits: [], logs: [] };
+  if (!friendId) {
+    throw createError({ statusCode: 400, statusMessage: 'friendId is required' });
   }
 
-  const habitIdSet = new Set(habits.map((h: any) => String(h.id)));
+  // Verify friendship exists and is accepted
+  const friendshipCheck = await sql`
+    SELECT 1 FROM friendships 
+    WHERE status = 'accepted'
+      AND ((initiator_id = ${userId} AND receiver_id = ${fId}) 
+        OR (initiator_id = ${fId} AND receiver_id = ${userId}))
+  `;
+  if ((friendshipCheck as any[]).length === 0) {
+    throw createError({ statusCode: 403, statusMessage: 'You are not friends with this user' });
+  }
 
-  // Fetch logs for this friend's habits. Default to last 30 days if no range provided.
+  const habits = await sql`
+    SELECT id, owner_id, title, description, skips_count, skips_period, color, shared_with, sort_order, current_streak, longest_streak, streak_anchor_date, user_date, created_at, updated_at FROM habits 
+    WHERE owner_id = ${fId}
+    AND ${String(userId)} = ANY(shared_with)
+    ORDER BY sort_order ASC, created_at DESC
+  `;
+
+  if ((habits as any[]).length === 0) {
+    return { data: { habits: [], logs: [] } };
+  }
+
+  const habitIdSet = new Set((habits as any[]).map((h: any) => String(h.id)));
+
   const query = getQuery(event);
-  let startDateStr = String(query.startDate || '');
-  let endDateStr = String(query.endDate || '');
+  let startDateStr = query.startDate ? String(query.startDate) : '';
+  let endDateStr = query.endDate ? String(query.endDate) : '';
+
+  const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+  if (startDateStr && !dateRegex.test(startDateStr)) {
+    throw createError({ statusCode: 400, statusMessage: 'Invalid startDate format. Use YYYY-MM-DD' });
+  }
+  if (endDateStr && !dateRegex.test(endDateStr)) {
+    throw createError({ statusCode: 400, statusMessage: 'Invalid endDate format. Use YYYY-MM-DD' });
+  }
 
   if (!startDateStr) {
     const cutoff = new Date();
@@ -31,19 +57,20 @@ export default defineEventHandler(async (event) => {
     startDateStr = cutoff.toISOString().slice(0, 10);
   }
 
-  const allLogs = await sql`
-    SELECT * FROM habitlogs 
-    WHERE ownerid = ${fId}
+  const allLogsRaw = await sql`
+    SELECT id, habit_id, owner_id, date, status, streak_count, broken_streak_count, shared_with, updated_at FROM habit_logs 
+    WHERE owner_id = ${fId}
     AND date >= ${startDateStr}
     ${endDateStr ? sql`AND date <= ${endDateStr}` : sql``}
     ORDER BY date DESC
   `;
 
-  // Filter logs to only those belonging to the shared habits
-  const logs = allLogs.filter((l: any) => habitIdSet.has(String(l.habitid)));
+  const logs = (allLogsRaw as any[]).filter((l: any) => habitIdSet.has(String(l.habitid)));
 
   return {
-    habits: habits,
-    logs: logs
+    data: {
+      habits: (habits as any[]).map(normalizeHabit),
+      logs: logs.map(normalizeLog)
+    }
   };
 });

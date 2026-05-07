@@ -2,29 +2,36 @@ import { parseISO, startOfDay, differenceInDays } from 'date-fns';
 
 export async function recalculateBucketStreak(sql: any, bucketId: string, userId: string, fromDate?: string) {
   if (!bucketId || bucketId.length < 36) return;
-  const bucketRes = await sql`SELECT "longestStreak", "streakAnchorDate" FROM buckets WHERE id = ${bucketId}::uuid`;
+  const bucketRes = await sql`SELECT longest_streak, streak_anchor_date FROM buckets WHERE id = ${bucketId}::uuid`;
   if (!bucketRes || bucketRes.length === 0) return;
   const bucket = bucketRes[0];
 
   let runningStreak = 0;
   let lastDate: Date | null = null;
   let queryStartDate = fromDate;
+  let maxStreak = 0;
 
   if (fromDate) {
     const prevLog = await sql`
-      SELECT "streakCount", date FROM bucketlogs 
-      WHERE bucketid = ${bucketId}::uuid AND ownerid = ${userId} AND date < ${fromDate}
+      SELECT streak_count, date FROM bucket_logs 
+      WHERE bucket_id = ${bucketId}::uuid AND owner_id = ${userId} AND date < ${fromDate}
       ORDER BY date DESC LIMIT 1
     `;
     if (prevLog && prevLog.length > 0) {
-      runningStreak = prevLog[0].streakCount;
+      runningStreak = prevLog[0].streak_count;
       lastDate = startOfDay(parseISO(prevLog[0].date));
     }
+
+    const maxRes = await sql`
+      SELECT MAX(streak_count) as max_streak FROM bucket_logs 
+      WHERE bucket_id = ${bucketId}::uuid AND owner_id = ${userId} AND date < ${fromDate}
+    `;
+    maxStreak = maxRes[0]?.max_streak || 0;
   }
 
   const logs = await sql`
-    SELECT * FROM bucketlogs 
-    WHERE bucketid = ${bucketId}::uuid AND ownerid = ${userId}
+    SELECT id, date, status, streak_count, broken_streak_count FROM bucket_logs 
+    WHERE bucket_id = ${bucketId}::uuid AND owner_id = ${userId}
     ${queryStartDate ? sql`AND date >= ${queryStartDate}` : sql``}
     ORDER BY date ASC
   `;
@@ -33,25 +40,24 @@ export async function recalculateBucketStreak(sql: any, bucketId: string, userId
     if (!fromDate) {
       const result = await sql`
         UPDATE buckets 
-        SET "currentStreak" = 0, "streakAnchorDate" = NULL, updatedat = NOW()
-        WHERE id = ${bucketId}::uuid AND ownerid = ${userId}
-        RETURNING *
+        SET current_streak = 0, streak_anchor_date = NULL, updated_at = NOW()
+        WHERE id = ${bucketId}::uuid AND owner_id = ${userId}
+        RETURNING id, owner_id, current_streak, longest_streak, streak_anchor_date, updated_at
       `;
       return result[0];
     }
     
     const result = await sql`
       UPDATE buckets 
-      SET "currentStreak" = ${runningStreak}, 
-          updatedat = NOW()
-      WHERE id = ${bucketId}::uuid AND ownerid = ${userId}
-      RETURNING *
+      SET current_streak = ${runningStreak}, 
+          updated_at = NOW()
+      WHERE id = ${bucketId}::uuid AND owner_id = ${userId}
+      RETURNING id, owner_id, current_streak, longest_streak, streak_anchor_date, updated_at
     `;
     return result[0];
   }
 
-  let maxStreak = bucket.longestStreak || 0;
-  let streakAnchorDate: string | null = bucket.streakAnchorDate;
+  let streakAnchorDate: string | null = bucket.streak_anchor_date;
   const updates: any[] = [];
 
   for (const log of logs) {
@@ -80,7 +86,7 @@ export async function recalculateBucketStreak(sql: any, bucketId: string, userId
       streakAnchorDate = log.date;
     }
 
-    if (log.streakCount !== runningStreak || log.brokenStreakCount !== brokenStreakCount) {
+    if (log.streak_count !== runningStreak || log.broken_streak_count !== brokenStreakCount) {
       updates.push({
         id: log.id,
         streakCount: runningStreak,
@@ -97,10 +103,10 @@ export async function recalculateBucketStreak(sql: any, bucketId: string, userId
     const bscs = updates.map(u => u.brokenStreakCount);
 
     await sql`
-      UPDATE bucketlogs AS h SET
-        "streakCount" = v.sc,
-        "brokenStreakCount" = v.bsc,
-        updatedat = NOW()
+      UPDATE bucket_logs AS h SET
+        streak_count = v.sc,
+        broken_streak_count = v.bsc,
+        updated_at = NOW()
       FROM (
         SELECT * FROM UNNEST(${ids}::text[], ${scs}::int[], ${bscs}::int[])
         AS t(id, sc, bsc)
@@ -112,12 +118,12 @@ export async function recalculateBucketStreak(sql: any, bucketId: string, userId
   const result = await sql`
     UPDATE buckets 
     SET 
-      "currentStreak" = ${runningStreak}, 
-      "longestStreak" = ${maxStreak},
-      "streakAnchorDate" = ${streakAnchorDate},
-      updatedat = NOW()
-    WHERE id = ${bucketId}::uuid AND ownerid = ${userId}
-    RETURNING *
+      current_streak = ${runningStreak}, 
+      longest_streak = ${maxStreak},
+      streak_anchor_date = ${streakAnchorDate},
+      updated_at = NOW()
+    WHERE id = ${bucketId}::uuid AND owner_id = ${userId}
+    RETURNING id, owner_id, current_streak, longest_streak, streak_anchor_date, updated_at
   `;
   
   return result[0];
@@ -128,7 +134,7 @@ export async function syncBucketLogsForHabit(sql: any, habitId: string, userId: 
   const buckets = await sql`
     SELECT b.id FROM buckets b
     JOIN bucket_habits bh ON b.id = bh.bucket_id
-    WHERE bh.habit_id = ${habitId}::uuid AND b.ownerid = ${userId}
+    WHERE bh.habit_id = ${habitId}::uuid AND b.owner_id = ${userId}
   `;
 
   const updatedBuckets = [];
@@ -153,7 +159,7 @@ export async function syncSingleBucketLog(sql: any, bucketId: string, userId: st
       SELECT bh.habit_id FROM bucket_habits bh
       JOIN habits h ON bh.habit_id = h.id
       WHERE bh.bucket_id = ${bucketId}::uuid 
-        AND h.ownerid = ${userId}
+        AND h.owner_id = ${userId}
         AND bh.approval_status = 'accepted'
     `;
   } else {
@@ -165,7 +171,7 @@ export async function syncSingleBucketLog(sql: any, bucketId: string, userId: st
   
   if (habitsRes.length === 0) {
     // If it's a shared bucket and user has no accepted habits, they shouldn't have logs yet or they are cleared
-    await sql`DELETE FROM bucketlogs WHERE bucketid = ${bucketId}::uuid AND date = ${date} AND ownerid = ${userId}`;
+    await sql`DELETE FROM bucket_logs WHERE bucket_id = ${bucketId}::uuid AND date = ${date} AND owner_id = ${userId}`;
     await recalculateBucketStreak(sql, bucketId, userId, date);
     return;
   }
@@ -173,12 +179,12 @@ export async function syncSingleBucketLog(sql: any, bucketId: string, userId: st
   const habitIds = habitsRes.map((h: any) => h.habit_id);
 
   const logsRes = await sql`
-    SELECT status, habitid FROM habitlogs 
-    WHERE habitid = ANY(${habitIds}::uuid[]) AND ownerid = ${userId} AND date = ${date}
+    SELECT status, habit_id FROM habit_logs 
+    WHERE habit_id = ANY(${habitIds}::uuid[]) AND owner_id = ${userId} AND date = ${date}
       AND status != 'cleared'
   `;
 
-  const uniqueLoggedHabitIds = new Set(logsRes.map((l: any) => l.habitid));
+  const uniqueLoggedHabitIds = new Set(logsRes.map((l: any) => l.habit_id));
 
   if (uniqueLoggedHabitIds.size === habitsRes.length) {
     let finalStatus = 'completed';
@@ -194,18 +200,18 @@ export async function syncSingleBucketLog(sql: any, bucketId: string, userId: st
 
     const logId = `${bucketId}_${date}_${userId}`;
     await sql`
-      INSERT INTO bucketlogs (id, bucketid, ownerid, date, status, updatedat)
+      INSERT INTO bucket_logs (id, bucket_id, owner_id, date, status, updated_at)
       VALUES (${logId}, ${bucketId}::uuid, ${userId}, ${date}, ${finalStatus}, NOW())
       ON CONFLICT (id) DO UPDATE 
-      SET status = ${finalStatus}, updatedat = NOW()
+      SET status = ${finalStatus}, updated_at = NOW()
     `;
   } else {
     const logId = `${bucketId}_${date}_${userId}`;
     await sql`
-      INSERT INTO bucketlogs (id, bucketid, ownerid, date, status, updatedat)
+      INSERT INTO bucket_logs (id, bucket_id, owner_id, date, status, updated_at)
       VALUES (${logId}, ${bucketId}::uuid, ${userId}, ${date}, 'cleared', NOW())
       ON CONFLICT (id) DO UPDATE 
-      SET status = 'cleared', updatedat = NOW()
+      SET status = 'cleared', updated_at = NOW()
     `;
   }
 
@@ -213,7 +219,7 @@ export async function syncSingleBucketLog(sql: any, bucketId: string, userId: st
 }
 
 export async function reevaluateBucketLogs(sql: any, bucketId: string, userId: string) {
-  await sql`DELETE FROM bucketlogs WHERE bucketid = ${bucketId}::uuid AND ownerid = ${userId}`;
+  await sql`DELETE FROM bucket_logs WHERE bucket_id = ${bucketId}::uuid AND owner_id = ${userId}`;
   
   // Check if bucket has shared members
   const sharedMembersRes = await sql`SELECT 1 FROM shared_bucket_members WHERE bucket_id = ${bucketId}::uuid`;
@@ -225,7 +231,7 @@ export async function reevaluateBucketLogs(sql: any, bucketId: string, userId: s
       SELECT bh.habit_id FROM bucket_habits bh
       JOIN habits h ON bh.habit_id = h.id
       WHERE bh.bucket_id = ${bucketId}::uuid 
-        AND h.ownerid = ${userId}
+        AND h.owner_id = ${userId}
         AND bh.approval_status = 'accepted'
     `;
   } else {
@@ -239,8 +245,8 @@ export async function reevaluateBucketLogs(sql: any, bucketId: string, userId: s
   const habitIds = habitsRes.map((h: any) => h.habit_id);
   
   const datesRes = await sql`
-    SELECT DISTINCT date FROM habitlogs 
-    WHERE habitid = ANY(${habitIds}::uuid[]) AND ownerid = ${userId}
+    SELECT DISTINCT date FROM habit_logs 
+    WHERE habit_id = ANY(${habitIds}::uuid[]) AND owner_id = ${userId}
       AND status != 'cleared'
   `;
   

@@ -1,43 +1,41 @@
 import { hash } from 'bcrypt-ts';
-import type { IUser } from '../../models';
+import { useDB as _useDB } from '../../utils/db';
+import { generateToken as _generateToken } from '../../utils/auth';
+import { registerSchema, throwZodError } from '../../utils/validation';
 
 export default defineEventHandler(async (event) => {
+  const useDB = (event.context as any).useDB || _useDB;
+  const generateToken = (event.context as any).generateToken || _generateToken;
   const sql = useDB(event);
-  const { email, password, username, photourl } = await readBody(event);
-  
-  if (!email || !password || !username)
-    throw createError({ statusCode: 400, statusMessage: 'Email, password and username are required' });
 
-  if (!isValidEmail(email)) {
-    throw createError({ statusCode: 400, statusMessage: 'Please provide a valid email address' });
+  const body = await readBody(event);
+  const validation = registerSchema.safeParse(body);
+  
+  if (!validation.success) {
+    return throwZodError(validation.error);
   }
 
-  if (username.length < 3 || username.length > 20)
-    throw createError({ statusCode: 400, statusMessage: 'Username must be between 3 and 20 characters' });
+  const { email, password, username, photoUrl } = validation.data;
 
-  if (password.length < 8)
-    throw createError({ statusCode: 400, statusMessage: 'Password must be at least 8 characters long' });
-
-  const existingEmail = await sql`SELECT 1 FROM users WHERE email = ${email}`;
-  if (existingEmail.length > 0) throw createError({ statusCode: 400, statusMessage: 'An account with this email already exists' });
-
-  const existingUsername = await sql`SELECT 1 FROM users WHERE username = ${username}`;
-  if (existingUsername.length > 0) throw createError({ statusCode: 400, statusMessage: 'This username is already taken' });
+  const existingUser = await sql`SELECT 1 FROM users WHERE email ILIKE ${email} OR username ILIKE ${username}`;
+  if ((existingUser as any[]).length > 0) {
+    throw createError({ statusCode: 409, statusMessage: 'Email or username already taken' });
+  }
 
   const passwordHash = await hash(password, 10);
-  
+
   const result = await sql`
-    INSERT INTO users (email, username, "passwordHash", "createdAt", photourl) 
-    VALUES (${email}, ${username}, ${passwordHash}, NOW(), ${photourl || null}) 
-    RETURNING id
+    INSERT INTO users (email, username, password_hash, created_at, photo_url)
+    VALUES (${email}, ${username}, ${passwordHash}, NOW(), ${photoUrl || null})
+    RETURNING id, email, username, photo_url
   `;
 
-  if (result.length === 0) throw createError({ statusCode: 500, statusMessage: 'Failed to create user' });
+  if ((result as any[]).length === 0) {
+    throw createError({ statusCode: 500, statusMessage: 'Failed to create user' });
+  }
 
-  const insertedId = result[0]?.id;
-  if (!insertedId) throw createError({ statusCode: 500, statusMessage: 'Failed to create user' });
-  const token = await generateToken(insertedId, event);
-  setCookie(event, 'auth_token', token, { httpOnly: true, maxAge: 60 * 60 * 24 * 7, path: '/', sameSite: 'strict' });
+  const user = (result as any[])[0];
+  const token = await generateToken(user.id, event);
 
-  return { user: { id: insertedId, email, username, photourl } };
+  return { data: { token, id: user.id, email: user.email, username: user.username, photoUrl: user.photo_url } };
 });

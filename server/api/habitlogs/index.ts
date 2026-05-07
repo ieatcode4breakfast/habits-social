@@ -1,199 +1,118 @@
-import { parseISO, startOfDay, subDays, addDays, isAfter, isBefore, format } from 'date-fns';
-import type { IHabitLog } from '../../models';
-import { usePusher } from '../../utils/pusher';
+import { z } from 'zod';
+import { parseISO, startOfDay, subDays, addDays, isBefore, isAfter } from 'date-fns';
+import { useDB as _useDB } from '../../utils/db';
+import { requireAuth as _requireAuth } from '../../utils/auth';
+import { normalizeLog } from '../../utils/normalize';
+import { habitLogSchema, throwZodError } from '../../utils/validation';
 import { recalculateHabitStreak } from '../../utils/streaks';
 import { syncBucketLogsForHabit } from '../../utils/buckets';
 
-// Helper to ensure the date column (which postgres returns as a Date object)
-// is always sent to the client as a clean YYYY-MM-DD string.
-const normalizeLog = (log: any) => {
-  if (!log) return log;
-  const normalized = { ...log };
-  if (normalized.date) {
-    normalized.date = format(new Date(normalized.date), 'yyyy-MM-dd');
-  }
-  return normalized;
-};
-
-const normalizeHabit = (h: any) => {
-  if (!h) return h;
-  const normalized = { ...h };
-  if (normalized.streakAnchorDate) {
-    normalized.streakAnchorDate = format(new Date(normalized.streakAnchorDate), 'yyyy-MM-dd');
-  }
-  return normalized;
-};
-
-const normalizeBucket = (b: any) => {
-  if (!b) return b;
-  const normalized = { ...b };
-  if (normalized.streakAnchorDate) {
-    normalized.streakAnchorDate = format(new Date(normalized.streakAnchorDate), 'yyyy-MM-dd');
-  }
-  return normalized;
-};
-
-
 export default defineEventHandler(async (event) => {
-  try {
-    const sql = useDB(event);
-    const userId = await requireAuth(event);
+  const requireAuth = (event.context as any).requireAuth || _requireAuth;
+  const useDB = (event.context as any).useDB || _useDB;
+  const userId = await requireAuth(event);
+  const sql = useDB(event);
 
-    // Validation: Only allow updates for the last 14 days
-    if (event.method === 'POST' || event.method === 'DELETE') {
-      let dateStr = '';
-      if (event.method === 'POST') {
-        const body = await readBody(event);
-        dateStr = String(body.date);
-        // Re-read body later if needed, or just use the parsed one.
-        // Nitro's readBody can be called multiple times if cached, but let's be safe.
-        event.context.body = body;
-      } else {
-        const query = getQuery(event);
-        dateStr = String(query.date);
+  if (event.method === 'GET') {
+    setResponseHeader(event, 'Cache-Control', 'no-cache, no-store, must-revalidate');
+    const query = getQuery(event);
+
+    let logs;
+    if (query.lastSynced) {
+      const lastSynced = Number(query.lastSynced);
+      if (isNaN(lastSynced)) {
+        throw createError({ statusCode: 400, statusMessage: 'Invalid lastSynced parameter' });
       }
-
-      if (dateStr) {
-        const logDate = startOfDay(parseISO(dateStr));
-        const today = startOfDay(new Date());
-        const limitDate = startOfDay(subDays(today, 13));
-        // Allow up to 1 day in the future (UTC) to accommodate global timezones
-        const maxDate = addDays(today, 1);
-
-        if (isBefore(logDate, limitDate) || isAfter(logDate, maxDate)) {
-          throw createError({
-            statusCode: 400,
-            statusMessage: 'Habit updates are only allowed for the last 14 days.'
-          });
-        }
-      }
-    }
-
-    if (event.method === 'GET') {
-      setResponseHeader(event, 'Cache-Control', 'no-cache, no-store, must-revalidate');
-      const query = getQuery(event);
-
-      let logs;
-      if (query.lastSynced) {
-        const lastSynced = Number(query.lastSynced);
-        logs = await sql`
-          SELECT * FROM habitlogs 
-          WHERE ownerid = ${userId} 
-            AND updatedat >= to_timestamp(${lastSynced} / 1000.0)
-        `;
-      } else if (query.startDate && query.endDate) {
-        logs = await sql`
-          SELECT * FROM habitlogs 
-          WHERE ownerid = ${userId} 
-            AND date >= ${String(query.startDate)} 
-            AND date <= ${String(query.endDate)}
-        `;
-      } else {
-        logs = await sql`SELECT * FROM habitlogs WHERE ownerid = ${userId}`;
-      }
-
-      return logs.map(normalizeLog);
-    }
-
-    if (event.method === 'POST') {
-      const body = event.context.body || await readBody(event);
-      const habitId = String(body.habitid || body.habitId || '');
-      const dateStr = String(body.date || '');
-      const status = String(body.status || '');
-
-      // Validation: Ensure habitId is a valid UUID to prevent server crashes on casting
-      if (!habitId || habitId.length < 36 || !habitId.includes('-')) {
-        throw createError({ statusCode: 400, statusMessage: 'Invalid habitid format' });
-      }
-
-      const habitCheck = await sql`SELECT id FROM habits WHERE id = ${habitId}::uuid AND ownerid = ${userId}`;
-      if (habitCheck.length === 0) {
-        throw createError({ statusCode: 404, statusMessage: 'Habit not found' });
-      }
-
-      const existing = await sql`
-        SELECT * FROM habitlogs 
-        WHERE habitid = ${habitId}::uuid AND ownerid = ${userId} AND date = ${dateStr}
+      logs = await sql`
+        SELECT id, habit_id, owner_id, date, status, streak_count, broken_streak_count, shared_with, updated_at FROM habit_logs 
+        WHERE owner_id = ${userId} 
+          AND updated_at >= to_timestamp(${lastSynced} / 1000.0)
       `;
-
-      let finalLog;
-      if (existing.length > 0) {
-        const existingLog = existing[0]!;
-        const newSharedwith = body.sharedwith && Array.isArray(body.sharedwith) ? body.sharedwith : existingLog.sharedwith;
-
-        const result = await sql`
-          UPDATE habitlogs
-          SET status = ${status}, sharedwith = ${newSharedwith}, updatedat = NOW()
-          WHERE id = ${existingLog.id}
-          RETURNING *
-        `;
-        finalLog = result[0];
-      } else {
-        const logId = body.id || `${habitId}_${dateStr}`;
-        const sharedwith = body.sharedwith && Array.isArray(body.sharedwith) ? body.sharedwith : [];
-        const result = await sql`
-          INSERT INTO habitlogs (id, habitid, ownerid, date, status, sharedwith, updatedat)
-          VALUES (${logId}, ${habitId}::uuid, ${userId}, ${dateStr}, ${status}, ${sharedwith}, NOW())
-          ON CONFLICT (id) DO UPDATE SET
-            status = EXCLUDED.status,
-            sharedwith = EXCLUDED.sharedwith,
-            updatedat = NOW()
-          RETURNING *
-        `;
-        finalLog = result[0];
-      }
-
-      const updatedHabit = await recalculateHabitStreak(sql, habitId, userId, dateStr);
-      const updatedBuckets = await syncBucketLogsForHabit(sql, habitId, userId, dateStr);
-
-      const pusher = usePusher(event);
-      if (pusher) {
-        await pusher.trigger(`user-${userId}-habits`, 'sync-settled', { timestamp: Date.now() });
-      }
-
-      return {
-        log: normalizeLog(finalLog),
-        habit: normalizeHabit(updatedHabit),
-        buckets: updatedBuckets.map(normalizeBucket)
-      };
-    }
-
-    if (event.method === 'DELETE') {
-      const query = getQuery(event);
-      const habitId = String(query.habitid);
-      const dateStr = String(query.date);
-
-      await sql`
-        DELETE FROM habitlogs 
-        WHERE habitid = ${habitId}::uuid AND ownerid = ${userId} AND date = ${dateStr}
+    } else if (query.startDate && query.endDate) {
+      logs = await sql`
+        SELECT id, habit_id, owner_id, date, status, streak_count, broken_streak_count, shared_with, updated_at FROM habit_logs 
+        WHERE owner_id = ${userId} 
+          AND date >= ${String(query.startDate)} 
+          AND date <= ${String(query.endDate)}
       `;
-
-      const updatedHabit = await recalculateHabitStreak(sql, habitId, userId, dateStr);
-      const updatedBuckets = await syncBucketLogsForHabit(sql, habitId, userId, dateStr);
-
-      const pusher = usePusher(event);
-      if (pusher) {
-        await pusher.trigger(`user-${userId}-habits`, 'sync-settled', { timestamp: Date.now() });
-      }
-
-      return {
-        success: true,
-        habit: normalizeHabit(updatedHabit),
-        buckets: updatedBuckets.map(normalizeBucket)
-      };
+    } else {
+      logs = await sql`SELECT id, habit_id, owner_id, date, status, streak_count, broken_streak_count, shared_with, updated_at FROM habit_logs WHERE owner_id = ${userId}`;
     }
-  } catch (err: any) {
-    console.error('[Debug API Error]:', err);
-    throw createError({
-      statusCode: err.statusCode || 500,
-      statusMessage: `DEBUG: ${err.message || 'Unknown error'}`,
-      data: {
-        stack: err.stack,
-        details: err.toString()
-      }
-    });
+
+    return { data: (logs as any[]).map(normalizeLog) };
+  }
+
+  if (event.method === 'POST') {
+    const body = await readBody(event);
+    const validation = habitLogSchema.safeParse(body);
+    if (!validation.success) {
+      return throwZodError(validation.error);
+    }
+
+    const data = validation.data;
+
+    // Validate date is within last 14 days
+    const logDate = startOfDay(parseISO(data.date));
+    const today = startOfDay(new Date());
+    const limitDate = startOfDay(subDays(today, 13));
+    const maxDate = addDays(today, 1);
+
+    if (isBefore(logDate, limitDate) || isAfter(logDate, maxDate)) {
+      throw createError({ statusCode: 400, statusMessage: 'Habit updates are only allowed for the last 14 days' });
+    }
+
+    // Validate habit exists and is owned by user
+    const habitCheck = await sql`SELECT id FROM habits WHERE id = ${data.habitId}::uuid AND owner_id = ${userId}`;
+    if ((habitCheck as any[]).length === 0) {
+      throw createError({ statusCode: 404, statusMessage: 'Habit not found' });
+    }
+
+    const logId = data.id || `${data.habitId}_${data.date}`;
+
+    const result = await sql`
+      INSERT INTO habit_logs (id, habit_id, owner_id, date, status, shared_with, streak_count, broken_streak_count, updated_at)
+      VALUES (${logId}, ${data.habitId}::uuid, ${userId}, ${data.date}, ${data.status}, ${data.sharedWith}, ${data.streakCount ?? 0}, ${data.brokenStreakCount ?? 0}, NOW())
+      ON CONFLICT (id) DO UPDATE SET
+        status = EXCLUDED.status,
+        shared_with = EXCLUDED.shared_with,
+        streak_count = EXCLUDED.streak_count,
+        broken_streak_count = EXCLUDED.broken_streak_count,
+        updated_at = NOW()
+      WHERE habit_logs.owner_id = EXCLUDED.owner_id
+      RETURNING id, habit_id, owner_id, date, status, streak_count, broken_streak_count, shared_with, updated_at
+    `;
+
+    // Recalculate streaks and auto-generate bucket logs server-side
+    await recalculateHabitStreak(sql, data.habitId, userId, data.date);
+    await syncBucketLogsForHabit(sql, data.habitId, userId, data.date);
+
+    return { data: normalizeLog((result as any[])[0]) };
+  }
+
+  if (event.method === 'DELETE') {
+    const query = getQuery(event);
+    const habitId = String(query.habitId || '');
+    const dateStr = String(query.date || '');
+
+    if (!habitId || !dateStr) {
+      throw createError({ statusCode: 400, statusMessage: 'habitId and date are required' });
+    }
+
+    // Validate date is within last 14 days
+    const logDate = startOfDay(parseISO(dateStr));
+    const today = startOfDay(new Date());
+    const limitDate = startOfDay(subDays(today, 13));
+    const maxDate = addDays(today, 1);
+
+    if (isBefore(logDate, limitDate) || isAfter(logDate, maxDate)) {
+      throw createError({ statusCode: 400, statusMessage: 'Habit updates are only allowed for the last 14 days' });
+    }
+
+    await sql`
+      DELETE FROM habit_logs 
+      WHERE habit_id = ${habitId}::uuid AND owner_id = ${userId} AND date = ${dateStr}
+    `;
+
+    return { data: { success: true } };
   }
 });
-
-
-

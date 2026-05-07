@@ -1,9 +1,15 @@
 import { neon } from '@neondatabase/serverless';
 import type { H3Event } from 'h3';
-import { toCamelCase } from './transform';
+import { toCamelCase } from '../../../utils/transform';
 
 export const useDB = (event?: H3Event) => {
-  const config = useRuntimeConfig(event);
+  let config: any = {};
+  try {
+    config = useRuntimeConfig(event);
+  } catch (e) {
+    // Fallback for tests or environments where useRuntimeConfig is unavailable
+  }
+
   const cf = (event as any)?.context?.cloudflare;
   
   const uri = (config.databaseUrl as string)
@@ -13,12 +19,10 @@ export const useDB = (event?: H3Event) => {
     || (process as any)?.env?.NUXT_DATABASE_URL;
 
   if (!uri) {
-    console.error('DATABASE_URL is missing. Checked: config, cloudflare.env, and process.env');
+    console.error('DATABASE_URL is missing.');
     throw createError({ statusCode: 500, statusMessage: 'Database configuration missing' });
   }
 
-  // Neon handles connection pooling transparently in serverless environments
-  // so we just return the query function directly.
   const sql = neon(uri);
 
   // Wrap the sql function to automatically convert results to camelCase

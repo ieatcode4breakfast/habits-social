@@ -1,24 +1,26 @@
-import type { IHabit } from '../../models';
-import { usePusher } from '../../utils/pusher';
+import { z } from 'zod';
+import { useDB as _useDB } from '../../utils/db';
+import { requireAuth as _requireAuth } from '../../utils/auth';
+import { reorderSchema } from '../../utils/validation';
 
 export default defineEventHandler(async (event) => {
-  const sql = useDB(event);
+  const requireAuth = (event.context as any).requireAuth || _requireAuth;
+  const useDB = (event.context as any).useDB || _useDB;
   const userId = await requireAuth(event);
+  const sql = useDB(event);
 
-  const { ids } = await readBody(event);
-  if (!Array.isArray(ids)) throw createError({ statusCode: 400, statusMessage: 'ids must be an array' });
+  const body = await readBody(event);
+  const validation = reorderSchema.safeParse(body);
+  if (!validation.success) {
+    throw createError({ statusCode: 400, statusMessage: 'Validation Failed', data: validation.error.flatten() });
+  }
 
+  const { ids } = validation.data;
   if (ids.length > 0) {
-    await sql.transaction(ids.map((id, index) => 
-      sql`UPDATE habits SET "sortOrder" = ${index}, updatedat = NOW() WHERE id = ${id}::uuid AND ownerid = ${userId}`
-    ));
-
-    // Real-time: Notify other devices
-    const pusher = usePusher();
-    if (pusher) {
-      await pusher.trigger(`user-${userId}-habits`, 'habit-updated', {});
+    for (let i = 0; i < ids.length; i++) {
+      await sql`UPDATE habits SET sort_order = ${i}, updated_at = NOW() WHERE id = ${ids[i]}::uuid AND owner_id = ${userId}`;
     }
   }
 
-  return { success: true };
+  return { data: { success: true } };
 });
