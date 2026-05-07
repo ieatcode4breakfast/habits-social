@@ -156,7 +156,8 @@
                         getBucketStatus(bucket.id, day) === 'failed' ? 'bg-rose-500 border-rose-500 shadow-md shadow-rose-500/20' :
                         getBucketStatus(bucket.id, day) === 'skipped' ? 'bg-zinc-500 border-zinc-500 shadow-none' :
                         getBucketStatus(bucket.id, day) === 'vacation' ? 'bg-amber-500 border-amber-500 shadow-md shadow-amber-500/20' :
-                        'bg-transparent border-dashed border-zinc-800'
+                        isMarkable(day) ? 'bg-transparent border-dashed border-zinc-800' : 'bg-white/[0.03] border-dashed border-zinc-900',
+                        !isMarkable(day) && getBucketStatus(bucket.id, day) ? 'opacity-60' : ''
                       ]"
                     >
                       <Check v-if="getBucketStatus(bucket.id, day) === 'completed'" class="w-4 h-4 text-white" />
@@ -251,7 +252,10 @@
                               getHabitStatus(habit.id, day) === 'failed' ? 'bg-rose-500 border-rose-500 shadow-md shadow-rose-500/20' :
                               getHabitStatus(habit.id, day) === 'skipped' ? 'bg-zinc-500 border-zinc-500 shadow-none' :
                               getHabitStatus(habit.id, day) === 'vacation' ? 'bg-amber-500 border-amber-500 shadow-md shadow-amber-500/20' :
-                              ['bg-transparent border-dashed border-zinc-800', isMarkable(day) ? 'hover:bg-zinc-800/40' : '']
+                              isMarkable(day) 
+                                ? 'bg-transparent border-dashed border-zinc-800 hover:bg-zinc-800/40' 
+                                : 'bg-white/[0.03] border-dashed border-zinc-900',
+                              !isMarkable(day) && getHabitStatus(habit.id, day) ? 'opacity-60' : ''
                             ]"
                           >
                             <Check v-if="getHabitStatus(habit.id, day) === 'completed'" class="w-4 h-4 text-white" />

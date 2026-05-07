@@ -179,12 +179,14 @@
                           :class="[
                             isMarkable(day) ? 'cursor-pointer' : 'cursor-default',
                             (day.getMonth() !== currentCalendarDate.getMonth()) ? 'opacity-30 border-transparent' : '',
-                            !isMarkable(day) && day.getMonth() === currentCalendarDate.getMonth() ? 'opacity-50' : '',
                             getStatus(day) === 'completed' ? 'bg-emerald-500 border-emerald-500 shadow-md shadow-emerald-500/20' :
                             getStatus(day) === 'failed' ? 'bg-rose-500 border-rose-500 shadow-md shadow-rose-500/20' :
                             getStatus(day) === 'skipped' ? 'bg-zinc-500 border-zinc-500 shadow-none' :
                             getStatus(day) === 'vacation' ? 'bg-amber-500 border-amber-500 shadow-md shadow-amber-500/20' :
-                            ['border-dashed border-zinc-800 bg-transparent', isMarkable(day) ? 'hover:bg-zinc-925' : '']
+                            isMarkable(day) 
+                              ? 'border-dashed border-zinc-800 bg-transparent hover:bg-zinc-925' 
+                              : 'bg-white/[0.03] border-dashed border-zinc-900',
+                            !isMarkable(day) && day.getMonth() === currentCalendarDate.getMonth() ? (getStatus(day) ? 'opacity-60' : 'opacity-100') : ''
                           ]"
                         >
                           <Check v-if="getStatus(day) === 'completed'" class="w-4 h-4 text-white" />

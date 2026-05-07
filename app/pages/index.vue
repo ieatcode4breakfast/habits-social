@@ -133,7 +133,10 @@
                     getStatus(habit.id, day) === 'failed' ? 'bg-rose-500 border-rose-500 shadow-md shadow-rose-500/20' :
                     getStatus(habit.id, day) === 'skipped' ? 'bg-zinc-500 border-zinc-500 shadow-none' :
                     getStatus(habit.id, day) === 'vacation' ? 'bg-amber-500 border-amber-500 shadow-md shadow-amber-500/20' :
-                    ['bg-transparent border-dashed border-zinc-800', isMarkable(day) ? 'hover:bg-zinc-925' : '']
+                    isMarkable(day) 
+                      ? 'bg-transparent border-dashed border-zinc-800 hover:bg-zinc-925' 
+                      : 'bg-white/[0.03] border-dashed border-zinc-900',
+                    !isMarkable(day) && getStatus(habit.id, day) ? 'opacity-60' : ''
                   ]"
                 >
                   <Check v-if="getStatus(habit.id, day) === 'completed'" class="w-4 h-4 text-white" />
