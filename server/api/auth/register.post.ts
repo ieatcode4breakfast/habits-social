@@ -37,5 +37,13 @@ export default defineEventHandler(async (event) => {
   const user = (result as any[])[0];
   const token = await generateToken(user.id, event);
 
+  setCookie(event, 'auth_token', token, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    maxAge: 60 * 60 * 24 * 7, // 7 days
+    path: '/',
+    sameSite: 'lax'
+  });
+
   return { data: { token, id: user.id, email: user.email, username: user.username, photoUrl: user.photoUrl } };
 });

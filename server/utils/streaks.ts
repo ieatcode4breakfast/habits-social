@@ -20,7 +20,7 @@ export async function recalculateHabitStreak(sql: any, habitId: string, userId: 
       ORDER BY date DESC LIMIT 1
     `;
     if (prevLog && prevLog.length > 0) {
-      runningStreak = prevLog[0].streak_count;
+      runningStreak = prevLog[0].streakCount;
       lastDate = startOfDay(parseISO(prevLog[0].date));
     }
 
@@ -28,16 +28,22 @@ export async function recalculateHabitStreak(sql: any, habitId: string, userId: 
       SELECT MAX(streak_count) as max_streak FROM habit_logs 
       WHERE habit_id = ${habitId}::uuid AND owner_id = ${userId} AND date < ${fromDate}
     `;
-    maxStreak = maxRes[0]?.max_streak || 0;
+    maxStreak = maxRes[0]?.maxStreak || 0;
   }
 
   // 3. Fetch logs from starting point onwards
-  const logs = await sql`
-    SELECT id, date, status, streak_count, broken_streak_count FROM habit_logs 
-    WHERE habit_id = ${habitId}::uuid AND owner_id = ${userId}
-    ${queryStartDate ? sql`AND date >= ${queryStartDate}` : sql``}
-    ORDER BY date ASC
-  `;
+  const logs = queryStartDate 
+    ? await sql`
+        SELECT id, date, status, streak_count, broken_streak_count FROM habit_logs 
+        WHERE habit_id = ${habitId}::uuid AND owner_id = ${userId}
+          AND date >= ${queryStartDate}
+        ORDER BY date ASC
+      `
+    : await sql`
+        SELECT id, date, status, streak_count, broken_streak_count FROM habit_logs 
+        WHERE habit_id = ${habitId}::uuid AND owner_id = ${userId}
+        ORDER BY date ASC
+      `;
 
   if (!logs || logs.length === 0) {
     // If we're doing a full rebuild and no logs, reset habit.
@@ -64,7 +70,7 @@ export async function recalculateHabitStreak(sql: any, habitId: string, userId: 
   }
 
   // 4. The Cascading Update: Iterate through timeline and calculate counts
-  let streakAnchorDate: string | null = habit.streak_anchor_date;
+  let streakAnchorDate: string | null = habit.streakAnchorDate;
   const updates: any[] = [];
 
   for (const log of logs) {
@@ -98,7 +104,7 @@ export async function recalculateHabitStreak(sql: any, habitId: string, userId: 
     }
 
     // Only update if values changed (Optimization)
-    if (log.streak_count !== runningStreak || log.broken_streak_count !== brokenStreakCount) {
+    if (log.streakCount !== runningStreak || log.brokenStreakCount !== brokenStreakCount) {
       updates.push({
         id: log.id,
         streakCount: runningStreak,

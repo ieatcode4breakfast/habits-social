@@ -4,6 +4,3 @@ This directory contains the legacy V1 API. These endpoints are no longer active 
 
 ## Status: Offline
 This directory is prefixed with an underscore (`_v1/`), which tells Nitro to ignore it during route generation. These routes are effectively archived.
-
-## Migration to V2
-Users should migrate to the equivalent routes in the primary `/api` namespace.

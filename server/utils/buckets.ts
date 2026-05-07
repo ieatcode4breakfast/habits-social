@@ -18,7 +18,7 @@ export async function recalculateBucketStreak(sql: any, bucketId: string, userId
       ORDER BY date DESC LIMIT 1
     `;
     if (prevLog && prevLog.length > 0) {
-      runningStreak = prevLog[0].streak_count;
+      runningStreak = prevLog[0].streakCount;
       lastDate = startOfDay(parseISO(prevLog[0].date));
     }
 
@@ -26,15 +26,21 @@ export async function recalculateBucketStreak(sql: any, bucketId: string, userId
       SELECT MAX(streak_count) as max_streak FROM bucket_logs 
       WHERE bucket_id = ${bucketId}::uuid AND owner_id = ${userId} AND date < ${fromDate}
     `;
-    maxStreak = maxRes[0]?.max_streak || 0;
+    maxStreak = maxRes[0]?.maxStreak || 0;
   }
 
-  const logs = await sql`
-    SELECT id, date, status, streak_count, broken_streak_count FROM bucket_logs 
-    WHERE bucket_id = ${bucketId}::uuid AND owner_id = ${userId}
-    ${queryStartDate ? sql`AND date >= ${queryStartDate}` : sql``}
-    ORDER BY date ASC
-  `;
+  const logs = queryStartDate 
+    ? await sql`
+        SELECT id, date, status, streak_count, broken_streak_count FROM bucket_logs 
+        WHERE bucket_id = ${bucketId}::uuid AND owner_id = ${userId}
+          AND date >= ${queryStartDate}
+        ORDER BY date ASC
+      `
+    : await sql`
+        SELECT id, date, status, streak_count, broken_streak_count FROM bucket_logs 
+        WHERE bucket_id = ${bucketId}::uuid AND owner_id = ${userId}
+        ORDER BY date ASC
+      `;
 
   if (!logs || logs.length === 0) {
     if (!fromDate) {
@@ -57,7 +63,7 @@ export async function recalculateBucketStreak(sql: any, bucketId: string, userId
     return result[0];
   }
 
-  let streakAnchorDate: string | null = bucket.streak_anchor_date;
+  let streakAnchorDate: string | null = bucket.streakAnchorDate;
   const updates: any[] = [];
 
   for (const log of logs) {
@@ -86,7 +92,7 @@ export async function recalculateBucketStreak(sql: any, bucketId: string, userId
       streakAnchorDate = log.date;
     }
 
-    if (log.streak_count !== runningStreak || log.broken_streak_count !== brokenStreakCount) {
+    if (log.streakCount !== runningStreak || log.brokenStreakCount !== brokenStreakCount) {
       updates.push({
         id: log.id,
         streakCount: runningStreak,
@@ -169,14 +175,9 @@ export async function syncSingleBucketLog(sql: any, bucketId: string, userId: st
     `;
   }
   
-  if (habitsRes.length === 0) {
-    // If it's a shared bucket and user has no accepted habits, they shouldn't have logs yet or they are cleared
-    await sql`DELETE FROM bucket_logs WHERE bucket_id = ${bucketId}::uuid AND date = ${date} AND owner_id = ${userId}`;
-    await recalculateBucketStreak(sql, bucketId, userId, date);
-    return;
-  }
+  if (habitsRes.length === 0) return;
 
-  const habitIds = habitsRes.map((h: any) => h.habit_id);
+  const habitIds = habitsRes.map((h: any) => h.habitId);
 
   const logsRes = await sql`
     SELECT status, habit_id FROM habit_logs 
@@ -184,7 +185,7 @@ export async function syncSingleBucketLog(sql: any, bucketId: string, userId: st
       AND status != 'cleared'
   `;
 
-  const uniqueLoggedHabitIds = new Set(logsRes.map((l: any) => l.habit_id));
+  const uniqueLoggedHabitIds = new Set(logsRes.map((l: any) => l.habitId));
 
   if (uniqueLoggedHabitIds.size === habitsRes.length) {
     let finalStatus = 'completed';
@@ -242,7 +243,7 @@ export async function reevaluateBucketLogs(sql: any, bucketId: string, userId: s
     await recalculateBucketStreak(sql, bucketId, userId);
     return;
   }
-  const habitIds = habitsRes.map((h: any) => h.habit_id);
+  const habitIds = habitsRes.map((h: any) => h.habitId);
   
   const datesRes = await sql`
     SELECT DISTINCT date FROM habit_logs 

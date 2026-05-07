@@ -199,7 +199,6 @@ const handleSubmit = async () => {
     });
 
     if (data.token) {
-      localStorage.setItem('auth_token', data.token);
       user.value = data;
     
     // Show success toast

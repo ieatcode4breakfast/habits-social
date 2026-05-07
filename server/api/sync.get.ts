@@ -20,50 +20,33 @@ export default defineEventHandler(async (event) => {
 
   // 2. Fetch all deltas in parallel
   const [habits, personalBuckets, sharedBuckets, habitLogs, bucketLogs, deletions] = await Promise.all([
-    sql`
-      SELECT * FROM habits 
-      WHERE owner_id = ${userId} 
-      ${lastSynced > 0 ? sql`AND updated_at >= to_timestamp(${lastSynced} / 1000.0)` : sql``}
-      ORDER BY sort_order ASC, created_at DESC
-    `,
-    sql`
-      SELECT b.* FROM buckets b
-      WHERE b.owner_id = ${userId} 
-        AND NOT EXISTS (SELECT 1 FROM shared_bucket_members sbm WHERE sbm.bucket_id = b.id)
-        ${lastSynced > 0 ? sql`AND b.updated_at >= to_timestamp(${lastSynced} / 1000.0)` : sql``}
-      ORDER BY b.sort_order ASC, b.created_at DESC
-    `,
-    sql`
-      SELECT b.* FROM buckets b
-      JOIN shared_bucket_members sbm ON b.id = sbm.bucket_id
-      WHERE sbm.user_id = ${userId}
-        AND sbm.status = 'accepted'
-        ${lastSynced > 0 ? sql`AND b.updated_at >= to_timestamp(${lastSynced} / 1000.0)` : sql``}
-      ORDER BY b.sort_order ASC, b.created_at DESC
-    `,
-    sql`
-      SELECT * FROM habit_logs 
-      WHERE owner_id = ${userId} 
-      ${lastSynced > 0 
-        ? sql`AND updated_at >= to_timestamp(${lastSynced} / 1000.0)` 
-        : (query.startDate && query.endDate 
-            ? sql`AND date >= ${String(query.startDate)} AND date <= ${String(query.endDate)}` 
-            : sql``)}
-    `,
-    sql`
-      SELECT * FROM bucket_logs 
-      WHERE owner_id = ${userId} 
-      ${lastSynced > 0 
-        ? sql`AND updated_at >= to_timestamp(${lastSynced} / 1000.0)` 
-        : (query.startDate && query.endDate 
-            ? sql`AND date >= ${String(query.startDate)} AND date <= ${String(query.endDate)}` 
-            : sql``)}
-    `,
-    sql`
-      SELECT entity_id, entity_type FROM sync_deletions
-      WHERE owner_id = ${userId}
-      ${lastSynced > 0 ? sql`AND created_at >= to_timestamp(${lastSynced} / 1000.0)` : sql``}
-    `
+    lastSynced > 0 
+      ? sql`SELECT * FROM habits WHERE owner_id = ${userId} AND updated_at >= to_timestamp(${lastSynced} / 1000.0) ORDER BY sort_order ASC, created_at DESC`
+      : sql`SELECT * FROM habits WHERE owner_id = ${userId} ORDER BY sort_order ASC, created_at DESC`,
+    
+    lastSynced > 0 
+      ? sql`SELECT b.* FROM buckets b WHERE b.owner_id = ${userId} AND NOT EXISTS (SELECT 1 FROM shared_bucket_members sbm WHERE sbm.bucket_id = b.id) AND b.updated_at >= to_timestamp(${lastSynced} / 1000.0) ORDER BY b.sort_order ASC, b.created_at DESC`
+      : sql`SELECT b.* FROM buckets b WHERE b.owner_id = ${userId} AND NOT EXISTS (SELECT 1 FROM shared_bucket_members sbm WHERE sbm.bucket_id = b.id) ORDER BY b.sort_order ASC, b.created_at DESC`,
+    
+    lastSynced > 0 
+      ? sql`SELECT b.* FROM buckets b JOIN shared_bucket_members sbm ON b.id = sbm.bucket_id WHERE sbm.user_id = ${userId} AND sbm.status = 'accepted' AND b.updated_at >= to_timestamp(${lastSynced} / 1000.0) ORDER BY b.sort_order ASC, b.created_at DESC`
+      : sql`SELECT b.* FROM buckets b JOIN shared_bucket_members sbm ON b.id = sbm.bucket_id WHERE sbm.user_id = ${userId} AND sbm.status = 'accepted' ORDER BY b.sort_order ASC, b.created_at DESC`,
+    
+    lastSynced > 0 
+      ? sql`SELECT * FROM habit_logs WHERE owner_id = ${userId} AND updated_at >= to_timestamp(${lastSynced} / 1000.0)`
+      : (query.startDate && query.endDate 
+          ? sql`SELECT * FROM habit_logs WHERE owner_id = ${userId} AND date >= ${String(query.startDate)} AND date <= ${String(query.endDate)}` 
+          : sql`SELECT * FROM habit_logs WHERE owner_id = ${userId}`),
+    
+    lastSynced > 0 
+      ? sql`SELECT * FROM bucket_logs WHERE owner_id = ${userId} AND updated_at >= to_timestamp(${lastSynced} / 1000.0)`
+      : (query.startDate && query.endDate 
+          ? sql`SELECT * FROM bucket_logs WHERE owner_id = ${userId} AND date >= ${String(query.startDate)} AND date <= ${String(query.endDate)}` 
+          : sql`SELECT * FROM bucket_logs WHERE owner_id = ${userId}`),
+    
+    lastSynced > 0 
+      ? sql`SELECT entity_id, entity_type FROM sync_deletions WHERE owner_id = ${userId} AND created_at >= to_timestamp(${lastSynced} / 1000.0)`
+      : sql`SELECT entity_id, entity_type FROM sync_deletions WHERE owner_id = ${userId}`
   ]);
 
   const buckets = [...(personalBuckets as any[]), ...(sharedBuckets as any[])];
