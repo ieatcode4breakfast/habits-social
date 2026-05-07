@@ -37,8 +37,24 @@ vi.stubGlobal('$fetch', async (url: string, opts: any) => {
 };
 
 // Global mocks for local utils
+import { toCamelCase } from '../utils/transform';
 vi.mock('../utils/db', () => ({
-  useDB: () => neon(process.env.DATABASE_URL!)
+  useDB: () => {
+    const sql = neon(process.env.DATABASE_URL!);
+    return (...args: any[]) => {
+      const result = (sql as any)(...args);
+      if (result && typeof result.then === 'function') {
+        const originalThen = result.then.bind(result);
+        result.then = (onFulfilled?: any, onRejected?: any) => {
+          return originalThen((data: any) => {
+            const transformed = toCamelCase(data);
+            return onFulfilled ? onFulfilled(transformed) : transformed;
+          }, onRejected);
+        };
+      }
+      return result;
+    };
+  }
 }));
 
 vi.mock('../utils/auth', () => ({

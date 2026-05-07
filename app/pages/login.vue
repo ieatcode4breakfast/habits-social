@@ -189,23 +189,25 @@ const handleSubmit = async () => {
 
   try {
     const endpoint = tab.value === 'login' ? '/api/auth/login' : '/api/auth/register';
-    const response = await $fetch<{ user: any }>(endpoint, { 
-      method: 'POST', 
+    const { data } = await $fetch<{ data: any }>(endpoint, { 
+      method: 'POST',
       body: { 
-        email: email.value, 
-        password: password.value,
-        ...(tab.value === 'signup' ? { username: username.value, photourl: photourl.value } : {})
-      } 
+        [endpoint === '/api/auth/login' ? 'identifier' : 'email']: email.value, 
+        username: username.value,
+        password: password.value 
+      }
     });
-    
-    // Set user state immediately to avoid middleware race conditions
-    user.value = response.user;
+
+    if (data.token) {
+      localStorage.setItem('auth_token', data.token);
+      user.value = data;
     
     // Show success toast
     showToast(tab.value === 'login' ? 'Logged in successfully!' : 'Account created successfully!');
     
     // Brief delay for signup success feedback if needed, then navigate
     await navigateTo('/', { replace: true });
+    }
   } catch (e: any) {
     error.value = e?.data?.statusMessage || e?.statusMessage || 'Something went wrong.';
     loading.value = false;

@@ -1,7 +1,7 @@
 import { hash } from 'bcrypt-ts';
-import { useDB as _useDB } from '../../utils/db';
-import { generateToken as _generateToken } from '../../utils/auth';
-import { registerSchema, throwZodError } from '../../utils/validation';
+import { useDB as _useDB } from '~~/server/utils/db';
+import { generateToken as _generateToken } from '~~/server/utils/auth';
+import { registerSchema, throwZodError } from '~~/server/utils/validation';
 
 export default defineEventHandler(async (event) => {
   const useDB = (event.context as any).useDB || _useDB;
@@ -37,5 +37,5 @@ export default defineEventHandler(async (event) => {
   const user = (result as any[])[0];
   const token = await generateToken(user.id, event);
 
-  return { data: { token, id: user.id, email: user.email, username: user.username, photoUrl: user.photo_url } };
+  return { data: { token, id: user.id, email: user.email, username: user.username, photoUrl: user.photoUrl } };
 });

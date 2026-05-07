@@ -23,6 +23,7 @@ export default defineNuxtConfig({
   nitro: {
     preset: 'cloudflare-module',
     ignore: [
+      'api/_v1/**',
       'api/v2/_tests/**',
       'api/v2/_types/**',
     ],

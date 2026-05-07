@@ -1,6 +1,6 @@
 
 import { format, subDays } from 'date-fns';
-import { usePusher } from '../../../utils/pusher';
+import { usePusher } from '../../_utils/pusher';
 
 export default defineEventHandler(async (event) => {
   const sql = useDB(event);

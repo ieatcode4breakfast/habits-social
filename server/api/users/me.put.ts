@@ -1,8 +1,8 @@
-import { useDB as _useDB } from '../../utils/db';
-import { requireAuth as _requireAuth } from '../../utils/auth';
+import { useDB as _useDB } from '~~/server/utils/db';
+import { requireAuth as _requireAuth } from '~~/server/utils/auth';
 import { hash } from 'bcrypt-ts';
-import { normalizeUser } from '../../utils/normalize';
-import { updateProfileSchema, throwZodError } from '../../utils/validation';
+import { normalizeUser } from '~~/server/utils/normalize';
+import { updateProfileSchema, throwZodError } from '~~/server/utils/validation';
 
 export default defineEventHandler(async (event) => {
   const requireAuth = (event.context as any).requireAuth || _requireAuth;
@@ -47,9 +47,9 @@ export default defineEventHandler(async (event) => {
   // 4. Prepare update values
   const newUsername = username !== undefined ? username : user.username;
   const newEmail = email !== undefined ? email : user.email;
-  const newPhotoUrl = photoUrl !== undefined ? photoUrl : user.photo_url;
-  const newEmailVerifiedAt = (email !== undefined && email !== user.email) ? null : user.email_verified_at;
-  let newPasswordHash = user.password_hash;
+  const newPhotoUrl = photoUrl !== undefined ? photoUrl : user.photoUrl;
+  const newEmailVerifiedAt = (email !== undefined && email !== user.email) ? null : user.emailVerifiedAt;
+  let newPasswordHash = user.passwordHash;
   
   if (password) {
     newPasswordHash = await hash(password, 10);

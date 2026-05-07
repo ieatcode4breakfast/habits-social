@@ -1,6 +1,6 @@
 
-import { usePusher } from '../../../../../utils/pusher';
-import { reevaluateBucketLogs } from '../../../../../utils/buckets';
+import { usePusher } from '../../../../_utils/pusher';
+import { reevaluateBucketLogs } from '../../../../_utils/buckets';
 
 export default defineEventHandler(async (event) => {
   const sql = useDB(event);

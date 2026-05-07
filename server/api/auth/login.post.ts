@@ -1,7 +1,7 @@
 import { compare } from 'bcrypt-ts';
-import { useDB as _useDB } from '../../utils/db';
-import { generateToken as _generateToken } from '../../utils/auth';
-import { loginSchema, throwZodError } from '../../utils/validation';
+import { useDB as _useDB } from '~~/server/utils/db';
+import { generateToken as _generateToken } from '~~/server/utils/auth';
+import { loginSchema, throwZodError } from '~~/server/utils/validation';
 
 export default defineEventHandler(async (event) => {
   const useDB = (event.context as any).useDB || _useDB;
@@ -26,7 +26,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: 'Invalid username, email or password' });
   }
 
-  const isMatch = await compare(password, user.password_hash);
+  const isMatch = await compare(password, user.passwordHash);
   if (!isMatch) {
     throw createError({ statusCode: 400, statusMessage: 'Invalid username, email or password' });
   }
@@ -39,7 +39,7 @@ export default defineEventHandler(async (event) => {
       id: user.id,
       email: user.email,
       username: user.username,
-      photoUrl: user.photo_url
+      photoUrl: user.photoUrl
     }
   };
 });

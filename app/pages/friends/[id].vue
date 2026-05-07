@@ -266,7 +266,7 @@ const selectedHabitIds = ref<string[]>([]);
 const shareModalTitle = ref('Request Sent!');
 
 const openShareModal = async () => {
-  const habitsData = await $fetch<any[]>('/api/habits');
+  const { data: habitsData } = await $fetch<{ data: any[] }>('/api/habits');
   myHabits.value = habitsData;
   // Pre-select habits already shared with this friend
   selectedHabitIds.value = habitsData
@@ -292,10 +292,10 @@ const toggleSelectAllHabits = () => {
 };
 
 const executeSendRequest = async () => {
-  await $fetch('/api/social/friends', { method: 'POST', body: { targetUserId: friendId } });
+  await $fetch('/api/friendships', { method: 'POST', body: { targetUserId: friendId } });
   await refreshSocial();
   
-  const habitsData = await $fetch<any[]>('/api/habits');
+  const { data: habitsData } = await $fetch<{ data: any[] }>('/api/habits');
   myHabits.value = habitsData;
   selectedHabitIds.value = [];
   
@@ -307,10 +307,10 @@ const executeSendRequest = async () => {
 
 const executeAcceptRequest = async () => {
   if (!friendship.value) return;
-  await $fetch(`/api/social/requests/${friendship.value.id}`, { method: 'PUT' });
+  await $fetch(`/api/friendships/${friendship.value.id}`, { method: 'PUT' });
   await refreshSocial();
 
-  const habitsData = await $fetch<any[]>('/api/habits');
+  const { data: habitsData } = await $fetch<{ data: any[] }>('/api/habits');
   myHabits.value = habitsData;
   selectedHabitIds.value = [];
   
@@ -327,7 +327,7 @@ const executeBatchShareRefresh = async () => {
 
 const executeUnfriend = async () => {
   if (!friendship.value) return;
-  await $fetch(`/api/social/requests/${friendship.value.id}`, { method: 'DELETE' });
+  await $fetch(`/api/friendships/${friendship.value.id}`, { method: 'DELETE' });
   await refreshSocial();
   showUnfriendModal.value = false;
   navigateTo('/social?tab=friends');
@@ -335,7 +335,7 @@ const executeUnfriend = async () => {
 
 const executeCancelRequest = async () => {
   if (!friendship.value) return;
-  await $fetch(`/api/social/requests/${friendship.value.id}`, { method: 'DELETE' });
+  await $fetch(`/api/friendships/${friendship.value.id}`, { method: 'DELETE' });
   await refreshSocial();
   showCancelRequestModal.value = false;
 };
@@ -447,16 +447,14 @@ const load = async () => {
   loading.value = true;
   try {
 
-    const [profileData, sharedData] = await Promise.all([
-      $fetch('/api/social/profile', { query: { friendId } }),
-      $fetch('/api/social/friend-data', { query: { friendId } })
+    const [profileDataResponse, sharedDataResponse] = await Promise.all([
+      $fetch<{ data: any }>(`/api/users/${friendId}/profile`),
+      $fetch<{ data: any }>('/api/social/friend-data', { query: { friendId } })
     ]);
     
-
-
-    profile.value = profileData as any;
-    habits.value = (sharedData as any).habits || [];
-    logs.value = (sharedData as any).logs || [];
+    profile.value = profileDataResponse.data;
+    habits.value = sharedDataResponse.data.habits || [];
+    logs.value = sharedDataResponse.data.logs || [];
   } catch (error: any) {
     console.error('Error loading friend profile:', error);
     // Check if it's a 404 or other specific error
@@ -482,7 +480,7 @@ const handleFriendMonthChanged = async (newDate: Date) => {
   const end = format(endOfMonth(newDate), 'yyyy-MM-dd');
   calendarLoading.value = true;
   try {
-    const data = await $fetch<any>('/api/social/habit-details', { 
+    const { data } = await $fetch<{ data: any }>('/api/social/habit-details', { 
       query: { 
         habitId: selectedHabit.value.id,
         startDate: start,

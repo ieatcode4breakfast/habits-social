@@ -1,6 +1,6 @@
-import { useDB as _useDB } from '../../utils/db';
-import { requireAuth as _requireAuth } from '../../utils/auth';
-import { reevaluateBucketLogs } from '../../utils/buckets';
+import { useDB as _useDB } from '~~/server/utils/db';
+import { requireAuth as _requireAuth } from '~~/server/utils/auth';
+import { reevaluateBucketLogs } from '~~/server/utils/buckets';
 
 export default defineEventHandler(async (event) => {
   const requireAuth = (event.context as any).requireAuth || _requireAuth;

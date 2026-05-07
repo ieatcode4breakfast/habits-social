@@ -1,8 +1,8 @@
 import { format } from 'date-fns';
-import type { IHabit } from '../../models';
-import { usePusher } from '../../utils/pusher';
-import { reevaluateBucketLogs } from '../../utils/buckets';
-import { markBucketHabitsRemoved } from '../../utils/shared-buckets';
+import type { IHabit } from '../_models';
+import { usePusher } from '../_utils/pusher';
+import { reevaluateBucketLogs } from '../_utils/buckets';
+import { markBucketHabitsRemoved } from '../_utils/shared-buckets';
 
 const normalizeHabit = (h: any) => {
   if (!h) return h;

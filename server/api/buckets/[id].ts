@@ -1,10 +1,10 @@
 import { z } from 'zod';
-import { useDB as _useDB } from '../../utils/db';
-import { requireAuth as _requireAuth } from '../../utils/auth';
-import { normalizeBucket } from '../../utils/normalize';
-import { bucketUpdateSchema } from '../../utils/validation';
+import { useDB as _useDB } from '~~/server/utils/db';
+import { requireAuth as _requireAuth } from '~~/server/utils/auth';
+import { normalizeBucket } from '~~/server/utils/normalize';
+import { bucketUpdateSchema } from '~~/server/utils/validation';
 
-import { reevaluateBucketLogs } from '../../utils/buckets';
+import { reevaluateBucketLogs } from '~~/server/utils/buckets';
 
 export default defineEventHandler(async (event) => {
   const requireAuth = (event.context as any).requireAuth || _requireAuth;
@@ -31,7 +31,7 @@ export default defineEventHandler(async (event) => {
       WHERE bucket_id = ${id}::uuid 
         AND (approval_status IS NULL OR approval_status IN ('accepted', 'pending'))
     `;
-    return { data: { ...bucket, habitIds: (habits as any[]).map((h: any) => h.habit_id) } };
+    return { data: { ...bucket, habitIds: (habits as any[]).map((h: any) => h.habitId) } };
   }
 
   if (event.method === 'PUT') {
@@ -168,7 +168,7 @@ export default defineEventHandler(async (event) => {
       `;
 
       for (const member of (currentMembers as any[])) {
-        const memberId = member.user_id;
+        const memberId = member.userId;
         const activeHabits = await sql`
           SELECT bh.habit_id 
           FROM bucket_habits bh
@@ -196,7 +196,7 @@ export default defineEventHandler(async (event) => {
         AND (approval_status IS NULL OR approval_status IN ('accepted', 'pending'))
     `;
     
-    return { data: { ...updatedBucket, habitIds: (habitsResult as any[]).map((h: any) => h.habit_id) } };
+    return { data: { ...updatedBucket, habitIds: (habitsResult as any[]).map((h: any) => h.habitId) } };
   }
 
   if (event.method === 'DELETE') {

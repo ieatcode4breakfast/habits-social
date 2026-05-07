@@ -1,6 +1,6 @@
 import { neon } from '@neondatabase/serverless';
 import type { H3Event } from 'h3';
-import { toCamelCase } from '../../../utils/transform';
+import { toCamelCase } from './transform';
 
 export const useDB = (event?: H3Event) => {
   let config: any = {};
@@ -26,11 +26,20 @@ export const useDB = (event?: H3Event) => {
   const sql = neon(uri);
 
   // Wrap the sql function to automatically convert results to camelCase
-  const wrappedSql = async (...args: any[]) => {
+  const wrappedSql = (...args: any[]) => {
     // @ts-ignore
-    const result = await sql(...args);
-    return toCamelCase(result);
+    const result = sql(...args);
+    if (result && typeof result.then === 'function') {
+      const originalThen = result.then.bind(result);
+      result.then = (onFulfilled?: any, onRejected?: any) => {
+        return originalThen((data: any) => {
+          const transformed = toCamelCase(data);
+          return onFulfilled ? onFulfilled(transformed) : transformed;
+        }, onRejected);
+      };
+    }
+    return result;
   };
 
-  return wrappedSql as typeof sql;
+  return wrappedSql as any;
 };

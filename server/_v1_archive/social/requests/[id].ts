@@ -1,6 +1,6 @@
-import type { IFriendship, IHabit, IHabitLog } from '../../../models';
-import { usePusher } from '../../../utils/pusher';
-import { reevaluateBucketLogs } from '../../../utils/buckets';
+import type { IFriendship, IHabit, IHabitLog } from '../../_models';
+import { usePusher } from '../../_utils/pusher';
+import { reevaluateBucketLogs } from '../../_utils/buckets';
 
 export default defineEventHandler(async (event) => {
   const sql = useDB(event);

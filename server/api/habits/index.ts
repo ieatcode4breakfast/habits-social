@@ -1,8 +1,8 @@
 import { z } from 'zod';
-import { useDB as _useDB } from '../../utils/db';
-import { requireAuth as _requireAuth } from '../../utils/auth';
-import { normalizeHabit } from '../../utils/normalize';
-import { habitSchema, throwZodError } from '../../utils/validation';
+import { useDB as _useDB } from '~~/server/utils/db';
+import { requireAuth as _requireAuth } from '~~/server/utils/auth';
+import { normalizeHabit } from '~~/server/utils/normalize';
+import { habitSchema, throwZodError } from '~~/server/utils/validation';
 
 export default defineEventHandler(async (event) => {
   const requireAuth = (event.context as any).requireAuth || _requireAuth;

@@ -1,10 +1,10 @@
 import { z } from 'zod';
-import { useDB as _useDB } from '../../utils/db';
-import { requireAuth as _requireAuth } from '../../utils/auth';
-import { normalizeHabit } from '../../utils/normalize';
-import { habitUpdateSchema } from '../../utils/validation';
-import { reevaluateBucketLogs } from '../../utils/buckets';
-import { markBucketHabitsRemoved } from '../../utils/shared-buckets';
+import { useDB as _useDB } from '~~/server/utils/db';
+import { requireAuth as _requireAuth } from '~~/server/utils/auth';
+import { normalizeHabit } from '~~/server/utils/normalize';
+import { habitUpdateSchema } from '~~/server/utils/validation';
+import { reevaluateBucketLogs } from '~~/server/utils/buckets';
+import { markBucketHabitsRemoved } from '~~/server/utils/shared-buckets';
 
 export default defineEventHandler(async (event) => {
   const requireAuth = (event.context as any).requireAuth || _requireAuth;

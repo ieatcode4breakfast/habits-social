@@ -1,7 +1,7 @@
 import { format } from 'date-fns';
-import type { IBucket } from '../../models';
-import { usePusher } from '../../utils/pusher';
-import { reevaluateBucketLogs } from '../../utils/buckets';
+import type { IBucket } from '../_models';
+import { usePusher } from '../_utils/pusher';
+import { reevaluateBucketLogs } from '../_utils/buckets';
 
 const normalizeBucket = (b: any) => {
   if (!b) return b;

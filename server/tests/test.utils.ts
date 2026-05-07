@@ -1,5 +1,6 @@
 import { hash } from 'bcrypt-ts';
 import { neon } from '@neondatabase/serverless';
+import { toCamelCase } from '../utils/transform';
 
 // Initialize direct DB connection for setup/teardown
 const sql = neon(process.env.DATABASE_URL!);
@@ -37,7 +38,22 @@ export const createMockEvent = (userId: string, body: any = {}, cookies: any = {
         }
         return event.context.userId;
       },
-      useDB: () => neon(process.env.DATABASE_URL!),
+      useDB: () => {
+        const sql = neon(process.env.DATABASE_URL!);
+        return (...args: any[]) => {
+          const res = (sql as any)(...args);
+          if (res && typeof res.then === 'function') {
+            const originalThen = res.then.bind(res);
+            res.then = (onFulfilled?: any, onRejected?: any) => {
+              return originalThen((data: any) => {
+                const transformed = toCamelCase(data);
+                return onFulfilled ? onFulfilled(transformed) : transformed;
+              }, onRejected);
+            };
+          }
+          return res;
+        };
+      },
       generateToken: async (uid: string) => `mock-token-${uid}`
     }
   } as any;

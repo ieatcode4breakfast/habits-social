@@ -5,7 +5,7 @@ export interface UserProfile {
   id: string; 
   email: string; 
   username: string; 
-  photourl?: string; 
+  photoUrl?: string; 
 }
 
 export interface Friendship { 
@@ -60,8 +60,13 @@ export const useSocial = () => {
     isLoading.value = true;
     try {
       // Use cache-busting timestamp to ensure fresh data
-      const data = await $fetch<{ friendships: Friendship[]; profiles: UserProfile[] }>(`/api/social/friends?t=${Date.now()}`);
-      friendships.value = data.friendships;
+      const { data } = await $fetch<{ data: { friendships: Friendship[]; profiles: UserProfile[] } }>(`/api/friendships?t=${Date.now()}`);
+      
+      // Inject participants virtual field for frontend logic consistency
+      friendships.value = data.friendships.map(f => ({
+        ...f,
+        participants: [String(f.initiatorId), String(f.receiverId)]
+      }));
       profiles.value = data.profiles;
       
       const myId = String(user.value.id);
@@ -136,10 +141,16 @@ export const useSocial = () => {
 
   const toggleFavorite = async (friendshipId: string, favorite: boolean) => {
     try {
-      const updated = await $fetch<Friendship>('/api/social/friends/favorite', {
+      const { data } = await $fetch<{ data: Friendship }>('/api/friendships/favorite', {
         method: 'PUT',
         body: { friendshipId, favorite }
       });
+      
+      // Inject participants back into the single updated object
+      const updated = {
+        ...data,
+        participants: [String(data.initiatorId), String(data.receiverId)]
+      };
       
       const idx = friendships.value.findIndex(f => f.id === friendshipId);
       if (idx !== -1) {

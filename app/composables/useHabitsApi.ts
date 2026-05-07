@@ -388,10 +388,12 @@ export const useHabitsApi = () => {
             const isNew = (h as any).synced === 0;
 
             if (isNew) {
-              remote = await $fetch<Habit>('/api/habits', { method: 'POST', body: h });
+              const { data } = await $fetch<{ data: Habit }>('/api/habits', { method: 'POST', body: h });
+              remote = data;
             } else {
               try {
-                remote = await $fetch<Habit>(`/api/habits/${h.id}`, { method: 'PUT', body: h });
+                const { data } = await $fetch<{ data: Habit }>(`/api/habits/${h.id}`, { method: 'PUT', body: h });
+                remote = data;
               } catch (err: any) {
                 if (err.statusCode === 404) {
                   await db.habits.delete(h.id);
@@ -414,15 +416,11 @@ export const useHabitsApi = () => {
           if (!stillExists) continue;
 
           try {
-            const response = await $fetch<{ log: HabitLog, habit: Habit }>('/api/habitlogs', {
+            await $fetch<{ data: HabitLog }>('/api/habitlogs', {
               method: 'POST',
               body: l
             });
-            const { habit } = response;
             await db.habitLogs.update(l.id, { synced: 1 });
-            if (habit) {
-              await db.habits.update(habit.id, { synced: 1 });
-            }
           } catch (e: any) {
             const status = e.statusCode || e.response?.status;
             if (status === 400 || status === 404) {
@@ -452,10 +450,12 @@ export const useHabitsApi = () => {
             const isNew = (b as any).synced === 0;
 
             if (isNew) {
-              remote = await $fetch<Bucket>('/api/buckets', { method: 'POST', body: b });
+              const { data } = await $fetch<{ data: Bucket }>('/api/buckets', { method: 'POST', body: b });
+              remote = data;
             } else {
               try {
-                remote = await $fetch<Bucket>(`/api/buckets/${b.id}`, { method: 'PUT', body: b });
+                const { data } = await $fetch<{ data: Bucket }>(`/api/buckets/${b.id}`, { method: 'PUT', body: b });
+                remote = data;
               } catch (err: any) {
                 if (err.statusCode === 404) {
                   await db.buckets.delete(b.id);
@@ -473,7 +473,7 @@ export const useHabitsApi = () => {
         const unsyncedBucketLogs = await db.bucketLogs.where('synced').equals(0).toArray();
         for (const bl of unsyncedBucketLogs) {
           try {
-            await $fetch('/api/bucketlogs', {
+            await $fetch<{ data: BucketLog }>('/api/bucketlogs', {
               method: 'POST',
               body: bl
             });

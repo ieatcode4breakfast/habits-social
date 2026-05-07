@@ -1,6 +1,6 @@
 import { format, parseISO } from 'date-fns';
-import { useDB as _useDB } from '../../utils/db';
-import { requireAuth as _requireAuth } from '../../utils/auth';
+import { useDB as _useDB } from '~~/server/utils/db';
+import { requireAuth as _requireAuth } from '~~/server/utils/auth';
 
 export default defineEventHandler(async (event) => {
   const requireAuth = (event.context as any).requireAuth || _requireAuth;
@@ -16,7 +16,7 @@ export default defineEventHandler(async (event) => {
       AND status = 'accepted'
   `;
 
-  const friendIds = (friendships as any[]).map((f: any) => f.initiator_id === userId ? f.receiver_id : f.initiator_id);
+  const friendIds = (friendships as any[]).map((f: any) => f.initiatorId === userId ? f.receiverId : f.initiatorId);
   const hasFriends = friendIds.length > 0;
 
   // Habit logs with friend visibility
@@ -49,7 +49,7 @@ export default defineEventHandler(async (event) => {
 
   // Habits committed (new habits with userDate)
   const commitmentsRaw = hasFriends ? await sql`
-    SELECT h.id, h.owner_id, h.user_date as date, h.created_at as updatedat,
+    SELECT h.id, h.owner_id, h.user_date as date, h.created_at as updated_at,
            h.title as habit_title,
            u.username, u.photo_url
     FROM habits h
@@ -62,7 +62,7 @@ export default defineEventHandler(async (event) => {
     ORDER BY h.user_date DESC, h.created_at DESC
     LIMIT 100
   ` : await sql`
-    SELECT h.id, h.owner_id, h.user_date as date, h.created_at as updatedat,
+    SELECT h.id, h.owner_id, h.user_date as date, h.created_at as updated_at,
            h.title as habit_title,
            u.username, u.photo_url
     FROM habits h
@@ -76,7 +76,7 @@ export default defineEventHandler(async (event) => {
   // Share events
   const shareEventsRaw = hasFriends ? await sql`
     SELECT se.id, se.owner_id, se.recipient_id, se.habit_ids,
-           se.user_date as date, se.created_at as updatedat,
+           se.user_date as date, se.created_at as updated_at,
            u.username, u.photo_url,
            ru.username as recipient_username
     FROM share_events se
@@ -90,7 +90,7 @@ export default defineEventHandler(async (event) => {
     LIMIT 100
   ` : await sql`
     SELECT se.id, se.owner_id, se.recipient_id, se.habit_ids,
-           se.user_date as date, se.created_at as updatedat,
+           se.user_date as date, se.created_at as updated_at,
            u.username, u.photo_url,
            ru.username as recipient_username
     FROM share_events se
@@ -103,9 +103,9 @@ export default defineEventHandler(async (event) => {
 
   // Merge and sort by date desc, timestamp desc
   const allItems = [
-    ...(logsRaw as any[]).map((l: any) => ({ type: 'log', date: l.date, timestamp: l.updated_at, data: l })),
-    ...(commitmentsRaw as any[]).map((c: any) => ({ type: 'commitment', date: c.date, timestamp: c.updatedat, data: c })),
-    ...(shareEventsRaw as any[]).map((s: any) => ({ type: 'share', date: s.date, timestamp: s.updatedat, data: s }))
+    ...(logsRaw as any[]).map((l: any) => ({ type: 'log', date: l.date, timestamp: l.updatedAt, data: l })),
+    ...(commitmentsRaw as any[]).map((c: any) => ({ type: 'commitment', date: c.date, timestamp: c.updatedAt, data: c })),
+    ...(shareEventsRaw as any[]).map((s: any) => ({ type: 'share', date: s.date, timestamp: s.updatedAt, data: s }))
   ];
 
   allItems.sort((a: any, b: any) => {

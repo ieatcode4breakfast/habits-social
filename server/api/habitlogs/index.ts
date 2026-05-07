@@ -1,11 +1,11 @@
 import { z } from 'zod';
 import { parseISO, startOfDay, subDays, addDays, isBefore, isAfter } from 'date-fns';
-import { useDB as _useDB } from '../../utils/db';
-import { requireAuth as _requireAuth } from '../../utils/auth';
-import { normalizeLog } from '../../utils/normalize';
-import { habitLogSchema, throwZodError } from '../../utils/validation';
-import { recalculateHabitStreak } from '../../utils/streaks';
-import { syncBucketLogsForHabit } from '../../utils/buckets';
+import { useDB as _useDB } from '~~/server/utils/db';
+import { requireAuth as _requireAuth } from '~~/server/utils/auth';
+import { normalizeLog } from '~~/server/utils/normalize';
+import { habitLogSchema, throwZodError } from '~~/server/utils/validation';
+import { recalculateHabitStreak } from '~~/server/utils/streaks';
+import { syncBucketLogsForHabit } from '~~/server/utils/buckets';
 
 export default defineEventHandler(async (event) => {
   const requireAuth = (event.context as any).requireAuth || _requireAuth;
