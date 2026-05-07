@@ -678,7 +678,7 @@ const setLogStatus = async (habit: Habit, day: Date, nextStatus: 'completed' | '
 
   // 1. Optimistic UI Update
   if (nextStatus) {
-    const idx = logs.value.findIndex(l => l.habitid === habit.id && l.date === dateStr);
+    const idx = logs.value.findIndex(l => l.habitId === habit.id && l.date === dateStr);
     const existingLog = logs.value[idx];
     if (existingLog) {
       existingLog.status = nextStatus;
