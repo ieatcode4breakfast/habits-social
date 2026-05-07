@@ -168,7 +168,7 @@
           class="fixed inset-0 z-[100] flex flex-col items-center justify-start overflow-y-auto sm:py-8 py-0"
         >
           <!-- Backdrop -->
-          <div class="fixed inset-0 bg-black/80 backdrop-blur-md" @click="showModal = false"></div>
+          <div class="fixed inset-0 bg-black/80 backdrop-blur-md touch-none" @click="showModal = false"></div>
           
           <!-- Modal Content -->
           <div 
@@ -340,7 +340,7 @@
       >
         <div v-if="showReorderModal" class="fixed inset-0 z-[100] flex flex-col items-center justify-start overflow-y-auto sm:p-4 p-0 sm:py-8">
           <!-- Backdrop -->
-          <div class="fixed inset-0 bg-black/80 backdrop-blur-md" @click="showReorderModal = false"></div>
+          <div class="fixed inset-0 bg-black/80 backdrop-blur-md touch-none" @click="showReorderModal = false"></div>
 
           <!-- Modal Content -->
           <div class="relative my-auto w-full sm:max-w-sm bg-zinc-925 border-t sm:border border-zinc-800 sm:rounded-3xl rounded-3xl shadow-2xl overflow-hidden flex flex-col" style="max-height: 80vh">
@@ -806,12 +806,11 @@ const openEditModal = (habit: Habit) => {
 const modalContent = ref<HTMLElement | null>(null);
 
 const isAnyModalOpen = computed(() => 
-  showModal.value || showEditModal.value || showReorderModal.value
+  showModal.value || showReorderModal.value
 );
 
 useModalHistory(isAnyModalOpen, () => {
   showModal.value = false;
-  showEditModal.value = false;
   showReorderModal.value = false;
 });
 

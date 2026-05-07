@@ -159,7 +159,7 @@
         leave-to-class="opacity-0 scale-95"
       >
         <div v-if="showUnfriendModal" class="fixed inset-0 z-[120] flex items-center justify-center p-4">
-          <div class="absolute inset-0 bg-black/90 backdrop-blur-md" @click="showUnfriendModal = false"></div>
+          <div class="absolute inset-0 bg-black/80 backdrop-blur-md touch-none" @click="showUnfriendModal = false"></div>
           <div class="relative w-full max-w-sm bg-zinc-925 border border-zinc-800 rounded-3xl shadow-2xl p-8 text-center">
             <div class="w-16 h-16 bg-zinc-925 rounded-full flex items-center justify-center mx-auto mb-4">
               <UserMinus class="w-8 h-8 text-rose-500" />
@@ -191,7 +191,7 @@
         leave-to-class="opacity-0 scale-95"
       >
         <div v-if="showCancelRequestModal" class="fixed inset-0 z-[120] flex items-center justify-center p-4">
-          <div class="absolute inset-0 bg-black/90 backdrop-blur-md" @click="showCancelRequestModal = false"></div>
+          <div class="absolute inset-0 bg-black/80 backdrop-blur-md touch-none" @click="showCancelRequestModal = false"></div>
           <div class="relative w-full max-w-sm bg-zinc-925 border border-zinc-800 rounded-3xl shadow-2xl p-8 text-center">
             <div class="w-16 h-16 bg-zinc-925 rounded-full flex items-center justify-center mx-auto mb-4">
               <UserMinus class="w-8 h-8 text-rose-500" />
@@ -354,11 +354,9 @@ const selectedHabit = ref<Habit | null>(null);
 const currentCalendarDate = ref(new Date());
 const calendarLoading = ref(false);
 
-const isAnyModalOpen = computed(() => showModal.value || showShareModal.value || showUnfriendModal.value || showCancelRequestModal.value);
+const isAnyModalOpen = computed(() => showUnfriendModal.value || showCancelRequestModal.value);
 
 useModalHistory(isAnyModalOpen, () => {
-  showModal.value = false;
-  showShareModal.value = false;
   showUnfriendModal.value = false;
   showCancelRequestModal.value = false;
 });

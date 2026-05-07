@@ -1,0 +1,9 @@
+- [x] Refactor `LogMenu.vue` with ghost backdrop
+- [x] Internalize `useModalHistory` in `HabitEditModal.vue`
+- [x] Internalize `useModalHistory` in `ShareHabitsModal.vue`
+- [x] Internalize `useModalHistory` in `HabitDetailsModal.vue`
+- [x] Cleanup modal state management in `index.vue`
+- [x] Cleanup modal state management in `buckets.vue`
+- [x] Cleanup modal state management in `social.vue`
+- [x] Cleanup modal state management in `friends/[id].vue`
+- [x] Standardize backdrop styles across all components

@@ -1,4 +1,4 @@
-import { watch, onMounted, onUnmounted, isReadonly, type Ref } from 'vue';
+import { ref, watch, onMounted, onUnmounted, isReadonly, type Ref } from 'vue';
 
 /**
  * Global counter to track how many modals are currently open.

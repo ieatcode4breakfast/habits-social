@@ -11,7 +11,7 @@
       <div v-if="modelValue && habit" 
         class="fixed inset-0 z-[100] flex flex-col items-center justify-start overflow-y-auto sm:py-8 py-0"
       >
-        <div class="fixed inset-0 bg-black/80 backdrop-blur-md" @click="close"></div>
+        <div class="fixed inset-0 bg-black/80 backdrop-blur-md touch-none" @click="close"></div>
         <div class="relative my-auto w-full h-full sm:h-auto sm:max-w-md max-w-none bg-zinc-925 border-x-0 sm:border border-zinc-800 sm:rounded-3xl rounded-none shadow-2xl overflow-hidden transition-all duration-300 flex flex-col">
           <div v-if="loading && (!logs || !logs.length)" class="flex justify-center p-12">
             <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
@@ -136,6 +136,7 @@
 
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue';
+import { useModalHistory } from '~/composables/useModalHistory';
 import { ChevronLeft, ChevronRight, Check, X as XIcon, Flame } from 'lucide-vue-next';
 import { format, parseISO, startOfMonth, endOfMonth, eachDayOfInterval, subDays, addDays, isAfter, startOfDay, subMonths, addMonths } from 'date-fns';
 
@@ -153,6 +154,8 @@ const currentCalendarDate = ref(new Date());
 const close = () => {
   emit('update:modelValue', false);
 };
+
+useModalHistory(computed(() => props.modelValue), close);
 
 watch(() => props.modelValue, (newVal) => {
   if (newVal) {

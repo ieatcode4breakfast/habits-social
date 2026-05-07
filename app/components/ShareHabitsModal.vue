@@ -11,7 +11,7 @@
       <div v-if="modelValue" 
         class="fixed inset-0 z-[110] flex flex-col items-center justify-start overflow-y-auto sm:py-8 py-0"
       >
-        <div class="fixed inset-0 bg-black/90 backdrop-blur-md" @click="close"></div>
+        <div class="fixed inset-0 bg-black/80 backdrop-blur-md touch-none" @click="close"></div>
         <div class="relative my-auto w-full h-full sm:h-auto sm:max-w-md max-w-none bg-zinc-925 border-x-0 sm:border border-zinc-800 sm:rounded-3xl rounded-none shadow-2xl overflow-hidden transition-all duration-300 flex flex-col">
           
           <div class="flex-1 overflow-y-auto p-4 sm:p-8">
@@ -79,6 +79,7 @@
 
 <script setup lang="ts">
 import { ref, watch, computed } from 'vue';
+import { useModalHistory } from '~/composables/useModalHistory';
 import { Check, CheckSquare } from 'lucide-vue-next';
 import { format } from 'date-fns';
 
@@ -116,6 +117,8 @@ const sortedHabits = computed(() => {
 const close = () => {
   emit('update:modelValue', false);
 };
+
+useModalHistory(computed(() => props.modelValue), close);
 
 const toggleHabitSelection = (id: string) => {
   const index = selectedHabitIds.value.indexOf(id);

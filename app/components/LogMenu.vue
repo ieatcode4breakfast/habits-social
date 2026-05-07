@@ -8,34 +8,36 @@
       leave-from-class="opacity-100 scale-100 translate-y-0"
       leave-to-class="opacity-0 scale-95 -translate-y-2"
     >
-      <div 
-        v-if="habit && date && referenceEl"
-        ref="floatingRef"
-        class="fixed z-[200] bg-zinc-900/95 backdrop-blur-xl border border-zinc-800 rounded-2xl shadow-2xl p-1.5 flex flex-row gap-1.5"
-        :style="floatingStyles"
-        @click.stop
-      >
-        <button
-          v-for="opt in options"
-          :key="opt.label"
-          @click.stop="handleSelect(opt.status)"
-          class="w-8 h-8 rounded-lg flex items-center justify-center transition-all border-2 cursor-pointer relative"
-          :class="opt.bgColor"
-          :title="opt.label"
-        >
-          <component :is="opt.icon" class="w-4 h-4" :class="opt.color" />
-        </button>
-
-        <!-- Arrow -->
+      <div v-if="habit && date && referenceEl" class="fixed inset-0 z-[190] touch-none" @click.stop="emit('close')">
+        <div class="fixed inset-0 bg-black/60 backdrop-blur-sm touch-none" @click.stop="emit('close')"></div>
         <div 
-          ref="arrowRef"
-          class="absolute w-3 h-3 bg-zinc-900 border-r border-b border-zinc-800 rotate-45"
-          :style="{
-            left: middlewareData.arrow?.x != null ? `${middlewareData.arrow.x}px` : '',
-            top: middlewareData.arrow?.y != null ? `${middlewareData.arrow.y}px` : '',
-            bottom: '-6px'
-          }"
-        ></div>
+          ref="floatingRef"
+          class="fixed z-[200] bg-zinc-900/95 backdrop-blur-xl border border-zinc-800 rounded-2xl shadow-2xl p-1.5 flex flex-row gap-1.5"
+          :style="floatingStyles"
+          @click.stop
+        >
+          <button
+            v-for="opt in options"
+            :key="opt.label"
+            @click.stop="handleSelect(opt.status)"
+            class="w-8 h-8 rounded-lg flex items-center justify-center transition-all border-2 cursor-pointer relative"
+            :class="opt.bgColor"
+            :title="opt.label"
+          >
+            <component :is="opt.icon" class="w-4 h-4" :class="opt.color" />
+          </button>
+
+          <!-- Arrow -->
+          <div 
+            ref="arrowRef"
+            class="absolute w-3 h-3 bg-zinc-900 border-r border-b border-zinc-800 rotate-45"
+            :style="{
+              left: middlewareData.arrow?.x != null ? `${middlewareData.arrow.x}px` : '',
+              top: middlewareData.arrow?.y != null ? `${middlewareData.arrow.y}px` : '',
+              bottom: '-6px'
+            }"
+          ></div>
+        </div>
       </div>
     </Transition>
   </Teleport>
@@ -43,6 +45,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { useModalHistory } from '~/composables/useModalHistory';
 import { Check, X as XIcon, Minus, Trash2, Palmtree } from 'lucide-vue-next';
 import { useFloating, offset, flip, shift, arrow, autoUpdate } from '@floating-ui/vue';
 import { format, isSameWeek, isSameMonth } from 'date-fns';
@@ -162,23 +165,12 @@ const options = computed(() => {
   return opts;
 });
 
+const isMenuOpen = computed(() => !!props.habit && !!props.date);
+useModalHistory(isMenuOpen, () => emit('close'));
+
 const handleSelect = (status: string | null) => {
   // Pass all context back to the handler
   emit('select', props.habit, props.date, status);
   emit('close');
 };
-
-const handleGlobalClick = () => {
-  if (props.habit && props.date) {
-    emit('close');
-  }
-};
-
-onMounted(() => {
-  window.addEventListener('click', handleGlobalClick);
-});
-
-onUnmounted(() => {
-  window.removeEventListener('click', handleGlobalClick);
-});
 </script>

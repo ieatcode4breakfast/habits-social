@@ -11,7 +11,7 @@
         leave-to-class="opacity-0 scale-95"
       >
         <div v-if="modelValue" class="fixed inset-0 z-[100] flex flex-col items-center justify-start overflow-y-auto sm:py-8 py-0">
-          <div class="fixed inset-0 bg-black/80 backdrop-blur-md" @click="handleProfileCloseAttempt"></div>
+          <div class="fixed inset-0 bg-black/80 backdrop-blur-md touch-none" @click="handleProfileCloseAttempt"></div>
           
           <div class="relative my-auto w-full h-full sm:h-auto sm:max-w-md max-w-none bg-zinc-925 border-x-0 sm:border border-zinc-800 sm:rounded-3xl rounded-none shadow-2xl overflow-hidden transition-all duration-300 flex flex-col">
             
@@ -174,7 +174,7 @@
         leave-to-class="opacity-0 scale-95"
       >
         <div v-if="showUnsavedChangesModal" class="fixed inset-0 z-[130] flex flex-col items-center justify-start overflow-y-auto p-4 sm:py-8">
-          <div class="fixed inset-0 bg-black/95 backdrop-blur-2xl" @click="showUnsavedChangesModal = false"></div>
+          <div class="fixed inset-0 bg-black/95 backdrop-blur-sm touch-none" @click="showUnsavedChangesModal = false"></div>
           
           <div class="relative my-auto w-full max-w-sm bg-zinc-925 border border-zinc-800 rounded-3xl shadow-2xl p-8 text-center">
             <div class="w-16 h-16 rounded-2xl bg-amber-500/10 border-2 border-amber-500/20 mx-auto mb-6 flex items-center justify-center">
@@ -216,7 +216,7 @@
         leave-to-class="opacity-0 scale-95"
       >
         <div v-if="showConfirmModal" class="fixed inset-0 z-[120] flex flex-col items-center justify-start overflow-y-auto p-4 sm:py-8">
-          <div class="fixed inset-0 bg-black/95 backdrop-blur-2xl" @click="showConfirmModal = false"></div>
+          <div class="fixed inset-0 bg-black/95 backdrop-blur-sm touch-none" @click="showConfirmModal = false"></div>
           
           <div class="relative my-auto w-full max-w-sm bg-zinc-925 border border-zinc-800 rounded-3xl shadow-2xl p-8 text-center">
             <UserAvatar 

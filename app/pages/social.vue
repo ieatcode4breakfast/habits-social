@@ -248,7 +248,7 @@
         leave-to-class="opacity-0 scale-95"
       >
         <div v-if="showUnfriendModal" class="fixed inset-0 z-[110] flex flex-col items-center justify-start overflow-y-auto p-4 sm:py-8">
-          <div class="fixed inset-0 bg-black/90 backdrop-blur-md" @click="showUnfriendModal = false"></div>
+          <div class="fixed inset-0 bg-black/80 backdrop-blur-md touch-none" @click="showUnfriendModal = false"></div>
           <div class="relative my-auto w-full max-w-sm bg-zinc-925 border border-zinc-800 rounded-3xl shadow-2xl p-8 text-center">
             <div class="w-16 h-16 bg-zinc-925 rounded-full flex items-center justify-center mx-auto mb-4">
               <User class="w-8 h-8 text-rose-500" />
@@ -284,7 +284,7 @@
         leave-to-class="opacity-0 scale-95"
       >
         <div v-if="showAddModal" class="fixed inset-0 z-[110] flex flex-col items-center justify-start overflow-y-auto p-4 sm:py-8">
-          <div class="fixed inset-0 bg-black/90 backdrop-blur-md" @click="showAddModal = false"></div>
+          <div class="fixed inset-0 bg-black/80 backdrop-blur-md touch-none" @click="showAddModal = false"></div>
           <div class="relative my-auto w-full max-w-sm bg-zinc-925 border border-zinc-800 rounded-3xl shadow-2xl p-8 text-center">
             <div class="w-16 h-16 bg-zinc-925 rounded-full flex items-center justify-center mx-auto mb-4">
               <UserPlus class="w-8 h-8 text-white" />
@@ -579,15 +579,11 @@ const handleSocialMonthChanged = async (newDate: Date) => {
 };
 // ----------------------------
 
-const isAnyModalOpen = ref(false);
-watch([showUnfriendModal, showAddModal, showShareModal, showHabitModal], (vals) => {
-  isAnyModalOpen.value = vals.some(v => v);
-});
+const isAnyModalOpen = computed(() => showUnfriendModal.value || showAddModal.value);
+
 useModalHistory(isAnyModalOpen, () => {
   showUnfriendModal.value = false;
   showAddModal.value = false;
-  showShareModal.value = false;
-  showHabitModal.value = false;
 });
 
 const pendingIncoming = computed(() => {

@@ -12,7 +12,7 @@
         class="fixed inset-0 z-[100] flex flex-col items-center justify-start overflow-y-auto sm:py-8 py-0"
       >
         <!-- Backdrop -->
-        <div class="fixed inset-0 bg-black/80 backdrop-blur-md" @click="close"></div>
+        <div class="fixed inset-0 bg-black/80 backdrop-blur-md touch-none" @click="close"></div>
         
         <!-- Modal Content -->
         <div 
@@ -286,9 +286,9 @@
       leave-from-class="opacity-100 scale-100"
       leave-to-class="opacity-0 scale-95"
     >
-      <div v-if="showDeleteModal" class="fixed inset-0 z-[110] flex flex-col items-center justify-start overflow-y-auto p-4 sm:py-8">
-        <!-- Backdrop -->
-        <div class="fixed inset-0 bg-black/90 backdrop-blur-md" @click="showDeleteModal = false"></div>
+    <div v-if="showDeleteModal" class="fixed inset-0 z-[110] flex flex-col items-center justify-start overflow-y-auto p-4 sm:py-8">
+      <!-- Backdrop -->
+      <div class="fixed inset-0 bg-black/95 backdrop-blur-sm touch-none" @click="showDeleteModal = false"></div>
         
         <!-- Modal Content -->
         <div class="relative my-auto w-full max-w-sm bg-zinc-925 border border-zinc-800 rounded-3xl shadow-2xl p-8 text-center">
@@ -336,8 +336,8 @@
       leave-from-class="opacity-100 scale-100"
       leave-to-class="opacity-0 scale-95"
     >
-      <div v-if="showSharingConfirmModal" class="fixed inset-0 z-[120] flex flex-col items-center justify-start overflow-y-auto p-4 sm:py-8">
-        <div class="fixed inset-0 bg-black/90 backdrop-blur-md" @click="showSharingConfirmModal = false"></div>
+    <div v-if="showSharingConfirmModal" class="fixed inset-0 z-[120] flex flex-col items-center justify-start overflow-y-auto p-4 sm:py-8">
+      <div class="fixed inset-0 bg-black/95 backdrop-blur-sm touch-none" @click="showSharingConfirmModal = false"></div>
         <div class="relative my-auto w-full max-w-sm bg-zinc-925 border border-zinc-800 rounded-3xl shadow-2xl p-8 text-center">
           <div class="w-16 h-16 bg-zinc-925 rounded-full flex items-center justify-center mx-auto mb-4">
             <User class="w-8 h-8 text-zinc-400" />
@@ -377,6 +377,7 @@
 
 <script setup lang="ts">
 import { ref, computed, watch, nextTick } from 'vue';
+import { useModalHistory } from '~/composables/useModalHistory';
 import { Trash2, Check, X as XIcon, Minus, ChevronLeft, ChevronRight, User, ChevronUp, ChevronDown, Edit2, Save, CheckSquare, Flame, Palmtree } from 'lucide-vue-next';
 import { format, subDays, startOfMonth, endOfMonth, eachDayOfInterval, addDays, isAfter, startOfDay, subMonths, addMonths, parseISO, isBefore, isSameDay, isSameWeek, isSameMonth } from 'date-fns';
 import type { Habit, HabitLog } from '~/composables/useHabitsApi';
@@ -411,6 +412,19 @@ const isUpdatingHabit = ref(false);
 const isDeletingHabit = ref(false);
 const isInitializingEdit = ref(false);
 const isDirty = ref(false);
+
+const isInternalModalOpen = computed(() => showDeleteModal.value || showSharingConfirmModal.value);
+const isSelfOrInternalOpen = computed(() => props.modelValue || isInternalModalOpen.value);
+
+useModalHistory(isSelfOrInternalOpen, () => {
+  if (showDeleteModal.value) {
+    showDeleteModal.value = false;
+  } else if (showSharingConfirmModal.value) {
+    showSharingConfirmModal.value = false;
+  } else {
+    close();
+  }
+});
 
 const close = () => emit('update:modelValue', false);
 
