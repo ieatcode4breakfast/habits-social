@@ -83,7 +83,7 @@ await syncBucketLogsForHabit(db, habitId, userId, dateStr);
 - **Explanation:** Multiple sequential SQL writes are performed without `db.transaction()`. If an intermediate write fails, data enters an inconsistent state.
 - **Fix:** Wrap multi-step mutations in `await db.transaction(async (tx) => { ... })`.
 
-### 8. Password Truncation by bcrypt
+### 8. Password Truncation by bcrypt - FIXED
 - **File:** `server/utils/validation.ts`
 - **Explanation:** bcrypt silently truncates input to 72 bytes. The current validation accepts up to 128 characters.
 - **Fix:** Change validation to `z.string().min(8).max(72)`.
@@ -92,7 +92,7 @@ await syncBucketLogsForHabit(db, habitId, userId, dateStr);
 - **Explanation:** No rate limiting exists at any layer.
 - **Fix:** Implement Cloudflare WAF rate limiting or application-level middleware.
 
-### 10. Login Identifier Wildcard Issue
+### 10. Login Identifier Wildcard Issue - FIXED
 - **File:** `server/api/auth/login.post.ts` (lines 31-32)
 - **Explanation:** Using `ILIKE` for login allows pattern matching. If a user's username is john, an attacker could log in using JOHN (case-insensitive) or %ohn (wildcard).
 - **Business Impact:** Ambiguous login behavior.
@@ -110,7 +110,7 @@ await syncBucketLogsForHabit(db, habitId, userId, dateStr);
 - **Business Impact:** UI jank during sync cycles for long-time users.
 - **Fix:** Run the legacy purge only once on first login.
 
-### 13. Double-Fetch on Pusher Events
+### 13. Double-Fetch on Pusher Events - FIXED
 - **File:** `app/composables/useSocial.ts` (lines 101-114)
 - **Explanation:** When a Pusher event triggers, the code updates local state AND calls `refresh()`, resulting in two network round-trips.
 - **Business Impact:** Twice the API requests for realtime social events.

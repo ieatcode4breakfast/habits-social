@@ -97,20 +97,48 @@ export const useSocial = () => {
         globalUnsubscribe = subscribeToSocials((eventName, data) => {
 
           
-          // Optimistic update for friendships
+          // Optimistic update for friendships and profiles
           if (eventName === 'friend-request-accepted' || eventName === 'friend-request-received') {
+            const friendshipWithParticipants = {
+              ...data,
+              participants: [String(data.initiatorId), String(data.receiverId)]
+            };
+
             const index = friendships.value.findIndex(f => f.id === data.id);
             if (index !== -1) {
-              friendships.value[index] = { ...friendships.value[index], ...data };
+              friendships.value[index] = { ...friendships.value[index], ...friendshipWithParticipants };
             } else {
-              friendships.value.push(data);
+              friendships.value.push(friendshipWithParticipants);
             }
+
+            // Update profiles if included in payload
+            if (data.profile) {
+              const pIndex = profiles.value.findIndex(p => String(p.id) === String(data.profile.id));
+              if (pIndex === -1) {
+                profiles.value.push(data.profile);
+              } else {
+                profiles.value[pIndex] = data.profile;
+              }
+            }
+
+            // Manually update pendingCount locally
+            const myId = String(user.value?.id);
+            pendingCount.value = friendships.value.filter(
+              f => f.status === 'pending' && String(f.receiverId) === myId
+            ).length;
+
           } else if (eventName === 'friendship-removed') {
             friendships.value = friendships.value.filter(f => f.id !== data.id);
+            
+            // Also update pendingCount in case a pending request was removed
+            const myId = String(user.value?.id);
+            pendingCount.value = friendships.value.filter(
+              f => f.status === 'pending' && String(f.receiverId) === myId
+            ).length;
           }
 
-          // Always refresh from source to ensure full profile data and consistency
-          refresh(true);
+          // Optimization: Trust the payload and avoid redundant network round-trip
+          // refresh(true); 
         });
       }
     }, { immediate: true });
