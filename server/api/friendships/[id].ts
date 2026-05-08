@@ -1,6 +1,6 @@
 import { eq, and, or, sql } from 'drizzle-orm';
 import { friendships, bucketHabits, buckets, habits, habitLogs } from '~~/server/db/schema';
-import { useDB as _useDB } from '~~/server/utils/db';
+import { useDB as _useDB, extractRows } from '~~/server/utils/db';
 import { requireAuth as _requireAuth } from '~~/server/utils/auth';
 import { reevaluateBucketLogs } from '~~/server/utils/buckets';
 
@@ -57,7 +57,8 @@ export default defineEventHandler(async (event) => {
         RETURNING bh.bucket_id, b.owner_id
       `);
 
-      for (const row of (affected as any[])) {
+      const rows = extractRows<{ bucket_id: string, owner_id: string }>(affected);
+      for (const row of rows) {
         await reevaluateBucketLogs(db, row.bucket_id, row.owner_id);
       }
 

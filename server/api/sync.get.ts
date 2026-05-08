@@ -1,6 +1,6 @@
 import { eq, and, or, sql, inArray, gte, lte, asc, desc, notExists } from 'drizzle-orm';
 import { habits as habitsTable, buckets as bucketsTable, habitLogs, bucketLogs, syncDeletions, sharedBucketMembers, bucketHabits, users } from '~~/server/db/schema';
-import { useDB } from '~~/server/utils/db';
+import { useDB, getServerTime } from '~~/server/utils/db';
 import { requireAuth } from '~~/server/utils/auth';
 import { normalizeHabit, normalizeBucket, normalizeLog } from '~~/server/utils/normalize';
 
@@ -13,12 +13,7 @@ export default defineEventHandler(async (event) => {
   const lastSynced = query.lastSynced ? Number(query.lastSynced) : 0;
 
   // 1. Get the current authoritative server time from the database
-  const timeRes = await db.execute(sql`SELECT EXTRACT(EPOCH FROM NOW()) * 1000 as now`);
-  const firstRow = (timeRes as any[])?.[0];
-  if (!firstRow) {
-    throw createError({ statusCode: 500, statusMessage: 'Failed to get server time' });
-  }
-  const serverTime = Math.floor(Number(firstRow.now));
+  const serverTime = await getServerTime(db);
 
   // 2. Fetch all deltas in parallel
   const [habitsRes, personalBucketsRes, sharedBucketsRes, habitLogsRes, bucketLogsRes, deletionsRes] = await Promise.all([

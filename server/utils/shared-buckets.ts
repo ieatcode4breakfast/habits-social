@@ -1,4 +1,5 @@
 import { eq, and, sql, inArray, ne } from 'drizzle-orm';
+import { extractRows } from './db';
 import { bucketHabits, buckets } from '../db/schema';
 import { reevaluateBucketLogs } from './buckets';
 
@@ -21,11 +22,12 @@ export async function markBucketHabitsRemoved(db: any, habitIds: string[], targe
     RETURNING bh.bucket_id, b.owner_id
   `);
 
-  if (!affected || (affected as any[]).length === 0) return;
+  const rows = extractRows<any>(affected);
+  if (rows.length === 0) return;
 
   // Get unique bucket/owner pairs
   const uniqueBuckets = Array.from(
-    new Map((affected as any[]).map((a: any) => [`${a.bucket_id}-${a.owner_id}`, a])).values()
+    new Map(rows.map((a: any) => [`${a.bucket_id}-${a.owner_id}`, a])).values()
   ) as { bucket_id: string; owner_id: string }[];
 
   for (const row of uniqueBuckets) {
