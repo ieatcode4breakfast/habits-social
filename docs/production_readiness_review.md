@@ -104,7 +104,7 @@ await syncBucketLogsForHabit(db, habitId, userId, dateStr);
 - **Business Impact:** Initial sync for long-time users could time out or produce oversized responses.
 - **Fix:** Implement pagination or incremental deltas only.
 
-### 12. Legacy Log Purge on Every Sync Cycle
+### 12. Legacy Log Purge on Every Sync Cycle - FIXED
 - **File:** `app/composables/useHabitsApi.ts` (lines 528-539)
 - **Explanation:** On every sync cycle, the client scans ALL local logs to find "legacy" entries. O(n) scan runs repeatedly.
 - **Business Impact:** UI jank during sync cycles for long-time users.
@@ -125,7 +125,7 @@ await syncBucketLogsForHabit(db, habitId, userId, dateStr);
 - **Explanation:** Both reorder endpoints perform N sequential UPDATE queries in a loop.
 - **Fix:** Use a single bulk update using a `CASE` statement.
 
-### 15. Global Cache-Control Applies to Static Assets
+### 15. Global Cache-Control Applies to Static Assets - FIXED
 - **File:** `nuxt.config.ts` (lines 30-36)
 - **Explanation:** `/**` rule applies to static assets, causing them to be re-fetched every page load.
 - **Fix:** Add specific route rules for `/public/**` with long cache lifetimes.
@@ -141,7 +141,7 @@ await syncBucketLogsForHabit(db, habitId, userId, dateStr);
 ### 18. Test Coverage Gaps
 - **Explanation:** No E2E tests exist at `tests/e2e/`. Potential credential exposure in `.env` file.
 
-### 19. sync.get.ts Line 28: notExists condition
+### 19. sync.get.ts Line 28: notExists condition - FIXED
 - **Explanation:** `lastSynced > 0` ternary could produce undefined; should be made explicit.
 
 ---
@@ -155,3 +155,18 @@ await syncBucketLogsForHabit(db, habitId, userId, dateStr);
 | **💡 NITPICK** | 6 | Sequential updates, static asset caching, logout token persistence, test coverage gaps |
 
 **CONCLUSION:** The codebase is **NOT safe** for production deployment. These issues must be addressed before deployment.
+
+---
+
+## 🏗️ IMPLEMENTATION ROADMAP (Ranked by Complexity)
+
+This section ranks the remaining unfinished items by lowest complexity, lowest risk, and ease of implementation.
+
+| Rank | Item # | Description | Rationale | Priority |
+| :--- | :--- | :--- | :--- | :--- |
+| **1** | **14** | **Bulk Reorder Updates** | **Complexity: Medium-Low.** Optimization of existing logic. While it changes SQL, it is isolated to reordering functionality. | LOW |
+| **2** | **7** | **Database Transactions** | **Complexity: Medium.** Straightforward but requires careful "search and replace" across multiple files to ensure the `tx` object is passed correctly. | MEDIUM |
+| **3** | **17** | **Logout Token Blacklist** | **Complexity: Medium-High.** Requires a storage layer (like KV or Redis) and middleware to verify tokens on every request. High impact on auth flow. | MEDIUM |
+| **4** | **9** | **Rate Limiting** | **Complexity: Medium-High.** Best handled at the WAF level (Cloudflare). App-level implementation is risky and could block legitimate users if misconfigured. | HIGH |
+| **5** | **11** | **`/api/sync` Pagination** | **Complexity: High.** A fundamental refactor of the synchronization engine. High risk of data inconsistency if the delta logic is flawed. | HIGH |
+| **6** | **18** | **Test Coverage Gaps** | **Complexity: Variable/High.** Not technically "complex" in logic, but represents the highest effort-to-completion ratio. | LOW |

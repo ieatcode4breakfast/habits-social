@@ -15,57 +15,65 @@ export default defineEventHandler(async (event) => {
   // 1. Get the current authoritative server time from the database
   const serverTime = await getServerTime(db);
 
-  // 2. Fetch all deltas in parallel
+  // 2. Construct filters explicitly to avoid relying on undefined in and()
+  const habitsFilters = [eq(habitsTable.ownerId, userId)];
+  const personalBucketsFilters = [
+    eq(bucketsTable.ownerId, userId),
+    notExists(db.select().from(sharedBucketMembers).where(eq(sharedBucketMembers.bucketId, bucketsTable.id)))
+  ];
+  const sharedBucketsFilters = [
+    eq(sharedBucketMembers.userId, userId),
+    eq(sharedBucketMembers.status, 'accepted')
+  ];
+  const habitLogsFilters = [eq(habitLogs.ownerId, userId)];
+  const bucketLogsFilters = [eq(bucketLogs.ownerId, userId)];
+  const deletionsFilters = [eq(syncDeletions.ownerId, userId)];
+
+  if (lastSynced > 0) {
+    const syncDate = new Date(lastSynced);
+    habitsFilters.push(gte(habitsTable.updatedAt, syncDate));
+    personalBucketsFilters.push(gte(bucketsTable.updatedAt, syncDate));
+    sharedBucketsFilters.push(gte(bucketsTable.updatedAt, syncDate));
+    habitLogsFilters.push(gte(habitLogs.updatedAt, syncDate));
+    bucketLogsFilters.push(gte(bucketLogs.updatedAt, syncDate));
+    deletionsFilters.push(gte(syncDeletions.createdAt, syncDate));
+  } else if (query.startDate && query.endDate) {
+    const startDate = String(query.startDate);
+    const endDate = String(query.endDate);
+    habitLogsFilters.push(and(gte(habitLogs.date, startDate), lte(habitLogs.date, endDate)));
+    bucketLogsFilters.push(and(gte(bucketLogs.date, startDate), lte(bucketLogs.date, endDate)));
+  }
+
+  // 3. Fetch all deltas in parallel
   const [habitsRes, personalBucketsRes, sharedBucketsRes, habitLogsRes, bucketLogsRes, deletionsRes] = await Promise.all([
     // Habits
-    db.select().from(habitsTable).where(and(
-      eq(habitsTable.ownerId, userId),
-      lastSynced > 0 ? gte(habitsTable.updatedAt, new Date(lastSynced)) : undefined
-    )).orderBy(asc(habitsTable.sortOrder), desc(habitsTable.createdAt)),
+    db.select().from(habitsTable)
+      .where(and(...habitsFilters))
+      .orderBy(asc(habitsTable.sortOrder), desc(habitsTable.createdAt)),
     
     // Personal Buckets
-    db.select().from(bucketsTable).where(and(
-      eq(bucketsTable.ownerId, userId),
-      notExists(db.select().from(sharedBucketMembers).where(eq(sharedBucketMembers.bucketId, bucketsTable.id))),
-      lastSynced > 0 ? gte(bucketsTable.updatedAt, new Date(lastSynced)) : undefined
-    )).orderBy(asc(bucketsTable.sortOrder), desc(bucketsTable.createdAt)),
+    db.select().from(bucketsTable)
+      .where(and(...personalBucketsFilters))
+      .orderBy(asc(bucketsTable.sortOrder), desc(bucketsTable.createdAt)),
     
     // Shared Buckets
     db.select({ b: bucketsTable }).from(bucketsTable)
       .innerJoin(sharedBucketMembers, eq(bucketsTable.id, sharedBucketMembers.bucketId))
-      .where(and(
-        eq(sharedBucketMembers.userId, userId),
-        eq(sharedBucketMembers.status, 'accepted'),
-        lastSynced > 0 ? gte(bucketsTable.updatedAt, new Date(lastSynced)) : undefined
-      )).orderBy(asc(bucketsTable.sortOrder), desc(bucketsTable.createdAt)),
+      .where(and(...sharedBucketsFilters))
+      .orderBy(asc(bucketsTable.sortOrder), desc(bucketsTable.createdAt)),
     
     // Habit Logs
-    db.select().from(habitLogs).where(and(
-      eq(habitLogs.ownerId, userId),
-      lastSynced > 0 
-        ? gte(habitLogs.updatedAt, new Date(lastSynced))
-        : (query.startDate && query.endDate 
-            ? and(gte(habitLogs.date, String(query.startDate)), lte(habitLogs.date, String(query.endDate)))
-            : undefined)
-    )),
+    db.select().from(habitLogs)
+      .where(and(...habitLogsFilters)),
     
     // Bucket Logs
-    db.select().from(bucketLogs).where(and(
-      eq(bucketLogs.ownerId, userId),
-      lastSynced > 0 
-        ? gte(bucketLogs.updatedAt, new Date(lastSynced))
-        : (query.startDate && query.endDate 
-            ? and(gte(bucketLogs.date, String(query.startDate)), lte(bucketLogs.date, String(query.endDate)))
-            : undefined)
-    )),
+    db.select().from(bucketLogs)
+      .where(and(...bucketLogsFilters)),
     
     // Deletions
     db.select({ entityId: syncDeletions.entityId, entityType: syncDeletions.entityType })
       .from(syncDeletions)
-      .where(and(
-        eq(syncDeletions.ownerId, userId),
-        lastSynced > 0 ? gte(syncDeletions.createdAt, new Date(lastSynced)) : undefined
-      ))
+      .where(and(...deletionsFilters))
   ]);
 
   const buckets = [
