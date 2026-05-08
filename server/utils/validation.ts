@@ -37,14 +37,14 @@ export const selectUserSchema = createSelectSchema(schema.users);
 export const insertUserSchema = createInsertSchema(schema.users, {
   username: z.string().min(3).max(20),
   email: z.string().email(),
-  passwordHash: z.string().min(8).max(128),
+  passwordHash: z.string().min(8).max(72),
   photoUrl: z.string().url().or(z.literal('')).nullable().optional()
 });
 
 export const registerSchema = z.object({
   username: z.string().min(3).max(20),
   email: z.string().email(),
-  password: z.string().min(8).max(128),
+  password: z.string().min(8).max(72),
   photoUrl: z.string().url().or(z.literal('')).nullable().optional()
 });
 
@@ -56,7 +56,7 @@ export const loginSchema = z.object({
 export const updateProfileSchema = z.object({
   username: z.string().min(3).max(20).optional(),
   email: z.string().email().optional(),
-  password: z.string().min(8).max(128).optional(),
+  password: z.string().min(8).max(72).optional(),
   photoUrl: z.string().url().or(z.literal('')).nullable().optional()
 }).refine(data => Object.keys(data).length > 0, {
   message: "At least one field must be provided"

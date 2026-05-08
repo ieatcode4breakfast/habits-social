@@ -39,8 +39,8 @@ describe('User Validation Schemas', () => {
       expect(result.success).toBe(false);
     });
 
-    it('should reject password > 128 chars', () => {
-      const result = registerSchema.safeParse({ ...validData, password: 'p'.repeat(129) });
+    it('should reject password > 72 chars', () => {
+      const result = registerSchema.safeParse({ ...validData, password: 'p'.repeat(73) });
       expect(result.success).toBe(false);
     });
 

@@ -64,7 +64,7 @@ describe('POST /api/auth/register', () => {
   it('should reject extremely long password (DoS protection)', async () => {
     const event = createMockEvent('', { 
       email: `a@b.com`, 
-      password: 'p'.repeat(129), 
+      password: 'p'.repeat(73), 
       username: `u_${Date.now()}` 
     });
     await expect(handler(event)).rejects.toThrow(/Too big/i);
