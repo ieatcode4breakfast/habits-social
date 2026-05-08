@@ -4,12 +4,18 @@ import { drizzle } from 'drizzle-orm/neon-http';
 import { eq, sql } from 'drizzle-orm';
 import { users, habits, buckets, friendships } from '../db/schema';
 import * as schema from '../db/schema';
+import { InferSelectModel } from 'drizzle-orm';
+
+export type User = InferSelectModel<typeof users>;
+export type Habit = InferSelectModel<typeof habits>;
+export type Bucket = InferSelectModel<typeof buckets>;
+export type Friendship = InferSelectModel<typeof friendships>;
 
 // Initialize direct DB connection for setup/teardown
 const client = neon(process.env.DATABASE_URL!);
 const db = drizzle(client, { schema });
 
-export const createTestUser = async (username: string, email: string) => {
+export const createTestUser = async (username: string, email: string): Promise<User> => {
   const passwordHash = await hash('password123', 10);
   const result = await db.insert(users)
     .values({
@@ -21,6 +27,7 @@ export const createTestUser = async (username: string, email: string) => {
       updatedAt: new Date()
     })
     .returning();
+  if (!result[0]) throw new Error('Failed to create test user');
   return result[0];
 };
 
@@ -55,7 +62,7 @@ export const createMockEvent = (userId: string, body: any = {}, cookies: any = {
   } as any;
 };
 
-export const createTestHabit = async (ownerId: string, title: string) => {
+export const createTestHabit = async (ownerId: string, title: string): Promise<Habit> => {
   const result = await db.insert(habits)
     .values({
       id: crypto.randomUUID(),
@@ -71,6 +78,7 @@ export const createTestHabit = async (ownerId: string, title: string) => {
       updatedAt: new Date()
     })
     .returning();
+  if (!result[0]) throw new Error('Failed to create test habit');
   return result[0];
 };
 
@@ -78,7 +86,7 @@ export const deleteTestHabit = async (habitId: string) => {
   await db.delete(habits).where(eq(habits.id, habitId));
 };
 
-export const createTestBucket = async (ownerId: string, title: string) => {
+export const createTestBucket = async (ownerId: string, title: string): Promise<Bucket> => {
   const result = await db.insert(buckets)
     .values({
       id: crypto.randomUUID(),
@@ -91,6 +99,7 @@ export const createTestBucket = async (ownerId: string, title: string) => {
       updatedAt: new Date()
     })
     .returning();
+  if (!result[0]) throw new Error('Failed to create test bucket');
   return result[0];
 };
 
@@ -98,7 +107,7 @@ export const deleteTestBucket = async (bucketId: string) => {
   await db.delete(buckets).where(eq(buckets.id, bucketId));
 };
 
-export const createFriendship = async (initiatorId: string, receiverId: string, status: 'pending' | 'accepted' = 'accepted') => {
+export const createFriendship = async (initiatorId: string, receiverId: string, status: 'pending' | 'accepted' = 'accepted'): Promise<Friendship> => {
   const result = await db.insert(friendships)
     .values({
       id: crypto.randomUUID(),
@@ -109,6 +118,7 @@ export const createFriendship = async (initiatorId: string, receiverId: string, 
       updatedAt: new Date()
     })
     .returning();
+  if (!result[0]) throw new Error('Failed to create test friendship');
   return result[0];
 };
 

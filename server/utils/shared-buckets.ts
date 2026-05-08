@@ -16,8 +16,8 @@ export async function markBucketHabitsRemoved(db: any, habitIds: string[], targe
     SET approval_status = 'removed'
     FROM buckets b
     WHERE bh.bucket_id = b.id
-      AND bh.habit_id = ANY(${habitIds}::uuid[])
-      AND b.owner_id = ANY(${targetUserIds}::uuid[])
+      AND bh.habit_id IN (${sql.join(habitIds.map(id => sql`${id}`), sql`, `)})
+      AND b.owner_id IN (${sql.join(targetUserIds.map(id => sql`${id}`), sql`, `)})
       AND bh.approval_status != 'removed'
     RETURNING bh.bucket_id, b.owner_id
   `);

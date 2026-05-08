@@ -1,6 +1,6 @@
 import './setup';
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import { createTestUser, deleteTestUser, createTestHabit, deleteTestHabit, createTestBucket, deleteTestBucket } from './test.utils';
+import { createTestUser, deleteTestUser, createTestHabit, deleteTestHabit, createTestBucket, deleteTestBucket, User, Habit, Bucket } from './test.utils';
 import { recalculateHabitStreak } from '../utils/streaks';
 import { reevaluateBucketLogs, syncSingleBucketLog } from '../utils/buckets';
 import { formatISO, addDays } from 'date-fns';
@@ -14,9 +14,9 @@ const client = neon(process.env.DATABASE_URL!);
 const db = drizzle(client, { schema });
 
 describe('Streak Calculation Engine - Stress Testing', () => {
-  let user: any;
-  let habit: any;
-  let bucket: any;
+  let user: User;
+  let habit: Habit;
+  let bucket: Bucket;
 
   beforeAll(async () => {
     user = await createTestUser(`stress_${Date.now()}`, `stress_${Date.now()}@ex.com`);
@@ -145,5 +145,59 @@ describe('Streak Calculation Engine - Stress Testing', () => {
     const bucketRes = await db.select().from(buckets).where(eq(buckets.id, bucket.id));
     expect(bucketRes[0]!.currentStreak).toBe(1);
     expect(bucketRes[0]!.longestStreak).toBe(2);
+  }, 60000);
+
+  it('should maintain streak without incrementing on skipped or vacation', async () => {
+    // Add logs for Day 7 (skipped) and Day 8 (completed)
+    const startDate = new Date('2020-01-01T00:00:00.000Z');
+    const day7 = addDays(startDate, 7);
+    const day8 = addDays(startDate, 8);
+    const dateStr7 = formatISO(day7, { representation: 'date' });
+    const dateStr8 = formatISO(day8, { representation: 'date' });
+
+    await db.insert(habitLogs).values([
+      {
+        id: habit.id + '_' + dateStr7,
+        habitId: habit.id,
+        ownerId: user.id,
+        date: dateStr7,
+        status: 'skipped' as const,
+        updatedAt: new Date()
+      },
+      {
+        id: habit.id + '_' + dateStr8,
+        habitId: habit.id,
+        ownerId: user.id,
+        date: dateStr8,
+        status: 'completed' as const,
+        updatedAt: new Date()
+      }
+    ]);
+
+    const habitResult = await recalculateHabitStreak(db, habit.id, user.id, dateStr7);
+    // Prior to Day 7, current streak was 1 (from Day 6).
+    // Day 7 is skipped -> streak remains 1
+    // Day 8 is completed -> streak becomes 2
+    expect(habitResult!.currentStreak).toBe(2);
+  }, 60000);
+
+  it('should reset streak to 0 on cleared status', async () => {
+    const startDate = new Date('2020-01-01T00:00:00.000Z');
+    const day9 = addDays(startDate, 9);
+    const dateStr9 = formatISO(day9, { representation: 'date' });
+
+    await db.insert(habitLogs)
+      .values({
+        id: habit.id + '_' + dateStr9,
+        habitId: habit.id,
+        ownerId: user.id,
+        date: dateStr9,
+        status: 'cleared',
+        updatedAt: new Date()
+      });
+
+    const habitResult = await recalculateHabitStreak(db, habit.id, user.id, dateStr9);
+    // Day 9 cleared -> streak is 0
+    expect(habitResult!.currentStreak).toBe(0);
   }, 60000);
 });

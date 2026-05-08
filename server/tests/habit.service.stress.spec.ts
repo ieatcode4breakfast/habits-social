@@ -1,0 +1,87 @@
+import './setup';
+import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { createTestUser, deleteTestUser, createTestHabit, deleteTestHabit, createTestBucket, deleteTestBucket, User, Habit, Bucket } from './test.utils';
+import { HabitService } from '../services/habit.service';
+import { neon } from '@neondatabase/serverless';
+import { drizzle } from 'drizzle-orm/neon-http';
+import { eq, and } from 'drizzle-orm';
+import { shareEvents, bucketHabits, habits, habitLogs } from '../db/schema';
+import * as schema from '../db/schema';
+
+const client = neon(process.env.DATABASE_URL!);
+const db = drizzle(client, { schema });
+
+describe('HabitService - Stress Testing', () => {
+  let userA: User;
+  let userB: User;
+  let userC: User;
+  let habitA: Habit;
+  let bucketB: Bucket;
+
+  beforeAll(async () => {
+    userA = await createTestUser(`hab_A_${Date.now()}`, `hab_A_${Date.now()}@ex.com`);
+    userB = await createTestUser(`hab_B_${Date.now()}`, `hab_B_${Date.now()}@ex.com`);
+    userC = await createTestUser(`hab_C_${Date.now()}`, `hab_C_${Date.now()}@ex.com`);
+    
+    habitA = await createTestHabit(userA.id, 'Habit A');
+    
+    // Initial state: shared with B
+    await db.update(habits).set({ sharedWith: [userB.id], userDate: '2024-01-01' }).where(eq(habits.id, habitA.id));
+    habitA.sharedWith = [userB.id];
+    habitA.userDate = '2024-01-01';
+
+    bucketB = await createTestBucket(userB.id, 'Bucket B');
+    await db.insert(bucketHabits).values({
+      bucketId: bucketB.id,
+      habitId: habitA.id,
+      addedBy: userB.id,
+      approvalStatus: 'accepted'
+    });
+  });
+
+  afterAll(async () => {
+    if (bucketB?.id) await deleteTestBucket(bucketB.id);
+    if (habitA?.id) await deleteTestHabit(habitA.id);
+    if (userA?.id) await deleteTestUser(userA.id);
+    if (userB?.id) await deleteTestUser(userB.id);
+    if (userC?.id) await deleteTestUser(userC.id);
+  });
+
+  it('should generate share events and cascade removals when sharing delta changes', async () => {
+    // Action: Update habit to remove B and add C
+    const updateData = { sharedWith: [userC.id] };
+    await HabitService.updateHabit(db, userA.id, habitA.id, updateData, habitA, null);
+
+    // Assertions:
+    // 1. shareEvents created for userC
+    const seRes = await db.select().from(shareEvents).where(eq(shareEvents.recipientId, userC.id));
+    expect(seRes.length).toBe(1);
+    expect(seRes[0]?.habitIds).toContain(habitA.id);
+
+    // 2. Habit marked 'removed' in User B's bucket
+    const bhRes = await db.select().from(bucketHabits).where(and(eq(bucketHabits.bucketId, bucketB.id), eq(bucketHabits.habitId, habitA.id)));
+    expect(bhRes[0]?.approvalStatus).toBe('removed');
+  });
+
+  it('should cascade streak recalculations on log deletion', async () => {
+    // Setup a 3-day streak
+    const logs = [
+      { id: `${habitA.id}_2024-02-01`, habitId: habitA.id, ownerId: userA.id, date: '2024-02-01', status: 'completed' as const, streakCount: 1, brokenStreakCount: 0, updatedAt: new Date() },
+      { id: `${habitA.id}_2024-02-02`, habitId: habitA.id, ownerId: userA.id, date: '2024-02-02', status: 'completed' as const, streakCount: 2, brokenStreakCount: 0, updatedAt: new Date() },
+      { id: `${habitA.id}_2024-02-03`, habitId: habitA.id, ownerId: userA.id, date: '2024-02-03', status: 'completed' as const, streakCount: 3, brokenStreakCount: 0, updatedAt: new Date() }
+    ];
+    await db.insert(habitLogs).values(logs);
+    await db.update(habits).set({ currentStreak: 3, longestStreak: 3 }).where(eq(habits.id, habitA.id));
+
+    // Action: Delete day 2
+    await HabitService.deleteHabitLog(db, userA.id, habitA.id, '2024-02-02', null);
+
+    // Assertion:
+    // Day 1: 1
+    // Day 2: deleted (gap)
+    // Day 3: should reset to 1
+    const hRes = await db.select().from(habits).where(eq(habits.id, habitA.id));
+    expect(hRes[0]?.currentStreak).toBe(1);
+    expect(hRes[0]?.longestStreak).toBe(1); // Longest could theoretically be 1 now since Day 1 and Day 3 are isolated 1-day streaks
+  }, 60000);
+});
