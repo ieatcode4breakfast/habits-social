@@ -13,7 +13,8 @@ export type Friendship = InferSelectModel<typeof friendships>;
 
 // Initialize direct DB connection for setup/teardown
 const client = neon(process.env.DATABASE_URL!);
-const db = drizzle(client, { schema });
+export const db = drizzle(client, { schema });
+
 
 export const createTestUser = async (username: string, email: string): Promise<User> => {
   const passwordHash = await hash('password123', 10);

@@ -41,14 +41,13 @@ vi.stubGlobal('$fetch', async (url: string, opts: any) => {
 // Global mocks for local utils
 vi.mock('../utils/db', async (importOriginal) => {
   const actual = await importOriginal() as any;
+  const { db } = await import('./test.utils');
   return {
     ...actual,
-    useDB: () => {
-      const sql = neon(process.env.DATABASE_URL!);
-      return drizzle(sql, { schema });
-    }
+    useDB: () => db
   };
 });
+
 
 vi.mock('../utils/auth', () => ({
   requireAuth: async (event: any) => {

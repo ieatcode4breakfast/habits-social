@@ -24,9 +24,19 @@ describe('PUT /api/friendships/[id]', () => {
     if (userB?.id) await deleteTestUser(userB.id);
   });
 
-  it('should reject accepting your own initiated friend request (PRR-8)', async () => {
+  it('should reject accepting your own initiated friend request (PRr-8)', async () => {
     // User A tries to accept the request they initiated
     const eventA = createMockEvent(userA.id, { status: 'accepted' }, {}, { id: friendshipId }, {}, 'PUT');
     await expect(handler(eventA)).rejects.toThrow(/Friendship not found/i);
   });
+
+  it('should reject favoriting a friendship the user is not part of', async () => {
+    const favoriteHandler = (await import('../api/friendships/favorite.put')).default;
+    const userC = await createTestUser(`friend_c_${Date.now()}`, `fc_${Date.now()}@ex.com`);
+    const eventC = createMockEvent(userC.id, { friendshipId, favorite: true }, {}, {}, {}, 'PUT');
+    
+    await expect(favoriteHandler(eventC)).rejects.toThrow(/Not authorized/i);
+    await deleteTestUser(userC.id);
+  });
 });
+

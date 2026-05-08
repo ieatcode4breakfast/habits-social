@@ -130,3 +130,10 @@ export const reorderSchema = z.object({
   ids: z.array(z.string().uuid()).min(1)
 });
 
+export const syncQuerySchema = z.object({
+  lastSynced: z.coerce.number().min(0).default(0),
+  startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional()
+});
+
+
