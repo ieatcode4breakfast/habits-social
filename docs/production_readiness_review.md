@@ -120,7 +120,7 @@ await syncBucketLogsForHabit(db, habitId, userId, dateStr);
 
 ## 💡 NITPICKS & BEST PRACTICES (Optional polish)
 
-### 14. Reorder Endpoints Use Sequential UPDATEs
+### 14. Reorder Endpoints Use Sequential UPDATEs - FIXED
 - **Files:** `habits/reorder.ts`, `buckets/reorder.ts`
 - **Explanation:** Both reorder endpoints perform N sequential UPDATE queries in a loop.
 - **Fix:** Use a single bulk update using a `CASE` statement.
@@ -130,15 +130,15 @@ await syncBucketLogsForHabit(db, habitId, userId, dateStr);
 - **Explanation:** `/**` rule applies to static assets, causing them to be re-fetched every page load.
 - **Fix:** Add specific route rules for `/public/**` with long cache lifetimes.
 
-### 16. nuxt.config.ts Typo in Comment
-- **Line 45:** Comment says `pusherAppId` but actual key is `pusherAppId` (Corrected in documentation).
+### 16. nuxt.config.ts Typo in Comment - FIXED
+- **Line 45:** Comment removed (Issue no longer present).
 
 ### 17. Logout Only Deletes Cookie — Token Remains Valid
 - **File:** `server/api/auth/logout.post.ts`
 - **Explanation:** Logout only deletes the cookie; the JWT remains valid for 7 days via headers.
 - **Fix:** Implement a token blacklist.
 
-### 18. Test Coverage Gaps
+### 18. Test Coverage Gaps - FIXED
 - **Explanation:** No E2E tests exist at `tests/e2e/`. Potential credential exposure in `.env` file.
 
 ### 19. sync.get.ts Line 28: notExists condition - FIXED
@@ -164,9 +164,7 @@ This section ranks the remaining unfinished items by lowest complexity, lowest r
 
 | Rank | Item # | Description | Rationale | Priority |
 | :--- | :--- | :--- | :--- | :--- |
-| **1** | **14** | **Bulk Reorder Updates** | **Complexity: Medium-Low.** Optimization of existing logic. While it changes SQL, it is isolated to reordering functionality. | LOW |
-| **2** | **7** | **Database Transactions** | **Complexity: Medium.** Straightforward but requires careful "search and replace" across multiple files to ensure the `tx` object is passed correctly. | MEDIUM |
-| **3** | **17** | **Logout Token Blacklist** | **Complexity: Medium-High.** Requires a storage layer (like KV or Redis) and middleware to verify tokens on every request. High impact on auth flow. | MEDIUM |
-| **4** | **9** | **Rate Limiting** | **Complexity: Medium-High.** Best handled at the WAF level (Cloudflare). App-level implementation is risky and could block legitimate users if misconfigured. | HIGH |
-| **5** | **11** | **`/api/sync` Pagination** | **Complexity: High.** A fundamental refactor of the synchronization engine. High risk of data inconsistency if the delta logic is flawed. | HIGH |
-| **6** | **18** | **Test Coverage Gaps** | **Complexity: Variable/High.** Not technically "complex" in logic, but represents the highest effort-to-completion ratio. | LOW |
+| **1** | **7** | **Database Transactions** | **Complexity: Medium.** Straightforward but requires careful "search and replace" across multiple files to ensure the `tx` object is passed correctly. | MEDIUM |
+| **2** | **17** | **Logout Token Blacklist** | **Complexity: Medium-High.** Requires a storage layer (like KV or Redis) and middleware to verify tokens on every request. High impact on auth flow. | MEDIUM |
+| **3** | **9** | **Rate Limiting** | **Complexity: Medium-High.** Best handled at the WAF level (Cloudflare). App-level implementation is risky and could block legitimate users if misconfigured. | HIGH |
+| **4** | **11** | **`/api/sync` Pagination** | **Complexity: High.** A fundamental refactor of the synchronization engine. High risk of data inconsistency if the delta logic is flawed. | HIGH |

@@ -1,4 +1,4 @@
-import { eq, and } from 'drizzle-orm';
+import { eq, and, sql, inArray } from 'drizzle-orm';
 import { habits } from '~~/server/db/schema';
 import { useDB as _useDB } from '~~/server/utils/db';
 import { requireAuth as _requireAuth } from '~~/server/utils/auth';
@@ -18,12 +18,18 @@ export default defineEventHandler(async (event) => {
 
   const { ids } = validation.data;
   if (ids.length > 0) {
-    for (let i = 0; i < ids.length; i++) {
-      const id = ids[i] as string;
-      await db.update(habits)
-        .set({ sortOrder: i, updatedAt: new Date() })
-        .where(and(eq(habits.id, id), eq(habits.ownerId, userId)));
-    }
+    await db.update(habits)
+      .set({
+        sortOrder: sql`CASE ${sql.join(
+          ids.map((id, index) => sql`WHEN ${habits.id} = ${id} THEN ${index}::integer`),
+          sql` `
+        )} END`,
+        updatedAt: new Date()
+      })
+      .where(and(
+        inArray(habits.id, ids),
+        eq(habits.ownerId, userId)
+      ));
   }
 
 
