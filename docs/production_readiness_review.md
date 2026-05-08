@@ -10,7 +10,7 @@
 
 ---
 
-### 2. User Account Deletion Leaves Orphaned Data
+### 2. User Account Deletion Leaves Orphaned Data - FIXED
 - **File:** `server/api/users/me.delete.ts` (lines 13-18)
 - **Explanation:** The DELETE handler only removes the row from the `users` table. The database schema (`server/db/schema.ts`) defines zero foreign key constraints (no `references()`, no `onDelete`, no `onUpdate`). This means deleting a user leaves behind orphaned habits, logs, buckets, friendships, and share events.
 - **Business Impact:** GDPR/data privacy violation — user data is not fully deleted. Orphaned rows will accumulate, polluting friend feeds and slowing queries indefinitely.
@@ -92,6 +92,58 @@ await syncBucketLogsForHabit(db, habitId, userId, dateStr);
 - **Explanation:** No rate limiting exists at any layer.
 - **Fix:** Implement Cloudflare WAF rate limiting or application-level middleware.
 
+### 10. Login Identifier Wildcard Issue
+- **File:** `server/api/auth/login.post.ts` (lines 31-32)
+- **Explanation:** Using `ILIKE` for login allows pattern matching. If a user's username is john, an attacker could log in using JOHN (case-insensitive) or %ohn (wildcard).
+- **Business Impact:** Ambiguous login behavior.
+- **Fix:** Switch to exact comparison: use `eq(users.username, identifier.toLowerCase())`.
+
+### 11. /api/sync Returns All Data on First Sync (60-Day Window)
+- **File:** `server/api/sync.get.ts` (lines 43-48)
+- **Explanation:** When `lastSynced` is 0, the habit/bucket log queries return up to 60 days of logs. ALL habits and buckets are returned regardless of date range.
+- **Business Impact:** Initial sync for long-time users could time out or produce oversized responses.
+- **Fix:** Implement pagination or incremental deltas only.
+
+### 12. Legacy Log Purge on Every Sync Cycle
+- **File:** `app/composables/useHabitsApi.ts` (lines 528-539)
+- **Explanation:** On every sync cycle, the client scans ALL local logs to find "legacy" entries. O(n) scan runs repeatedly.
+- **Business Impact:** UI jank during sync cycles for long-time users.
+- **Fix:** Run the legacy purge only once on first login.
+
+### 13. Double-Fetch on Pusher Events
+- **File:** `app/composables/useSocial.ts` (lines 101-114)
+- **Explanation:** When a Pusher event triggers, the code updates local state AND calls `refresh()`, resulting in two network round-trips.
+- **Business Impact:** Twice the API requests for realtime social events.
+- **Fix:** Trust the optimistic update and skip `refresh()`.
+
+---
+
+## 💡 NITPICKS & BEST PRACTICES (Optional polish)
+
+### 14. Reorder Endpoints Use Sequential UPDATEs
+- **Files:** `habits/reorder.ts`, `buckets/reorder.ts`
+- **Explanation:** Both reorder endpoints perform N sequential UPDATE queries in a loop.
+- **Fix:** Use a single bulk update using a `CASE` statement.
+
+### 15. Global Cache-Control Applies to Static Assets
+- **File:** `nuxt.config.ts` (lines 30-36)
+- **Explanation:** `/**` rule applies to static assets, causing them to be re-fetched every page load.
+- **Fix:** Add specific route rules for `/public/**` with long cache lifetimes.
+
+### 16. nuxt.config.ts Typo in Comment
+- **Line 45:** Comment says `pusherAppId` but actual key is `pusherAppId` (Corrected in documentation).
+
+### 17. Logout Only Deletes Cookie — Token Remains Valid
+- **File:** `server/api/auth/logout.post.ts`
+- **Explanation:** Logout only deletes the cookie; the JWT remains valid for 7 days via headers.
+- **Fix:** Implement a token blacklist.
+
+### 18. Test Coverage Gaps
+- **Explanation:** No E2E tests exist at `tests/e2e/`. Potential credential exposure in `.env` file.
+
+### 19. sync.get.ts Line 28: notExists condition
+- **Explanation:** `lastSynced > 0` ternary could produce undefined; should be made explicit.
+
 ---
 
 ## 📊 SUMMARY TABLE
@@ -99,7 +151,7 @@ await syncBucketLogsForHabit(db, habitId, userId, dateStr);
 | Severity | Count | Key Items |
 | :--- | :--- | :--- |
 | **🔴 CRITICAL** | 6 | Pusher non-functional, user deletion orphans data, JWT fallback, ILIKE enumeration, streak calculation bugs, bcrypt timeouts |
-| **⚠️ WARNING** | 7 | Missing transactions, password truncation (72-byte limit), no rate limiting, sync payload scaling issues |
-| **💡 NITPICK** | 6 | Sequential reorder updates, static asset caching, logout token persistence |
+| **⚠️ WARNING** | 7 | Missing transactions, password truncation, no rate limiting, sync payload scaling, legacy purge O(n), double-fetch |
+| **💡 NITPICK** | 6 | Sequential updates, static asset caching, logout token persistence, test coverage gaps |
 
-**CONCLUSION:** The codebase is **NOT safe** for production deployment. The issues identified above must be addressed to ensure security, data integrity, and functional parity.
+**CONCLUSION:** The codebase is **NOT safe** for production deployment. These issues must be addressed before deployment.

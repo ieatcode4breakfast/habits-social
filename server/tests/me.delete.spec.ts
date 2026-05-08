@@ -23,7 +23,7 @@ describe('DELETE /api/users/me', () => {
     event.context.userId = testUser.id;
 
     const response = (await handler(event)) as any;
-    expect(response.message).toBe('User deleted successfully');
+    expect(response.message).toBe('User and all associated data deleted successfully');
     expect(response.data!.id).toBe(testUser.id);
   });
 

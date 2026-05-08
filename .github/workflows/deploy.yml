@@ -26,23 +26,10 @@ jobs:
 
       - name: Build Nuxt app
         run: npm run build
-        env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
-          JWT_SECRET: ${{ secrets.JWT_SECRET }}
-          PUSHER_APP_ID: ${{ secrets.PUSHER_APP_ID }}
-          PUSHER_KEY: ${{ secrets.PUSHER_KEY }}
-          PUSHER_SECRET: ${{ secrets.PUSHER_SECRET }}
-          PUSHER_CLUSTER: ${{ secrets.PUSHER_CLUSTER }}
 
       - name: Deploy to Cloudflare Workers
         run: |
           if [ "${{ github.ref }}" = "refs/heads/main" ]; then
-            # Teleport secrets from GitHub to Cloudflare
-            echo "${{ secrets.PUSHER_APP_ID }}" | npx wrangler secret put PUSHER_APP_ID --env production
-            echo "${{ secrets.PUSHER_KEY }}" | npx wrangler secret put PUSHER_KEY --env production
-            echo "${{ secrets.PUSHER_SECRET }}" | npx wrangler secret put PUSHER_SECRET --env production
-            echo "${{ secrets.PUSHER_CLUSTER }}" | npx wrangler secret put PUSHER_CLUSTER --env production
-            
             npx wrangler@latest deploy --env production
           else
             npx wrangler@latest deploy

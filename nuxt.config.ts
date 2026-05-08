@@ -38,7 +38,7 @@ export default defineNuxtConfig({
   },
   runtimeConfig: {
     databaseUrl: process.env.DATABASE_URL,
-    jwtSecret: process.env.JWT_SECRET || 'fallback-secret-for-dev',
+    jwtSecret: process.env.JWT_SECRET,
     pusherAppId: process.env.PUSHER_APP_ID,
     pusherSecret: process.env.PUSHER_SECRET,
     public: {
