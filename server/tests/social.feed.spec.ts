@@ -52,8 +52,11 @@ describe('GET /api/social/feed', () => {
     expect(Array.isArray(response.data)).toBe(true);
     
     // B should see A's log
-    const foundLog = response.data.find((item: any) => item.type === 'log' && item.data.habitId === habitA.id);
+    const foundLog = response.data.find((item: any) => 
+      (item.type === 'INITIAL_COMPLETION' || item.type === 'STREAK_STARTED') && 
+      item.habit.id === habitA.id
+    );
     expect(foundLog).toBeDefined();
-    expect(foundLog.data.ownerId).toBe(userA.id);
+    expect(foundLog.user.id).toBe(userA.id);
   });
 });
