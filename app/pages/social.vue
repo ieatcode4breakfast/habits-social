@@ -168,8 +168,18 @@
             <span v-if="getRelationship(res.id)" class="text-xs font-semibold text-zinc-500 bg-zinc-925 px-3 py-1.5 rounded-full">
               {{ getRelationship(res.id) === 'accepted' ? 'Friends' : 'Pending' }}
             </span>
-            <button v-else @click="confirmSendRequest(res)" class="flex items-center gap-2 px-4 py-2 bg-white hover:bg-zinc-200 text-black rounded-xl transition-colors font-semibold text-sm cursor-pointer">
-              <UserPlus class="w-4 h-4" /> Add
+            <button 
+              v-else 
+              @click="executeSendRequest(res)" 
+              :disabled="addingFriendId === res.id"
+              class="flex items-center justify-center gap-2 px-4 py-2 bg-white hover:bg-zinc-200 disabled:opacity-50 text-black rounded-xl transition-colors font-semibold text-sm cursor-pointer min-w-[80px]"
+            >
+              <template v-if="addingFriendId === res.id">
+                <div class="w-4 h-4 border-2 border-black/20 border-t-black rounded-full animate-spin"></div>
+              </template>
+              <template v-else>
+                <UserPlus class="w-4 h-4" /> Add
+              </template>
             </button>
           </div>
         </div>
@@ -274,38 +284,7 @@
       </Transition>
     </Teleport>
 
-    <!-- Add Friend Confirmation Modal -->
-    <Teleport to="body">
-      <Transition
-        enter-active-class="transition duration-300 ease-out"
-        enter-from-class="opacity-0 scale-95"
-        enter-to-class="opacity-100 scale-100"
-        leave-active-class="transition duration-200 ease-in"
-        leave-from-class="opacity-100 scale-100"
-        leave-to-class="opacity-0 scale-95"
-      >
-        <div v-if="showAddModal" class="fixed inset-0 z-[110] flex flex-col items-center justify-start overflow-y-auto p-4 sm:py-8">
-          <div class="fixed inset-0 bg-black/80 backdrop-blur-md touch-none" @click="showAddModal = false"></div>
-          <div class="relative my-auto w-full max-w-sm bg-zinc-925 border border-zinc-800 rounded-3xl shadow-2xl p-8 text-center">
-            <div class="w-16 h-16 bg-zinc-925 rounded-full flex items-center justify-center mx-auto mb-4">
-              <UserPlus class="w-8 h-8 text-white" />
-            </div>
-            <h2 class="text-xl font-bold text-white mb-2">Send Request?</h2>
-            <p class="text-zinc-500 mb-8 text-sm">
-              Send a friend request to <span class="text-zinc-200 font-medium">{{ userToRequest?.username }}</span>?
-            </p>
-            <div class="flex gap-3 mt-2">
-              <button @click="showAddModal = false" class="flex-1 px-5 py-3 bg-transparent hover:bg-zinc-800 text-zinc-400 hover:text-zinc-200 font-semibold rounded-xl transition-all cursor-pointer whitespace-nowrap">
-                Cancel
-              </button>
-              <button @click="executeSendRequest" class="flex-1 px-5 py-3 bg-white hover:bg-zinc-200 text-black font-semibold rounded-xl transition-all shadow-lg shadow-white/5 cursor-pointer whitespace-nowrap">
-                Send Request
-              </button>
-            </div>
-          </div>
-        </div>
-      </Transition>
-    </Teleport>
+
 
     <!-- Share Habits Modal (Post-Request) -->
     <ShareHabitsModal
@@ -380,8 +359,7 @@ const {
 const showUnfriendModal = ref(false);
 const friendshipToUnfriend = ref<Friendship | null>(null);
 const unfriendDisplayName = ref('');
-const showAddModal = ref(false);
-const userToRequest = ref<UserProfile | null>(null);
+const addingFriendId = ref<string | null>(null);
 const showShareModal = ref(false);
 const myHabits = ref<any[]>([]);
 const selectedHabitIds = ref<string[]>([]);
@@ -590,12 +568,11 @@ const handleSocialMonthChanged = async (newDate: Date) => {
 // ----------------------------
 
 const isLocalModalOpen = computed(() => 
-  showUnfriendModal.value || showAddModal.value
+  showUnfriendModal.value
 );
 
 useModalHistory(isLocalModalOpen, () => {
   showUnfriendModal.value = false;
-  showAddModal.value = false;
 });
 
 const pendingIncoming = computed(() => {
@@ -733,60 +710,31 @@ watch(searchQuery, (val) => {
   searchTimeout = setTimeout(handleSearch, 300);
 });
 
-const confirmSendRequest = (u: UserProfile) => {
-  userToRequest.value = u;
-  showAddModal.value = true;
-};
-
-const executeSendRequest = async () => {
-  if (!userToRequest.value) return;
-  const target = userToRequest.value;
-  await $fetch('/api/friendships', { method: 'POST', body: { targetUserId: target.id } });
-  await loadFriendships();
-  
-  // Setup for share modal
-  userBeingSharedWith.value = target;
-  const { data: habitsData } = await $fetch<{ data: any[] }>('/api/habits');
-  myHabits.value = habitsData;
-  selectedHabitIds.value = [];
-  
-  showAddModal.value = false;
-  userToRequest.value = null;
-  searchResults.value = [];
-  searchQuery.value = '';
-  
-  // Open share modal if user has habits
-  if (habitsData.length > 0) {
-    shareModalTitle.value = 'Request Sent!';
-    showShareModal.value = true;
-  }
-};
-
-const toggleHabitSelection = (id: string) => {
-  const index = selectedHabitIds.value.indexOf(id);
-  if (index === -1) selectedHabitIds.value.push(id);
-  else selectedHabitIds.value.splice(index, 1);
-};
-
-const toggleSelectAllHabits = () => {
-  if (selectedHabitIds.value.length === myHabits.value.length) {
+const executeSendRequest = async (target: UserProfile) => {
+  addingFriendId.value = target.id;
+  try {
+    await $fetch('/api/friendships', { method: 'POST', body: { targetUserId: target.id } });
+    await loadFriendships();
+    
+    // Setup for share modal
+    userBeingSharedWith.value = target;
+    const { data: habitsData } = await $fetch<{ data: any[] }>('/api/habits');
+    myHabits.value = habitsData;
     selectedHabitIds.value = [];
-  } else {
-    selectedHabitIds.value = myHabits.value.map((h: any) => h.id);
+    
+    searchResults.value = [];
+    searchQuery.value = '';
+    
+    // Open share modal if user has habits
+    if (habitsData.length > 0) {
+      shareModalTitle.value = 'Request Sent!';
+      showShareModal.value = true;
+    }
+  } catch (err) {
+    console.error('Failed to send friend request:', err);
+  } finally {
+    addingFriendId.value = null;
   }
-};
-
-const executeBatchShare = async () => {
-  if (!userBeingSharedWith.value) return;
-  await $fetch('/api/social/share-habits', { 
-    method: 'POST', 
-    body: { 
-      targetUserId: userBeingSharedWith.value.id, 
-      habitIds: selectedHabitIds.value,
-      userDate: format(new Date(), 'yyyy-MM-dd')
-    } 
-  });
-  showShareModal.value = false;
 };
 
 const acceptRequest = async (fid: string) => {

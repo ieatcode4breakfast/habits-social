@@ -2,7 +2,7 @@
 
 ## 🔴 CRITICAL ISSUES (Must fix before deployment)
 
-### 1. Pusher Realtime is Completely Non-Functional
+### 1. Pusher Realtime is Completely Non-Functional - FIXED
 - **Files:** All `server/api/` route handlers
 - **Explanation:** The V1 API (`server/_v1_archive/`) had Pusher server-side publishing in 36 locations across habit, bucket, habitlog, and social route handlers. These are all excluded from the Nitro build by `nuxt.config.ts` line 25: `ignore: ['api/_v1/**']`. The V2 route handlers (`server/api/`) contain zero imports of the Pusher server SDK and zero calls to `pusher.trigger()`. Meanwhile, the frontend composables `useRealtime.ts` and `useSocial.ts` subscribe to channels expecting events like `sync-settled`, `friend-request-received`, `habit-updated`, `bucket-updated`, etc. — events that will never be published.
 - **Business Impact:** The realtime social feed, friend request notifications, live habit updates, and sync-settled triggers are all non-functional. The social feed relies on manual polling/refresh. Friend request notifications will never arrive until a manual page refresh.

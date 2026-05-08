@@ -29,13 +29,33 @@
           <UserMinus class="w-4 h-4" />
           <span class="hidden sm:inline">Unfriend</span>
         </button>
-        <button v-if="relationshipStatus === 'none'" @click="executeSendRequest" class="w-11 sm:w-auto py-2.5 sm:px-4 bg-white hover:bg-zinc-200 text-black font-semibold rounded-xl transition-all shadow-lg shadow-white/5 cursor-pointer text-sm flex items-center justify-center gap-2 active:scale-95">
-          <UserPlus class="w-4 h-4" />
-          <span class="hidden sm:inline">Add</span>
+        <button 
+          v-if="relationshipStatus === 'none'" 
+          @click="executeSendRequest" 
+          :disabled="isProcessing"
+          class="w-11 sm:w-auto py-2.5 sm:px-4 bg-white hover:bg-zinc-200 disabled:opacity-50 text-black font-semibold rounded-xl transition-all shadow-lg shadow-white/5 cursor-pointer text-sm flex items-center justify-center gap-2 active:scale-95"
+        >
+          <template v-if="isProcessing">
+            <div class="w-4 h-4 border-2 border-black/20 border-t-black rounded-full animate-spin"></div>
+          </template>
+          <template v-else>
+            <UserPlus class="w-4 h-4" />
+            <span class="hidden sm:inline">Add</span>
+          </template>
         </button>
-        <button v-else-if="relationshipStatus === 'pending_incoming'" @click="executeAcceptRequest" class="w-11 sm:w-auto py-2.5 sm:px-4 bg-emerald-500 hover:bg-emerald-600 text-white font-semibold rounded-xl transition-all shadow-lg shadow-emerald-500/20 cursor-pointer text-sm flex items-center justify-center gap-2 active:scale-95">
-          <Check class="w-4 h-4" />
-          <span class="hidden sm:inline">Accept</span>
+        <button 
+          v-else-if="relationshipStatus === 'pending_incoming'" 
+          @click="executeAcceptRequest" 
+          :disabled="isProcessing"
+          class="w-11 sm:w-auto py-2.5 sm:px-4 bg-emerald-500 hover:bg-emerald-600 disabled:opacity-50 text-white font-semibold rounded-xl transition-all shadow-lg shadow-emerald-500/20 cursor-pointer text-sm flex items-center justify-center gap-2 active:scale-95"
+        >
+          <template v-if="isProcessing">
+            <div class="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>
+          </template>
+          <template v-else>
+            <Check class="w-4 h-4" />
+            <span class="hidden sm:inline">Accept</span>
+          </template>
         </button>
         <button v-else-if="relationshipStatus === 'pending_outgoing'" @click="showCancelRequestModal = true" class="py-2.5 px-4 bg-zinc-925 hover:bg-zinc-900 text-zinc-500 font-semibold rounded-xl border border-zinc-800 transition-all cursor-pointer text-sm flex items-center justify-center gap-2 active:scale-95">
           Pending
@@ -198,7 +218,7 @@
             </div>
             <h2 class="text-xl font-bold text-white mb-2">Cancel Request?</h2>
             <p class="text-zinc-500 mb-8 text-sm">
-              Are you sure you want to cancel your friend request to <span class="text-zinc-200 font-medium">{{ profile?.username }}</span>?
+              Do you want to cancel your friend request to <span class="text-zinc-200 font-medium">{{ profile?.username }}</span>?
             </p>
             <div class="flex gap-3 mt-2">
               <button @click="showCancelRequestModal = false" class="flex-1 px-5 py-3 bg-transparent hover:bg-zinc-800 text-zinc-400 hover:text-zinc-200 font-semibold rounded-xl transition-all cursor-pointer whitespace-nowrap">
@@ -264,6 +284,7 @@ const showCancelRequestModal = ref(false);
 const myHabits = ref<any[]>([]);
 const selectedHabitIds = ref<string[]>([]);
 const shareModalTitle = ref('Request Sent!');
+const isProcessing = ref(false);
 
 const openShareModal = async () => {
   const { data: habitsData } = await $fetch<{ data: any[] }>('/api/habits');
@@ -292,31 +313,45 @@ const toggleSelectAllHabits = () => {
 };
 
 const executeSendRequest = async () => {
-  await $fetch('/api/friendships', { method: 'POST', body: { targetUserId: friendId } });
-  await refreshSocial();
-  
-  const { data: habitsData } = await $fetch<{ data: any[] }>('/api/habits');
-  myHabits.value = habitsData;
-  selectedHabitIds.value = [];
-  
-  if (habitsData.length > 0) {
-    shareModalTitle.value = 'Request Sent!';
-    showShareModal.value = true;
+  isProcessing.value = true;
+  try {
+    await $fetch('/api/friendships', { method: 'POST', body: { targetUserId: friendId } });
+    await refreshSocial();
+    
+    const { data: habitsData } = await $fetch<{ data: any[] }>('/api/habits');
+    myHabits.value = habitsData;
+    selectedHabitIds.value = [];
+    
+    if (habitsData.length > 0) {
+      shareModalTitle.value = 'Request Sent!';
+      showShareModal.value = true;
+    }
+  } catch (err) {
+    console.error('Failed to send friend request:', err);
+  } finally {
+    isProcessing.value = false;
   }
 };
 
 const executeAcceptRequest = async () => {
   if (!friendship.value) return;
-  await $fetch(`/api/friendships/${friendship.value.id}`, { method: 'PUT' });
-  await refreshSocial();
+  isProcessing.value = true;
+  try {
+    await $fetch(`/api/friendships/${friendship.value.id}`, { method: 'PUT' });
+    await refreshSocial();
 
-  const { data: habitsData } = await $fetch<{ data: any[] }>('/api/habits');
-  myHabits.value = habitsData;
-  selectedHabitIds.value = [];
-  
-  if (habitsData.length > 0) {
-    shareModalTitle.value = 'Request Accepted!';
-    showShareModal.value = true;
+    const { data: habitsData } = await $fetch<{ data: any[] }>('/api/habits');
+    myHabits.value = habitsData;
+    selectedHabitIds.value = [];
+    
+    if (habitsData.length > 0) {
+      shareModalTitle.value = 'Request Accepted!';
+      showShareModal.value = true;
+    }
+  } catch (err) {
+    console.error('Failed to accept friend request:', err);
+  } finally {
+    isProcessing.value = false;
   }
 };
 
