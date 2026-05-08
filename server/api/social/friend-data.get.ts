@@ -10,11 +10,22 @@ export default defineEventHandler(async (event) => {
   const userId = await requireAuth(event);
   const db = useDB(event);
 
-  const { friendId } = getQuery(event);
+  const { friendId, startDate, endDate } = getQuery(event);
   const fId = String(friendId);
 
   if (!friendId) {
     throw createError({ statusCode: 400, statusMessage: 'friendId is required' });
+  }
+
+  let startDateStr = startDate ? String(startDate) : '';
+  let endDateStr = endDate ? String(endDate) : '';
+
+  const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+  if (startDateStr && !dateRegex.test(startDateStr)) {
+    throw createError({ statusCode: 400, statusMessage: 'Invalid startDate format. Use YYYY-MM-DD' });
+  }
+  if (endDateStr && !dateRegex.test(endDateStr)) {
+    throw createError({ statusCode: 400, statusMessage: 'Invalid endDate format. Use YYYY-MM-DD' });
   }
 
   // Verify friendship exists and is accepted
@@ -29,7 +40,7 @@ export default defineEventHandler(async (event) => {
     ));
   
   if (friendshipCheck.length === 0) {
-    throw createError({ statusCode: 403, statusMessage: 'You are not friends with this user' });
+    return { data: { habits: [], logs: [] } };
   }
 
   const habits = await db.select()
@@ -40,24 +51,11 @@ export default defineEventHandler(async (event) => {
     ))
     .orderBy(asc(habitsTable.sortOrder), desc(habitsTable.createdAt));
 
-
   if (habits.length === 0) {
     return { data: { habits: [], logs: [] } };
   }
 
   const habitIdSet = new Set(habits.map((h: any) => String(h.id)));
-
-  const query = getQuery(event);
-  let startDateStr = query.startDate ? String(query.startDate) : '';
-  let endDateStr = query.endDate ? String(query.endDate) : '';
-
-  const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
-  if (startDateStr && !dateRegex.test(startDateStr)) {
-    throw createError({ statusCode: 400, statusMessage: 'Invalid startDate format. Use YYYY-MM-DD' });
-  }
-  if (endDateStr && !dateRegex.test(endDateStr)) {
-    throw createError({ statusCode: 400, statusMessage: 'Invalid endDate format. Use YYYY-MM-DD' });
-  }
 
   if (!startDateStr) {
     const cutoff = new Date();

@@ -444,10 +444,16 @@ const getStatus = (habitId: string, day: Date) => {
 const load = async () => {
   loading.value = true;
   try {
-
+    // 1. Fetch profile (always succeeds for public profiles)
+    // 2. Fetch shared habits (handles 403 or empty data gracefully)
+    // 3. Ensure social state is refreshed to get current relationshipStatus
     const [profileDataResponse, sharedDataResponse] = await Promise.all([
       $fetch<{ data: any }>(`/api/users/${friendId}/profile`),
-      $fetch<{ data: any }>('/api/social/friend-data', { query: { friendId } })
+      $fetch<{ data: any }>('/api/social/friend-data', { query: { friendId } }).catch(err => {
+        console.warn('Could not fetch shared habits:', err.message);
+        return { data: { habits: [], logs: [] } };
+      }),
+      refreshSocial(true)
     ]);
     
     profile.value = profileDataResponse.data;
@@ -455,7 +461,6 @@ const load = async () => {
     logs.value = sharedDataResponse.data.logs || [];
   } catch (error: any) {
     console.error('Error loading friend profile:', error);
-    // Check if it's a 404 or other specific error
     if (error.statusCode === 400) {
       console.error('Invalid ID format');
     }
