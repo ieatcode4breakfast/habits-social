@@ -322,7 +322,7 @@ watch(() => props.modelValue, (open) => {
     profileForm.email = user.value.email || '';
     profileForm.password = '';
     profileForm.confirmPassword = '';
-    profileForm.photourl = user.value.photourl || '';
+    profileForm.photoUrl = user.value.photoUrl || '';
     profileError.value = '';
 
     initialProfileSnapshot.value = {
@@ -367,7 +367,7 @@ const handleUpdateProfile = async () => {
   isUpdating.value = true;
   profileError.value = '';
   try {
-    await $fetch('/api/auth/profile', {
+    await $fetch('/api/users/me', {
       method: 'PUT',
       body: {
         username: profileForm.username,

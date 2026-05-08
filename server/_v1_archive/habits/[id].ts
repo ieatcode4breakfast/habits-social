@@ -41,12 +41,12 @@ export default defineEventHandler(async (event) => {
       skipsCount = Math.max(0, Math.min(28, rawSkipsCount));
     }
     const color = body.color !== undefined ? body.color : habit.color;
-    const sharedwith = body.sharedwith && Array.isArray(body.sharedwith) ? body.sharedwith : habit.sharedwith;
+    const sharedWith = body.sharedWith && Array.isArray(body.sharedWith) ? body.sharedWith : habit.sharedWith;
     const sortOrder = body.sortOrder !== undefined ? body.sortOrder : habit.sortOrder;
 
     const result = await sql`
       UPDATE habits
-      SET title = ${title}, description = ${description}, "skipsCount" = ${skipsCount}, "skipsPeriod" = ${skipsPeriod}, color = ${color}, sharedwith = ${sharedwith}, "sortOrder" = ${sortOrder}, updatedat = NOW()
+      SET title = ${title}, description = ${description}, "skipsCount" = ${skipsCount}, "skipsPeriod" = ${skipsPeriod}, color = ${color}, sharedWith = ${sharedWith}, "sortOrder" = ${sortOrder}, updatedat = NOW()
       WHERE id = ${id}::uuid
       RETURNING *
     `;
@@ -56,10 +56,10 @@ export default defineEventHandler(async (event) => {
     const updatedHabit = normalizeHabit(result[0]);
 
     // Category 3: Detect newly shared recipients and record share events
-    const oldSharedSet = new Set((habit.sharedwith || []).map(String));
-    const newSharedSet = new Set((sharedwith as string[]).map(String));
+    const oldSharedSet = new Set((habit.sharedWith || []).map(String));
+    const newSharedSet = new Set((sharedWith as string[]).map(String));
     
-    const newRecipients = (sharedwith as string[]).filter((rid: string) => !oldSharedSet.has(String(rid)));
+    const newRecipients = (sharedWith as string[]).filter((rid: string) => !oldSharedSet.has(String(rid)));
     const removedRecipients = Array.from(oldSharedSet).filter((rid: string) => !newSharedSet.has(String(rid)));
 
     if (removedRecipients.length > 0) {

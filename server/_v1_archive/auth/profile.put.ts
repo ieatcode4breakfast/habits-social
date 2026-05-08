@@ -4,9 +4,9 @@ import type { IUser } from '../_models';
 export default defineEventHandler(async (event) => {
   const sql = useDB(event);
   const userId = await requireAuth(event);
-  const { username, email, password, photourl } = await readBody(event);
+  const { username, email, password, photoUrl } = await readBody(event);
 
-  if (!username && !email && !password && photourl === undefined) {
+  if (!username && !email && !password && photoUrl === undefined) {
     return { message: 'No changes made' };
   }
 
@@ -40,7 +40,7 @@ export default defineEventHandler(async (event) => {
 
   const newUsername = username || user.username;
   const newEmail = email || user.email;
-  const newPhotourl = photourl !== undefined ? photourl : user.photourl;
+  const newPhotoUrl = photoUrl !== undefined ? photoUrl : user.photoUrl;
   let newPasswordHash = user.passwordHash;
   
   if (password) {
@@ -49,7 +49,7 @@ export default defineEventHandler(async (event) => {
 
   const result = await sql`
     UPDATE users 
-    SET username = ${newUsername}, email = ${newEmail}, photourl = ${newPhotourl}, "passwordHash" = ${newPasswordHash}, "updatedAt" = NOW()
+    SET username = ${newUsername}, email = ${newEmail}, photoUrl = ${newPhotoUrl}, "passwordHash" = ${newPasswordHash}, "updatedAt" = NOW()
     WHERE id = ${userId}::uuid
     RETURNING *
   `;
@@ -61,7 +61,7 @@ export default defineEventHandler(async (event) => {
       id: updatedUser.id,
       email: updatedUser.email,
       username: updatedUser.username,
-      photourl: updatedUser.photourl
+      photoUrl: updatedUser.photoUrl
     }
   };
 });

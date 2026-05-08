@@ -80,8 +80,8 @@ describe('Streak Calculation Engine - Stress Testing', () => {
     const habitResult = await recalculateHabitStreak(sql, habit.id, user.id);
     
     // Assert habit counts
-    expect(habitResult!.current_streak).toBe(STREAK_DAYS);
-    expect(habitResult!.longest_streak).toBe(STREAK_DAYS);
+    expect(habitResult!.currentStreak).toBe(STREAK_DAYS);
+    expect(habitResult!.longestStreak).toBe(STREAK_DAYS);
 
     // 3. Trigger bucket reevaluation
     await reevaluateBucketLogs(sql, bucket.id, user.id);
@@ -108,8 +108,8 @@ describe('Streak Calculation Engine - Stress Testing', () => {
     // Due to the 1-day gap (day 5), the streak should reset. 
     // The previous 5 streak remains the longest.
     // The current is 1 (for day 6).
-    expect(habitResult!.current_streak).toBe(1);
-    expect(habitResult!.longest_streak).toBe(5);
+    expect(habitResult!.currentStreak).toBe(1);
+    expect(habitResult!.longestStreak).toBe(5);
 
     // Bucket should follow same logic
     await syncSingleBucketLog(sql, bucket.id, user.id, dateStr6);
@@ -132,9 +132,9 @@ describe('Streak Calculation Engine - Stress Testing', () => {
     // Recalculate forward from day 2
     const habitResult = await recalculateHabitStreak(sql, habit.id, user.id, dateStr2);
     
-    expect(habitResult!.current_streak).toBe(1);
+    expect(habitResult!.currentStreak).toBe(1);
     // Fixed: incremental updates should now correctly shrink longestStreak
-    expect(habitResult!.longest_streak).toBe(2); // Days 3,4 = 2 days
+    expect(habitResult!.longestStreak).toBe(2); // Days 3,4 = 2 days
 
     // Ensure the log stamped the broken streak correctly
     const failedLog = await sql`SELECT broken_streak_count FROM habit_logs WHERE id = ${`${habit.id}_${dateStr2}`}`;

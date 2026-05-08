@@ -1,11 +1,12 @@
 import { parseISO, startOfDay, differenceInDays } from 'date-fns';
+import { normalizeHabit, normalizeLog } from './normalize';
 
 export async function recalculateHabitStreak(sql: any, habitId: string, userId: string, fromDate?: string) {
   if (!habitId || habitId.length < 36) return;
   // 1. Fetch habit info
   const habitRes = await sql`SELECT longest_streak, streak_anchor_date FROM habits WHERE id = ${habitId}::uuid`;
   if (!habitRes || habitRes.length === 0) return;
-  const habit = habitRes[0];
+  const habit = normalizeHabit(habitRes[0]);
 
   let runningStreak = 0;
   let lastDate: Date | null = null;
@@ -14,25 +15,26 @@ export async function recalculateHabitStreak(sql: any, habitId: string, userId: 
 
   // 2. If incremental, find the starting point state from the log just before fromDate
   if (fromDate) {
-    const prevLog = await sql`
+    const prevLogRes = await sql`
       SELECT streak_count, date FROM habit_logs 
       WHERE habit_id = ${habitId}::uuid AND owner_id = ${userId} AND date < ${fromDate}
       ORDER BY date DESC LIMIT 1
     `;
-    if (prevLog && prevLog.length > 0) {
-      runningStreak = prevLog[0].streakCount;
-      lastDate = startOfDay(parseISO(prevLog[0].date));
+    if (prevLogRes && prevLogRes.length > 0) {
+      const prevLog = normalizeLog(prevLogRes[0]);
+      runningStreak = prevLog.streakCount;
+      lastDate = startOfDay(parseISO(prevLog.date));
     }
 
     const maxRes = await sql`
       SELECT MAX(streak_count) as max_streak FROM habit_logs 
       WHERE habit_id = ${habitId}::uuid AND owner_id = ${userId} AND date < ${fromDate}
     `;
-    maxStreak = maxRes[0]?.maxStreak || 0;
+    maxStreak = maxRes[0]?.max_streak || 0;
   }
 
   // 3. Fetch logs from starting point onwards
-  const logs = queryStartDate 
+  const rawLogs = queryStartDate 
     ? await sql`
         SELECT id, date, status, streak_count, broken_streak_count FROM habit_logs 
         WHERE habit_id = ${habitId}::uuid AND owner_id = ${userId}
@@ -45,7 +47,7 @@ export async function recalculateHabitStreak(sql: any, habitId: string, userId: 
         ORDER BY date ASC
       `;
 
-  if (!logs || logs.length === 0) {
+  if (!rawLogs || rawLogs.length === 0) {
     // If we're doing a full rebuild and no logs, reset habit.
     if (!fromDate) {
       const result = await sql`
@@ -54,7 +56,7 @@ export async function recalculateHabitStreak(sql: any, habitId: string, userId: 
         WHERE id = ${habitId}::uuid AND owner_id = ${userId}
         RETURNING id, owner_id, current_streak, longest_streak, streak_anchor_date, updated_at
       `;
-      return result[0];
+      return normalizeHabit(result[0]);
     }
 
     // INCREMENTAL FIX: Even if no logs are found at/after fromDate, we MUST update the habit
@@ -66,8 +68,10 @@ export async function recalculateHabitStreak(sql: any, habitId: string, userId: 
       WHERE id = ${habitId}::uuid AND owner_id = ${userId}
       RETURNING id, owner_id, current_streak, longest_streak, streak_anchor_date, updated_at
     `;
-    return result[0];
+    return normalizeHabit(result[0]);
   }
+
+  const logs = rawLogs.map(normalizeLog);
 
   // 4. The Cascading Update: Iterate through timeline and calculate counts
   let streakAnchorDate: string | null = habit.streakAnchorDate;
@@ -103,8 +107,13 @@ export async function recalculateHabitStreak(sql: any, habitId: string, userId: 
       streakAnchorDate = log.date;
     }
 
-    // Only update if values changed (Optimization)
-    if (log.streakCount !== runningStreak || log.brokenStreakCount !== brokenStreakCount) {
+    // rawLogs index matches logs index
+    const rawLog = rawLogs[logs.indexOf(log)];
+    const rawStreakCount = rawLog.streak_count ?? rawLog.streakCount;
+    const rawBrokenStreakCount = rawLog.broken_streak_count ?? rawLog.brokenStreakCount;
+    
+    // Check against raw values for change detection
+    if (rawStreakCount !== runningStreak || rawBrokenStreakCount !== brokenStreakCount) {
       updates.push({
         id: log.id,
         streakCount: runningStreak,
@@ -146,5 +155,6 @@ export async function recalculateHabitStreak(sql: any, habitId: string, userId: 
     RETURNING id, owner_id, current_streak, longest_streak, streak_anchor_date, updated_at
   `;
 
-  return result[0];
+  return normalizeHabit(result[0]);
 }
+

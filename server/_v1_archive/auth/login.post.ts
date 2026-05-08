@@ -24,7 +24,7 @@ export default defineEventHandler(async (event) => {
       id: user.id,
       email: user.email,
       username: user.username,
-      photourl: user.photourl
+      photoUrl: user.photoUrl
     }
   };
 });
