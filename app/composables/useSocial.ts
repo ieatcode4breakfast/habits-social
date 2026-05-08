@@ -55,9 +55,9 @@ export const useSocial = () => {
     return map;
   });
 
-  const refresh = async () => {
+  const refresh = async (silent = false) => {
     if (!user.value) return;
-    isLoading.value = true;
+    if (!silent) isLoading.value = true;
     try {
       // Use cache-busting timestamp to ensure fresh data
       const { data } = await $fetch<{ data: { friendships: Friendship[]; profiles: UserProfile[] } }>(`/api/friendships?t=${Date.now()}`);

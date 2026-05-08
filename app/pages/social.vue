@@ -537,8 +537,10 @@ const formatMessage = (msg: string) => {
 watch(activeTab, (newTab, oldTab) => {
   if (newTab === 'activity') {
     loadFeed();
+    refreshSocial(true);
   }
   if (newTab === 'friends' && oldTab !== 'friends') {
+    refreshSocial(true);
     const myId = String(user.value?.id);
     const favs = friendships.value
       .filter((f: any) => f.status === 'accepted' && (String(f.initiatorId) === myId ? f.initiatorFavorite : f.receiverFavorite))
@@ -579,11 +581,15 @@ const handleSocialMonthChanged = async (newDate: Date) => {
 };
 // ----------------------------
 
-const isAnyModalOpen = computed(() => showUnfriendModal.value || showAddModal.value);
+const isAnyModalOpen = computed(() => 
+  showUnfriendModal.value || showAddModal.value || showHabitModal.value || showShareModal.value
+);
 
 useModalHistory(isAnyModalOpen, () => {
   showUnfriendModal.value = false;
   showAddModal.value = false;
+  showHabitModal.value = false;
+  showShareModal.value = false;
 });
 
 const pendingIncoming = computed(() => {
