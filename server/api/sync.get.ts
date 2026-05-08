@@ -1,9 +1,11 @@
+import { eq, and, or, sql, inArray, gte, lte, asc, desc, notExists } from 'drizzle-orm';
+import { habits as habitsTable, buckets as bucketsTable, habitLogs, bucketLogs, syncDeletions, sharedBucketMembers, bucketHabits, users } from '~~/server/db/schema';
 import { useDB } from '~~/server/utils/db';
 import { requireAuth } from '~~/server/utils/auth';
 import { normalizeHabit, normalizeBucket, normalizeLog } from '~~/server/utils/normalize';
 
 export default defineEventHandler(async (event) => {
-  const sql = useDB(event);
+  const db = useDB(event);
   const userId = await requireAuth(event);
   const query = getQuery(event);
   
@@ -11,7 +13,7 @@ export default defineEventHandler(async (event) => {
   const lastSynced = query.lastSynced ? Number(query.lastSynced) : 0;
 
   // 1. Get the current authoritative server time from the database
-  const timeRes = await sql`SELECT EXTRACT(EPOCH FROM NOW()) * 1000 as now`;
+  const timeRes = await db.execute(sql`SELECT EXTRACT(EPOCH FROM NOW()) * 1000 as now`);
   const firstRow = (timeRes as any[])?.[0];
   if (!firstRow) {
     throw createError({ statusCode: 500, statusMessage: 'Failed to get server time' });
@@ -19,88 +21,119 @@ export default defineEventHandler(async (event) => {
   const serverTime = Math.floor(Number(firstRow.now));
 
   // 2. Fetch all deltas in parallel
-  const [habits, personalBuckets, sharedBuckets, habitLogs, bucketLogs, deletions] = await Promise.all([
-    lastSynced > 0 
-      ? sql`SELECT * FROM habits WHERE owner_id = ${userId} AND updated_at >= to_timestamp(${lastSynced} / 1000.0) ORDER BY sort_order ASC, created_at DESC`
-      : sql`SELECT * FROM habits WHERE owner_id = ${userId} ORDER BY sort_order ASC, created_at DESC`,
+  const [habitsRes, personalBucketsRes, sharedBucketsRes, habitLogsRes, bucketLogsRes, deletionsRes] = await Promise.all([
+    // Habits
+    db.select().from(habitsTable).where(and(
+      eq(habitsTable.ownerId, userId),
+      lastSynced > 0 ? gte(habitsTable.updatedAt, new Date(lastSynced)) : undefined
+    )).orderBy(asc(habitsTable.sortOrder), desc(habitsTable.createdAt)),
     
-    lastSynced > 0 
-      ? sql`SELECT b.* FROM buckets b WHERE b.owner_id = ${userId} AND NOT EXISTS (SELECT 1 FROM shared_bucket_members sbm WHERE sbm.bucket_id = b.id) AND b.updated_at >= to_timestamp(${lastSynced} / 1000.0) ORDER BY b.sort_order ASC, b.created_at DESC`
-      : sql`SELECT b.* FROM buckets b WHERE b.owner_id = ${userId} AND NOT EXISTS (SELECT 1 FROM shared_bucket_members sbm WHERE sbm.bucket_id = b.id) ORDER BY b.sort_order ASC, b.created_at DESC`,
+    // Personal Buckets
+    db.select().from(bucketsTable).where(and(
+      eq(bucketsTable.ownerId, userId),
+      notExists(db.select().from(sharedBucketMembers).where(eq(sharedBucketMembers.bucketId, bucketsTable.id))),
+      lastSynced > 0 ? gte(bucketsTable.updatedAt, new Date(lastSynced)) : undefined
+    )).orderBy(asc(bucketsTable.sortOrder), desc(bucketsTable.createdAt)),
     
-    lastSynced > 0 
-      ? sql`SELECT b.* FROM buckets b JOIN shared_bucket_members sbm ON b.id = sbm.bucket_id WHERE sbm.user_id = ${userId} AND sbm.status = 'accepted' AND b.updated_at >= to_timestamp(${lastSynced} / 1000.0) ORDER BY b.sort_order ASC, b.created_at DESC`
-      : sql`SELECT b.* FROM buckets b JOIN shared_bucket_members sbm ON b.id = sbm.bucket_id WHERE sbm.user_id = ${userId} AND sbm.status = 'accepted' ORDER BY b.sort_order ASC, b.created_at DESC`,
+    // Shared Buckets
+    db.select({ b: bucketsTable }).from(bucketsTable)
+      .innerJoin(sharedBucketMembers, eq(bucketsTable.id, sharedBucketMembers.bucketId))
+      .where(and(
+        eq(sharedBucketMembers.userId, userId),
+        eq(sharedBucketMembers.status, 'accepted'),
+        lastSynced > 0 ? gte(bucketsTable.updatedAt, new Date(lastSynced)) : undefined
+      )).orderBy(asc(bucketsTable.sortOrder), desc(bucketsTable.createdAt)),
     
-    lastSynced > 0 
-      ? sql`SELECT * FROM habit_logs WHERE owner_id = ${userId} AND updated_at >= to_timestamp(${lastSynced} / 1000.0)`
-      : (query.startDate && query.endDate 
-          ? sql`SELECT * FROM habit_logs WHERE owner_id = ${userId} AND date >= ${String(query.startDate)} AND date <= ${String(query.endDate)}` 
-          : sql`SELECT * FROM habit_logs WHERE owner_id = ${userId}`),
+    // Habit Logs
+    db.select().from(habitLogs).where(and(
+      eq(habitLogs.ownerId, userId),
+      lastSynced > 0 
+        ? gte(habitLogs.updatedAt, new Date(lastSynced))
+        : (query.startDate && query.endDate 
+            ? and(gte(habitLogs.date, String(query.startDate)), lte(habitLogs.date, String(query.endDate)))
+            : undefined)
+    )),
     
-    lastSynced > 0 
-      ? sql`SELECT * FROM bucket_logs WHERE owner_id = ${userId} AND updated_at >= to_timestamp(${lastSynced} / 1000.0)`
-      : (query.startDate && query.endDate 
-          ? sql`SELECT * FROM bucket_logs WHERE owner_id = ${userId} AND date >= ${String(query.startDate)} AND date <= ${String(query.endDate)}` 
-          : sql`SELECT * FROM bucket_logs WHERE owner_id = ${userId}`),
+    // Bucket Logs
+    db.select().from(bucketLogs).where(and(
+      eq(bucketLogs.ownerId, userId),
+      lastSynced > 0 
+        ? gte(bucketLogs.updatedAt, new Date(lastSynced))
+        : (query.startDate && query.endDate 
+            ? and(gte(bucketLogs.date, String(query.startDate)), lte(bucketLogs.date, String(query.endDate)))
+            : undefined)
+    )),
     
-    lastSynced > 0 
-      ? sql`SELECT entity_id, entity_type FROM sync_deletions WHERE owner_id = ${userId} AND created_at >= to_timestamp(${lastSynced} / 1000.0)`
-      : sql`SELECT entity_id, entity_type FROM sync_deletions WHERE owner_id = ${userId}`
+    // Deletions
+    db.select({ entityId: syncDeletions.entityId, entityType: syncDeletions.entityType })
+      .from(syncDeletions)
+      .where(and(
+        eq(syncDeletions.ownerId, userId),
+        lastSynced > 0 ? gte(syncDeletions.createdAt, new Date(lastSynced)) : undefined
+      ))
   ]);
 
-  const buckets = [...(personalBuckets as any[]), ...(sharedBuckets as any[])];
+  const buckets = [
+    ...personalBucketsRes,
+    ...sharedBucketsRes.map(r => r.b)
+  ];
 
   // 3. For buckets, we need their habit mappings and shared metadata too if they changed
   let bucketHabitsResult: any[] = [];
   let sharedMembersResult: any[] = [];
   if (buckets.length > 0) {
     const bucketIds = buckets.map((b: any) => b.id);
-    bucketHabitsResult = await sql`
-      SELECT bh.*, h.owner_id as habit_owner_id 
-      FROM bucket_habits bh
-      JOIN habits h ON bh.habit_id = h.id
-      WHERE bh.bucket_id = ANY(${bucketIds}::uuid[])
-        AND (bh.approval_status IS NULL OR bh.approval_status IN ('accepted', 'pending'))
-    `;
-    sharedMembersResult = await sql`
-      SELECT sbm.*, u.username 
-      FROM shared_bucket_members sbm
-      JOIN users u ON sbm.user_id = u.id
-      WHERE sbm.bucket_id = ANY(${bucketIds}::uuid[])
-    `;
+    bucketHabitsResult = await db.select({
+      bh: bucketHabits,
+      habitOwnerId: habitsTable.ownerId
+    })
+    .from(bucketHabits)
+    .innerJoin(habitsTable, eq(bucketHabits.habitId, habitsTable.id))
+    .where(and(
+      inArray(bucketHabits.bucketId, bucketIds),
+      or(
+        sql`${bucketHabits.approvalStatus} IS NULL`,
+        inArray(bucketHabits.approvalStatus, ['accepted', 'pending'])
+      )
+    ));
+
+    sharedMembersResult = await db.select({
+      sbm: sharedBucketMembers,
+      username: users.username
+    })
+    .from(sharedBucketMembers)
+    .innerJoin(users, eq(sharedBucketMembers.userId, users.id))
+    .where(inArray(sharedBucketMembers.bucketId, bucketIds));
   }
 
   // 4. Normalize and combine
   const normalizedBuckets = buckets.map((b: any) => {
-    const habitsForBucket = (bucketHabitsResult as any[]).filter((bh: any) => bh.bucketId === b.id);
-    const membersForBucket = (sharedMembersResult as any[]).filter((sbm: any) => sbm.bucketId === b.id);
+    const habitsForBucket = bucketHabitsResult.filter((r: any) => r.bh.bucketId === b.id);
+    const membersForBucket = sharedMembersResult.filter((r: any) => r.sbm.bucketId === b.id);
     
     return normalizeBucket({ 
       ...b, 
-      habitIds: habitsForBucket.map((bh: any) => bh.habitId),
-      sharedMembers: membersForBucket.map((m: any) => ({
-        userId: m.userId,
-        username: m.username,
-        status: m.status
+      habitIds: habitsForBucket.map((r: any) => r.bh.habitId),
+      sharedMembers: membersForBucket.map((r: any) => ({
+        userId: r.sbm.userId,
+        username: r.username,
+        status: r.sbm.status
       })),
-      sharedHabits: habitsForBucket.map((bh: any) => ({
-        habitId: bh.habitId,
-        approvalStatus: bh.approvalStatus,
-        addedBy: bh.addedBy,
-        habitOwnerId: bh.habitOwnerId
+      sharedHabits: habitsForBucket.map((r: any) => ({
+        habitId: r.bh.habitId,
+        approvalStatus: r.bh.approvalStatus,
+        addedBy: r.bh.addedBy,
+        habitOwnerId: r.habitOwnerId
       }))
     });
   });
 
-  // Note: This endpoint does NOT use the { data: ... } wrapper 
-  // to maintain exact compatibility with the existing useHabitsApi.ts sync engine.
   return {
-    habits: (habits as any[]).map(normalizeHabit),
+    habits: habitsRes.map(normalizeHabit),
     buckets: normalizedBuckets,
-    habitLogs: (habitLogs as any[]).map(normalizeLog),
-    bucketLogs: (bucketLogs as any[]).map(normalizeLog),
-    deletions: (deletions as any[]).map((d: any) => ({ id: d.entityId, type: d.entityType })),
-    serverTime // This is the checkpoint for the next sync
+    habitLogs: habitLogsRes.map(normalizeLog),
+    bucketLogs: bucketLogsRes.map(normalizeLog),
+    deletions: deletionsRes.map((d: any) => ({ id: d.entityId, type: d.entityType })),
+    serverTime
   };
 });

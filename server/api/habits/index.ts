@@ -1,4 +1,5 @@
-import { z } from 'zod';
+import { eq, and, gte, asc, desc, sql } from 'drizzle-orm';
+import { habits as habitsTable } from '~~/server/db/schema';
 import { useDB as _useDB } from '~~/server/utils/db';
 import { requireAuth as _requireAuth } from '~~/server/utils/auth';
 import { normalizeHabit } from '~~/server/utils/normalize';
@@ -8,32 +9,24 @@ export default defineEventHandler(async (event) => {
   const requireAuth = (event.context as any).requireAuth || _requireAuth;
   const useDB = (event.context as any).useDB || _useDB;
   const userId = await requireAuth(event);
-  const sql = useDB(event);
+  const db = useDB(event);
 
   if (event.method === 'GET') {
     setResponseHeader(event, 'Cache-Control', 'no-cache, no-store, must-revalidate');
     const query = getQuery(event);
 
-    let habits;
+    const q = db.select().from(habitsTable).where(eq(habitsTable.ownerId, userId));
+
     if (query.lastSynced) {
       const lastSynced = Number(query.lastSynced);
       if (isNaN(lastSynced)) {
         throw createError({ statusCode: 400, statusMessage: 'Invalid lastSynced parameter' });
       }
-      habits = await sql`
-        SELECT id, owner_id, title, description, skips_count, skips_period, color, shared_with, sort_order, current_streak, longest_streak, streak_anchor_date, user_date, created_at, updated_at FROM habits 
-        WHERE owner_id = ${userId} 
-          AND updated_at >= to_timestamp(${lastSynced} / 1000.0)
-        ORDER BY sort_order ASC, created_at DESC
-      `;
-    } else {
-      habits = await sql`
-        SELECT id, owner_id, title, description, skips_count, skips_period, color, shared_with, sort_order, current_streak, longest_streak, streak_anchor_date, user_date, created_at, updated_at FROM habits 
-        WHERE owner_id = ${userId} 
-        ORDER BY sort_order ASC, created_at DESC
-      `;
+      q.where(and(eq(habitsTable.ownerId, userId), gte(habitsTable.updatedAt, new Date(lastSynced))));
     }
-    return { data: (habits as any[]).map(normalizeHabit) };
+
+    const habits = await q.orderBy(asc(habitsTable.sortOrder), desc(habitsTable.createdAt));
+    return { data: habits.map(normalizeHabit) };
   }
 
   if (event.method === 'POST') {
@@ -60,27 +53,44 @@ export default defineEventHandler(async (event) => {
       skipsCount = Math.max(0, Math.min(28, skipsCount));
     }
 
-    const result = await sql`
-      INSERT INTO habits (id, owner_id, title, description, skips_count, skips_period, color, shared_with, sort_order, user_date, created_at, updated_at)
-      VALUES (COALESCE(${data.id}::uuid, gen_random_uuid()), ${userId}, ${data.title}, ${data.description}, ${skipsCount}, ${skipsPeriod}, ${data.color}, ${data.sharedWith}, ${nextSortOrder}, ${data.userDate || null}, NOW(), NOW())
-      ON CONFLICT (id) DO UPDATE SET
-        title = EXCLUDED.title,
-        description = EXCLUDED.description,
-        skips_count = EXCLUDED.skips_count,
-        skips_period = EXCLUDED.skips_period,
-        color = EXCLUDED.color,
-        shared_with = EXCLUDED.shared_with,
-        sort_order = EXCLUDED.sort_order,
-        user_date = EXCLUDED.user_date,
-        updated_at = NOW()
-      WHERE habits.owner_id = EXCLUDED.owner_id
-      RETURNING id, owner_id, title, description, skips_count, skips_period, color, shared_with, sort_order, current_streak, longest_streak, streak_anchor_date, user_date, created_at, updated_at
-    `;
+    const habitId = data.id || crypto.randomUUID();
 
-    if (!(result as any[])[0]) {
+    const result = await db.insert(habitsTable)
+      .values({
+        id: habitId,
+        ownerId: userId,
+        title: data.title,
+        description: data.description || '',
+        skipsCount: skipsCount,
+        skipsPeriod: skipsPeriod,
+        color: data.color || '#6366f1',
+        sharedWith: data.sharedWith || [],
+        sortOrder: nextSortOrder,
+        userDate: data.userDate || null,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      })
+      .onConflictDoUpdate({
+        target: habitsTable.id,
+        set: {
+          title: data.title,
+          description: data.description || '',
+          skipsCount: skipsCount,
+          skipsPeriod: skipsPeriod,
+          color: data.color || '#6366f1',
+          sharedWith: data.sharedWith || [],
+          sortOrder: nextSortOrder,
+          userDate: data.userDate || null,
+          updatedAt: new Date()
+        },
+        where: eq(habitsTable.ownerId, userId)
+      })
+      .returning();
+
+    if (!result[0]) {
       throw createError({ statusCode: 500, statusMessage: 'Failed to create habit' });
     }
 
-    return { data: normalizeHabit((result as any[])[0]) };
+    return { data: normalizeHabit(result[0]) };
   }
 });

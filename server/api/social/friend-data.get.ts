@@ -1,3 +1,5 @@
+import { eq, and, or, sql, inArray, gte, lte, asc, desc } from 'drizzle-orm';
+import { friendships, habits as habitsTable, habitLogs } from '~~/server/db/schema';
 import { useDB as _useDB } from '~~/server/utils/db';
 import { requireAuth as _requireAuth } from '~~/server/utils/auth';
 import { normalizeHabit, normalizeLog } from '~~/server/utils/normalize';
@@ -6,7 +8,7 @@ export default defineEventHandler(async (event) => {
   const requireAuth = (event.context as any).requireAuth || _requireAuth;
   const useDB = (event.context as any).useDB || _useDB;
   const userId = await requireAuth(event);
-  const sql = useDB(event);
+  const db = useDB(event);
 
   const { friendId } = getQuery(event);
   const fId = String(friendId);
@@ -16,28 +18,34 @@ export default defineEventHandler(async (event) => {
   }
 
   // Verify friendship exists and is accepted
-  const friendshipCheck = await sql`
-    SELECT 1 FROM friendships 
-    WHERE status = 'accepted'
-      AND ((initiator_id = ${userId} AND receiver_id = ${fId}) 
-        OR (initiator_id = ${fId} AND receiver_id = ${userId}))
-  `;
-  if ((friendshipCheck as any[]).length === 0) {
+  const friendshipCheck = await db.select({ id: friendships.id })
+    .from(friendships)
+    .where(and(
+      eq(friendships.status, 'accepted'),
+      or(
+        and(eq(friendships.initiatorId, userId), eq(friendships.receiverId, fId)),
+        and(eq(friendships.initiatorId, fId), eq(friendships.receiverId, userId))
+      )
+    ));
+  
+  if (friendshipCheck.length === 0) {
     throw createError({ statusCode: 403, statusMessage: 'You are not friends with this user' });
   }
 
-  const habits = await sql`
-    SELECT id, owner_id, title, description, skips_count, skips_period, color, shared_with, sort_order, current_streak, longest_streak, streak_anchor_date, user_date, created_at, updated_at FROM habits 
-    WHERE owner_id = ${fId}
-    AND ${String(userId)} = ANY(shared_with)
-    ORDER BY sort_order ASC, created_at DESC
-  `;
+  const habits = await db.select()
+    .from(habitsTable)
+    .where(and(
+      eq(habitsTable.ownerId, fId),
+      sql`${userId}::text = ANY(${habitsTable.sharedWith})`
+    ))
+    .orderBy(asc(habitsTable.sortOrder), desc(habitsTable.createdAt));
 
-  if ((habits as any[]).length === 0) {
+
+  if (habits.length === 0) {
     return { data: { habits: [], logs: [] } };
   }
 
-  const habitIdSet = new Set((habits as any[]).map((h: any) => String(h.id)));
+  const habitIdSet = new Set(habits.map((h: any) => String(h.id)));
 
   const query = getQuery(event);
   let startDateStr = query.startDate ? String(query.startDate) : '';
@@ -57,19 +65,26 @@ export default defineEventHandler(async (event) => {
     startDateStr = cutoff.toISOString().slice(0, 10);
   }
 
-  const allLogsRaw = await sql`
-    SELECT id, habit_id, owner_id, date, status, streak_count, broken_streak_count, shared_with, updated_at FROM habit_logs 
-    WHERE owner_id = ${fId}
-    AND date >= ${startDateStr}
-    ${endDateStr ? sql`AND date <= ${endDateStr}` : sql``}
-    ORDER BY date DESC
-  `;
+  const logsQuery = db.select().from(habitLogs).where(and(
+    eq(habitLogs.ownerId, fId),
+    gte(habitLogs.date, startDateStr)
+  ));
 
-  const logs = (allLogsRaw as any[]).filter((l: any) => habitIdSet.has(String(l.habitid)));
+  if (endDateStr) {
+    logsQuery.where(and(
+      eq(habitLogs.ownerId, fId),
+      gte(habitLogs.date, startDateStr),
+      lte(habitLogs.date, endDateStr)
+    ));
+  }
+
+  const allLogsRaw = await logsQuery.orderBy(desc(habitLogs.date));
+
+  const logs = allLogsRaw.filter((l: any) => habitIdSet.has(String(l.habitId)));
 
   return {
     data: {
-      habits: (habits as any[]).map(normalizeHabit),
+      habits: habits.map(normalizeHabit),
       logs: logs.map(normalizeLog)
     }
   };

@@ -1,22 +1,31 @@
 import { hash } from 'bcrypt-ts';
 import { neon } from '@neondatabase/serverless';
-import { toCamelCase } from '../utils/transform';
+import { drizzle } from 'drizzle-orm/neon-http';
+import { eq, sql } from 'drizzle-orm';
+import { users, habits, buckets, friendships } from '../db/schema';
+import * as schema from '../db/schema';
 
 // Initialize direct DB connection for setup/teardown
-const sql = neon(process.env.DATABASE_URL!);
+const client = neon(process.env.DATABASE_URL!);
+const db = drizzle(client, { schema });
 
 export const createTestUser = async (username: string, email: string) => {
   const passwordHash = await hash('password123', 10);
-  const result = await sql`
-    INSERT INTO users (username, email, password_hash, created_at)
-    VALUES (${username}, ${email}, ${passwordHash}, NOW())
-    RETURNING id, username, email
-  `;
+  const result = await db.insert(users)
+    .values({
+      id: crypto.randomUUID(),
+      username,
+      email,
+      passwordHash,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    })
+    .returning();
   return result[0];
 };
 
 export const deleteTestUser = async (userId: string) => {
-  await sql`DELETE FROM users WHERE id = ${userId}::uuid`;
+  await db.delete(users).where(eq(users.id, userId));
 };
 
 export const createMockEvent = (userId: string, body: any = {}, cookies: any = {}, params: any = {}, query: any = {}, method: string = 'GET') => {
@@ -39,71 +48,81 @@ export const createMockEvent = (userId: string, body: any = {}, cookies: any = {
         return event.context.userId;
       },
       useDB: () => {
-        const sql = neon(process.env.DATABASE_URL!);
-        return (...args: any[]) => {
-          const res = (sql as any)(...args);
-          if (res && typeof res.then === 'function') {
-            const originalThen = res.then.bind(res);
-            res.then = (onFulfilled?: any, onRejected?: any) => {
-              return originalThen((data: any) => {
-                const transformed = toCamelCase(data);
-                return onFulfilled ? onFulfilled(transformed) : transformed;
-              }, onRejected);
-            };
-          }
-          return res;
-        };
+        return db;
       },
       generateToken: async (uid: string) => `mock-token-${uid}`
     }
   } as any;
 };
 
-export const createTestHabit = async (ownerid: string, title: string) => {
-  const result = await sql`
-    INSERT INTO habits (owner_id, title, description, skips_count, skips_period, color, shared_with, sort_order, created_at, updated_at)
-    VALUES (${ownerid}, ${title}, '', 2, 'weekly', '#6366f1', '{}', 0, NOW(), NOW())
-    RETURNING id, title, owner_id
-  `;
+export const createTestHabit = async (ownerId: string, title: string) => {
+  const result = await db.insert(habits)
+    .values({
+      id: crypto.randomUUID(),
+      ownerId,
+      title,
+      description: '',
+      skipsCount: 2,
+      skipsPeriod: 'weekly',
+      color: '#6366f1',
+      sharedWith: [],
+      sortOrder: 0,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    })
+    .returning();
   return result[0];
 };
 
 export const deleteTestHabit = async (habitId: string) => {
-  await sql`DELETE FROM habits WHERE id = ${habitId}::uuid`;
+  await db.delete(habits).where(eq(habits.id, habitId));
 };
 
-export const createTestBucket = async (ownerid: string, title: string) => {
-  const result = await sql`
-    INSERT INTO buckets (id, owner_id, title, description, color, sort_order, created_at, updated_at)
-    VALUES (gen_random_uuid(), ${ownerid}, ${title}, '', '#6366f1', 0, NOW(), NOW())
-    RETURNING id, title, owner_id
-  `;
+export const createTestBucket = async (ownerId: string, title: string) => {
+  const result = await db.insert(buckets)
+    .values({
+      id: crypto.randomUUID(),
+      ownerId,
+      title,
+      description: '',
+      color: '#6366f1',
+      sortOrder: 0,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    })
+    .returning();
   return result[0];
 };
 
 export const deleteTestBucket = async (bucketId: string) => {
-  await sql`DELETE FROM buckets WHERE id = ${bucketId}::uuid`;
+  await db.delete(buckets).where(eq(buckets.id, bucketId));
 };
 
-export const createFriendship = async (initiatorId: string, receiverId: string, status: string = 'accepted') => {
-  const result = await sql`
-    INSERT INTO friendships (id, initiator_id, receiver_id, status, created_at, updated_at)
-    VALUES (gen_random_uuid(), ${initiatorId}, ${receiverId}, ${status}, NOW(), NOW())
-    RETURNING id, status
-  `;
+export const createFriendship = async (initiatorId: string, receiverId: string, status: 'pending' | 'accepted' = 'accepted') => {
+  const result = await db.insert(friendships)
+    .values({
+      id: crypto.randomUUID(),
+      initiatorId,
+      receiverId,
+      status,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    })
+    .returning();
   return result[0];
 };
 
 export const deleteFriendship = async (friendshipId: string) => {
-  await sql`DELETE FROM friendships WHERE id = ${friendshipId}::uuid`;
+  await db.delete(friendships).where(eq(friendships.id, friendshipId));
 };
 
 export const shareHabitWithUser = async (habitId: string, targetUserId: string) => {
-  await sql`
-    UPDATE habits 
-    SET shared_with = array_append(shared_with, ${targetUserId}) 
-    WHERE id = ${habitId}::uuid
-  `;
+  await db.update(habits)
+    .set({
+      sharedWith: sql`array_append(${habits.sharedWith}, ${targetUserId})`,
+      updatedAt: new Date()
+    })
+    .where(eq(habits.id, habitId));
 };
 
 export const generateMassiveString = (length: number = 10001) => {

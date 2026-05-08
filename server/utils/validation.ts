@@ -1,4 +1,6 @@
 import { z } from 'zod';
+import { createSelectSchema, createInsertSchema } from 'drizzle-zod';
+import * as schema from '../db/schema';
 
 /**
  * Extracts a single, human-readable error message from a Zod validation error.
@@ -29,15 +31,21 @@ export const isValidEmail = (email: string): boolean => {
   return EMAIL_REGEX.test(email);
 };
 
-const userBaseSchema = z.object({
+
+// Drizzle-Zod Schemas
+export const selectUserSchema = createSelectSchema(schema.users);
+export const insertUserSchema = createInsertSchema(schema.users, {
+  username: z.string().min(3).max(20),
+  email: z.string().email(),
+  passwordHash: z.string().min(8).max(128),
+  photoUrl: z.string().url().or(z.literal('')).nullable().optional()
+});
+
+export const registerSchema = z.object({
   username: z.string().min(3).max(20),
   email: z.string().email(),
   password: z.string().min(8).max(128),
-  photoUrl: z.string().url().or(z.literal('')).nullable()
-});
-
-export const registerSchema = userBaseSchema.extend({
-  photoUrl: userBaseSchema.shape.photoUrl.optional()
+  photoUrl: z.string().url().or(z.literal('')).nullable().optional()
 });
 
 export const loginSchema = z.object({
@@ -45,69 +53,63 @@ export const loginSchema = z.object({
   password: z.string().min(1)
 });
 
-export const updateProfileSchema = userBaseSchema.partial().refine(data => Object.keys(data).length > 0, {
+export const updateProfileSchema = z.object({
+  username: z.string().min(3).max(20).optional(),
+  email: z.string().email().optional(),
+  password: z.string().min(8).max(128).optional(),
+  photoUrl: z.string().url().or(z.literal('')).nullable().optional()
+}).refine(data => Object.keys(data).length > 0, {
   message: "At least one field must be provided"
 });
 
-
-export const habitSchema = z.object({
+export const habitSchema = createInsertSchema(schema.habits, {
   id: z.string().uuid().optional(),
   title: z.string().min(1).max(255),
+
   description: z.string().max(2000).optional().default(''),
-  skipsCount: z.number().int().min(0).max(28).optional(),
+  skipsCount: z.number().int().min(0).max(28).optional().default(0),
   skipsPeriod: z.enum(['none', 'weekly', 'monthly']).optional().default('weekly'),
   color: z.string().max(50).optional().default('#6366f1'),
   sharedWith: z.array(z.string().uuid()).optional().default([]),
-  sortOrder: z.number().int().optional(),
-  userDate: z.string().optional()
-});
+  sortOrder: z.number().int().optional().default(0)
+}).omit({ ownerId: true, createdAt: true, updatedAt: true });
 
-export const habitUpdateSchema = z.object({
-  title: z.string().min(1).max(255).optional(),
-  description: z.string().max(2000).optional(),
-  skipsCount: z.number().int().min(0).max(28).optional(),
-  skipsPeriod: z.enum(['none', 'weekly', 'monthly']).optional(),
-  color: z.string().max(50).optional(),
-  sharedWith: z.array(z.string().uuid()).optional(),
-  sortOrder: z.number().int().optional(),
-  userDate: z.string().optional()
-});
+export const habitUpdateSchema = habitSchema.partial();
 
-export const habitLogSchema = z.object({
+export const habitLogSchema = createInsertSchema(schema.habitLogs, {
   id: z.string().optional(),
-  habitId: z.string().uuid(),
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+
   status: z.enum(['completed', 'skipped', 'failed', 'cleared', 'vacation']),
   sharedWith: z.array(z.string().uuid()).optional().default([]),
-  streakCount: z.number().int().min(0).optional(),
-  brokenStreakCount: z.number().int().min(0).optional()
-});
+  streakCount: z.number().int().min(0).optional().default(0),
+  brokenStreakCount: z.number().int().min(0).optional().default(0)
+}).omit({ ownerId: true, updatedAt: true });
 
-export const bucketSchema = z.object({
+export const bucketSchema = createInsertSchema(schema.buckets, {
   id: z.string().uuid().optional(),
   title: z.string().min(1).max(255),
   description: z.string().max(2000).optional().default(''),
   color: z.string().max(50).optional().default('#6366f1'),
-  sortOrder: z.number().int().optional(),
-  habitIds: z.array(z.string().uuid()).optional().default([])
-});
-
-export const bucketUpdateSchema = z.object({
-  title: z.string().min(1).max(255).optional(),
-  description: z.string().max(2000).optional(),
-  color: z.string().max(50).optional(),
-  sortOrder: z.number().int().optional(),
+  sortOrder: z.number().int().optional().default(0)
+}).extend({
   habitIds: z.array(z.string().uuid()).optional()
-});
+}).omit({ ownerId: true, createdAt: true, updatedAt: true });
 
-export const bucketLogSchema = z.object({
+
+
+export const bucketUpdateSchema = bucketSchema.partial();
+
+export const bucketLogSchema = createInsertSchema(schema.bucketLogs, {
   id: z.string().optional(),
-  bucketId: z.string().uuid(),
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+
   status: z.enum(['completed', 'skipped', 'failed', 'cleared', 'vacation']),
-  streakCount: z.number().int().min(0).optional(),
-  brokenStreakCount: z.number().int().min(0).optional()
-});
+  streakCount: z.number().int().min(0).optional().default(0),
+  brokenStreakCount: z.number().int().min(0).optional().default(0)
+}).omit({ ownerId: true, updatedAt: true });
+
+
 
 export const friendshipCreateSchema = z.object({
   targetUserId: z.string().uuid()
@@ -127,3 +129,4 @@ export const shareHabitsSchema = z.object({
 export const reorderSchema = z.object({
   ids: z.array(z.string().uuid()).min(1)
 });
+

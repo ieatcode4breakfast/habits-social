@@ -1,4 +1,5 @@
-import { z } from 'zod';
+import { eq, and, gte, asc, desc, sql, inArray } from 'drizzle-orm';
+import { buckets as bucketsTable, bucketHabits, habits as habitsTable } from '~~/server/db/schema';
 import { useDB as _useDB } from '~~/server/utils/db';
 import { requireAuth as _requireAuth } from '~~/server/utils/auth';
 import { normalizeBucket } from '~~/server/utils/normalize';
@@ -8,42 +9,37 @@ export default defineEventHandler(async (event) => {
   const requireAuth = (event.context as any).requireAuth || _requireAuth;
   const useDB = (event.context as any).useDB || _useDB;
   const userId = await requireAuth(event);
-  const sql = useDB(event);
+  const db = useDB(event);
 
   if (event.method === 'GET') {
     setResponseHeader(event, 'Cache-Control', 'no-cache, no-store, must-revalidate');
     const query = getQuery(event);
 
-    let buckets;
+    const q = db.select().from(bucketsTable).where(eq(bucketsTable.ownerId, userId));
+
     if (query.lastSynced) {
       const lastSynced = Number(query.lastSynced);
       if (isNaN(lastSynced)) {
         throw createError({ statusCode: 400, statusMessage: 'Invalid lastSynced parameter' });
       }
-      buckets = await sql`
-        SELECT id, owner_id, title, description, color, sort_order, current_streak, longest_streak, streak_anchor_date, created_at, updated_at FROM buckets 
-        WHERE owner_id = ${userId} 
-          AND updated_at >= to_timestamp(${lastSynced} / 1000.0)
-        ORDER BY sort_order ASC, created_at DESC
-      `;
-    } else {
-      buckets = await sql`
-        SELECT id, owner_id, title, description, color, sort_order, current_streak, longest_streak, streak_anchor_date, created_at, updated_at FROM buckets 
-        WHERE owner_id = ${userId} 
-        ORDER BY sort_order ASC, created_at DESC
-      `;
+      q.where(and(eq(bucketsTable.ownerId, userId), gte(bucketsTable.updatedAt, new Date(lastSynced))));
     }
 
-    if ((buckets as any[]).length === 0) return { data: [] };
+    const buckets = await q.orderBy(asc(bucketsTable.sortOrder), desc(bucketsTable.createdAt));
 
-    const bucketIds = (buckets as any[]).map((b: any) => b.id);
-    const bucketHabits = await sql`
-      SELECT bucket_id, habit_id FROM bucket_habits WHERE bucket_id = ANY(${bucketIds}::uuid[])
-    `;
+    if (buckets.length === 0) return { data: [] };
 
-    const bucketsWithHabits = (buckets as any[]).map((b: any) => ({
+    const bucketIds = buckets.map((b: any) => b.id);
+    const habitsRes = await db.select({
+      bucketId: bucketHabits.bucketId,
+      habitId: bucketHabits.habitId
+    })
+    .from(bucketHabits)
+    .where(inArray(bucketHabits.bucketId, bucketIds));
+
+    const bucketsWithHabits = buckets.map((b: any) => ({
       ...normalizeBucket(b),
-      habitIds: (bucketHabits as any[]).filter((bh: any) => bh.bucket_id === b.id).map((bh: any) => bh.habit_id)
+      habitIds: habitsRes.filter((bh: any) => bh.bucketId === b.id).map((bh: any) => bh.habitId)
     }));
 
     return { data: bucketsWithHabits };
@@ -63,21 +59,33 @@ export default defineEventHandler(async (event) => {
       throw createError({ statusCode: 400, statusMessage: 'Bucket limit of 30 reached' });
     }
 
+    const bucketId = data.id || crypto.randomUUID();
 
-    const result = await sql`
-      INSERT INTO buckets (id, owner_id, title, description, color, sort_order, created_at, updated_at)
-      VALUES (COALESCE(${data.id}::uuid, gen_random_uuid()), ${userId}, ${data.title}, ${data.description}, ${data.color}, ${nextSortOrder}, NOW(), NOW())
-      ON CONFLICT (id) DO UPDATE SET
-        title = EXCLUDED.title,
-        description = EXCLUDED.description,
-        color = EXCLUDED.color,
-        sort_order = EXCLUDED.sort_order,
-        updated_at = NOW()
-      WHERE buckets.owner_id = EXCLUDED.owner_id
-      RETURNING id, owner_id, title, description, color, sort_order, current_streak, longest_streak, streak_anchor_date, created_at, updated_at
-    `;
+    const result = await db.insert(bucketsTable)
+      .values({
+        id: bucketId,
+        ownerId: userId,
+        title: data.title,
+        description: data.description || '',
+        color: data.color || '#6366f1',
+        sortOrder: nextSortOrder,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      })
+      .onConflictDoUpdate({
+        target: bucketsTable.id,
+        set: {
+          title: data.title,
+          description: data.description || '',
+          color: data.color || '#6366f1',
+          sortOrder: nextSortOrder,
+          updatedAt: new Date()
+        },
+        where: eq(bucketsTable.ownerId, userId)
+      })
+      .returning();
 
-    const newBucket = (result as any[])[0];
+    const newBucket = result[0];
     if (!newBucket) {
       throw createError({ statusCode: 500, statusMessage: 'Failed to create bucket' });
     }
@@ -85,21 +93,27 @@ export default defineEventHandler(async (event) => {
     // Manage bucket_habits
     if (data.habitIds && data.habitIds.length > 0) {
       // Validate habits exist and belong to user
-      const validHabits = await sql`
-        SELECT id FROM habits WHERE id = ANY(${data.habitIds}::uuid[]) AND owner_id = ${userId}
-      `;
-      const validIds = (validHabits as any[]).map((h: any) => h.id);
+      const validHabits = await db.select({ id: habitsTable.id })
+        .from(habitsTable)
+        .where(and(inArray(habitsTable.id, data.habitIds), eq(habitsTable.ownerId, userId)));
+      
+      const validIds = validHabits.map((h: any) => h.id);
 
-      await sql`DELETE FROM bucket_habits WHERE bucket_id = ${newBucket.id}::uuid`;
+      await db.delete(bucketHabits).where(eq(bucketHabits.bucketId, newBucket.id));
       for (const hid of validIds) {
-        await sql`
-          INSERT INTO bucket_habits (bucket_id, habit_id) VALUES (${newBucket.id}::uuid, ${hid}::uuid)
-          ON CONFLICT DO NOTHING
-        `;
+        await db.insert(bucketHabits)
+          .values({
+            bucketId: newBucket.id,
+            habitId: hid
+          })
+          .onConflictDoNothing();
       }
     }
 
-    const habitsData = await sql`SELECT habit_id FROM bucket_habits WHERE bucket_id = ${newBucket.id}::uuid`;
-    return { data: { ...normalizeBucket(newBucket), habitIds: (habitsData as any[]).map((h: any) => h.habit_id) } };
+    const habitsData = await db.select({ habitId: bucketHabits.habitId })
+      .from(bucketHabits)
+      .where(eq(bucketHabits.bucketId, newBucket.id));
+
+    return { data: { ...normalizeBucket(newBucket), habitIds: habitsData.map((h: any) => h.habitId) } };
   }
 });

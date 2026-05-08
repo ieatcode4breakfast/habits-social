@@ -1,4 +1,5 @@
-import { z } from 'zod';
+import { eq } from 'drizzle-orm';
+import { friendships } from '~~/server/db/schema';
 import { useDB as _useDB } from '~~/server/utils/db';
 import { requireAuth as _requireAuth } from '~~/server/utils/auth';
 import { favoriteSchema } from '~~/server/utils/validation';
@@ -7,7 +8,7 @@ export default defineEventHandler(async (event) => {
   const requireAuth = (event.context as any).requireAuth || _requireAuth;
   const useDB = (event.context as any).useDB || _useDB;
   const userId = await requireAuth(event);
-  const sql = useDB(event);
+  const db = useDB(event);
 
   const body = await readBody(event);
   const validation = favoriteSchema.safeParse(body);
@@ -17,13 +18,17 @@ export default defineEventHandler(async (event) => {
 
   const { friendshipId, favorite } = validation.data;
 
-  const [friendship] = await sql`SELECT id, initiator_id, receiver_id FROM friendships WHERE id = ${friendshipId}::uuid`;
-  if (!friendship) {
+  const results = await db.select()
+    .from(friendships)
+    .where(eq(friendships.id, friendshipId));
+  
+  if (results.length === 0) {
     throw createError({ statusCode: 404, statusMessage: 'Friendship not found' });
   }
 
-  const isInitiator = String((friendship as any).initiator_id) === String(userId);
-  const isReceiver = String((friendship as any).receiver_id) === String(userId);
+  const friendship = results[0];
+  const isInitiator = String(friendship.initiatorId) === String(userId);
+  const isReceiver = String(friendship.receiverId) === String(userId);
 
   if (!isInitiator && !isReceiver) {
     throw createError({ statusCode: 403, statusMessage: 'Not authorized' });
@@ -31,20 +36,17 @@ export default defineEventHandler(async (event) => {
 
   let result;
   if (isInitiator) {
-    result = await sql`
-      UPDATE friendships 
-      SET initiator_favorite = ${favorite}, updated_at = NOW()
-      WHERE id = ${friendshipId}::uuid
-      RETURNING id, initiator_id, receiver_id, status, initiator_favorite, receiver_favorite, created_at, updated_at
-    `;
+    result = await db.update(friendships)
+      .set({ initiatorFavorite: favorite, updatedAt: new Date() })
+      .where(eq(friendships.id, friendshipId))
+      .returning();
   } else {
-    result = await sql`
-      UPDATE friendships 
-      SET receiver_favorite = ${favorite}, updated_at = NOW()
-      WHERE id = ${friendshipId}::uuid
-      RETURNING id, initiator_id, receiver_id, status, initiator_favorite, receiver_favorite, created_at, updated_at
-    `;
+    result = await db.update(friendships)
+      .set({ receiverFavorite: favorite, updatedAt: new Date() })
+      .where(eq(friendships.id, friendshipId))
+      .returning();
   }
 
-  return { data: (result as any[])[0] };
+  return { data: result[0] };
 });
+

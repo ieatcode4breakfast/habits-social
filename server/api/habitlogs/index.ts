@@ -1,5 +1,6 @@
-import { z } from 'zod';
 import { parseISO, startOfDay, subDays, addDays, isBefore, isAfter } from 'date-fns';
+import { eq, and, gte, lte, sql } from 'drizzle-orm';
+import { habitLogs, habits as habitsTable } from '~~/server/db/schema';
 import { useDB as _useDB } from '~~/server/utils/db';
 import { requireAuth as _requireAuth } from '~~/server/utils/auth';
 import { normalizeLog } from '~~/server/utils/normalize';
@@ -11,35 +12,30 @@ export default defineEventHandler(async (event) => {
   const requireAuth = (event.context as any).requireAuth || _requireAuth;
   const useDB = (event.context as any).useDB || _useDB;
   const userId = await requireAuth(event);
-  const sql = useDB(event);
+  const db = useDB(event);
 
   if (event.method === 'GET') {
     setResponseHeader(event, 'Cache-Control', 'no-cache, no-store, must-revalidate');
     const query = getQuery(event);
 
-    let logs;
+    const q = db.select().from(habitLogs).where(eq(habitLogs.ownerId, userId));
+
     if (query.lastSynced) {
       const lastSynced = Number(query.lastSynced);
       if (isNaN(lastSynced)) {
         throw createError({ statusCode: 400, statusMessage: 'Invalid lastSynced parameter' });
       }
-      logs = await sql`
-        SELECT id, habit_id, owner_id, date, status, streak_count, broken_streak_count, shared_with, updated_at FROM habit_logs 
-        WHERE owner_id = ${userId} 
-          AND updated_at >= to_timestamp(${lastSynced} / 1000.0)
-      `;
+      q.where(and(eq(habitLogs.ownerId, userId), gte(habitLogs.updatedAt, new Date(lastSynced))));
     } else if (query.startDate && query.endDate) {
-      logs = await sql`
-        SELECT id, habit_id, owner_id, date, status, streak_count, broken_streak_count, shared_with, updated_at FROM habit_logs 
-        WHERE owner_id = ${userId} 
-          AND date >= ${String(query.startDate)} 
-          AND date <= ${String(query.endDate)}
-      `;
-    } else {
-      logs = await sql`SELECT id, habit_id, owner_id, date, status, streak_count, broken_streak_count, shared_with, updated_at FROM habit_logs WHERE owner_id = ${userId}`;
+      q.where(and(
+        eq(habitLogs.ownerId, userId),
+        gte(habitLogs.date, String(query.startDate)),
+        lte(habitLogs.date, String(query.endDate))
+      ));
     }
 
-    return { data: (logs as any[]).map(normalizeLog) };
+    const logs = await q;
+    return { data: logs.map(normalizeLog) };
   }
 
   if (event.method === 'POST') {
@@ -62,31 +58,46 @@ export default defineEventHandler(async (event) => {
     }
 
     // Validate habit exists and is owned by user
-    const habitCheck = await sql`SELECT id FROM habits WHERE id = ${data.habitId}::uuid AND owner_id = ${userId}`;
-    if ((habitCheck as any[]).length === 0) {
+    const habitCheck = await db.select({ id: habitsTable.id })
+      .from(habitsTable)
+      .where(and(eq(habitsTable.id, data.habitId), eq(habitsTable.ownerId, userId)));
+    
+    if (habitCheck.length === 0) {
       throw createError({ statusCode: 404, statusMessage: 'Habit not found' });
     }
 
     const logId = data.id || `${data.habitId}_${data.date}`;
 
-    const result = await sql`
-      INSERT INTO habit_logs (id, habit_id, owner_id, date, status, shared_with, streak_count, broken_streak_count, updated_at)
-      VALUES (${logId}, ${data.habitId}::uuid, ${userId}, ${data.date}, ${data.status}, ${data.sharedWith}, ${data.streakCount ?? 0}, ${data.brokenStreakCount ?? 0}, NOW())
-      ON CONFLICT (id) DO UPDATE SET
-        status = EXCLUDED.status,
-        shared_with = EXCLUDED.shared_with,
-        streak_count = EXCLUDED.streak_count,
-        broken_streak_count = EXCLUDED.broken_streak_count,
-        updated_at = NOW()
-      WHERE habit_logs.owner_id = EXCLUDED.owner_id
-      RETURNING id, habit_id, owner_id, date, status, streak_count, broken_streak_count, shared_with, updated_at
-    `;
+    const result = await db.insert(habitLogs)
+      .values({
+        id: logId,
+        habitId: data.habitId,
+        ownerId: userId,
+        date: data.date,
+        status: data.status,
+        sharedWith: data.sharedWith || [],
+        streakCount: data.streakCount ?? 0,
+        brokenStreakCount: data.brokenStreakCount ?? 0,
+        updatedAt: new Date()
+      })
+      .onConflictDoUpdate({
+        target: habitLogs.id,
+        set: {
+          status: data.status,
+          sharedWith: data.sharedWith || [],
+          streakCount: data.streakCount ?? 0,
+          brokenStreakCount: data.brokenStreakCount ?? 0,
+          updatedAt: new Date()
+        },
+        where: eq(habitLogs.ownerId, userId)
+      })
+      .returning();
 
     // Recalculate streaks and auto-generate bucket logs server-side
-    await recalculateHabitStreak(sql, data.habitId, userId, data.date);
-    await syncBucketLogsForHabit(sql, data.habitId, userId, data.date);
+    await recalculateHabitStreak(db, data.habitId, userId, data.date);
+    await syncBucketLogsForHabit(db, data.habitId, userId, data.date);
 
-    return { data: normalizeLog((result as any[])[0]) };
+    return { data: normalizeLog(result[0]) };
   }
 
   if (event.method === 'DELETE') {
@@ -108,10 +119,12 @@ export default defineEventHandler(async (event) => {
       throw createError({ statusCode: 400, statusMessage: 'Habit updates are only allowed for the last 14 days' });
     }
 
-    await sql`
-      DELETE FROM habit_logs 
-      WHERE habit_id = ${habitId}::uuid AND owner_id = ${userId} AND date = ${dateStr}
-    `;
+    await db.delete(habitLogs)
+      .where(and(
+        eq(habitLogs.habitId, habitId),
+        eq(habitLogs.ownerId, userId),
+        eq(habitLogs.date, dateStr)
+      ));
 
     return { data: { success: true } };
   }

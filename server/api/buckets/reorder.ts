@@ -1,4 +1,5 @@
-import { z } from 'zod';
+import { eq, and } from 'drizzle-orm';
+import { buckets } from '~~/server/db/schema';
 import { useDB as _useDB } from '~~/server/utils/db';
 import { requireAuth as _requireAuth } from '~~/server/utils/auth';
 import { reorderSchema } from '~~/server/utils/validation';
@@ -7,7 +8,7 @@ export default defineEventHandler(async (event) => {
   const requireAuth = (event.context as any).requireAuth || _requireAuth;
   const useDB = (event.context as any).useDB || _useDB;
   const userId = await requireAuth(event);
-  const sql = useDB(event);
+  const db = useDB(event);
 
   const body = await readBody(event);
   const validation = reorderSchema.safeParse(body);
@@ -18,9 +19,14 @@ export default defineEventHandler(async (event) => {
   const { ids } = validation.data;
   if (ids.length > 0) {
     for (let i = 0; i < ids.length; i++) {
-      await sql`UPDATE buckets SET sort_order = ${i}, updated_at = NOW() WHERE id = ${ids[i]}::uuid AND owner_id = ${userId}`;
+      const id = ids[i] as string;
+      await db.update(buckets)
+        .set({ sortOrder: i, updatedAt: new Date() })
+        .where(and(eq(buckets.id, id), eq(buckets.ownerId, userId)));
     }
   }
 
+
   return { data: { success: true } };
 });
+

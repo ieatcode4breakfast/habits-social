@@ -1,4 +1,6 @@
 import { compare } from 'bcrypt-ts';
+import { or, ilike } from 'drizzle-orm';
+import { users } from '~~/server/db/schema';
 import { useDB as _useDB } from '~~/server/utils/db';
 import { generateToken as _generateToken } from '~~/server/utils/auth';
 import { loginSchema, throwZodError } from '~~/server/utils/validation';
@@ -6,7 +8,7 @@ import { loginSchema, throwZodError } from '~~/server/utils/validation';
 export default defineEventHandler(async (event) => {
   const useDB = (event.context as any).useDB || _useDB;
   const generateToken = (event.context as any).generateToken || _generateToken;
-  const sql = useDB(event);
+  const db = useDB(event);
 
   const body = await readBody(event);
   const validation = loginSchema.safeParse(body);
@@ -17,8 +19,21 @@ export default defineEventHandler(async (event) => {
 
   const { identifier, password } = validation.data;
 
-  const users = await sql`SELECT id, email, username, photo_url, password_hash FROM users WHERE email ILIKE ${identifier} OR username ILIKE ${identifier}`;
-  const user = (users as any[])[0];
+  const results = await db.select({
+    id: users.id,
+    email: users.email,
+    username: users.username,
+    photoUrl: users.photoUrl,
+    passwordHash: users.passwordHash
+  })
+  .from(users)
+  .where(or(
+    ilike(users.email, identifier),
+    ilike(users.username, identifier)
+  ))
+  .limit(1);
+
+  const user = results[0];
 
   if (!user) {
     // Mitigate timing attack: perform a dummy comparison if user is not found
@@ -51,3 +66,4 @@ export default defineEventHandler(async (event) => {
     }
   };
 });
+

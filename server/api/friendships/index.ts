@@ -1,4 +1,5 @@
-import { z } from 'zod';
+import { eq, and, or, sql, inArray } from 'drizzle-orm';
+import { friendships as friendshipsTable, users } from '~~/server/db/schema';
 import { useDB as _useDB } from '~~/server/utils/db';
 import { requireAuth as _requireAuth } from '~~/server/utils/auth';
 import { friendshipCreateSchema } from '~~/server/utils/validation';
@@ -7,26 +8,28 @@ export default defineEventHandler(async (event) => {
   const requireAuth = (event.context as any).requireAuth || _requireAuth;
   const useDB = (event.context as any).useDB || _useDB;
   const userId = await requireAuth(event);
-  const sql = useDB(event);
+  const db = useDB(event);
 
   if (event.method === 'GET') {
     setResponseHeader(event, 'Cache-Control', 'no-cache, no-store, must-revalidate');
 
-    const userFriendships = await sql`
-      SELECT id, initiator_id, receiver_id, status, initiator_favorite, receiver_favorite, created_at, updated_at FROM friendships 
-      WHERE initiator_id = ${userId} OR receiver_id = ${userId}
-    `;
+    const userFriendships = await db.select()
+      .from(friendshipsTable)
+      .where(or(eq(friendshipsTable.initiatorId, userId), eq(friendshipsTable.receiverId, userId)));
 
-    const friendIds = (userFriendships as any[]).map((f: any) =>
-      String(f.initiator_id) === String(userId) ? f.receiver_id : f.initiator_id
+    const friendIds = userFriendships.map((f: any) =>
+      String(f.initiatorId) === String(userId) ? f.receiverId : f.initiatorId
     );
 
     let profiles: any[] = [];
     if (friendIds.length > 0) {
-      profiles = await sql`
-        SELECT id, username, photo_url FROM users 
-        WHERE id = ANY(${friendIds}::uuid[])
-      `;
+      profiles = await db.select({
+        id: users.id,
+        username: users.username,
+        photoUrl: users.photoUrl
+      })
+      .from(users)
+      .where(inArray(users.id, friendIds));
     }
 
     return {
@@ -46,31 +49,40 @@ export default defineEventHandler(async (event) => {
 
     const { targetUserId } = validation.data;
 
-    const [target] = await sql`SELECT username FROM users WHERE id = ${targetUserId}::uuid`;
-    if (!target) {
+    const targetRes = await db.select({ username: users.username })
+      .from(users)
+      .where(eq(users.id, targetUserId));
+    
+    if (targetRes.length === 0) {
       throw createError({ statusCode: 404, statusMessage: 'Target user not found' });
     }
 
-    const existing = await sql`
-      SELECT 1 FROM friendships 
-      WHERE (initiator_id = ${userId} AND receiver_id = ${targetUserId})
-         OR (initiator_id = ${targetUserId} AND receiver_id = ${userId})
-    `;
+    const existing = await db.select({ id: friendshipsTable.id })
+      .from(friendshipsTable)
+      .where(or(
+        and(eq(friendshipsTable.initiatorId, userId), eq(friendshipsTable.receiverId, targetUserId)),
+        and(eq(friendshipsTable.initiatorId, targetUserId), eq(friendshipsTable.receiverId, userId))
+      ));
 
-    if ((existing as any[]).length > 0) {
+    if (existing.length > 0) {
       throw createError({ statusCode: 409, statusMessage: 'Friendship already exists' });
     }
 
-    const result = await sql`
-      INSERT INTO friendships (initiator_id, receiver_id, status, created_at, updated_at)
-      VALUES (${userId}, ${targetUserId}, 'pending', NOW(), NOW())
-      RETURNING id, initiator_id, receiver_id, status, initiator_favorite, receiver_favorite, created_at, updated_at
-    `;
+    const result = await db.insert(friendshipsTable)
+      .values({
+        id: crypto.randomUUID(),
+        initiatorId: userId,
+        receiverId: targetUserId,
+        status: 'pending',
+        createdAt: new Date(),
+        updatedAt: new Date()
+      })
+      .returning();
 
-    if (!(result as any[])[0]) {
+    if (!result[0]) {
       throw createError({ statusCode: 500, statusMessage: 'Failed to create friendship' });
     }
 
-    return { data: (result as any[])[0] };
+    return { data: result[0] };
   }
 });

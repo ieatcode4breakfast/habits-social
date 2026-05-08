@@ -1,92 +1,30 @@
-export interface IUser {
-  id?: string;
-  email: string;
-  username: string;
-  passwordHash: string;
-  photoUrl?: string | null;
-  emailVerifiedAt?: Date | null;
-  createdAt: Date;
-  updatedAt: Date;
-}
+import * as schema from '~~/server/db/schema';
 
-export interface IHabit {
-  id?: string;
-  ownerId: string;
-  title: string;
-  description: string;
-  skipsCount: number;
-  skipsPeriod: string;
-  color: string;
-  sharedWith: string[];
-  sortOrder: number;
-  currentStreak: number;
-  longestStreak: number;
-  streakAnchorDate: Date | null;
-  userDate?: string | null;
-  createdAt: Date;
-  updatedAt: Date;
-}
+export type User = typeof schema.users.$inferSelect;
+export type Habit = typeof schema.habits.$inferSelect;
+export type HabitLog = typeof schema.habitLogs.$inferSelect;
+export type Bucket = typeof schema.buckets.$inferSelect;
+export type BucketHabit = typeof schema.bucketHabits.$inferSelect;
+export type SharedBucketMember = typeof schema.sharedBucketMembers.$inferSelect;
+export type BucketLog = typeof schema.bucketLogs.$inferSelect;
+export type ShareEvent = typeof schema.shareEvents.$inferSelect;
+export type Friendship = typeof schema.friendships.$inferSelect;
+export type SyncDeletion = typeof schema.syncDeletions.$inferSelect;
 
-export interface IHabitLog {
-  id?: string;
-  habitId: string;
-  ownerId: string;
-  date: string;
-  status: string;
-  streakCount: number;
-  brokenStreakCount?: number;
-  sharedWith: string[];
-  updatedAt: Date;
-}
+export type NewHabit = typeof schema.habits.$inferInsert;
+export type NewUser = typeof schema.users.$inferInsert;
+export type NewHabitLog = typeof schema.habitLogs.$inferInsert;
+export type NewBucketLog = typeof schema.bucketLogs.$inferInsert;
 
-export interface IBucket {
-  id?: string;
-  ownerId: string;
-  title: string;
-  description?: string;
-  color?: string;
-  sortOrder: number;
-  currentStreak: number;
-  longestStreak: number;
-  streakAnchorDate: Date | null;
-  createdAt: Date;
-  updatedAt: Date;
-}
+// Maintain I-prefixes for temporary compatibility if needed, but the project seems to use them heavily.
+// I'll check if I should keep them. The current file uses IUser, IHabit, etc.
+// I will map the I-prefixed ones to the new types to avoid breaking the frontend immediately.
+export type IUser = User;
+export type IHabit = Habit;
+export type IHabitLog = HabitLog;
+export type IBucket = Bucket;
+export type IBucketLog = BucketLog;
+export type IFriendship = Friendship;
+export type IShareEvent = ShareEvent;
+export type ISyncDeletion = SyncDeletion;
 
-export interface IBucketLog {
-  id?: string;
-  bucketId: string;
-  ownerId: string;
-  date: string;
-  status: string;
-  streakCount: number;
-  brokenStreakCount?: number;
-  updatedAt: Date;
-}
-
-export interface IFriendship {
-  id?: string;
-  initiatorId: string;
-  receiverId: string;
-  status: string;
-  initiatorFavorite?: boolean;
-  receiverFavorite?: boolean;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-export interface IShareEvent {
-  id?: string;
-  ownerId: string;
-  recipientId: string;
-  habitIds: string[];
-  userDate: string;
-  createdAt: Date;
-}
-
-export interface ISyncDeletion {
-  ownerId: string;
-  entityId: string;
-  entityType: string;
-  createdAt: Date;
-}

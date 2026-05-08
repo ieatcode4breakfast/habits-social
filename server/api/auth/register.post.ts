@@ -1,4 +1,6 @@
 import { hash } from 'bcrypt-ts';
+import { or, ilike } from 'drizzle-orm';
+import { users } from '~~/server/db/schema';
 import { useDB as _useDB } from '~~/server/utils/db';
 import { generateToken as _generateToken } from '~~/server/utils/auth';
 import { registerSchema, throwZodError } from '~~/server/utils/validation';
@@ -6,7 +8,7 @@ import { registerSchema, throwZodError } from '~~/server/utils/validation';
 export default defineEventHandler(async (event) => {
   const useDB = (event.context as any).useDB || _useDB;
   const generateToken = (event.context as any).generateToken || _generateToken;
-  const sql = useDB(event);
+  const db = useDB(event);
 
   const body = await readBody(event);
   const validation = registerSchema.safeParse(body);
@@ -17,24 +19,41 @@ export default defineEventHandler(async (event) => {
 
   const { email, password, username, photoUrl } = validation.data;
 
-  const existingUser = await sql`SELECT 1 FROM users WHERE email ILIKE ${email} OR username ILIKE ${username}`;
-  if ((existingUser as any[]).length > 0) {
+  const existingUser = await db.select({ id: users.id })
+    .from(users)
+    .where(or(
+      ilike(users.email, email),
+      ilike(users.username, username)
+    ))
+    .limit(1);
+
+  if (existingUser.length > 0) {
     throw createError({ statusCode: 409, statusMessage: 'Email or username already taken' });
   }
 
   const passwordHash = await hash(password, 10);
 
-  const result = await sql`
-    INSERT INTO users (email, username, password_hash, created_at, photo_url)
-    VALUES (${email}, ${username}, ${passwordHash}, NOW(), ${photoUrl || null})
-    RETURNING id, email, username, photo_url
-  `;
+  const result = await db.insert(users)
+    .values({
+      email,
+      username,
+      passwordHash,
+      photoUrl: photoUrl || null,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    })
+    .returning({
+      id: users.id,
+      email: users.email,
+      username: users.username,
+      photoUrl: users.photoUrl
+    });
 
-  if ((result as any[]).length === 0) {
+  if (result.length === 0) {
     throw createError({ statusCode: 500, statusMessage: 'Failed to create user' });
   }
 
-  const user = (result as any[])[0];
+  const user = result[0];
   const token = await generateToken(user.id, event);
 
   setCookie(event, 'auth_token', token, {
@@ -47,3 +66,4 @@ export default defineEventHandler(async (event) => {
 
   return { data: { token, id: user.id, email: user.email, username: user.username, photoUrl: user.photoUrl } };
 });
+

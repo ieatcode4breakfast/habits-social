@@ -1,3 +1,5 @@
+import { eq, and, ne, or, ilike } from 'drizzle-orm';
+import { users } from '~~/server/db/schema';
 import { useDB as _useDB } from '~~/server/utils/db';
 import { requireAuth as _requireAuth } from '~~/server/utils/auth';
 import { hash } from 'bcrypt-ts';
@@ -9,7 +11,7 @@ export default defineEventHandler(async (event) => {
   const useDB = (event.context as any).useDB || _useDB;
 
   const userId = await requireAuth(event);
-  const sql = useDB(event);
+  const db = useDB(event);
 
   // 1. Read and strictly validate body
   const body = await readBody(event);
@@ -23,51 +25,60 @@ export default defineEventHandler(async (event) => {
 
 
   // 2. Fetch current user
-  const users = await sql`SELECT id, email, username, photo_url, password_hash, email_verified_at FROM users WHERE id = ${userId}::uuid`;
-  if ((users as any[]).length === 0) {
+  const userResults = await db.select().from(users).where(eq(users.id, userId));
+  if (userResults.length === 0) {
     throw createError({ statusCode: 404, statusMessage: 'User not found' });
   }
-  const user = (users as any[])[0];
+  const user = userResults[0];
 
   // 3. Unique constraints checks
   if (username && username !== user.username) {
-    const existingUsername = await sql`SELECT 1 FROM users WHERE username ILIKE ${username} AND id != ${userId}::uuid`;
-    if ((existingUsername as any[]).length > 0) {
+    const existingUsername = await db.select({ id: users.id })
+      .from(users)
+      .where(and(
+        ilike(users.username, username),
+        ne(users.id, userId)
+      ))
+      .limit(1);
+    if (existingUsername.length > 0) {
       throw createError({ statusCode: 409, statusMessage: 'This username is already taken' });
     }
   }
 
   if (email && email !== user.email) {
-    const existingEmail = await sql`SELECT 1 FROM users WHERE email ILIKE ${email} AND id != ${userId}::uuid`;
-    if ((existingEmail as any[]).length > 0) {
+    const existingEmail = await db.select({ id: users.id })
+      .from(users)
+      .where(and(
+        ilike(users.email, email),
+        ne(users.id, userId)
+      ))
+      .limit(1);
+    if (existingEmail.length > 0) {
       throw createError({ statusCode: 409, statusMessage: 'An account with this email already exists' });
     }
   }
 
   // 4. Prepare update values
-  const newUsername = username !== undefined ? username : user.username;
-  const newEmail = email !== undefined ? email : user.email;
-  const newPhotoUrl = photoUrl !== undefined ? photoUrl : user.photoUrl;
-  const newEmailVerifiedAt = (email !== undefined && email !== user.email) ? null : user.emailVerifiedAt;
   let newPasswordHash = user.passwordHash;
-  
   if (password) {
     newPasswordHash = await hash(password, 10);
   }
 
-  // 5. Execute DB update
-  const result = await sql`
-    UPDATE users 
-    SET 
-      username = ${newUsername}, 
-      email = ${newEmail}, 
-      photo_url = ${newPhotoUrl}, 
-      password_hash = ${newPasswordHash},
-      email_verified_at = ${newEmailVerifiedAt},
-      updated_at = NOW()
-    WHERE id = ${userId}::uuid
-    RETURNING id, email, username, photo_url, email_verified_at, created_at, updated_at
-  `;
+  const newEmailVerifiedAt = (email !== undefined && email !== user.email) ? null : user.emailVerifiedAt;
 
-  return { data: normalizeUser((result as any[])[0]) };
+  // 5. Execute DB update
+  const result = await db.update(users)
+    .set({
+      username: username ?? user.username,
+      email: email ?? user.email,
+      photoUrl: photoUrl ?? user.photoUrl,
+      passwordHash: newPasswordHash,
+      emailVerifiedAt: newEmailVerifiedAt,
+      updatedAt: new Date()
+    })
+    .where(eq(users.id, userId))
+    .returning();
+
+  return { data: normalizeUser(result[0]) };
 });
+
