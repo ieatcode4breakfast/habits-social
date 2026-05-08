@@ -37,7 +37,7 @@ await db.delete(users).where(eq(users.id, userId));
 
 ---
 
-### 3. JWT Secret Fallback in Production
+### 3. JWT Secret Fallback in Production - FIXED
 - **File:** `server/utils/auth.ts` line 14, `nuxt.config.ts` line 41
 - **Explanation:** `nuxt.config.ts` sets `jwtSecret: process.env.JWT_SECRET || 'fallback-secret-for-dev'`. The `auth.ts` `getSecret()` function check depends on `NODE_ENV` being set to 'production' in the Cloudflare environment. If the `JWT_SECRET` was never set via `wrangler secret put`, the app falls back to a hardcoded string public in the source code.
 - **Business Impact:** Any attacker with source code access can forge valid authentication tokens for any user.
@@ -48,7 +48,7 @@ await db.delete(users).where(eq(users.id, userId));
 
 ---
 
-### 4. ILIKE-Based Uniqueness Enumeration Vulnerability
+### 4. ILIKE-Based Uniqueness Enumeration Vulnerability - FIXED
 - **File:** `server/api/auth/login.post.ts`, `server/api/auth/register.post.ts`, `server/api/users/me.put.ts`
 - **Explanation:** Using `ILIKE` for uniqueness checks allows pattern-based attacks. A user with username `test` could be impersonated or enumerated by logging in with `test%` as the identifier.
 - **Business Impact:** Account enumeration via wildcard behavior and potential for bypassing uniqueness constraints.
@@ -56,7 +56,7 @@ await db.delete(users).where(eq(users.id, userId));
 
 ---
 
-### 5. Habit Logs DELETE Endpoint Doesn't Recalculate Streaks
+### 5. Habit Logs DELETE Endpoint Doesn't Recalculate Streaks - FIXED
 - **File:** `server/api/habitlogs/index.ts` (lines 103-129)
 - **Explanation:** The DELETE handler removes a habit log but does not call `recalculateHabitStreak` or `syncBucketLogsForHabit`. Habit stats become stale and inconsistent.
 - **Business Impact:** Inconsistent streak counts and bucket statuses after users clear or delete a habit log.

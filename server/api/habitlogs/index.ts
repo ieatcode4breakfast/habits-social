@@ -126,6 +126,10 @@ export default defineEventHandler(async (event) => {
         eq(habitLogs.date, dateStr)
       ));
 
+    // Recalculate streaks and sync bucket logs after deletion
+    await recalculateHabitStreak(db, habitId, userId, dateStr);
+    await syncBucketLogsForHabit(db, habitId, userId, dateStr);
+
     return { data: { success: true } };
   }
 });

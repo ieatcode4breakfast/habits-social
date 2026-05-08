@@ -1,5 +1,5 @@
 import { hash } from 'bcrypt-ts';
-import { or, ilike } from 'drizzle-orm';
+import { or, eq, sql } from 'drizzle-orm';
 import { users } from '~~/server/db/schema';
 import { useDB as _useDB } from '~~/server/utils/db';
 import { generateToken as _generateToken } from '~~/server/utils/auth';
@@ -22,8 +22,8 @@ export default defineEventHandler(async (event) => {
   const existingUser = await db.select({ id: users.id })
     .from(users)
     .where(or(
-      ilike(users.email, email),
-      ilike(users.username, username)
+      eq(sql`lower(${users.email})`, email.toLowerCase()),
+      eq(sql`lower(${users.username})`, username.toLowerCase())
     ))
     .limit(1);
 

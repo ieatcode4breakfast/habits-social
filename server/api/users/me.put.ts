@@ -1,4 +1,4 @@
-import { eq, and, ne, or, ilike } from 'drizzle-orm';
+import { eq, and, ne, or, sql } from 'drizzle-orm';
 import { users } from '~~/server/db/schema';
 import { useDB as _useDB } from '~~/server/utils/db';
 import { requireAuth as _requireAuth } from '~~/server/utils/auth';
@@ -36,7 +36,7 @@ export default defineEventHandler(async (event) => {
     const existingUsername = await db.select({ id: users.id })
       .from(users)
       .where(and(
-        ilike(users.username, username),
+        eq(sql`lower(${users.username})`, username.toLowerCase()),
         ne(users.id, userId)
       ))
       .limit(1);
@@ -49,7 +49,7 @@ export default defineEventHandler(async (event) => {
     const existingEmail = await db.select({ id: users.id })
       .from(users)
       .where(and(
-        ilike(users.email, email),
+        eq(sql`lower(${users.email})`, email.toLowerCase()),
         ne(users.id, userId)
       ))
       .limit(1);
