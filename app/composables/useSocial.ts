@@ -110,7 +110,7 @@ export const useSocial = () => {
           }
 
           // Always refresh from source to ensure full profile data and consistency
-          refresh();
+          refresh(true);
         });
       }
     }, { immediate: true });

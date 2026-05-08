@@ -667,8 +667,8 @@ const handleFriendClick = (f: Friendship) => {
 const modalContent = ref<HTMLElement | null>(null);
 const habitModalContent = ref<HTMLElement | null>(null);
 
-const loadFriendships = async () => {
-  await refreshSocial();
+const loadFriendships = async (silent = true) => {
+  await refreshSocial(silent);
 };
 
 onMounted(() => {

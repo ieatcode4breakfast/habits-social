@@ -8,6 +8,8 @@ import { habitLogSchema, throwZodError } from '~~/server/utils/validation';
 import { recalculateHabitStreak } from '~~/server/utils/streaks';
 import { syncBucketLogsForHabit } from '~~/server/utils/buckets';
 
+import { HabitService } from '~~/server/services/habit.service';
+
 export default defineEventHandler(async (event) => {
   const requireAuth = (event.context as any).requireAuth || _requireAuth;
   const useDB = (event.context as any).useDB || _useDB;
@@ -66,38 +68,9 @@ export default defineEventHandler(async (event) => {
       throw createError({ statusCode: 404, statusMessage: 'Habit not found' });
     }
 
-    const logId = data.id || `${data.habitId}_${data.date}`;
+    const result = await HabitService.logHabit(db, userId, data, event);
 
-    const result = await db.insert(habitLogs)
-      .values({
-        id: logId,
-        habitId: data.habitId,
-        ownerId: userId,
-        date: data.date,
-        status: data.status,
-        sharedWith: data.sharedWith || [],
-        streakCount: data.streakCount ?? 0,
-        brokenStreakCount: data.brokenStreakCount ?? 0,
-        updatedAt: new Date()
-      })
-      .onConflictDoUpdate({
-        target: habitLogs.id,
-        set: {
-          status: data.status,
-          sharedWith: data.sharedWith || [],
-          streakCount: data.streakCount ?? 0,
-          brokenStreakCount: data.brokenStreakCount ?? 0,
-          updatedAt: new Date()
-        },
-        where: eq(habitLogs.ownerId, userId)
-      })
-      .returning();
-
-    // Recalculate streaks and auto-generate bucket logs server-side
-    await recalculateHabitStreak(db, data.habitId, userId, data.date);
-    await syncBucketLogsForHabit(db, data.habitId, userId, data.date);
-
-    return { data: normalizeLog(result[0]) };
+    return { data: normalizeLog(result) };
   }
 
   if (event.method === 'DELETE') {
@@ -119,16 +92,7 @@ export default defineEventHandler(async (event) => {
       throw createError({ statusCode: 400, statusMessage: 'Habit updates are only allowed for the last 14 days' });
     }
 
-    await db.delete(habitLogs)
-      .where(and(
-        eq(habitLogs.habitId, habitId),
-        eq(habitLogs.ownerId, userId),
-        eq(habitLogs.date, dateStr)
-      ));
-
-    // Recalculate streaks and sync bucket logs after deletion
-    await recalculateHabitStreak(db, habitId, userId, dateStr);
-    await syncBucketLogsForHabit(db, habitId, userId, dateStr);
+    await HabitService.deleteHabitLog(db, userId, habitId, dateStr, event);
 
     return { data: { success: true } };
   }

@@ -4,6 +4,8 @@ import { useDB as _useDB } from '~~/server/utils/db';
 import { requireAuth as _requireAuth } from '~~/server/utils/auth';
 import { friendshipCreateSchema } from '~~/server/utils/validation';
 
+import { SocialService } from '~~/server/services/social.service';
+
 export default defineEventHandler(async (event) => {
   const requireAuth = (event.context as any).requireAuth || _requireAuth;
   const useDB = (event.context as any).useDB || _useDB;
@@ -68,21 +70,12 @@ export default defineEventHandler(async (event) => {
       throw createError({ statusCode: 409, statusMessage: 'Friendship already exists' });
     }
 
-    const result = await db.insert(friendshipsTable)
-      .values({
-        id: crypto.randomUUID(),
-        initiatorId: userId,
-        receiverId: targetUserId,
-        status: 'pending',
-        createdAt: new Date(),
-        updatedAt: new Date()
-      })
-      .returning();
+    const result = await SocialService.createFriendship(db, userId, targetUserId, event);
 
-    if (!result[0]) {
+    if (!result) {
       throw createError({ statusCode: 500, statusMessage: 'Failed to create friendship' });
     }
 
-    return { data: result[0] };
+    return { data: result };
   }
 });

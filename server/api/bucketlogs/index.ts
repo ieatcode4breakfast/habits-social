@@ -5,6 +5,8 @@ import { requireAuth as _requireAuth } from '~~/server/utils/auth';
 import { normalizeLog } from '~~/server/utils/normalize';
 import { bucketLogSchema } from '~~/server/utils/validation';
 
+import { BucketService } from '~~/server/services/bucket.service';
+
 export default defineEventHandler(async (event) => {
   const requireAuth = (event.context as any).requireAuth || _requireAuth;
   const useDB = (event.context as any).useDB || _useDB;
@@ -50,32 +52,9 @@ export default defineEventHandler(async (event) => {
       throw createError({ statusCode: 404, statusMessage: 'Bucket not found' });
     }
 
-    const logId = data.id || `${data.bucketId}_${data.date}`;
+    const result = await BucketService.logBucket(db, userId, data, event);
 
-    const result = await db.insert(bucketLogs)
-      .values({
-        id: logId,
-        bucketId: data.bucketId,
-        ownerId: userId,
-        date: data.date,
-        status: data.status,
-        streakCount: data.streakCount ?? 0,
-        brokenStreakCount: data.brokenStreakCount ?? 0,
-        updatedAt: new Date()
-      })
-      .onConflictDoUpdate({
-        target: bucketLogs.id,
-        set: {
-          status: data.status,
-          streakCount: data.streakCount ?? 0,
-          brokenStreakCount: data.brokenStreakCount ?? 0,
-          updatedAt: new Date()
-        },
-        where: eq(bucketLogs.ownerId, userId)
-      })
-      .returning();
-
-    return { data: normalizeLog(result[0]) };
+    return { data: normalizeLog(result) };
   }
 
   if (event.method === 'DELETE') {
