@@ -21,13 +21,11 @@ export const useModalHistory = (isOpen: Ref<boolean>, onClose?: () => boolean | 
       activeModalCount.value++;
       if (activeModalCount.value === 1) {
         document.body.classList.add('overflow-hidden');
-        document.documentElement.classList.add('overflow-hidden');
       }
     } else {
       activeModalCount.value = Math.max(0, activeModalCount.value - 1);
       if (activeModalCount.value === 0) {
         document.body.classList.remove('overflow-hidden');
-        document.documentElement.classList.remove('overflow-hidden');
       }
     }
   };

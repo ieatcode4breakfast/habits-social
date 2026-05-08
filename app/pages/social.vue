@@ -26,13 +26,13 @@
       </div>
     </div>
 
-    <!-- Activity Feed Tab -->
     <div v-if="activeTab === 'activity'" v-motion-fade class="space-y-6">
-      <div v-if="feedLoading" class="flex justify-center p-12">
+      <div v-if="feedLoading && (!feed || feed.length === 0)" class="flex justify-center p-12">
         <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
       </div>
 
-      <div v-else-if="!feed || feed.length === 0" class="bg-zinc-925/80 backdrop-blur-sm sm:rounded-2xl rounded-none border-y border-x-0 sm:border border-zinc-800/80 p-10 text-center shadow-2xl flex flex-col items-center">
+      <template v-else>
+        <div v-if="!feed || feed.length === 0" class="bg-zinc-925/80 backdrop-blur-sm sm:rounded-2xl rounded-none border-y border-x-0 sm:border border-zinc-800/80 p-10 text-center shadow-2xl flex flex-col items-center">
         <div class="w-16 h-16 bg-zinc-950 rounded-full flex items-center justify-center mx-auto mb-4 border border-zinc-800">
           <Activity class="w-8 h-8 text-zinc-500" />
         </div>
@@ -94,7 +94,8 @@
           </div>
         </div>
       </div>
-    </div>
+    </template>
+  </div>
 
     <div v-if="activeTab === 'friends'" class="space-y-3">
       <div v-if="isLoading" class="flex justify-center p-12">
@@ -451,10 +452,17 @@ const getStreakTheme = (count: number) => {
 // --- Activity Feed Logic ---
 const feed = ref<any[]>([]);
 const feedLoading = ref(false);
+const didDeactivate = ref(false);
 
 const loadFeed = async () => {
   if (activeTab.value !== 'activity') return;
-  feedLoading.value = true;
+  
+  // Only show the spinner if we have no data
+  const isInitialLoad = !feed.value || feed.value.length === 0;
+  if (isInitialLoad) {
+    feedLoading.value = true;
+  }
+  
   try {
     const { data } = await $fetch<{ data: any[] }>('/api/social/feed');
     feed.value = data;
@@ -581,15 +589,13 @@ const handleSocialMonthChanged = async (newDate: Date) => {
 };
 // ----------------------------
 
-const isAnyModalOpen = computed(() => 
-  showUnfriendModal.value || showAddModal.value || showHabitModal.value || showShareModal.value
+const isLocalModalOpen = computed(() => 
+  showUnfriendModal.value || showAddModal.value
 );
 
-useModalHistory(isAnyModalOpen, () => {
+useModalHistory(isLocalModalOpen, () => {
   showUnfriendModal.value = false;
   showAddModal.value = false;
-  showHabitModal.value = false;
-  showShareModal.value = false;
 });
 
 const pendingIncoming = computed(() => {
@@ -674,13 +680,16 @@ onUnmounted(() => {
 });
 
 onActivated(async () => {
-  // 1. Restore scroll position
-  await nextTick();
-  requestAnimationFrame(() => {
-    if (savedScrollY.value > 0) {
-      window.scrollTo({ top: savedScrollY.value, behavior: 'instant' });
-    }
-  });
+  // 1. Restore scroll position ONLY if we actually deactivated (navigated away)
+  if (didDeactivate.value) {
+    await nextTick();
+    requestAnimationFrame(() => {
+      if (savedScrollY.value > 0) {
+        window.scrollTo({ top: savedScrollY.value, behavior: 'instant' });
+      }
+    });
+    didDeactivate.value = false;
+  }
 
   // 2. Conditional Refresh
   // We refresh if we're coming from anywhere EXCEPT a friend's profile (to preserve state on back-nav)
@@ -706,6 +715,7 @@ const savedScrollY = ref(0);
 
 onDeactivated(() => {
   savedScrollY.value = window.scrollY;
+  didDeactivate.value = true;
 });
 
 const handleSearch = async () => {
