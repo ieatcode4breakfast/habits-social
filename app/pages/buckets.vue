@@ -1293,6 +1293,7 @@ let unsubscribeOwnHabits = () => {};
 
 onMounted(() => {
   load();
+  api.sync();
 });
 
 watch(lastSyncTime, () => {

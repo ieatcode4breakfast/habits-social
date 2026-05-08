@@ -824,9 +824,9 @@ let unsubscribeOwnBuckets = () => {};
 // Social integration is now handled by useSocial
 
 onMounted(() => {
-
   // Social state is now initialized globally in default.vue layout
   load();
+  api.sync();
 });
 
 watch(lastSyncTime, () => {

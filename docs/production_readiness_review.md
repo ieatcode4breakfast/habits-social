@@ -68,7 +68,7 @@ await syncBucketLogsForHabit(db, habitId, userId, dateStr);
 
 ---
 
-### 6. bcrypt-ts on Cloudflare Workers — CPU Timeout Risk
+### 6. bcrypt-ts on Cloudflare Workers — CPU Timeout Risk - SKIP
 - **File:** `server/api/auth/register.post.ts`, `server/api/auth/login.post.ts`
 - **Explanation:** `bcrypt-ts` is a pure JavaScript implementation. On Cloudflare Workers free/bundled plans (10ms-50ms budget), hashing with 10 rounds takes ~40-80ms, risking request termination.
 - **Business Impact:** Random 500 errors or timeouts during login and registration, especially under load.
