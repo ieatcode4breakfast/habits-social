@@ -60,13 +60,28 @@ export interface BucketLog {
 
 const isSyncing = ref(false);
 const syncNeeded = ref(false);
+const retryCount = ref(0);
+const retryTimer = ref<any>(null);
+
+// For testing only
+export const _resetSyncState = () => {
+  isSyncing.value = false;
+  syncNeeded.value = false;
+  retryCount.value = 0;
+  if (retryTimer.value) {
+    clearTimeout(retryTimer.value);
+    retryTimer.value = null;
+  }
+};
 
 export const useHabitsApi = () => {
   const client = useHabitsClient();
   const store = useHabitsStore();
   const { user } = useAuth();
+  const { showToast } = useToast();
+  const { isOnline } = useNetwork();
   
-  let lastSyncTime;
+  let lastSyncTime: Ref<number>;
   try {
     lastSyncTime = useState('last-sync-time', () => 0);
   } catch {
@@ -74,6 +89,12 @@ export const useHabitsApi = () => {
   }
 
   const triggerSync = () => {
+    // Reset backoff on manual/explicit actions
+    retryCount.value = 0;
+    if (retryTimer.value) {
+      clearTimeout(retryTimer.value);
+      retryTimer.value = null;
+    }
     sync().catch(err => console.error('[Sync] Background sync failed:', err));
   };
 
@@ -230,7 +251,9 @@ export const useHabitsApi = () => {
 
   // --- The Core Sync Engine (Reconciliation) ---
   const sync = async () => {
-    if (!user.value || !import.meta.client) return;
+    if (!user.value || !process.client) return;
+    
+    // Atomic Concurrency Lock
     if (isSyncing.value) {
       syncNeeded.value = true;
       return;
@@ -259,8 +282,17 @@ export const useHabitsApi = () => {
             }
             if (d.id) await db.syncQueue.delete(d.id);
           } catch (e: any) {
-            if (e.statusCode === 404 && d.id) await db.syncQueue.delete(d.id);
-            console.warn('[Sync] Action failed:', e);
+            const status = e.statusCode || e.response?.status;
+            if (status === 404 && d.id) {
+              await db.syncQueue.delete(d.id);
+            } else if (status >= 400 && status < 500 && status !== 429) {
+              // Terminal error: Drop item and notify user
+              if (d.id) await db.syncQueue.delete(d.id);
+              showToast("A queued action could not be saved.", "failed");
+            } else {
+              // Transient error: Re-throw to trigger backoff loop
+              throw e;
+            }
           }
         }
 
@@ -274,11 +306,16 @@ export const useHabitsApi = () => {
             const res = isNew ? await client.postHabit(h) : await client.putHabit(h.id, h);
             await db.habits.update(h.id, { synced: 1, id: res.data.id, userDate: res.data.userDate });
           } catch (e: any) {
-            if (e.statusCode === 404) {
+            const status = e.statusCode || e.response?.status;
+            if (status === 404) {
               await store.deleteHabit(h.id);
               await store.removeHabitFromBuckets(h.id);
+            } else if (status >= 400 && status < 500 && status !== 429) {
+              await db.habits.update(h.id, { synced: 1 });
+              showToast("A habit update could not be saved.", "failed");
+            } else {
+              throw e;
             }
-            console.warn('[Sync] Habit push failed:', e);
           }
         }
 
@@ -288,7 +325,13 @@ export const useHabitsApi = () => {
             await client.postHabitLog(l);
             await db.habitLogs.update(l.id, { synced: 1 });
           } catch (e: any) {
-            if (e.statusCode === 400 || e.statusCode === 404) await db.habitLogs.delete(l.id);
+            const status = e.statusCode || e.response?.status;
+            if (status >= 400 && status < 500 && status !== 429) {
+              await db.habitLogs.delete(l.id);
+              showToast("A habit log could not be saved.", "failed");
+            } else {
+              throw e;
+            }
           }
         }
 
@@ -299,7 +342,15 @@ export const useHabitsApi = () => {
             const res = isNew ? await client.postBucket(b) : await client.putBucket(b.id, b);
             await db.buckets.update(b.id, { synced: 1, id: res.data.id });
           } catch (e: any) {
-            if (e.statusCode === 404) await db.buckets.delete(b.id);
+            const status = e.statusCode || e.response?.status;
+            if (status === 404) {
+              await db.buckets.delete(b.id);
+            } else if (status >= 400 && status < 500 && status !== 429) {
+              await db.buckets.update(b.id, { synced: 1 });
+              showToast("A bucket update could not be saved.", "failed");
+            } else {
+              throw e;
+            }
           }
         }
 
@@ -309,7 +360,13 @@ export const useHabitsApi = () => {
             await client.postBucketLog(bl);
             await db.bucketLogs.update(bl.id, { synced: 1 });
           } catch (e: any) {
-            if ([400, 404, 405].includes(e.statusCode)) await db.bucketLogs.delete(bl.id);
+            const status = e.statusCode || e.response?.status;
+            if (status >= 400 && status < 500 && status !== 429) {
+              await db.bucketLogs.delete(bl.id);
+              showToast("A bucket log could not be saved.", "failed");
+            } else {
+              throw e;
+            }
           }
         }
 
@@ -337,7 +394,6 @@ export const useHabitsApi = () => {
             }
           }
 
-          // Merge Logic
           for (const h of remoteHabits) {
             const local = await db.habits.get(h.id);
             if (local && (local as any).synced !== 1) continue;
@@ -363,10 +419,31 @@ export const useHabitsApi = () => {
           }
 
           lastSyncTime.value = serverTime;
-        } catch (error) {
-          console.error('[Sync] Pull failed:', error);
+        } catch (error: any) {
+          const status = error.statusCode || error.response?.status;
+          if (status >= 400 && status < 500 && status !== 429) {
+            console.error('[Sync] Pull failed (Terminal):', error);
+          } else {
+            throw error; // Trigger backoff
+          }
         }
       } while (syncNeeded.value);
+
+      // On success, reset backoff
+      retryCount.value = 0;
+    } catch (error: any) {
+      console.warn('[Sync] Transient error, scheduling backoff retry...', error);
+      
+      // Calculate Full Jitter Backoff
+      retryCount.value++;
+      const baseDelay = Math.min(Math.pow(2, retryCount.value) * 1000, 300000);
+      const jitterDelay = Math.random() * baseDelay;
+      
+      if (retryTimer.value) clearTimeout(retryTimer.value);
+      retryTimer.value = setTimeout(() => {
+        retryTimer.value = null;
+        sync();
+      }, jitterDelay);
     } finally {
       isSyncing.value = false;
     }
@@ -376,6 +453,6 @@ export const useHabitsApi = () => {
     getHabits, createHabit, updateHabit, deleteHabit, getLogs, upsertLog, deleteLog, reorderHabits,
     getBuckets, createBucket, updateBucket, deleteBucket, getBucketLogs, reorderBuckets,
     sync, lastSyncTime,
-    habits, buckets // Exposed reactive properties
+    habits, buckets
   };
 };

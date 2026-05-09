@@ -42,8 +42,11 @@ const { user } = useAuth();
 const { subscribeToUserSync } = useRealtime();
 let unsubscribeSync: () => void = () => {};
 
+const { isOnline } = useNetwork();
+const { showToast } = useToast();
+
 onMounted(() => {
-  // Purge any existing service workers that might be caching stale HTML/sessions
+  // ... existing service worker logic ...
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.getRegistrations().then((registrations) => {
       for (const registration of registrations) {
@@ -54,21 +57,29 @@ onMounted(() => {
   }
 });
 
+// Watch connectivity for UI feedback and auto-sync
+watch(isOnline, (online) => {
+  if (!online) {
+    showToast('You are offline. Changes will be saved locally.', 'failed');
+  } else {
+    showToast('Back online! Syncing changes...', 'completed');
+    sync();
+  }
+});
+
 onUnmounted(() => {
   unsubscribeSync();
 });
 
-// Initial sync to hydrate the local database when user is logged in
+// Initial sync and real-time subscription
 watch(() => user.value?.id, (newId) => {
-  if (newId && process.client) {
-    console.log('[Offline First] User detected, starting initial sync...');
+  if (newId && import.meta.client) {
+    console.log('[Sync] User session active, starting hydration...');
     sync();
 
-    // Subscribe to real-time pushes indicating the server has settled
     unsubscribeSync();
     unsubscribeSync = subscribeToUserSync(newId, (eventName) => {
       if (eventName === 'sync-settled') {
-        console.log('[Sync] Received sync-settled push event, triggering pull...');
         sync();
       }
     });
