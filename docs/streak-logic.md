@@ -11,7 +11,7 @@ The streak state is persisted across the parent entities (`habits` and `buckets`
 | :--- | :--- | :--- |
 | `currentStreak` | `Integer` | The number of consecutive days the entity has been completed (ignoring skips). |
 | `longestStreak` | `Integer` | The historical record for the most consecutive completions. |
-| `streakAnchorDate` | `Date` | The date of the most recent log that contributed to or "anchored" the current streak. |
+| `streakAnchorDate` | `Date` | The date of the most recent log with a valid status (Completed, Failed, Skipped, or Vacation). |
 
 **Child `habitlogs` and `bucketlogs` (Historical Snapshots):**
 | Field | Type | Description |

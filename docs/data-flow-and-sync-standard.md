@@ -43,7 +43,7 @@ To maintain consistency across multiple devices and sessions, the application us
 To preserve bandwidth and ensure fast local database settlement, pull operations must be heavily optimized.
 
 *   **Absolute Minimum Data:** The client must never perform full data wipes or blind bulk fetches. A pull request should only request the absolute minimum data required to reconcile the local state.
-*   **Delta Fetching:** Whenever possible, clients should pass a "last synced" timestamp or specific entity IDs in their pull requests. The server should respond *only* with the delta (records modified since that timestamp or matching those IDs).
+*   **Delta Fetching:** Whenever possible, clients should pass a "last synced" timestamp in their pull requests. The server should respond *only* with the delta (records modified since that timestamp).
 *   **Pulling Pre-Calculated State:** Secondary devices (or the same user pulling after being offline) *will* pull the server's pre-calculated derived data (e.g., the updated bucket streaks). This prevents every client from having to redundantly calculate state from raw events, saving CPU and ensuring strict consistency across devices.
 *   **Targeted Re-calculation:** When the client receives the delta, it merges the changes into Dexie and only triggers re-calculations (e.g., UI refreshes) for the specific entities affected by the delta.
 

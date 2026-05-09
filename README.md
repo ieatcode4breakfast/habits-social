@@ -21,9 +21,13 @@ The core of HabitsSocial is your daily habit list.
 Every day, simply tap on a habit to mark it as **Completed**. If you can't do it, you can use a **Skip** (if available) or mark it as **Failed**. 
 
 **Vacation Mode:**
-Going away for a while? You can mark your habits with the **Vacation** status. This pauses and protects your active streaks so you don't lose your hard-earned progress while you're taking a break.
+Going away for a while? You can mark your habits with the **Vacation** status. This pauses and protects your active streaks so you don't lose your hard-earned progress while you're taking a break. 
 
-Your current and longest streaks are automatically calculated and displayed as you log your days.
+*Note: There are no strict limits on how many vacation days you can use—we leave it to your personal integrity to use this feature honestly!*
+
+
+**Reordering:**
+If you want to organize your dashboard, use the **Reorder** button to drag and drop your habits into your preferred order.
 
 ---
 
@@ -39,6 +43,7 @@ A Bucket is a collection of related habits. For example, you might have a "Morni
 2. Create a new Bucket and name it.
 3. Select which of your existing habits belong in this Bucket.
 4. **Bucket Streaks:** As you complete the habits within a bucket, the bucket itself maintains a "meta-streak," giving you a high-level view of how well you are sticking to that overall routine.
+5. **Reordering:** Just like habits, you can reorder your buckets to keep your most important goals at the top.
 
 ---
 
@@ -49,8 +54,20 @@ Building habits is easier when you do it with friends! HabitsSocial lets you sha
 **Connecting with friends:**
 1. Go to the **Social** tab.
 2. Search for your friends by their username and send them a friend request.
-3. Once accepted, they will appear in your friends list. You can "Pin" your closest accountability partners to the top of your list.
+3. Once accepted, they will appear in your friends list. You can **"Favorite"** (pin) your closest accountability partners to keep them at the top of your list for quick access.
 
 **Sharing and Activity Feed:**
-- **Share Habits:** You can choose specifically which habits you want to share with your friends. They won't see everything—only what you choose to make visible.
-- **Activity Feed:** In the Social tab, you'll see a real-time feed of your friends' activities (for the habits they've shared with you). You can see when they complete a habit or hit a major streak milestone, or take a well-deserved vacation, allowing you to cheer them on!
+- **Share Habits:** You can choose specifically which habits you want to share with your friends. They won't see everything—only what you choose to make visible. You can update these settings at any time from the habit editor.
+- **Activity Feed:** In the Social tab, you'll see a real-time feed of your friends' activities. You can see when they complete a habit, hit a major streak milestone, or take a vacation.
+
+---
+
+## 👤 4. Personalizing Your Profile
+
+Make the app your own by customizing how you appear to others.
+
+1. Click on your username in the navigation bar to open your **Profile**.
+2. **Avatar:** Choose from a variety of unique avatars to represent yourself.
+3. **Username:** You can update your username at any time to keep it fresh.
+4. **Security:** Update your email or password directly from your profile settings.
+

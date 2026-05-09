@@ -48,16 +48,6 @@ The frontend consumes the feed and handles layout, routing, and styling in the `
 * **Avatar Routing:** Clicking an avatar navigates to the friend's profile. This is conditionally disabled for the authenticated user to prevent self-routing.
 * **Inline Details (Single Habit):** Clicking a single-habit feed card opens the **Habit Details Modal**, bypassing a separate page load. If the habit is no longer shared with the user, the 404 error is intercepted and a toast notification is displayed.
 * **Batch-Share Fallback:** Clicking a batch-share feed card (which groups multiple habits and lacks a specific habit ID) gracefully falls back to navigating to the friend's profile.
-* **Event Styling Mapping:**
-    * Emerald `Check` icon for `INITIAL_COMPLETION`
-    * Rose `XIcon` for `INITIAL_FAILURE`
-    * Rose `HeartCrack` icon for `STREAK_BROKEN`
-    * Violet `Trophy` icon for Milestones and Anniversaries
-    * Amber `Flame` icon for streak continuations/extensions
-    * Zinc `Shield` icon for `STREAK_MAINTAINED` (Skips)
-    * Amber `Palmtree` icon for `STREAK_MAINTAINED_VACATION` (Vacation)
-    * Indigo `Target` icon for `COMMITMENT` (New Habit)
-    * Sky `Share2` icon for `SHARE` (Shared Habits)
 
 ---
 
