@@ -62,22 +62,25 @@ export const habits = pgTable('habits', {
 
 ## ✅ Production Readiness Checklist
 
-This checklist is prioritized by implementation ease and risk level (low to high).
+This checklist is ranked solely by **ease of implementation** and **least risk to code**, allowing for rapid clearing of low-complexity items.
 
-### Phase 1: Documentation & Basic Config (Easiest / No Risk)
-- [ ] **Environment Variable Audit**: Verify all `.env.example` keys match required production secrets.
-- [ ] **README Update**: Ensure setup instructions for production environments are clear and accurate.
-- [ ] **Dependency Check**: Run `npm audit` to identify and resolve high-priority security vulnerabilities.
-- [ ] **Static Assets**: Confirm all favicon, manifest, and meta-tags are production-ready (no placeholders).
-
-### Phase 2: Observability & Stability (Low Risk)
-- [ ] **Error Handling**: Verify global error boundaries are in place to prevent UI crashes.
-- [ ] **Structured Logging**: Ensure server-side logs use a consistent JSON format for easier parsing.
-- [ ] **Health Check Endpoint**: Implement a `/health` route that returns `200 OK` when the service is healthy.
-- [ ] **Graceful Shutdown**: Ensure the application handles `SIGTERM` signals to close database connections gracefully.
-
-### Phase 3: Performance & Infrastructure (Moderate Risk)
-- [ ] **Database Indexing**: Review slow-query logs and ensure critical search fields are indexed.
-- [ ] **Content Delivery Network (CDN)**: Confirm static assets are served via CDN with appropriate cache headers.
-- [ ] **Rate Limiting**: Implement basic rate limiting on API endpoints to prevent abuse.
-- [ ] **Automated Backups**: Confirm database backup routines are active and restoration has been tested.
+- [ ] **General Infrastructure - README Update**: Ensure setup instructions for production environments are clear and accurate.
+- [ ] **General Infrastructure - Environment Variable Audit**: Verify all `.env.example` keys match required production secrets.
+- [ ] **General Infrastructure - Static Assets**: Confirm all favicon, manifest, and meta-tags are production-ready (no placeholders).
+- [ ] **General Infrastructure - Dependency Check**: Run `npm audit` to identify and resolve high-priority security vulnerabilities.
+- [ ] **Nitpicks & Best Practices - Redundant Drizzle**: Refactor `habit-details.get.ts` to use `and(...)` for dynamic filtering instead of overwriting `.where()`.
+- [ ] **Nitpicks & Best Practices - Auth Timing Attacks**: Ensure the fallback dummy hash in `login.post.ts` matches the cost factor (10) used in registration.
+- [ ] **Nitpicks & Best Practices - Ownership Scoping**: Explicitly include `eq(habitsTable.ownerId, userId)` in the `updateHabit` query.
+- [ ] **General Infrastructure - Health Check Endpoint**: Implement a `/health` route that returns `200 OK` when the service is healthy.
+- [ ] **General Infrastructure - Error Handling**: Verify global error boundaries are in place to prevent UI crashes.
+- [ ] **General Infrastructure - Structured Logging**: Ensure server-side logs use a consistent JSON format for easier parsing.
+- [ ] **General Infrastructure - Graceful Shutdown**: Ensure the application handles `SIGTERM` signals to close database connections gracefully.
+- [ ] **Warnings - Unbounded PostgreSQL Arrays**: Add Zod validation limits and database `CHECK` constraints to the `sharedWith` array.
+- [ ] **General Infrastructure - Database Indexing**: Review slow-query logs and ensure critical search fields are indexed.
+- [ ] **General Infrastructure - Rate Limiting**: Implement basic rate limiting on API endpoints to prevent abuse.
+- [ ] **General Infrastructure - Content Delivery Network (CDN)**: Confirm static assets are served via CDN with appropriate cache headers.
+- [ ] **General Infrastructure - Automated Backups**: Confirm database backup routines are active and restoration has been tested.
+- [ ] **Warnings - Inefficient Bucket Log Re-evaluation**: Use bulk inserts (`db.insert(...).values(array)`) or move re-evaluation to a background worker.
+- [ ] **Warnings - Schema Type Mismatch for Foreign Keys**: Run a migration to convert `ownerId` columns to `uuid` to fix index-bypassing type casts.
+- [ ] **Warnings - Missing Pagination for Social Feed**: Implement cursor-based pagination and push merging logic to the database (e.g., via `UNION ALL`).
+- [ ] **Critical Risks - Unbounded Payload in Initial Sync**: Implement cursor-based pagination or date-chunking in the `getDeltas` function.
