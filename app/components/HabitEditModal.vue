@@ -172,28 +172,13 @@
                     <!-- Calendar Grid -->
                     <div v-for="(day, i) in calendarDays" :key="i" class="flex flex-col items-center gap-1">
                       <div class="relative">
-                        <button
-                          type="button"
-                          @click.stop="openLogMenu(day, $event)"
-                          class="w-8 h-8 rounded-lg flex items-center justify-center transition-all border-2 relative"
-                          :class="[
-                            isMarkable(day) ? 'cursor-pointer' : 'cursor-default',
-                            (day.getMonth() !== currentCalendarDate.getMonth()) ? 'opacity-30 border-transparent' : '',
-                            getStatus(day) === 'completed' ? 'bg-emerald-500 border-emerald-500 shadow-md shadow-emerald-500/20' :
-                            getStatus(day) === 'failed' ? 'bg-rose-500 border-rose-500 shadow-md shadow-rose-500/20' :
-                            getStatus(day) === 'skipped' ? 'bg-zinc-500 border-zinc-500 shadow-none' :
-                            getStatus(day) === 'vacation' ? 'bg-amber-500 border-amber-500 shadow-md shadow-amber-500/20' :
-                            isMarkable(day) 
-                              ? 'border-dashed border-zinc-800 bg-transparent hover:bg-zinc-925' 
-                              : 'bg-white/[0.03] border-dashed border-zinc-900',
-                            !isMarkable(day) && day.getMonth() === currentCalendarDate.getMonth() ? (getStatus(day) ? 'opacity-60' : 'opacity-100') : ''
-                          ]"
-                        >
-                          <Check v-if="getStatus(day) === 'completed'" class="w-4 h-4 text-white" />
-                          <XIcon v-else-if="getStatus(day) === 'failed'" class="w-4 h-4 text-white" />
-                          <span v-else-if="getStatus(day) === 'skipped'" class="w-4 h-0.5 bg-white rounded-full"></span>
-                          <Palmtree v-else-if="getStatus(day) === 'vacation'" class="w-4 h-4 text-white" />
-                        </button>
+                    <!-- Calendar Timeline -->
+                    <TimelineRow
+                      interactive
+                      :days="calendarDays"
+                      :status-map="getStatusMap()"
+                      @click-day="openLogMenu"
+                    />
                       </div>
                       <div class="text-[9px] font-bold" :class="[
                         day.getMonth() === currentCalendarDate.getMonth() ? 'text-white' : 'text-zinc-600',
@@ -376,11 +361,12 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, nextTick } from 'vue';
 import { useModalHistory } from '~/composables/useModalHistory';
 import { Trash2, Check, X as XIcon, Minus, ChevronLeft, ChevronRight, User, ChevronUp, ChevronDown, Edit2, Save, CheckSquare, Flame, Palmtree } from 'lucide-vue-next';
 import { format, subDays, startOfMonth, endOfMonth, eachDayOfInterval, addDays, isAfter, startOfDay, subMonths, addMonths, parseISO, isBefore, isSameDay, isSameWeek, isSameMonth } from 'date-fns';
 import type { Habit, HabitLog } from '~/composables/useHabitsApi';
+import { getStreakTheme, isStreakFaded as isFaded, autoExpandTextarea as autoExpand } from '~/utils/ui';
+import { useCalendar } from '~/composables/useCalendar';
 
 const props = defineProps<{
   modelValue: boolean;
@@ -405,8 +391,13 @@ const showDeleteModal = ref(false);
 const showSharingConfirmModal = ref(false);
 const isEditingSharing = ref(false);
 const reachedConfirmViaDone = ref(false);
-const editDescriptionRef = ref<HTMLTextAreaElement | null>(null);
-const currentCalendarDate = ref(new Date());
+const {
+  currentDate: currentCalendarDate,
+  days: calendarDays,
+  prevMonth,
+  nextMonth
+} = useCalendar();
+
 const calendarLoading = ref(false);
 const isUpdatingHabit = ref(false);
 const isDeletingHabit = ref(false);
@@ -452,36 +443,13 @@ watch(() => props.modelValue, (isOpen) => {
   }
 }, { immediate: true });
 
-// Auto-expand textarea
-const autoExpand = (e: Event | HTMLElement) => {
-  const el = (e instanceof Event ? e.target : e) as HTMLTextAreaElement;
-  if (!el) return;
-  el.style.height = 'auto';
-  el.style.height = el.scrollHeight + 'px';
-};
+// Logic moved to utils/ui
 
-// Calendar Logic
-const calendarDays = computed(() => {
-  const start = startOfMonth(currentCalendarDate.value);
-  const end = endOfMonth(currentCalendarDate.value);
-  const daysInMonth = eachDayOfInterval({ start, end });
-  const firstDay = start.getDay();
-  const paddingStart = Array.from({ length: firstDay }, (_, i) => subDays(start, firstDay - i));
-  const lastDay = end.getDay();
-  const paddingEnd = Array.from({ length: 6 - lastDay }, (_, i) => addDays(end, i + 1));
-  return [...paddingStart, ...daysInMonth, ...paddingEnd];
-});
+// Logic moved to useCalendar
 
-const today = new Date();
-const isMarkable = (day: Date) => {
-  const d = startOfDay(day);
-  const t = startOfDay(today);
-  const limit = subDays(t, 13);
-  return !isBefore(d, limit) && !isAfter(d, t);
-};
+// Logic moved to TimelineRow
 
-const prevMonth = () => currentCalendarDate.value = subMonths(currentCalendarDate.value, 1);
-const nextMonth = () => currentCalendarDate.value = addMonths(currentCalendarDate.value, 1);
+// Logic moved to useCalendar
 
 // Sync logs when month changes
 watch(currentCalendarDate, async (newDate) => {
@@ -500,11 +468,15 @@ watch(currentCalendarDate, async (newDate) => {
   }
 });
 
-// Helper for status
-const getStatus = (day: Date) => {
-  if (!props.habit) return undefined;
-  const dateStr = format(day, 'yyyy-MM-dd');
-  return props.logs.find(l => l.habitId === props.habit?.id && l.date === dateStr)?.status;
+const getStatusMap = () => {
+  const map: Record<string, string> = {};
+  if (!props.habit) return map;
+  props.logs.forEach(l => {
+    if (l.habitId === props.habit?.id) {
+      map[l.date] = l.status;
+    }
+  });
+  return map;
 };
 
 const openLogMenu = (day: Date, event: MouseEvent) => {
@@ -611,17 +583,5 @@ const handleDelete = async () => {
   }
 };
 
-// Themes
-const isFaded = (habit: Habit) => {
-  if (!habit || !habit.streakAnchorDate) return false;
-  const anchor = startOfDay(parseISO(habit.streakAnchorDate));
-  const yesterday = startOfDay(subDays(new Date(), 1));
-  return isAfter(yesterday, anchor);
-};
-
-const getStreakTheme = (count: number) => {
-  if (count >= 30) return { border: 'border-yellow-400/50 shadow-lg shadow-yellow-400/10', text: 'text-yellow-400', fill: 'fill-yellow-400/80' };
-  if (count >= 7) return { border: 'border-violet-400/50 shadow-lg shadow-violet-400/10', text: 'text-violet-400', fill: 'fill-violet-400/80' };
-  return { border: 'border-emerald-500/50', text: 'text-emerald-500', fill: 'fill-emerald-500/80' };
-};
+// Logic moved to utils/ui
 </script>

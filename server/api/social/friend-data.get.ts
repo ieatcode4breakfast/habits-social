@@ -2,7 +2,6 @@ import { eq, and, or, sql, inArray, gte, lte, asc, desc } from 'drizzle-orm';
 import { friendships, habits as habitsTable, habitLogs } from '~~/server/db/schema';
 import { useDB as _useDB } from '~~/server/utils/db';
 import { requireAuth as _requireAuth } from '~~/server/utils/auth';
-import { normalizeHabit, normalizeLog } from '~~/server/utils/normalize';
 
 export default defineEventHandler(async (event) => {
   const requireAuth = (event.context as any).requireAuth || _requireAuth;
@@ -82,8 +81,8 @@ export default defineEventHandler(async (event) => {
 
   return {
     data: {
-      habits: habits.map(normalizeHabit),
-      logs: logs.map(normalizeLog)
+      habits: habits,
+      logs: logs
     }
   };
 });

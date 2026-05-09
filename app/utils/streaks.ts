@@ -2,6 +2,8 @@ import { parseISO, startOfDay, differenceInDays } from 'date-fns';
 import { db } from './db';
 import type { LocalHabit, LocalBucket } from './db';
 
+import { calculateStreakFromLogs } from '~~/utils/habits';
+
 // Helper to port logic
 export const recalculateLocalHabitStreak = async (habitId: string, ownerId: string, fromDate?: string) => {
   const habit = await db.habits.get(habitId);
@@ -50,63 +52,28 @@ export const recalculateLocalHabitStreak = async (habitId: string, ownerId: stri
     return await db.habits.get(habitId);
   }
 
-  let maxStreak = habit.longestStreak || 0;
-  let streakAnchorDate: string | null = habit.streakAnchorDate || null;
-  const updates: any[] = [];
+  // 4. Use shared logic for calculation
+  const { currentStreak, longestStreak, streakAnchorDate, logUpdates } = calculateStreakFromLogs(
+    logs,
+    runningStreak,
+    lastDate,
+    habit.longestStreak || 0,
+    habit.streakAnchorDate || null
+  );
 
-  for (const log of logs) {
-    const currentDate = startOfDay(parseISO(log.date));
-    
-    if (lastDate) {
-      const diff = differenceInDays(currentDate, lastDate);
-      if (diff > 1) {
-        runningStreak = 0; 
-      }
+  if (logUpdates.length > 0) {
+    for (const u of logUpdates) {
+      await db.habitLogs.update(u.id, {
+        streakCount: u.streakCount,
+        brokenStreakCount: u.brokenStreakCount,
+        updatedAt: Date.now()
+      } as any);
     }
-    
-    let brokenStreakCount = 0;
-    if (log.status === 'completed') {
-      runningStreak++;
-    } else if (log.status === 'failed') {
-      brokenStreakCount = runningStreak;
-      runningStreak = 0;
-    } else if (log.status === 'skipped') {
-      // intact
-    } else if (log.status === 'cleared') {
-      runningStreak = 0;
-    }
-
-    maxStreak = Math.max(maxStreak, runningStreak);
-    
-    if (['completed', 'failed', 'skipped', 'vacation'].includes(log.status)) {
-      streakAnchorDate = log.date;
-    }
-
-    // Only update if changed
-    if ((log as any).streakCount !== runningStreak || (log as any).brokenStreakCount !== brokenStreakCount) {
-        updates.push({
-            id: log.id,
-            streakCount: runningStreak,
-            brokenStreakCount: brokenStreakCount
-        });
-    }
-    
-    lastDate = currentDate;
   }
 
-    if (updates.length > 0) {
-      for (const u of updates) {
-        await db.habitLogs.update(u.id, {
-          streakCount: u.streakCount,
-          brokenStreakCount: u.brokenStreakCount,
-          updatedAt: Date.now()
-        } as any);
-      }
-    }
-
   await db.habits.update(habitId, {
-    currentStreak: runningStreak,
-    longestStreak: maxStreak,
+    currentStreak: currentStreak,
+    longestStreak: longestStreak,
     streakAnchorDate: streakAnchorDate,
     updatedAt: Date.now()
   });
@@ -161,49 +128,17 @@ export const recalculateLocalBucketStreak = async (bucketId: string, ownerId: st
     return await db.buckets.get(bucketId);
   }
 
-  let maxStreak = bucket.longestStreak || 0;
-  let streakAnchorDate: string | null = bucket.streakAnchorDate || null;
-  const updates: any[] = [];
+  // 4. Use shared logic for calculation
+  const { currentStreak, longestStreak, streakAnchorDate, logUpdates } = calculateStreakFromLogs(
+    logs,
+    runningStreak,
+    lastDate,
+    bucket.longestStreak || 0,
+    bucket.streakAnchorDate || null
+  );
 
-  for (const log of logs) {
-    const currentDate = startOfDay(parseISO(log.date));
-    
-    if (lastDate) {
-      const diff = differenceInDays(currentDate, lastDate);
-      if (diff > 1) {
-        runningStreak = 0; 
-      }
-    }
-    
-    let brokenStreakCount = 0;
-    if (log.status === 'completed') {
-      runningStreak++;
-    } else if (log.status === 'failed') {
-      brokenStreakCount = runningStreak;
-      runningStreak = 0;
-    } else if (log.status === 'cleared') {
-      runningStreak = 0;
-    } 
-
-    maxStreak = Math.max(maxStreak, runningStreak);
-    
-    if (['completed', 'failed', 'skipped', 'vacation'].includes(log.status)) {
-      streakAnchorDate = log.date;
-    }
-
-    if ((log as any).streakCount !== runningStreak || (log as any).brokenStreakCount !== brokenStreakCount) {
-      updates.push({
-        id: log.id,
-        streakCount: runningStreak,
-        brokenStreakCount: brokenStreakCount
-      });
-    }
-    
-    lastDate = currentDate;
-  }
-
-  if (updates.length > 0) {
-    for (const u of updates) {
+  if (logUpdates.length > 0) {
+    for (const u of logUpdates) {
       await db.bucketLogs.update(u.id, {
         streakCount: u.streakCount,
         brokenStreakCount: u.brokenStreakCount,
@@ -213,8 +148,8 @@ export const recalculateLocalBucketStreak = async (bucketId: string, ownerId: st
   }
 
   await db.buckets.update(bucketId, {
-    currentStreak: runningStreak,
-    longestStreak: maxStreak,
+    currentStreak: currentStreak,
+    longestStreak: longestStreak,
     streakAnchorDate: streakAnchorDate,
     updatedAt: Date.now()
   });

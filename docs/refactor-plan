@@ -1,0 +1,84 @@
+# Codebase Health & Architectural Refinement Plan
+
+This plan synthesizes the architectural assessments to ruthlessly eliminate technical debt, dead code, and SRP violations. The strategy follows a risk-mitigation path: starting with "leaf" deletions and progressing toward core structural refactoring.
+
+## User Review Required
+
+> [!IMPORTANT]
+> This plan involves deleting several directories and refactoring the core synchronization engine. While Phase 1 is low-risk, later phases—specifically the Sync Engine refactor—require mandatory automated unit testing to prevent silent data loss.
+
+## Phase 1: Dead Code & Redundancy Excision (COMPLETED)
+**Goal:** Reduce cognitive load and project weight by removing orphaned files, redundant mapping utilities, and unreferenced dependencies.
+
+### [Component Name]
+#### [DELETE] [_v1_archive](file:///c:/Users/Dwayne/Documents/Projects/habits-social/server/_v1_archive)
+#### [DELETE] [scratch](file:///c:/Users/Dwayne/Documents/Projects/habits-social/server/api/scratch)
+#### [DELETE] [_types](file:///c:/Users/Dwayne/Documents/Projects/habits-social/server/types/_types)
+#### [DELETE] [normalize.ts](file:///c:/Users/Dwayne/Documents/Projects/habits-social/server/utils/normalize.ts)
+#### [DELETE] [transform.ts](file:///c:/Users/Dwayne/Documents/Projects/habits-social/server/utils/transform.ts)
+#### [MODIFY] [.gitignore](file:///c:/Users/Dwayne/Documents/Projects/habits-social/.gitignore)
+- Add `scratch/` to prevent local scratchpads from polluting the repository.
+#### [MODIFY] [package.json](file:///c:/Users/Dwayne/Documents/Projects/habits-social/package.json)
+- Remove `@takumi-rs/core` and `@takumi-rs/wasm`.
+
+---
+
+## Phase 2: Logic Centralization (COMPLETED)
+**Goal:** Apply DRY principles to core business algorithms and isolate complex string interpolation logic.
+
+### [Utilities]
+#### [NEW] [habits.ts](file:///c:/Users/Dwayne/Documents/Projects/habits-social/utils/habits.ts)
+- Abstract the streak calculation algorithm from `app/utils/streaks.ts` and `server/utils/streaks.ts` into a single, pure utility in the root `utils/` directory to leverage Nuxt 3 auto-imports across both client and server.
+
+### [Server Services]
+#### [NEW] [social-narrator.service.ts](file:///c:/Users/Dwayne/Documents/Projects/habits-social/server/services/social-narrator.service.ts)
+- Extract the 150+ lines of "Narrator" logic (milestone formatting, message generation) from `feed.get.ts`.
+#### [MODIFY] [feed.get.ts](file:///c:/Users/Dwayne/Documents/Projects/habits-social/server/api/social/feed.get.ts)
+- Refactor to use the new service.
+
+---
+
+## Phase 3: UI Componentization (COMPLETED)
+**Goal:** Deconstruct "God Pages" into cohesive, reusable units and headless logic.
+
+### [Components]
+#### [NEW] [ReorderModal.vue](file:///c:/Users/Dwayne/Documents/Projects/habits-social/app/components/ReorderModal.vue)
+- Centralize reorder UI duplicated in `index.vue` and `buckets.vue`.
+#### [NEW] [TimelineRow.vue](file:///c:/Users/Dwayne/Documents/Projects/habits-social/app/components/TimelineRow.vue)
+- Extract the 7-day status grid used across multiple views.
+#### [MODIFY] [buckets.vue](file:///c:/Users/Dwayne/Documents/Projects/habits-social/app/pages/buckets.vue)
+- Extract inline "Add/Edit Bucket" modals into separate component files.
+
+### [Composables]
+#### [NEW] [useSortableList.ts](file:///c:/Users/Dwayne/Documents/Projects/habits-social/app/composables/useSortableList.ts)
+- Headless composable to manage drag-and-drop state logic currently duplicated in page components.
+
+---
+
+## Phase 4: Sync Engine & API Layering (High Risk)
+**Goal:** Decouple the data layer into clear tiers: Network, Persistence, and Reconciliation.
+
+### [Composables]
+#### [MODIFY] [useHabitsApi.ts](file:///c:/Users/Dwayne/Documents/Projects/habits-social/app/composables/useHabitsApi.ts)
+- Refactor into three specific layers:
+    1. **API Client:** Pure HTTP wrappers (`$fetch`).
+    2. **Local Store:** Pure Dexie/IndexedDB operations.
+    3. **Reconciliation Engine:** The `sync()` logic coordinating the two.
+#### [NEW] [useBucketState.ts](file:///c:/Users/Dwayne/Documents/Projects/habits-social/app/composables/useBucketState.ts)
+- Scoped state management for the Buckets domain.
+
+---
+
+## Verification Plan
+
+### Automated Tests
+- **Phase 1:** Run `npm test` to ensure no dependency regressions.
+- **Phase 2:** Create Vitest unit tests for the new shared `utils/habits.ts` streak logic.
+- **Phase 4 (Mandatory):** Implement a comprehensive suite of Vitest unit tests for the Reconciliation Engine covering:
+    - Conflict resolution (Server vs. Local timestamps).
+    - Offline-queue processing (replaying actions upon reconnection).
+    - Network retry logic and error state handling.
+
+### Manual Verification
+- Verify that "Offline First" synchronization still functions correctly by toggling habit logs in Airplane mode (DevTools) and ensuring they sync upon reconnection.
+- Visual regression check on `index.vue` and `buckets.vue` after component extraction.

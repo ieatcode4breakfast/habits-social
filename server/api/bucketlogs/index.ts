@@ -2,7 +2,6 @@ import { eq, and, gte, lte, sql } from 'drizzle-orm';
 import { bucketLogs, buckets as bucketsTable } from '~~/server/db/schema';
 import { useDB as _useDB } from '~~/server/utils/db';
 import { requireAuth as _requireAuth } from '~~/server/utils/auth';
-import { normalizeLog } from '~~/server/utils/normalize';
 import { bucketLogSchema } from '~~/server/utils/validation';
 
 import { BucketService } from '~~/server/services/bucket.service';
@@ -31,7 +30,7 @@ export default defineEventHandler(async (event) => {
     }
 
     const logs = await q;
-    return { data: logs.map(normalizeLog) };
+    return { data: logs };
   }
 
   if (event.method === 'POST') {
@@ -54,7 +53,7 @@ export default defineEventHandler(async (event) => {
 
     const result = await BucketService.logBucket(db, userId, data, event);
 
-    return { data: normalizeLog(result) };
+    return { data: result };
   }
 
   if (event.method === 'DELETE') {

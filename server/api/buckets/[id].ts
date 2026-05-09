@@ -2,7 +2,6 @@ import { eq, and, or, sql, inArray, notInArray, ne } from 'drizzle-orm';
 import { buckets as bucketsTable, bucketHabits, habits as habitsTable, friendships, sharedBucketMembers, syncDeletions } from '~~/server/db/schema';
 import { useDB as _useDB } from '~~/server/utils/db';
 import { requireAuth as _requireAuth } from '~~/server/utils/auth';
-import { normalizeBucket, normalizeHabit } from '~~/server/utils/normalize';
 import { bucketUpdateSchema } from '~~/server/utils/validation';
 import { reevaluateBucketLogs } from '~~/server/utils/buckets';
 

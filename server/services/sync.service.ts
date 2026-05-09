@@ -10,7 +10,6 @@ import {
   users 
 } from '~~/server/db/schema';
 import { getServerTime } from '~~/server/utils/db';
-import { normalizeHabit, normalizeBucket, normalizeLog } from '~~/server/utils/normalize';
 import type { SyncParams, SyncResponse } from '~~/server/types/sync';
 
 export const SyncService = {
@@ -121,19 +120,19 @@ export const SyncService = {
     }
 
     const normalizedBuckets = Array.from(bucketMap.values()).map(b => {
-      return normalizeBucket({
+      return {
         ...b,
         habitIds: Array.from(b.habitIds),
         sharedMembers: Array.from(b.sharedMembers.values()),
         sharedHabits: Array.from(b.sharedHabits.values())
-      });
+      };
     });
 
     return {
-      habits: habitsRes.map(normalizeHabit),
+      habits: habitsRes,
       buckets: normalizedBuckets,
-      habitLogs: habitLogsRes.map(normalizeLog),
-      bucketLogs: bucketLogsRes.map(normalizeLog),
+      habitLogs: habitLogsRes,
+      bucketLogs: bucketLogsRes,
       deletions: deletionsRes.map((d: any) => ({ id: d.entityId, type: d.entityType })),
       serverTime
     };

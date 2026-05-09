@@ -1,7 +1,7 @@
 import { parseISO, startOfDay, differenceInDays } from 'date-fns';
 import { eq, sql, desc, asc, and, inArray } from 'drizzle-orm';
-import { buckets, bucketLogs, bucketHabits, habits as habitsTable, sharedBucketMembers, habitLogs } from '../db/schema';
-import { normalizeBucket } from './normalize';
+  import { buckets, bucketLogs, bucketHabits, habits as habitsTable, sharedBucketMembers, habitLogs } from '../db/schema';
+import { calculateStreakFromLogs } from '../../utils/habits';
 
 export async function recalculateBucketStreak(db: any, bucketId: string, userId: string, fromDate?: string) {
   if (!bucketId || bucketId.length < 36) return;
@@ -78,50 +78,17 @@ export async function recalculateBucketStreak(db: any, bucketId: string, userId:
     return result[0];
   }
 
-  const logs = rawLogs;
+  // 4. Use shared logic for calculation
+  const { currentStreak, longestStreak, streakAnchorDate, logUpdates } = calculateStreakFromLogs(
+    rawLogs,
+    runningStreak,
+    lastDate,
+    maxStreak,
+    bucket.streakAnchorDate
+  );
 
-  let streakAnchorDate: string | null = bucket.streakAnchorDate;
-  const updates: any[] = [];
-
-  for (const log of logs) {
-    const currentDate = startOfDay(parseISO(log.date));
-    
-    if (lastDate) {
-      const diff = differenceInDays(currentDate, lastDate);
-      if (diff > 1) {
-        runningStreak = 0; 
-      }
-    }
-    
-    let brokenStreakCount = 0;
-    if (log.status === 'completed') {
-      runningStreak++;
-    } else if (log.status === 'failed') {
-      brokenStreakCount = runningStreak;
-      runningStreak = 0;
-    } else if (log.status === 'cleared') {
-      runningStreak = 0;
-    } 
-
-    maxStreak = Math.max(maxStreak, runningStreak);
-    
-    if (['completed', 'failed', 'skipped', 'vacation'].includes(log.status)) {
-      streakAnchorDate = log.date;
-    }
-
-    if (log.streakCount !== runningStreak || log.brokenStreakCount !== brokenStreakCount) {
-      updates.push({
-        id: log.id,
-        streakCount: runningStreak,
-        brokenStreakCount: brokenStreakCount
-      });
-    }
-    
-    lastDate = currentDate;
-  }
-
-  if (updates.length > 0) {
-    for (const update of updates) {
+  if (logUpdates.length > 0) {
+    for (const update of logUpdates) {
       await db.update(bucketLogs)
         .set({
           streakCount: update.streakCount,
@@ -134,8 +101,8 @@ export async function recalculateBucketStreak(db: any, bucketId: string, userId:
 
   const result = await db.update(buckets)
     .set({
-      currentStreak: runningStreak,
-      longestStreak: maxStreak,
+      currentStreak: currentStreak,
+      longestStreak: longestStreak,
       streakAnchorDate: streakAnchorDate,
       updatedAt: new Date()
     })

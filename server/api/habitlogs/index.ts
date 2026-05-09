@@ -3,7 +3,6 @@ import { eq, and, gte, lte, sql } from 'drizzle-orm';
 import { habitLogs, habits as habitsTable } from '~~/server/db/schema';
 import { useDB as _useDB } from '~~/server/utils/db';
 import { requireAuth as _requireAuth } from '~~/server/utils/auth';
-import { normalizeLog } from '~~/server/utils/normalize';
 import { habitLogSchema, throwZodError } from '~~/server/utils/validation';
 import { recalculateHabitStreak } from '~~/server/utils/streaks';
 import { syncBucketLogsForHabit } from '~~/server/utils/buckets';
@@ -37,7 +36,7 @@ export default defineEventHandler(async (event) => {
     }
 
     const logs = await q;
-    return { data: logs.map(normalizeLog) };
+    return { data: logs };
   }
 
   if (event.method === 'POST') {
@@ -70,7 +69,7 @@ export default defineEventHandler(async (event) => {
 
     const result = await HabitService.logHabit(db, userId, data, event);
 
-    return { data: normalizeLog(result) };
+    return { data: result };
   }
 
   if (event.method === 'DELETE') {

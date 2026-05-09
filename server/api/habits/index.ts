@@ -2,7 +2,6 @@ import { eq, and, gte, asc, desc, sql } from 'drizzle-orm';
 import { habits as habitsTable } from '~~/server/db/schema';
 import { useDB as _useDB } from '~~/server/utils/db';
 import { requireAuth as _requireAuth } from '~~/server/utils/auth';
-import { normalizeHabit } from '~~/server/utils/normalize';
 import { habitSchema, throwZodError } from '~~/server/utils/validation';
 
 export default defineEventHandler(async (event) => {
@@ -26,7 +25,7 @@ export default defineEventHandler(async (event) => {
     }
 
     const habits = await q.orderBy(asc(habitsTable.sortOrder), desc(habitsTable.createdAt));
-    return { data: habits.map(normalizeHabit) };
+    return { data: habits };
   }
 
   if (event.method === 'POST') {
@@ -91,6 +90,6 @@ export default defineEventHandler(async (event) => {
       throw createError({ statusCode: 500, statusMessage: 'Failed to create habit' });
     }
 
-    return { data: normalizeHabit(result[0]) };
+    return { data: result[0] };
   }
 });

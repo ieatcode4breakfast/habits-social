@@ -119,35 +119,13 @@
           </div>
         </div>
         
-        <!-- Checkboxes Section -->
-        <div class="w-full sm:w-[320px] lg:w-[400px] shrink-0 px-2 sm:px-0">
-          <div class="flex justify-evenly sm:justify-between items-center w-full">
-            <div v-for="(day, i) in days" :key="i" class="flex justify-center w-8">
-              <div class="relative">
-                <button
-                  @click.stop="openLogMenu(habit, day, $event)"
-                  class="w-8 h-8 rounded-lg flex items-center justify-center transition-all border-2 relative"
-                  :class="[
-                    isMarkable(day) ? 'cursor-pointer' : 'cursor-default',
-                    getStatus(habit.id, day) === 'completed' ? 'bg-emerald-500 border-emerald-500 shadow-md shadow-emerald-500/20' :
-                    getStatus(habit.id, day) === 'failed' ? 'bg-rose-500 border-rose-500 shadow-md shadow-rose-500/20' :
-                    getStatus(habit.id, day) === 'skipped' ? 'bg-zinc-500 border-zinc-500 shadow-none' :
-                    getStatus(habit.id, day) === 'vacation' ? 'bg-amber-500 border-amber-500 shadow-md shadow-amber-500/20' :
-                    isMarkable(day) 
-                      ? 'bg-transparent border-dashed border-zinc-800 hover:bg-zinc-925' 
-                      : 'bg-white/[0.03] border-dashed border-zinc-900',
-                    !isMarkable(day) && getStatus(habit.id, day) ? 'opacity-60' : ''
-                  ]"
-                >
-                  <Check v-if="getStatus(habit.id, day) === 'completed'" class="w-4 h-4 text-white" />
-                  <XIcon v-else-if="getStatus(habit.id, day) === 'failed'" class="w-4 h-4 text-white" />
-                  <Minus v-else-if="getStatus(habit.id, day) === 'skipped'" class="w-4 h-4 text-white" />
-                  <Palmtree v-else-if="getStatus(habit.id, day) === 'vacation'" class="w-4 h-4 text-white" />
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
+        <!-- Interactive Logs -->
+        <TimelineRow
+          interactive
+          :days="days"
+          :status-map="getHabitStatusMap(habit.id)"
+          @click-day="(day, event) => openLogMenu(habit, day, event)"
+        />
 
       </div>
       </template>
@@ -155,167 +133,12 @@
 
 
     <!-- Add Habit Modal -->
-    <Teleport to="body">
-      <Transition
-        enter-active-class="transition duration-300 ease-out"
-        enter-from-class="opacity-0 scale-95"
-        enter-to-class="opacity-100 scale-100"
-        leave-active-class="transition duration-200 ease-in"
-        leave-from-class="opacity-100 scale-100"
-        leave-to-class="opacity-0 scale-95"
-      >
-        <div v-if="showModal" 
-          class="fixed inset-0 z-[100] flex flex-col items-center justify-start overflow-y-auto sm:py-8 py-0"
-        >
-          <!-- Backdrop -->
-          <div class="fixed inset-0 bg-black/80 backdrop-blur-md touch-none" @click="showModal = false"></div>
-          
-          <!-- Modal Content -->
-          <div 
-            ref="modalContent"
-            class="relative my-auto w-full h-full sm:h-auto sm:max-w-md max-w-none bg-zinc-925 border-x-0 sm:border border-zinc-800 sm:rounded-3xl rounded-none shadow-2xl overflow-hidden transition-all duration-300 flex flex-col"
-          >
-            <!-- Sticky Header -->
-            <div class="sticky top-0 z-10 bg-zinc-925 px-4 sm:px-8 py-4 sm:py-6 border-b border-zinc-800/80 flex items-center gap-1 shrink-0">
-              <button @click="showModal = false" class="p-2 -ml-2 text-zinc-500 hover:text-white transition-all cursor-pointer flex-shrink-0">
-                <ChevronLeft class="w-6 h-6" />
-              </button>
-              <div class="flex-1 min-w-0">
-                <h2 class="text-lg font-bold text-white truncate leading-none min-w-0">New Habit</h2>
-              </div>
-            </div>
-
-            <!-- Scrollable Content -->
-            <div class="flex-1 overflow-y-auto p-4 sm:p-8 sm:py-6">
-              <form id="addHabitForm" @submit.prevent="addHabit" class="space-y-6">
-                <div class="space-y-2">
-                  <label class="text-xs font-bold uppercase tracking-widest text-zinc-500">Habit Name</label>
-                  <input
-                    v-model="newTitle"
-                    type="text"
-                    placeholder="e.g. Morning Meditation"
-                    required
-                    maxlength="50"
-                    autofocus
-                    class="w-full px-4 py-3 bg-black border border-zinc-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-zinc-600 text-white placeholder-zinc-700 transition-all"
-                  />
-                </div>
-
-                <!-- Description -->
-                <div class="space-y-2">
-                  <label class="text-xs font-bold uppercase tracking-widest text-zinc-500">Description</label>
-                  <div class="relative">
-                    <textarea
-                      v-model="newDescription"
-                      rows="1"
-                      maxlength="300"
-                      placeholder=""
-                      @input="autoExpand"
-                      class="w-full px-4 py-3 bg-black border border-zinc-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-zinc-600 text-white placeholder-zinc-700 transition-all resize-none overflow-hidden"
-                    ></textarea>
-                    <div class="absolute -bottom-5 right-1 text-[10px] font-bold text-zinc-600">
-                      {{ newDescription.length }}/300
-                    </div>
-                  </div>
-                </div>
-
-                <!-- Frequency Group -->
-                <div class="flex items-start gap-3">
-                  <!-- Left: Label + Selector -->
-                  <div class="flex flex-col gap-2">
-                    <label class="text-xs font-bold uppercase tracking-widest text-zinc-500 h-4 flex items-center">Skips Allowed</label>
-                    <select
-                      v-model="newSkipsPeriod"
-                      class="w-32 h-10 px-3 py-2 bg-black border border-zinc-800 rounded-lg focus:outline-none focus:ring-2 focus:ring-zinc-600 text-white appearance-none cursor-pointer text-sm"
-                    >
-                      <option value="none">No limit</option>
-                      <option value="weekly">Weekly</option>
-                      <option value="monthly">Monthly</option>
-                    </select>
-                  </div>
-
-                  <template v-if="newSkipsPeriod !== 'none'">
-                    <div class="flex items-start gap-3">
-                      <div class="flex items-center gap-3">
-                        <div class="flex flex-col items-center">
-                          <button type="button" @click="adjustFrequency(true, 1)" class="h-4 flex items-center justify-center text-zinc-500 hover:text-white transition-colors">
-                            <ChevronUp class="w-3 h-3" />
-                          </button>
-                          <div class="pt-2 pb-1">
-                            <input
-                              v-model.number="newSkipsCount"
-                              type="number"
-                              @blur="newSkipsCount = newSkipsPeriod === 'weekly' ? Math.max(0, Math.min(6, newSkipsCount)) : (newSkipsPeriod === 'monthly' ? Math.max(0, Math.min(28, newSkipsCount)) : 0)"
-                              class="w-10 h-10 bg-black border border-zinc-800 rounded-lg text-center text-sm font-medium text-white focus:outline-none focus:ring-1 focus:ring-zinc-600 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                            />
-                          </div>
-                          <button type="button" @click="adjustFrequency(true, -1)" class="h-4 flex items-center justify-center text-zinc-500 hover:text-white transition-colors">
-                            <ChevronDown class="w-3 h-3" />
-                          </button>
-                        </div>
-                        <span class="text-zinc-500 text-sm">{{ newSkipsCount === 1 ? 'skip' : 'skips' }}</span>
-                      </div>
-                    </div>
-                  </template>
-                </div>
-
-                <div v-if="friends.length > 0" class="space-y-3">
-                  <label class="text-xs font-bold uppercase tracking-widest text-zinc-500">Share with</label>
-                  <div class="space-y-2 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
-                    <label v-for="friend in friends" :key="friend.id" class="flex items-center justify-between p-3 bg-black border border-zinc-925 rounded-xl cursor-pointer hover:border-zinc-800 transition-colors">
-                      <div class="flex items-center gap-3">
-                        <UserAvatar 
-                          :src="friend.photoUrl" 
-                          container-class="w-8 h-8 bg-zinc-925"
-                          icon-class="w-4 h-4 text-zinc-600"
-                        />
-                        <span class="text-sm font-semibold text-zinc-200">{{ friend.username || 'Unknown' }}</span>
-                      </div>
-                      <div 
-                        class="w-6 h-6 rounded-lg flex items-center justify-center transition-all"
-                        :class="[
-                          newSharedWith.includes(friend.id) 
-                            ? 'bg-zinc-700 shadow-lg shadow-zinc-700/20' 
-                            : 'bg-zinc-925'
-                        ]"
-                      >
-                        <Check v-if="newSharedWith.includes(friend.id)" class="w-3.5 h-3.5 text-zinc-100" />
-                      </div>
-                      <input type="checkbox" :value="friend.id" v-model="newSharedWith" class="hidden" />
-                    </label>
-                  </div>
-                </div>
-              </form>
-            </div>
-
-            <!-- Fixed Footer -->
-            <div class="px-8 py-4 border-t border-zinc-800 bg-zinc-925/80 backdrop-blur-md flex gap-3">
-              <button
-                type="button"
-                @click="showModal = false"
-                class="flex-1 px-5 py-3 bg-transparent hover:bg-zinc-925 text-zinc-400 hover:text-zinc-200 font-semibold rounded-xl transition-all cursor-pointer whitespace-nowrap"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                form="addHabitForm"
-                :disabled="isAddingHabit"
-                class="flex-1 px-5 py-3 bg-white hover:bg-zinc-200 text-black font-semibold rounded-xl transition-all shadow-lg shadow-white/5 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer whitespace-nowrap"
-              >
-                <template v-if="isAddingHabit">
-                  <div class="w-4 h-4 border-2 border-black/20 border-t-black rounded-full animate-spin"></div>
-                  Adding...
-                </template>
-                <template v-else>
-                  Add Habit
-                </template>
-              </button>
-            </div>
-          </div>
-        </div>
-      </Transition>
-    </Teleport>
+    <HabitAddModal
+      v-model="showModal"
+      :friends="friends"
+      :saving="isAddingHabit"
+      @save="handleHabitAdd"
+    />
 
     <!-- Shared Habit Edit Modal -->
     <HabitEditModal
@@ -329,66 +152,12 @@
     />
 
     <!-- Reorder Modal -->
-    <Teleport to="body">
-      <Transition
-        enter-active-class="transition duration-300 ease-out"
-        enter-from-class="opacity-0 scale-95"
-        enter-to-class="opacity-100 scale-100"
-        leave-active-class="transition duration-200 ease-in"
-        leave-from-class="opacity-100 scale-100"
-        leave-to-class="opacity-0 scale-95"
-      >
-        <div v-if="showReorderModal" class="fixed inset-0 z-[100] flex flex-col items-center justify-start overflow-y-auto sm:p-4 p-0 sm:py-8">
-          <!-- Backdrop -->
-          <div class="fixed inset-0 bg-black/80 backdrop-blur-md touch-none" @click="showReorderModal = false"></div>
-
-          <!-- Modal Content -->
-          <div class="relative my-auto w-full sm:max-w-sm bg-zinc-925 border-t sm:border border-zinc-800 sm:rounded-3xl rounded-3xl shadow-2xl overflow-hidden flex flex-col" style="max-height: 80vh">
-            <!-- Header -->
-            <div class="flex items-center justify-between px-5 py-4 border-b border-zinc-800/80 shrink-0">
-              <div>
-                <h2 class="text-base font-bold text-white">Reorder habits</h2>
-                <p class="text-[11px] text-zinc-500 mt-0.5">Drag to rearrange</p>
-              </div>
-              <button
-                @click="showReorderModal = false"
-                class="px-4 py-2 bg-white hover:bg-zinc-200 text-black text-xs font-bold rounded-lg transition-all cursor-pointer whitespace-nowrap"
-              >
-                Done
-              </button>
-            </div>
-
-            <!-- Compact habit list -->
-            <div class="overflow-y-auto flex-1 p-2">
-              <div
-                v-for="habit in habits"
-                :key="habit.id"
-                :data-habit-id="habit.id"
-                draggable="true"
-                @dragstart="onDragStart($event, habit.id)"
-                @dragover.prevent="onDragOver($event, habit.id)"
-                @drop.prevent="onDrop($event, habit.id)"
-                @dragend="onDragEnd"
-                class="flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all select-none"
-                :class="[
-                  draggingId === habit.id ? 'opacity-30' : 'opacity-100',
-                  dragOverId === habit.id ? 'bg-zinc-700/60 ring-1 ring-white/20' : 'hover:bg-zinc-800/60'
-                ]"
-              >
-                <div
-                  class="touch-none shrink-0 text-zinc-500 hover:text-zinc-300 transition-colors"
-                  :class="isDragging ? 'cursor-grabbing' : 'cursor-grab'"
-                  @touchstart.prevent="onGripTouchStart($event)"
-                >
-                  <GripVertical class="w-4 h-4" />
-                </div>
-                <span class="text-sm font-semibold text-zinc-200 truncate flex-1">{{ habit.title }}</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </Transition>
-    </Teleport>
+    <ReorderModal
+      v-model="showReorderModal"
+      title="Reorder habits"
+      :items="habits"
+      @reorder="onHabitsReordered"
+    />
 
     <!-- Global Log Menu -->
     <LogMenu
@@ -408,6 +177,9 @@
 import { Plus, Trash2, Check, X as XIcon, Minus, ChevronLeft, ChevronRight, User, ChevronUp, ChevronDown, Edit2, Save, CheckSquare, GripVertical, ArrowUpDown, Flame, Palmtree } from 'lucide-vue-next';
 import { format, subDays, isToday, startOfMonth, endOfMonth, eachDayOfInterval, addMonths, subMonths, isAfter, startOfDay, addDays, isSameWeek, isSameMonth, parseISO, startOfWeek, isBefore, isSameDay } from 'date-fns';
 import type { Habit, HabitLog } from '~/composables/useHabitsApi';
+import { getStreakTheme, isStreakFaded as isFaded, autoExpandTextarea as autoExpand } from '~/utils/ui';
+import { useSortableList } from '~/composables/useSortableList';
+import { useCalendar } from '~/composables/useCalendar';
 
 definePageMeta({ middleware: 'auth' });
 import { useSocial } from '../composables/useSocial';
@@ -439,90 +211,48 @@ const habits = ref<Habit[]>([]);
 const logs = ref<HabitLog[]>([]);
 const loading = ref(true);
 
-const newTitle = ref('');
-const newDescription = ref('');
-const newSkipsCount = ref(2);
-const newSkipsPeriod = ref<'none' | 'weekly' | 'monthly'>('weekly');
-const newSharedWith = ref<string[]>([]);
 const showModal = ref(false);
 const showReorderModal = ref(false);
-
 const showEditModal = ref(false);
-const showDeleteModal = ref(false);
 const editingHabit = ref<Habit | null>(null);
-const editTitle = ref('');
-const editDescription = ref('');
-const editSkipsCount = ref(2);
-const editSkipsPeriod = ref<'none' | 'weekly'|'monthly'>('weekly');
 const editSharedWith = ref<string[]>([]);
 const editSharedWithWorking = ref<string[]>([]);
 const isEditingSharing = ref(false);
 const showSharingConfirmModal = ref(false);
 const reachedConfirmViaDone = ref(false);
 const editDescriptionRef = ref<HTMLTextAreaElement | null>(null);
-const currentCalendarDate = ref(new Date());
+const {
+  currentDate: currentCalendarDate,
+  days: calendarDays,
+  prevMonth,
+  nextMonth
+} = useCalendar();
+
 const calendarLoading = ref(false);
 const isAddingHabit = ref(false);
 
-const draggingId = ref<string | null>(null);
-const dragOverId = ref<string | null>(null);
-const isDragging = ref(false);
+const {
+  draggingId,
+  dragOverId,
+  isDragging,
+  onDragStart,
+  onDragOver,
+  onDrop,
+  onDragEnd,
+  onGripTouchStart: onGripTouchStartRaw
+} = useSortableList(habits, (newOrderIds) => {
+  api.reorderHabits(newOrderIds).catch(err => {
+    console.error('[My Habits] Failed to save reorder:', err);
+    showToast('Failed to save order', 'failed');
+  });
+});
 
-const onDragStart = (e: DragEvent, id: string) => {
-  draggingId.value = id;
-  isDragging.value = true;
-  if (e.dataTransfer) {
-    e.dataTransfer.effectAllowed = 'move';
-    e.dataTransfer.setData('text/plain', id);
-  }
+const onHabitsReordered = (newOrderIds: string[]) => {
+  api.reorderHabits(newOrderIds);
 };
 
-const onDragOver = (e: DragEvent, id: string) => {
-  if (draggingId.value === id) return;
-  dragOverId.value = id;
-};
-
-const onDrop = async (e: DragEvent, targetId: string) => {
-  const sourceId = draggingId.value;
-  if (!sourceId || sourceId === targetId) return;
-
-  const oldIndex = habits.value.findIndex(h => h.id === sourceId);
-  const newIndex = habits.value.findIndex(h => h.id === targetId);
-
-  if (oldIndex !== -1 && newIndex !== -1) {
-    const [movedHabit] = habits.value.splice(oldIndex, 1);
-    if (movedHabit) {
-      habits.value.splice(newIndex, 0, movedHabit);
-    }
-    
-    try {
-      await api.reorderHabits(habits.value.map(h => h.id));
-    } catch (err) {
-      console.error('[My Habits] Failed to save reorder:', err);
-      showToast('Failed to save order', 'failed');
-    }
-  }
-  
-  dragOverId.value = null;
-  draggingId.value = null;
-};
-
-const onDragEnd = () => {
-  draggingId.value = null;
-  dragOverId.value = null;
-  isDragging.value = false;
-};
-
-const onGripTouchStart = (e: TouchEvent) => {
-  // Grip handle touch start placeholder
-};
-
-const adjustFrequency = (isNew: boolean, delta: number) => {
-  if (isNew) {
-    if (newSkipsPeriod.value === 'none') return;
-    const max = newSkipsPeriod.value === 'weekly' ? 6 : 28;
-    newSkipsCount.value = Math.max(0, Math.min(max, newSkipsCount.value + delta));
-  }
+const onGripTouchStart = (e: TouchEvent, id: string) => {
+  onGripTouchStartRaw(e, id, '[data-habit-id]');
 };
 
 const openAddModal = () => {
@@ -533,23 +263,9 @@ const openAddModal = () => {
   showModal.value = true;
 };
 
-const autoExpand = (e: Event | HTMLElement) => {
-  const el = (e instanceof Event ? e.target : e) as HTMLTextAreaElement;
-  if (!el) return;
-  el.style.height = 'auto';
-  el.style.height = el.scrollHeight + 'px';
-};
+// Logic moved to utils/ui
 
-const calendarDays = computed(() => {
-  const start = startOfMonth(currentCalendarDate.value);
-  const end = endOfMonth(currentCalendarDate.value);
-  const daysInMonth = eachDayOfInterval({ start, end });
-  const firstDay = start.getDay();
-  const paddingStart = Array.from({ length: firstDay }, (_, i) => subDays(start, firstDay - i));
-  const lastDay = end.getDay();
-  const paddingEnd = Array.from({ length: 6 - lastDay }, (_, i) => addDays(end, i + 1));
-  return [...paddingStart, ...daysInMonth, ...paddingEnd];
-});
+// Logic moved to useCalendar
 
 const today = new Date();
 const isFutureDay = (day: Date) => isAfter(startOfDay(day), startOfDay(today));
@@ -563,30 +279,7 @@ const days = Array.from({ length: 7 }, (_, i) => addDays(startOfWeek(today, { we
 const startDate = format(startOfMonth(subMonths(today, 1)), 'yyyy-MM-dd');
 const endDate = format(endOfMonth(addMonths(today, 1)), 'yyyy-MM-dd');
 
-const isFaded = (habit: Habit) => {
-  if (!habit || !habit.streakAnchorDate) return false;
-  const anchor = startOfDay(parseISO(habit.streakAnchorDate));
-  const yesterday = startOfDay(subDays(new Date(), 1));
-  return isAfter(yesterday, anchor);
-};
-
-const getStreakTheme = (count: number) => {
-  if (count >= 30) return { 
-    border: 'border-yellow-400/50 shadow-lg shadow-yellow-400/10', 
-    text: 'text-yellow-400', 
-    fill: 'fill-yellow-400/80' 
-  };
-  if (count >= 7) return { 
-    border: 'border-violet-400/50 shadow-lg shadow-violet-400/10', 
-    text: 'text-violet-400', 
-    fill: 'fill-violet-400/80' 
-  };
-  return { 
-    border: 'border-emerald-500/50', 
-    text: 'text-emerald-500', 
-    fill: 'fill-emerald-500/80' 
-  };
-};
+// Logic moved to utils/ui
 
 const getFrequencyText = (habit: Habit) => {
   const period = habit.skipsPeriod;
@@ -637,9 +330,12 @@ const load = async (silent = false) => {
 
 
 
-const getStatus = (habitId: string, day: Date) => {
-  const dateStr = format(day, 'yyyy-MM-dd');
-  return logs.value.find(l => l.habitId === habitId && l.date === dateStr)?.status;
+const getHabitStatusMap = (habitId: string) => {
+  const map: Record<string, string> = {};
+  logs.value.filter(l => l.habitId === habitId).forEach(l => {
+    map[l.date] = l.status;
+  });
+  return map;
 };
 
 const activeLogMenu = ref<{ habitId: string, date: Date } | null>(null);
@@ -741,36 +437,16 @@ const setLogStatus = async (habit: Habit, day: Date, nextStatus: 'completed' | '
   }
 };
 
-const toggleLog = async (habit: Habit, day: Date) => {
-  // Legacy toggleLog kept for internal use or removed. 
-  // Switching to openLogMenu and setLogStatus.
-};
-
-const addHabit = async () => {
-  if (!newTitle.value.trim() || isAddingHabit.value) return;
-  
-  if (habits.value.length >= 30) {
-    showToast('Limit reached: You can track a maximum of 30 habits.', 'failed');
-    return;
-  }
-
+const handleHabitAdd = async (data: any) => {
+  if (isAddingHabit.value) return;
   isAddingHabit.value = true;
   try {
     const habit = await api.createHabit({ 
-      title: newTitle.value.trim(), 
-      description: newDescription.value.trim(),
-      skipsCount: newSkipsCount.value,
-      skipsPeriod: newSkipsPeriod.value,
-      sharedWith: newSharedWith.value,
+      ...data,
       color: '#6366f1',
       userDate: format(new Date(), 'yyyy-MM-dd')
     });
     habits.value.unshift(habit);
-    newTitle.value = '';
-    newDescription.value = '';
-    newSkipsCount.value = 2;
-    newSkipsPeriod.value = 'weekly';
-    newSharedWith.value = [];
     showModal.value = false;
   } catch (error) {
     console.error('[My Habits] Failed to add habit:', error);

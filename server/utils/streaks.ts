@@ -1,7 +1,7 @@
 import { parseISO, startOfDay, differenceInDays } from 'date-fns';
 import { eq, lt, gte, desc, asc, sql } from 'drizzle-orm';
 import { habits, habitLogs } from '../db/schema';
-import { normalizeHabit, normalizeLog } from './normalize';
+import { calculateStreakFromLogs } from '../../utils/habits';
 
 export async function recalculateHabitStreak(db: any, habitId: string, userId: string, fromDate?: string) {
   if (!habitId || habitId.length < 36) return;
@@ -82,56 +82,18 @@ export async function recalculateHabitStreak(db: any, habitId: string, userId: s
     return result[0];
   }
 
-  const logs = rawLogs;
-
-  // 4. The Cascading Update: Iterate through timeline and calculate counts
-  let streakAnchorDate: string | null = habit.streakAnchorDate;
-  const updates: any[] = [];
-
-  for (const log of logs) {
-    const currentDate = startOfDay(parseISO(log.date));
-
-    // Check for gap (more than 1 day between logs)
-    if (lastDate) {
-      const diff = differenceInDays(currentDate, lastDate);
-      if (diff > 1) {
-        runningStreak = 0; // Gap detected, reset streak
-      }
-    }
-
-    let brokenStreakCount = 0;
-    if (log.status === 'completed') {
-      runningStreak++;
-    } else if (log.status === 'failed') {
-      brokenStreakCount = runningStreak;
-      runningStreak = 0;
-    } else if (log.status === 'skipped' || log.status === 'vacation') {
-      // Streak remains intact (protected)
-    } else if (log.status === 'cleared') {
-      runningStreak = 0;
-    }
-
-    maxStreak = Math.max(maxStreak, runningStreak);
-
-    // The anchor is the most recent log date with a valid status
-    if (['completed', 'failed', 'skipped', 'vacation'].includes(log.status)) {
-      streakAnchorDate = log.date;
-    }
-
-    if (log.streakCount !== runningStreak || log.brokenStreakCount !== brokenStreakCount) {
-      updates.push({
-        id: log.id,
-        streakCount: runningStreak,
-        brokenStreakCount: brokenStreakCount
-      });
-    }
-
-    lastDate = currentDate;
-  }
+  // 4. Use shared logic for calculation
+  const { currentStreak, longestStreak, streakAnchorDate, logUpdates } = calculateStreakFromLogs(
+    rawLogs,
+    runningStreak,
+    lastDate,
+    maxStreak,
+    habit.streakAnchorDate
+  );
 
   // 5. Update habitlogs
-  if (updates.length > 0) {
-    for (const update of updates) {
+  if (logUpdates.length > 0) {
+    for (const update of logUpdates) {
       await db.update(habitLogs)
         .set({
           streakCount: update.streakCount,
@@ -145,8 +107,8 @@ export async function recalculateHabitStreak(db: any, habitId: string, userId: s
   // 6. Final Habit Update: Set current and longest streak
   const result = await db.update(habits)
     .set({
-      currentStreak: runningStreak,
-      longestStreak: maxStreak,
+      currentStreak: currentStreak,
+      longestStreak: longestStreak,
       streakAnchorDate: streakAnchorDate,
       updatedAt: new Date()
     })

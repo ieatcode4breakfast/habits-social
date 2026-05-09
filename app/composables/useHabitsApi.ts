@@ -1,17 +1,8 @@
-import { db } from '~/utils/db';
 import { format, subDays, addDays } from 'date-fns';
-import { recalculateLocalHabitStreak, recalculateLocalBucketStreak } from '~/utils/streaks';
-
-const generateId = () => {
-  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
-    return crypto.randomUUID();
-  }
-  // Fallback for non-secure contexts or older browsers: valid UUIDv4 structure
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
-    const r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
-    return v.toString(16);
-  });
-};
+import { liveQuery } from 'dexie';
+import { db } from '~/utils/db';
+import { useHabitsClient } from './useHabitsClient';
+import { useHabitsStore } from './useHabitsStore';
 
 export interface Habit {
   id: string;
@@ -53,7 +44,6 @@ export interface Bucket {
   currentStreak?: number;
   longestStreak?: number;
   streakAnchorDate?: string | null;
-  // Shared metadata
   sharedMembers?: Array<{ userId: string; username: string; status: string }>;
   sharedHabits?: Array<{ habitId: string; approvalStatus: string; addedBy: string; habitOwnerId: string }>;
 }
@@ -68,60 +58,51 @@ export interface BucketLog {
   brokenStreakCount?: number;
 }
 
-// Global module-level state to act as a true singleton lock across all components
 const isSyncing = ref(false);
 const syncNeeded = ref(false);
 
 export const useHabitsApi = () => {
+  const client = useHabitsClient();
+  const store = useHabitsStore();
   const { user } = useAuth();
-  const getOwnerId = () => user.value?.id || '';
-  const lastSyncTime = useState('last-sync-time', () => 0);
-
-  // Helper to strip Vue reactivity before saving to IndexedDB
-  const toPlain = (obj: any) => JSON.parse(JSON.stringify(obj));
-
-  // --- Background Sync Helpers ---
-  const removeHabitFromBuckets = async (habitId: string) => {
-    const buckets = await db.buckets.toArray();
-    for (const bucket of buckets) {
-      if (bucket.habitIds?.includes(habitId)) {
-        const filtered = bucket.habitIds.filter(id => id !== habitId);
-        await db.buckets.update(bucket.id, {
-          habitIds: filtered,
-          synced: (bucket as any).synced === 1 ? -1 : (bucket as any).synced,
-          updatedAt: Date.now()
-        });
-      }
-    }
-  };
+  
+  let lastSyncTime;
+  try {
+    lastSyncTime = useState('last-sync-time', () => 0);
+  } catch {
+    lastSyncTime = ref(0);
+  }
 
   const triggerSync = () => {
     sync().catch(err => console.error('[Sync] Background sync failed:', err));
   };
 
+  // --- Reactive State (Facade Layer) ---
+  const habits = ref<Habit[]>([]);
+  const buckets = ref<Bucket[]>([]);
+
+  if (import.meta.client) {
+    const habitsQuery = liveQuery(() => store.getHabits());
+    const bucketsQuery = liveQuery(() => store.getBuckets());
+    
+    habitsQuery.subscribe(val => { habits.value = val; });
+    bucketsQuery.subscribe(val => { buckets.value = val; });
+  }
+
   // --- Habits ---
-  const getHabits = async () => {
-    const habits = await db.habits.where('ownerId').equals(getOwnerId()).toArray();
-    return habits.sort((a, b) => {
-      const orderDiff = (a.sortOrder || 0) - (b.sortOrder || 0);
-      if (orderDiff !== 0) return orderDiff;
-      const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
-      const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
-      return dateB - dateA;
-    });
-  };
+  const getHabits = () => store.getHabits();
 
   const createHabit = async (data: Partial<Habit>) => {
-    const newHabit: any = toPlain({
+    const newHabit: any = store.toPlain({
       ...data,
-      id: data.id || generateId(),
-      ownerId: getOwnerId(),
+      id: data.id || store.generateId(),
+      ownerId: store.getOwnerId(),
       synced: 0,
       sortOrder: data.sortOrder ?? 0,
       createdAt: data.createdAt || new Date().toISOString(),
       updatedAt: Date.now()
     });
-    await db.habits.put(newHabit);
+    await store.putHabit(newHabit);
     triggerSync();
     return newHabit;
   };
@@ -130,13 +111,13 @@ export const useHabitsApi = () => {
     const existing = await db.habits.get(id);
     if (!existing) throw new Error('Habit not found');
 
-    const updated = toPlain({
+    const updated = store.toPlain({
       ...existing,
       ...data,
       synced: (existing as any).synced === 1 ? -1 : (existing as any).synced,
       updatedAt: Date.now()
     });
-    await db.habits.put(updated);
+    await store.putHabit(updated);
     triggerSync();
     return updated;
   };
@@ -146,138 +127,65 @@ export const useHabitsApi = () => {
     if (habit?.synced) {
       await db.syncQueue.add({ type: 'habit', action: 'DELETE', payload: { id } });
     }
-
-    await db.habits.delete(id);
-    await db.habitLogs.where({ habitId: id }).delete();
-    await removeHabitFromBuckets(id);
+    await store.deleteHabit(id);
+    await store.removeHabitFromBuckets(id);
     triggerSync();
   };
 
   const reorderHabits = async (ids: string[]) => {
-    // 1. Local Settlement: Update Dexie sortOrder immediately
     const updates = ids.map(async (id, index) => {
-      return db.habits.update(id, {
+      return store.updateHabit(id, {
         sortOrder: index,
         updatedAt: Date.now()
       });
     });
     await Promise.all(updates);
-
-    // 2. Queue Root Action: Add reorder to syncQueue
-    await db.syncQueue.add({
-      type: 'habit',
-      action: 'REORDER',
-      payload: { ids }
-    });
-
+    await db.syncQueue.add({ type: 'habit', action: 'REORDER', payload: { ids } });
     triggerSync();
   };
 
   // --- Habit Logs ---
-  const getLogs = async (startDate: string, endDate: string) => {
-    return await db.habitLogs
-      .where('ownerId').equals(getOwnerId())
-      .filter(log => log.date >= startDate && log.date <= endDate)
-      .toArray();
-  };
-
-  const syncLocalBucketLogs = async (habitId: string, date: string) => {
-    const allBuckets = await db.buckets.where('ownerId').equals(getOwnerId()).toArray();
-    const affectedBuckets = allBuckets.filter(b => b.habitIds?.includes(habitId));
-
-    for (const bucket of affectedBuckets) {
-      const habitsInBucket = bucket.habitIds || [];
-      if (habitsInBucket.length === 0) continue;
-
-      const logs = await db.habitLogs
-        .where('ownerId').equals(getOwnerId())
-        .filter(l => habitsInBucket.includes(l.habitId) && l.date === date && l.status !== 'cleared')
-        .toArray();
-
-      const uniqueLoggedHabits = new Set(logs.map(l => l.habitId));
-      if (uniqueLoggedHabits.size === habitsInBucket.length) {
-        let finalStatus: 'completed' | 'failed' | 'skipped' | 'vacation' = 'completed';
-        const statuses = logs.map(l => l.status);
-
-        if (statuses.includes('failed')) finalStatus = 'failed';
-        else if (statuses.includes('skipped')) finalStatus = 'skipped';
-        else if (statuses.includes('vacation')) finalStatus = 'vacation';
-
-        await db.bucketLogs.put({
-          id: `${bucket.id}_${date}`,
-          bucketId: bucket.id,
-          ownerId: getOwnerId(),
-          date: date,
-          status: finalStatus,
-          synced: 0,
-          updatedAt: Date.now()
-        });
-      } else {
-        await db.bucketLogs.put({
-          id: `${bucket.id}_${date}`,
-          bucketId: bucket.id,
-          ownerId: getOwnerId(),
-          date: date,
-          status: 'cleared',
-          synced: 0,
-          updatedAt: Date.now()
-        });
-      }
-      await recalculateLocalBucketStreak(bucket.id, getOwnerId(), date);
-    }
-  };
+  const getLogs = (startDate: string, endDate: string) => store.getLogs(startDate, endDate);
 
   const upsertLog = async (data: { habitId: string; date: string; status: string; sharedWith?: string[] }) => {
     const logId = `${data.habitId}_${data.date}`;
-    const newLog: any = toPlain({
+    const newLog: any = store.toPlain({
       id: logId,
       ...data,
-      ownerId: getOwnerId(),
+      ownerId: store.getOwnerId(),
       synced: 0,
       updatedAt: Date.now()
     });
-    await db.habitLogs.put(newLog);
+    await store.putLog(newLog);
 
-    await recalculateLocalHabitStreak(data.habitId, getOwnerId(), data.date);
+    const { recalculateLocalHabitStreak } = await import('~/utils/streaks');
+    await recalculateLocalHabitStreak(data.habitId, store.getOwnerId(), data.date);
+    
     const habit = await db.habits.get(data.habitId);
-    await syncLocalBucketLogs(data.habitId, data.date);
+    await store.syncLocalBucketLogs(data.habitId, data.date);
 
     triggerSync();
     return { log: newLog, habit: habit! };
   };
 
   const deleteLog = async (habitId: string, date: string) => {
-    const result = await upsertLog({
-      habitId: habitId,
-      date,
-      status: 'cleared'
-    });
-    return { success: true, ...result };
+    return await upsertLog({ habitId, date, status: 'cleared' });
   };
 
   // --- Buckets ---
-  const getBuckets = async () => {
-    const buckets = await db.buckets.where('ownerId').equals(getOwnerId()).toArray();
-    return buckets.sort((a, b) => {
-      const orderDiff = (a.sortOrder || 0) - (b.sortOrder || 0);
-      if (orderDiff !== 0) return orderDiff;
-      const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
-      const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
-      return dateB - dateA;
-    });
-  };
+  const getBuckets = () => store.getBuckets();
 
   const createBucket = async (data: Partial<Bucket>) => {
-    const newBucket: any = toPlain({
+    const newBucket: any = store.toPlain({
       ...data,
-      id: data.id || generateId(),
-      ownerId: getOwnerId(),
+      id: data.id || store.generateId(),
+      ownerId: store.getOwnerId(),
       synced: 0,
       sortOrder: data.sortOrder ?? 0,
       createdAt: data.createdAt || new Date().toISOString(),
       updatedAt: Date.now()
     });
-    await db.buckets.put(newBucket);
+    await store.putBucket(newBucket);
     triggerSync();
     return newBucket;
   };
@@ -286,13 +194,13 @@ export const useHabitsApi = () => {
     const existing = await db.buckets.get(id);
     if (!existing) throw new Error('Bucket not found');
 
-    const updated = toPlain({
+    const updated = store.toPlain({
       ...existing,
       ...data,
       synced: (existing as any).synced === 1 ? -1 : (existing as any).synced,
       updatedAt: Date.now()
     });
-    await db.buckets.put(updated);
+    await store.putBucket(updated);
     triggerSync();
     return updated;
   };
@@ -302,41 +210,27 @@ export const useHabitsApi = () => {
     if (bucket?.synced) {
       await db.syncQueue.add({ type: 'bucket', action: 'DELETE', payload: { id } });
     }
-    await db.buckets.delete(id);
-    await db.bucketLogs.where({ bucketId: id }).delete();
+    await store.deleteBucket(id);
     triggerSync();
   };
 
-  const getBucketLogs = async (startDate: string, endDate: string) => {
-    return await db.bucketLogs
-      .where('ownerId').equals(getOwnerId())
-      .filter(log => log.date >= startDate && log.date <= endDate)
-      .toArray();
-  };
+  const getBucketLogs = (startDate: string, endDate: string) => store.getBucketLogs(startDate, endDate);
 
   const reorderBuckets = async (ids: string[]) => {
-    // 1. Local Settlement: Update Dexie sortOrder immediately
     const updates = ids.map(async (id, index) => {
-      return db.buckets.update(id, {
+      return store.updateBucket(id, {
         sortOrder: index,
         updatedAt: Date.now()
       });
     });
     await Promise.all(updates);
-
-    // 2. Queue Root Action: Add reorder to syncQueue
-    await db.syncQueue.add({
-      type: 'bucket',
-      action: 'REORDER',
-      payload: { ids }
-    });
-
+    await db.syncQueue.add({ type: 'bucket', action: 'REORDER', payload: { ids } });
     triggerSync();
   };
 
-  // --- The Core Sync Engine ---
+  // --- The Core Sync Engine (Reconciliation) ---
   const sync = async () => {
-    if (!user.value) return;
+    if (!user.value || !import.meta.client) return;
     if (isSyncing.value) {
       syncNeeded.value = true;
       return;
@@ -352,143 +246,74 @@ export const useHabitsApi = () => {
         for (const d of queuedActions) {
           try {
             if (d.action === 'DELETE') {
-              if (d.type === 'habit') {
-                await $fetch(`/api/habits/${d.payload.id}`, { method: 'DELETE' });
-              } else if (d.type === 'bucket') {
-                await $fetch(`/api/buckets/${d.payload.id}`, { method: 'DELETE' });
-              }
+              if (d.type === 'habit') await client.deleteHabit(d.payload.id);
+              else if (d.type === 'bucket') await client.deleteBucket(d.payload.id);
             } else if (d.action === 'REORDER') {
               if (d.type === 'habit') {
-                await $fetch('/api/habits/reorder', { method: 'POST', body: { ids: d.payload.ids } });
-                // Mark these habits as synced
+                await client.postReorderHabits(d.payload.ids);
                 await db.habits.where('id').anyOf(d.payload.ids).modify({ synced: 1 });
               } else if (d.type === 'bucket') {
-                await $fetch('/api/buckets/reorder', { method: 'POST', body: { ids: d.payload.ids } });
-                // Mark these buckets as synced
+                await client.postReorderBuckets(d.payload.ids);
                 await db.buckets.where('id').anyOf(d.payload.ids).modify({ synced: 1 });
               }
             }
             if (d.id) await db.syncQueue.delete(d.id);
           } catch (e: any) {
-            if (e.statusCode === 404 && d.id) {
-              await db.syncQueue.delete(d.id);
-            }
+            if (e.statusCode === 404 && d.id) await db.syncQueue.delete(d.id);
             console.warn('[Sync] Action failed:', e);
           }
         }
 
-        // 1. Push local changes to server
+        // 1. Push local changes
         const unsyncedHabits = await db.habits.where('synced').notEqual(1).toArray();
         for (const h of unsyncedHabits) {
           const stillExists = await db.habits.get(h.id);
           if (!stillExists) continue;
-
           try {
-            let remote;
             const isNew = (h as any).synced === 0;
-
-            if (isNew) {
-              const { data } = await $fetch<{ data: Habit }>('/api/habits', { method: 'POST', body: h });
-              remote = data;
-            } else {
-              try {
-                const { data } = await $fetch<{ data: Habit }>(`/api/habits/${h.id}`, { method: 'PUT', body: h });
-                remote = data;
-              } catch (err: any) {
-                if (err.statusCode === 404) {
-                  await db.habits.delete(h.id);
-                  await db.habitLogs.where({ habitId: h.id }).delete();
-                  await removeHabitFromBuckets(h.id);
-                  continue;
-                }
-                throw err;
-              }
+            const res = isNew ? await client.postHabit(h) : await client.putHabit(h.id, h);
+            await db.habits.update(h.id, { synced: 1, id: res.data.id, userDate: res.data.userDate });
+          } catch (e: any) {
+            if (e.statusCode === 404) {
+              await store.deleteHabit(h.id);
+              await store.removeHabitFromBuckets(h.id);
             }
-            await db.habits.update(h.id, { synced: 1, id: remote.id, userDate: remote.userDate });
-          } catch (e) {
             console.warn('[Sync] Habit push failed:', e);
           }
         }
 
         const unsyncedLogs = await db.habitLogs.where('synced').equals(0).toArray();
         for (const l of unsyncedLogs) {
-          const stillExists = await db.habitLogs.get(l.id);
-          if (!stillExists) continue;
-
           try {
-            await $fetch<{ data: HabitLog }>('/api/habitlogs', {
-              method: 'POST',
-              body: l
-            });
+            await client.postHabitLog(l);
             await db.habitLogs.update(l.id, { synced: 1 });
           } catch (e: any) {
-            const status = e.statusCode || e.response?.status;
-            if (status === 400 || status === 404) {
-              await db.habitLogs.delete(l.id);
-            } else {
-              console.warn('[Sync] Log push failed:', e);
-            }
+            if (e.statusCode === 400 || e.statusCode === 404) await db.habitLogs.delete(l.id);
           }
         }
 
         const unsyncedBuckets = await db.buckets.where('synced').notEqual(1).toArray();
-        const allLocalHabitIds = new Set((await db.habits.toArray()).map(h => h.id));
-
         for (const b of unsyncedBuckets) {
-          const stillExists = await db.buckets.get(b.id);
-          if (!stillExists) continue;
-
-          const originalHabitIds = b.habitIds || [];
-          const validHabitIds = originalHabitIds.filter(id => allLocalHabitIds.has(id));
-          if (validHabitIds.length !== originalHabitIds.length) {
-            b.habitIds = validHabitIds;
-            await db.buckets.update(b.id, { habitIds: validHabitIds });
-          }
-
           try {
-            let remote;
             const isNew = (b as any).synced === 0;
-
-            if (isNew) {
-              const { data } = await $fetch<{ data: Bucket }>('/api/buckets', { method: 'POST', body: b });
-              remote = data;
-            } else {
-              try {
-                const { data } = await $fetch<{ data: Bucket }>(`/api/buckets/${b.id}`, { method: 'PUT', body: b });
-                remote = data;
-              } catch (err: any) {
-                if (err.statusCode === 404) {
-                  await db.buckets.delete(b.id);
-                  continue;
-                }
-                throw err;
-              }
-            }
-            await db.buckets.update(b.id, { synced: 1, id: remote.id });
-          } catch (e) {
-            console.warn('[Sync] Bucket push failed:', e);
+            const res = isNew ? await client.postBucket(b) : await client.putBucket(b.id, b);
+            await db.buckets.update(b.id, { synced: 1, id: res.data.id });
+          } catch (e: any) {
+            if (e.statusCode === 404) await db.buckets.delete(b.id);
           }
         }
 
         const unsyncedBucketLogs = await db.bucketLogs.where('synced').equals(0).toArray();
         for (const bl of unsyncedBucketLogs) {
           try {
-            await $fetch<{ data: BucketLog }>('/api/bucketlogs', {
-              method: 'POST',
-              body: bl
-            });
+            await client.postBucketLog(bl);
             await db.bucketLogs.update(bl.id, { synced: 1 });
           } catch (e: any) {
-            const status = e.statusCode || e.response?.status;
-            if (status === 400 || status === 404 || status === 405) {
-              await db.bucketLogs.delete(bl.id);
-            } else {
-              console.warn('[Sync] BucketLog push failed:', e);
-            }
+            if ([400, 404, 405].includes(e.statusCode)) await db.bucketLogs.delete(bl.id);
           }
         }
 
-        // 2. Pull remote changes using Authoritative Server Time
+        // 2. Pull remote changes
         try {
           const queryParams: any = {};
           if (lastSyncTime.value > 0) {
@@ -498,84 +323,48 @@ export const useHabitsApi = () => {
             queryParams.endDate = format(addDays(new Date(), 30), 'yyyy-MM-dd');
           }
 
-          const response = await $fetch<{
-            habits: Habit[], 
-            buckets: Bucket[], 
-            habitLogs: HabitLog[], 
-            bucketLogs: BucketLog[],
-            deletions?: { id: string, type: string }[],
-            serverTime: number
-          }>('/api/sync', { query: queryParams });
-
+          const response = await client.fetchSync(queryParams);
           const { habits: remoteHabits, buckets: remoteBuckets, habitLogs: remoteLogs, bucketLogs: remoteBucketLogs, deletions: remoteDeletions, serverTime } = response;
 
-          // 3. Handle Deletions from Server
-          if (remoteDeletions && remoteDeletions.length > 0) {
+          if (remoteDeletions) {
             for (const d of remoteDeletions) {
               if (d.type === 'habit') {
-                await db.habits.delete(d.id);
-                await db.habitLogs.where({ habitId: d.id }).delete();
-                await removeHabitFromBuckets(d.id);
+                await store.deleteHabit(d.id);
+                await store.removeHabitFromBuckets(d.id);
               } else if (d.type === 'bucket') {
-                await db.buckets.delete(d.id);
-                await db.bucketLogs.where({ bucketId: d.id }).delete();
+                await store.deleteBucket(d.id);
               }
             }
           }
 
-          // 3. Cleanup: Purge legacy UUID logs from local database (Only run once per device)
-          const purgeFlag = 'habits_legacy_purge_v1';
-          if (typeof window !== 'undefined' && !localStorage.getItem(purgeFlag)) {
-            const allLocalLogs = await db.habitLogs.toArray();
-            const legacyLogIds = allLocalLogs.filter(l => !l.id.includes('_')).map(l => l.id);
-            if (legacyLogIds.length > 0) {
-              console.log(`[Sync] Purging ${legacyLogIds.length} legacy habit logs...`);
-              await db.habitLogs.bulkDelete(legacyLogIds);
-            }
-
-            const allLocalBucketLogs = await db.bucketLogs.toArray();
-            const legacyBucketLogIds = allLocalBucketLogs.filter(l => !l.id.includes('_')).map(l => l.id);
-            if (legacyBucketLogIds.length > 0) {
-              console.log(`[Sync] Purging ${legacyBucketLogIds.length} legacy bucket logs...`);
-              await db.bucketLogs.bulkDelete(legacyBucketLogIds);
-            }
-            localStorage.setItem(purgeFlag, 'true');
-          }
-
-          // Merge Habits
+          // Merge Logic
           for (const h of remoteHabits) {
             const local = await db.habits.get(h.id);
-            if (local && local.synced === 0) continue;
-            await db.habits.put({ ...h, synced: 1, updatedAt: Date.now() });
+            if (local && (local as any).synced !== 1) continue;
+            await db.habits.put({ ...h, synced: 1, updatedAt: Date.now() } as any);
           }
 
-          // Merge Buckets
           for (const b of remoteBuckets) {
             const local = await db.buckets.get(b.id);
-            if (local && local.synced === 0) continue;
-            await db.buckets.put({ ...b, synced: 1, updatedAt: Date.now() });
+            if (local && (local as any).synced !== 1) continue;
+            await db.buckets.put({ ...b, synced: 1, updatedAt: Date.now() } as any);
           }
 
-          // Merge Habit Logs
           for (const l of remoteLogs) {
             const local = await db.habitLogs.get(l.id);
-            if (local && local.synced === 0) continue;
-            await db.habitLogs.put({ ...l, synced: 1, updatedAt: Date.now() });
+            if (local && (local as any).synced !== 1) continue;
+            await db.habitLogs.put({ ...l, synced: 1, updatedAt: Date.now() } as any);
           }
 
-          // Merge Bucket Logs
           for (const bl of remoteBucketLogs) {
             const local = await db.bucketLogs.get(bl.id);
-            if (local && local.synced === 0) continue;
-            await db.bucketLogs.put({ ...bl, synced: 1, updatedAt: Date.now() });
+            if (local && (local as any).synced !== 1) continue;
+            await db.bucketLogs.put({ ...bl, synced: 1, updatedAt: Date.now() } as any);
           }
 
           lastSyncTime.value = serverTime;
         } catch (error) {
           console.error('[Sync] Pull failed:', error);
-          if (error instanceof Error && error.message.includes('401')) {
-            return;
-          }
         }
       } while (syncNeeded.value);
     } finally {
@@ -586,7 +375,7 @@ export const useHabitsApi = () => {
   return {
     getHabits, createHabit, updateHabit, deleteHabit, getLogs, upsertLog, deleteLog, reorderHabits,
     getBuckets, createBucket, updateBucket, deleteBucket, getBucketLogs, reorderBuckets,
-    sync,
-    lastSyncTime
+    sync, lastSyncTime,
+    habits, buckets // Exposed reactive properties
   };
 };

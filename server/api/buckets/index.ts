@@ -2,7 +2,6 @@ import { eq, and, gte, asc, desc, sql, inArray } from 'drizzle-orm';
 import { buckets as bucketsTable, bucketHabits, habits as habitsTable } from '~~/server/db/schema';
 import { useDB as _useDB } from '~~/server/utils/db';
 import { requireAuth as _requireAuth } from '~~/server/utils/auth';
-import { normalizeBucket } from '~~/server/utils/normalize';
 import { bucketSchema, throwZodError } from '~~/server/utils/validation';
 
 export default defineEventHandler(async (event) => {
@@ -38,7 +37,7 @@ export default defineEventHandler(async (event) => {
     .where(inArray(bucketHabits.bucketId, bucketIds));
 
     const bucketsWithHabits = buckets.map((b: any) => ({
-      ...normalizeBucket(b),
+      ...b,
       habitIds: habitsRes.filter((bh: any) => bh.bucketId === b.id).map((bh: any) => bh.habitId)
     }));
 
@@ -114,6 +113,6 @@ export default defineEventHandler(async (event) => {
       .from(bucketHabits)
       .where(eq(bucketHabits.bucketId, newBucket.id));
 
-    return { data: { ...normalizeBucket(newBucket), habitIds: habitsData.map((h: any) => h.habitId) } };
+    return { data: { ...newBucket, habitIds: habitsData.map((h: any) => h.habitId) } };
   }
 });

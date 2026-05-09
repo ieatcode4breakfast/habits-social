@@ -2,7 +2,6 @@ import { eq } from 'drizzle-orm';
 import { users } from '~~/server/db/schema';
 import { useDB as _useDB } from '~~/server/utils/db';
 import { requireAuth as _requireAuth } from '~~/server/utils/auth';
-import { normalizeUser } from '~~/server/utils/normalize';
 
 export default defineEventHandler(async (event) => {
   const requireAuth = (event.context as any).requireAuth || _requireAuth;
@@ -19,6 +18,6 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 404, statusMessage: 'User not found' });
   }
 
-  return { data: normalizeUser(results[0]) };
+  return { data: results[0] };
 });
 

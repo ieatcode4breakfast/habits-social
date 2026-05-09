@@ -2,7 +2,6 @@ import { eq, and, sql, inArray } from 'drizzle-orm';
 import { habits as habitsTable, bucketHabits, shareEvents, syncDeletions } from '~~/server/db/schema';
 import { useDB as _useDB } from '~~/server/utils/db';
 import { requireAuth as _requireAuth } from '~~/server/utils/auth';
-import { normalizeHabit } from '~~/server/utils/normalize';
 import { habitUpdateSchema } from '~~/server/utils/validation';
 import { reevaluateBucketLogs } from '~~/server/utils/buckets';
 import { markBucketHabitsRemoved } from '~~/server/utils/shared-buckets';
