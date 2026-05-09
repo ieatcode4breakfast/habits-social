@@ -171,15 +171,24 @@
 
                     <!-- Calendar Grid -->
                     <div v-for="(day, i) in calendarDays" :key="i" class="flex flex-col items-center gap-1">
-                      <div class="relative">
-                    <!-- Calendar Timeline -->
-                    <TimelineRow
-                      interactive
-                      :days="calendarDays"
-                      :status-map="getStatusMap()"
-                      @click-day="openLogMenu"
-                    />
-                      </div>
+                      <button
+                        type="button"
+                        @click.stop="openLogMenu(day, $event)"
+                        class="w-8 h-8 rounded-lg flex items-center justify-center transition-all border-2 relative cursor-pointer"
+                        :class="[
+                          (day.getMonth() !== currentCalendarDate.getMonth()) ? 'opacity-30' : '',
+                          getStatusMap()[format(day, 'yyyy-MM-dd')] === 'completed' ? 'bg-emerald-500 border-emerald-500 shadow-md shadow-emerald-500/20' :
+                          getStatusMap()[format(day, 'yyyy-MM-dd')] === 'failed' ? 'bg-rose-500 border-rose-500 shadow-md shadow-rose-500/20' :
+                          getStatusMap()[format(day, 'yyyy-MM-dd')] === 'skipped' ? 'bg-zinc-500 border-zinc-500 shadow-none' :
+                          getStatusMap()[format(day, 'yyyy-MM-dd')] === 'vacation' ? 'bg-amber-500 border-amber-500 shadow-md shadow-amber-500/20' :
+                          'border-dashed border-zinc-800 bg-transparent'
+                        ]"
+                      >
+                        <Check v-if="getStatusMap()[format(day, 'yyyy-MM-dd')] === 'completed'" class="w-4 h-4 text-white" />
+                        <XIcon v-else-if="getStatusMap()[format(day, 'yyyy-MM-dd')] === 'failed'" class="w-4 h-4 text-white" />
+                        <Minus v-else-if="getStatusMap()[format(day, 'yyyy-MM-dd')] === 'skipped'" class="w-4 h-4 text-white" />
+                        <Palmtree v-else-if="getStatusMap()[format(day, 'yyyy-MM-dd')] === 'vacation'" class="w-4 h-4 text-white" />
+                      </button>
                       <div class="text-[9px] font-bold" :class="[
                         day.getMonth() === currentCalendarDate.getMonth() ? 'text-white' : 'text-zinc-600',
                         day.getMonth() !== currentCalendarDate.getMonth() ? 'opacity-30' : ''
