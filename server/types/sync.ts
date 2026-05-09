@@ -2,6 +2,8 @@ export interface SyncParams {
   lastSynced?: number;
   startDate?: string;
   endDate?: string;
+  limit?: number;
+  cursors?: Record<string, string>;
 }
 
 export interface SyncResponse {
@@ -11,4 +13,7 @@ export interface SyncResponse {
   bucketLogs: any[];
   deletions: Array<{ id: string; type: string }>;
   serverTime: number;
+  nextCursors?: Record<string, string>;
+  hasMore?: boolean;
+  forceUpdateRequired?: boolean;
 }

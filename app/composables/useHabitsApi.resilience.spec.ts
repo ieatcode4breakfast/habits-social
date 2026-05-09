@@ -45,7 +45,14 @@ vi.mock('~/utils/db', () => ({
     habits: { where: vi.fn(() => ({ notEqual: vi.fn(() => ({ toArray: vi.fn(() => []) })) })), get: vi.fn(), update: vi.fn() },
     habitLogs: { where: vi.fn(() => ({ equals: vi.fn(() => ({ toArray: vi.fn(() => []) })) })), update: vi.fn(), delete: vi.fn() },
     buckets: { where: vi.fn(() => ({ notEqual: vi.fn(() => ({ toArray: vi.fn(() => []) })) })), update: vi.fn(), delete: vi.fn() },
-    bucketLogs: { where: vi.fn(() => ({ equals: vi.fn(() => ({ toArray: vi.fn(() => []) })) })), update: vi.fn(), delete: vi.fn() }
+    bucketLogs: { where: vi.fn(() => ({ equals: vi.fn(() => ({ toArray: vi.fn(() => []) })) })), update: vi.fn(), delete: vi.fn() },
+    syncState: {
+      get: vi.fn(() => Promise.resolve(null)),
+      put: vi.fn(),
+      update: vi.fn(),
+      clear: vi.fn(),
+    },
+    transaction: vi.fn((mode, tables, cb) => cb()),
   }
 }));
 

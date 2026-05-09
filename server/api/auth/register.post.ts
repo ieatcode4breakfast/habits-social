@@ -35,6 +35,7 @@ export default defineEventHandler(async (event) => {
 
   const result = await db.insert(users)
     .values({
+      id: crypto.randomUUID(),
       email,
       username,
       passwordHash,

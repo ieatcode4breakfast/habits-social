@@ -264,215 +264,273 @@ export const useHabitsApi = () => {
     }
     isSyncing.value = true;
 
+    const PAGES_PER_CYCLE = 10;
+    let pagesFetched = 0;
+
     try {
       do {
         syncNeeded.value = false;
 
-        // 0. Process Action Queue (Deletions & Reorders)
-        const queuedActions = await db.syncQueue.toArray();
-        for (const d of queuedActions) {
-          try {
-            if (d.action === 'DELETE') {
-              if (d.type === 'habit') await client.deleteHabit(d.payload.id);
-              else if (d.type === 'bucket') await client.deleteBucket(d.payload.id);
-            } else if (d.action === 'REORDER') {
-              if (d.type === 'habit') {
-                await client.postReorderHabits(d.payload.ids);
-                await db.habits.where('id').anyOf(d.payload.ids).modify({ synced: 1 });
-              } else if (d.type === 'bucket') {
-                await client.postReorderBuckets(d.payload.ids);
-                await db.buckets.where('id').anyOf(d.payload.ids).modify({ synced: 1 });
-              }
-            }
-            if (d.id) await db.syncQueue.delete(d.id);
-          } catch (e: any) {
-            const status = e.statusCode || e.response?.status;
-            if (status === 404 && d.id) {
-              await db.syncQueue.delete(d.id);
-            } else if (status >= 400 && status < 500 && status !== 429) {
-              // Terminal error: Drop item and notify user
-              if (d.id) await db.syncQueue.delete(d.id);
-              showToast("A queued action could not be saved.", "failed");
-            } else {
-              // Transient error: Re-throw to trigger backoff loop
-              throw e;
-            }
-          }
-        }
+        // 0. Process Action Queue & Unsynced Changes (Push Phase)
+        await processPushPhase();
 
-        // 1. Push local changes
-        const unsyncedHabits = await db.habits.where('synced').notEqual(1).toArray();
-        for (const h of unsyncedHabits) {
-          const stillExists = await db.habits.get(h.id);
-          if (!stillExists) continue;
-          try {
-            const isNew = (h as any).synced === 0;
-            const res = isNew ? await client.postHabit(h) : await client.putHabit(h.id, h);
-            await db.habits.update(h.id, { synced: 1, id: res.data.id, userDate: res.data.userDate });
-          } catch (e: any) {
-            if (isConflictError(e)) {
-              await db.habits.update(h.id, { synced: 1 });
-              continue;
-            }
-            const status = e.statusCode || e.response?.status;
-            if (status === 404) {
-              await store.deleteHabit(h.id);
-              await store.removeHabitFromBuckets(h.id);
-            } else if (status >= 400 && status < 500 && status !== 429) {
-              await db.habits.update(h.id, { synced: 1 });
-              showToast("A habit update could not be saved.", "failed");
-            } else {
-              throw e;
-            }
-          }
-        }
+        // 1. Check for stored cursors to resume
+        const state = await db.syncState.get('current');
+        let currentCursors = state?.cursors || {};
+        let hasMore = true;
 
-        const unsyncedLogs = await db.habitLogs.where('synced').equals(0).toArray();
-        for (const l of unsyncedLogs) {
-          try {
-            await client.postHabitLog(l);
-            await db.habitLogs.update(l.id, { synced: 1 });
-          } catch (e: any) {
-            if (isConflictError(e)) {
-              await db.habitLogs.update(l.id, { synced: 1 });
-              continue;
-            }
-            const status = e.statusCode || e.response?.status;
-            if (status >= 400 && status < 500 && status !== 429) {
-              await db.habitLogs.delete(l.id);
-              showToast("A habit log could not be saved.", "failed");
-            } else {
-              throw e;
-            }
-          }
-        }
-
-        const unsyncedBuckets = await db.buckets.where('synced').notEqual(1).toArray();
-        for (const b of unsyncedBuckets) {
-          try {
-            const isNew = (b as any).synced === 0;
-            const res = isNew ? await client.postBucket(b) : await client.putBucket(b.id, b);
-            await db.buckets.update(b.id, { synced: 1, id: res.data.id });
-          } catch (e: any) {
-            if (isConflictError(e)) {
-              await db.buckets.update(b.id, { synced: 1 });
-              continue;
-            }
-            const status = e.statusCode || e.response?.status;
-            if (status === 404) {
-              await db.buckets.delete(b.id);
-            } else if (status >= 400 && status < 500 && status !== 429) {
-              await db.buckets.update(b.id, { synced: 1 });
-              showToast("A bucket update could not be saved.", "failed");
-            } else {
-              throw e;
-            }
-          }
-        }
-
-        const unsyncedBucketLogs = await db.bucketLogs.where('synced').equals(0).toArray();
-        for (const bl of unsyncedBucketLogs) {
-          try {
-            await client.postBucketLog(bl);
-            await db.bucketLogs.update(bl.id, { synced: 1 });
-          } catch (e: any) {
-            if (isConflictError(e)) {
-              await db.bucketLogs.update(bl.id, { synced: 1 });
-              continue;
-            }
-            const status = e.statusCode || e.response?.status;
-            if (status >= 400 && status < 500 && status !== 429) {
-              await db.bucketLogs.delete(bl.id);
-              showToast("A bucket log could not be saved.", "failed");
-            } else {
-              throw e;
-            }
-          }
-        }
-
-        // 2. Pull remote changes
-        try {
-          const queryParams: any = {};
-          if (lastSyncTime.value > 0) {
-            queryParams.lastSynced = lastSyncTime.value;
+        // 2. Pull remote changes in pages
+        while (hasMore && pagesFetched < PAGES_PER_CYCLE) {
+          const queryParams: any = { limit: 50, cursors: currentCursors };
+          
+          if (state?.lastSynced) {
+            queryParams.lastSynced = state.lastSynced;
           } else {
+            // Initial Sync Window: Strictly 60 days
             queryParams.startDate = format(subDays(new Date(), 60), 'yyyy-MM-dd');
             queryParams.endDate = format(addDays(new Date(), 30), 'yyyy-MM-dd');
           }
 
           const response = await client.fetchSync(queryParams);
-          const { habits: remoteHabits, buckets: remoteBuckets, habitLogs: remoteLogs, bucketLogs: remoteBucketLogs, deletions: remoteDeletions, serverTime } = response;
+          
+          if (response.forceUpdateRequired) {
+            // Safe Force Reset: We already pushed changes above, now we can safely wipe and reset
+            await db.transaction('rw', [db.habits, db.buckets, db.habitLogs, db.bucketLogs, db.syncState], async () => {
+              // Delete all local data that has been synced (preserve unsynced local changes)
+              await db.habits.where('synced').equals(1).delete();
+              await db.buckets.where('synced').equals(1).delete();
+              await db.habitLogs.where('synced').equals(1).delete();
+              await db.bucketLogs.where('synced').equals(1).delete();
+              await db.syncState.clear();
+            });
 
-          if (remoteDeletions) {
-            for (const d of remoteDeletions) {
-              if (d.type === 'habit') {
-                await store.deleteHabit(d.id);
-                await store.removeHabitFromBuckets(d.id);
-              } else if (d.type === 'bucket') {
-                await store.deleteBucket(d.id);
+            currentCursors = {};
+            pagesFetched = 0; // Restart count for the clean pull
+            continue; 
+          }
+
+          const { 
+            habits: remoteHabits, 
+            buckets: remoteBuckets, 
+            habitLogs: remoteLogs, 
+            bucketLogs: remoteBucketLogs, 
+            deletions: remoteDeletions, 
+            serverTime, 
+            nextCursors, 
+            hasMore: remoteHasMore 
+          } = response;
+
+          // Atomic Transaction for the current page
+          await db.transaction('rw', [db.habits, db.buckets, db.habitLogs, db.bucketLogs, db.syncState], async () => {
+            if (remoteDeletions) {
+              for (const d of remoteDeletions) {
+                if (d.type === 'habit') {
+                  await store.deleteHabit(d.id);
+                  await store.removeHabitFromBuckets(d.id);
+                } else if (d.type === 'bucket') {
+                  await store.deleteBucket(d.id);
+                }
               }
             }
-          }
 
-          for (const h of remoteHabits) {
-            const local = await db.habits.get(h.id);
-            if (local && (local as any).synced !== 1) continue;
-            await db.habits.put({ ...h, synced: 1, updatedAt: Date.now() } as any);
-          }
+            for (const h of remoteHabits) {
+              const local = await db.habits.get(h.id);
+              if (local && (local as any).synced !== 1) continue;
+              await db.habits.put({ ...h, synced: 1, updatedAt: Date.now() } as any);
+            }
 
-          for (const b of remoteBuckets) {
-            const local = await db.buckets.get(b.id);
-            if (local && (local as any).synced !== 1) continue;
-            await db.buckets.put({ ...b, synced: 1, updatedAt: Date.now() } as any);
-          }
+            for (const b of remoteBuckets) {
+              const local = await db.buckets.get(b.id);
+              if (local && (local as any).synced !== 1) continue;
+              await db.buckets.put({ ...b, synced: 1, updatedAt: Date.now() } as any);
+            }
 
-          for (const l of remoteLogs) {
-            const local = await db.habitLogs.get(l.id);
-            if (local && (local as any).synced !== 1) continue;
-            await db.habitLogs.put({ ...l, synced: 1, updatedAt: Date.now() } as any);
-          }
+            for (const l of remoteLogs) {
+              const local = await db.habitLogs.get(l.id);
+              if (local && (local as any).synced !== 1) continue;
+              await db.habitLogs.put({ ...l, synced: 1, updatedAt: Date.now() } as any);
+            }
 
-          for (const bl of remoteBucketLogs) {
-            const local = await db.bucketLogs.get(bl.id);
-            if (local && (local as any).synced !== 1) continue;
-            await db.bucketLogs.put({ ...bl, synced: 1, updatedAt: Date.now() } as any);
-          }
+            for (const bl of remoteBucketLogs) {
+              const local = await db.bucketLogs.get(bl.id);
+              if (local && (local as any).synced !== 1) continue;
+              await db.bucketLogs.put({ ...bl, synced: 1, updatedAt: Date.now() } as any);
+            }
 
+            // Save state for resume-ability
+            await db.syncState.put({
+              id: 'current',
+              lastSynced: serverTime,
+              cursors: remoteHasMore ? nextCursors : {}
+            });
+          });
+
+          currentCursors = nextCursors;
+          hasMore = remoteHasMore;
+          pagesFetched++;
           lastSyncTime.value = serverTime;
-        } catch (error: any) {
-          const status = error.statusCode || error.response?.status;
-          if (status >= 400 && status < 500 && status !== 429) {
-            console.error('[Sync] Pull failed (Terminal):', error);
-          } else {
-            throw error; // Trigger backoff
-          }
         }
+
+        // Cleanup: If finished, we can eventually clear cursors (handled in transaction above if !hasMore)
+        if (!hasMore) {
+          await db.syncState.update('current', { cursors: {} });
+        } else if (pagesFetched >= PAGES_PER_CYCLE) {
+          // Schedule continuation to yield to main thread
+          if (retryTimer.value) clearTimeout(retryTimer.value);
+          retryTimer.value = setTimeout(() => {
+            retryTimer.value = null;
+            sync().catch(console.error);
+          }, 2000);
+          return; // Terminate current execution
+        }
+
       } while (syncNeeded.value);
 
       // On success, reset backoff
       retryCount.value = 0;
     } catch (error: any) {
+      handleSyncError(error);
+    } finally {
+      isSyncing.value = false;
+    }
+  };
+
+  const processPushPhase = async () => {
+    // 0. Process Action Queue (Deletions & Reorders)
+    const queuedActions = await db.syncQueue.toArray();
+    for (const d of queuedActions) {
+      try {
+        if (d.action === 'DELETE') {
+          if (d.type === 'habit') await client.deleteHabit(d.payload.id);
+          else if (d.type === 'bucket') await client.deleteBucket(d.payload.id);
+        } else if (d.action === 'REORDER') {
+          if (d.type === 'habit') {
+            await client.postReorderHabits(d.payload.ids);
+            await db.habits.where('id').anyOf(d.payload.ids).modify({ synced: 1 });
+          } else if (d.type === 'bucket') {
+            await client.postReorderBuckets(d.payload.ids);
+            await db.buckets.where('id').anyOf(d.payload.ids).modify({ synced: 1 });
+          }
+        }
+        if (d.id) await db.syncQueue.delete(d.id);
+      } catch (e: any) {
+        const status = e.statusCode || e.response?.status;
+        if (status === 404 && d.id) {
+          await db.syncQueue.delete(d.id);
+        } else if (status >= 400 && status < 500 && status !== 429) {
+          if (d.id) await db.syncQueue.delete(d.id);
+          showToast("A queued action could not be saved.", "failed");
+        } else {
+          throw e;
+        }
+      }
+    }
+
+    // 1. Push local changes (Habits, Logs, Buckets)
+    const unsyncedHabits = await db.habits.where('synced').notEqual(1).toArray();
+    for (const h of unsyncedHabits) {
+      try {
+        const isNew = (h as any).synced === 0;
+        const res = isNew ? await client.postHabit(h) : await client.putHabit(h.id, h);
+        await db.habits.update(h.id, { synced: 1, id: res.data.id, userDate: res.data.userDate });
+      } catch (e: any) {
+        if (isConflictError(e)) { await db.habits.update(h.id, { synced: 1 }); continue; }
+        const status = e.statusCode || e.response?.status;
+        if (status === 404) { await store.deleteHabit(h.id); await store.removeHabitFromBuckets(h.id); }
+        else if (status >= 400 && status < 500 && status !== 429) { await db.habits.update(h.id, { synced: 1 }); showToast("A habit update could not be saved.", "failed"); }
+        else throw e;
+      }
+    }
+
+    const unsyncedLogs = await db.habitLogs.where('synced').equals(0).toArray();
+    for (const l of unsyncedLogs) {
+      try {
+        await client.postHabitLog(l);
+        await db.habitLogs.update(l.id, { synced: 1 });
+      } catch (e: any) {
+        if (isConflictError(e)) { await db.habitLogs.update(l.id, { synced: 1 }); continue; }
+        const status = e.statusCode || e.response?.status;
+        if (status >= 400 && status < 500 && status !== 429) { await db.habitLogs.delete(l.id); showToast("A habit log could not be saved.", "failed"); }
+        else throw e;
+      }
+    }
+
+    const unsyncedBuckets = await db.buckets.where('synced').notEqual(1).toArray();
+    for (const b of unsyncedBuckets) {
+      try {
+        const isNew = (b as any).synced === 0;
+        const res = isNew ? await client.postBucket(b) : await client.putBucket(b.id, b);
+        await db.buckets.update(b.id, { synced: 1, id: res.data.id });
+      } catch (e: any) {
+        if (isConflictError(e)) { await db.buckets.update(b.id, { synced: 1 }); continue; }
+        const status = e.statusCode || e.response?.status;
+        if (status === 404) { await db.buckets.delete(b.id); }
+        else if (status >= 400 && status < 500 && status !== 429) { await db.buckets.update(b.id, { synced: 1 }); showToast("A bucket update could not be saved.", "failed"); }
+        else throw e;
+      }
+    }
+
+    const unsyncedBucketLogs = await db.bucketLogs.where('synced').equals(0).toArray();
+    for (const bl of unsyncedBucketLogs) {
+      try {
+        await client.postBucketLog(bl);
+        await db.bucketLogs.update(bl.id, { synced: 1 });
+      } catch (e: any) {
+        if (isConflictError(e)) { await db.bucketLogs.update(bl.id, { synced: 1 }); continue; }
+        const status = e.statusCode || e.response?.status;
+        if (status >= 400 && status < 500 && status !== 429) { await db.bucketLogs.delete(bl.id); showToast("A bucket log could not be saved.", "failed"); }
+        else throw e;
+      }
+    }
+  };
+
+  const handleSyncError = (error: any) => {
+    const status = error.statusCode || error.response?.status;
+    if (status >= 400 && status < 500 && status !== 429) {
+      console.error('[Sync] Sync failed (Terminal):', error);
+    } else {
       console.warn('[Sync] Transient error, scheduling backoff retry...', error);
-      
-      // Calculate Full Jitter Backoff
       retryCount.value++;
       const baseDelay = Math.min(Math.pow(2, retryCount.value) * 1000, 300000);
       const jitterDelay = Math.random() * baseDelay;
-      
       if (retryTimer.value) clearTimeout(retryTimer.value);
       retryTimer.value = setTimeout(() => {
         retryTimer.value = null;
-        sync();
+        sync().catch(console.error);
       }, jitterDelay);
-    } finally {
-      isSyncing.value = false;
+    }
+  };
+
+  const fetchHistory = async (startDate: string, endDate: string) => {
+    if (!user.value || !process.client) return;
+    try {
+      const response = await client.fetchSync({ startDate, endDate });
+      const { habits: remoteHabits, buckets: remoteBuckets, habitLogs: remoteLogs, bucketLogs: remoteBucketLogs } = response;
+
+      await db.transaction('rw', [db.habits, db.buckets, db.habitLogs, db.bucketLogs], async () => {
+        for (const h of remoteHabits) {
+          await db.habits.put({ ...h, synced: 1, updatedAt: Date.now() } as any);
+        }
+        for (const b of remoteBuckets) {
+          await db.buckets.put({ ...b, synced: 1, updatedAt: Date.now() } as any);
+        }
+        for (const l of remoteLogs) {
+          await db.habitLogs.put({ ...l, synced: 1, updatedAt: Date.now() } as any);
+        }
+        for (const bl of remoteBucketLogs) {
+          await db.bucketLogs.put({ ...bl, synced: 1, updatedAt: Date.now() } as any);
+        }
+      });
+    } catch (error) {
+      console.error('[Sync] History fetch failed:', error);
+      showToast("Could not fetch historical data.", "failed");
     }
   };
 
   return {
     getHabits, createHabit, updateHabit, deleteHabit, getLogs, upsertLog, deleteLog, reorderHabits,
     getBuckets, createBucket, updateBucket, deleteBucket, getBucketLogs, reorderBuckets,
-    sync, lastSyncTime,
+    sync, lastSyncTime, fetchHistory,
     habits, buckets
   };
 };

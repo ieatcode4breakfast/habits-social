@@ -87,6 +87,20 @@ export const deleteTestHabit = async (habitId: string) => {
   await db.delete(habits).where(eq(habits.id, habitId));
 };
 
+export const createTestHabitLog = async (ownerId: string, habitId: string, date: string, status: string = 'completed'): Promise<any> => {
+  const result = await db.insert(schema.habitLogs)
+    .values({
+      id: `${habitId}_${date}`,
+      ownerId,
+      habitId,
+      date,
+      status,
+      updatedAt: new Date()
+    })
+    .returning();
+  return result[0];
+};
+
 export const createTestBucket = async (ownerId: string, title: string): Promise<Bucket> => {
   const result = await db.insert(buckets)
     .values({
@@ -134,6 +148,19 @@ export const shareHabitWithUser = async (habitId: string, targetUserId: string) 
       updatedAt: new Date()
     })
     .where(eq(habits.id, habitId));
+};
+
+export const createTestDeletion = async (ownerId: string, entityId: string, entityType: string): Promise<any> => {
+  const result = await db.insert(schema.syncDeletions)
+    .values({
+      id: crypto.randomUUID(),
+      ownerId,
+      entityId,
+      entityType,
+      createdAt: new Date()
+    })
+    .returning();
+  return result[0];
 };
 
 export const generateMassiveString = (length: number = 10001) => {

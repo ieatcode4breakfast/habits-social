@@ -104,7 +104,14 @@ vi.mock('~/utils/db', () => ({
       delete: vi.fn(),
       get: vi.fn(),
       put: vi.fn(),
-    }
+    },
+    syncState: {
+      get: vi.fn(() => Promise.resolve(null)),
+      put: vi.fn(),
+      update: vi.fn(),
+      clear: vi.fn(),
+    },
+    transaction: vi.fn((mode, tables, cb) => cb()),
   }
 }));
 

@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, integer, uuid, boolean, date } from 'drizzle-orm/pg-core';
+import { pgTable, text, timestamp, integer, uuid, boolean, date, index, primaryKey } from 'drizzle-orm/pg-core';
 
 export const users = pgTable('users', {
   id: uuid('id').primaryKey(),
@@ -27,6 +27,10 @@ export const habits = pgTable('habits', {
   userDate: text('user_date'),
   createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' }).defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true, mode: 'date' }).defaultNow(),
+}, (table) => {
+  return {
+    habitsOwnerUpdatedAtIdIdx: index('habits_owner_updated_at_id_idx').on(table.ownerId, table.updatedAt, table.id),
+  };
 });
 
 export const habitLogs = pgTable('habit_logs', {
@@ -39,6 +43,10 @@ export const habitLogs = pgTable('habit_logs', {
   brokenStreakCount: integer('broken_streak_count').default(0),
   sharedWith: text('shared_with').array(),
   updatedAt: timestamp('updated_at', { withTimezone: true, mode: 'date' }).defaultNow(),
+}, (table) => {
+  return {
+    habitLogsOwnerUpdatedAtIdIdx: index('habit_logs_owner_updated_at_id_idx').on(table.ownerId, table.updatedAt, table.id),
+  };
 });
 
 export const buckets = pgTable('buckets', {
@@ -53,6 +61,10 @@ export const buckets = pgTable('buckets', {
   sortOrder: integer('sort_order').default(0),
   createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' }).defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true, mode: 'date' }).defaultNow(),
+}, (table) => {
+  return {
+    bucketsOwnerUpdatedAtIdIdx: index('buckets_owner_updated_at_id_idx').on(table.ownerId, table.updatedAt, table.id),
+  };
 });
 
 export const bucketHabits = pgTable('bucket_habits', {
@@ -60,6 +72,10 @@ export const bucketHabits = pgTable('bucket_habits', {
   habitId: uuid('habit_id').notNull(),
   addedBy: uuid('added_by'),
   approvalStatus: text('approval_status').default('approved'),
+}, (table) => {
+  return {
+    pk: primaryKey({ columns: [table.bucketId, table.habitId] }),
+  };
 });
 
 export const sharedBucketMembers = pgTable('shared_bucket_members', {
@@ -79,6 +95,10 @@ export const bucketLogs = pgTable('bucket_logs', {
   streakCount: integer('streak_count').default(0),
   brokenStreakCount: integer('broken_streak_count').default(0),
   updatedAt: timestamp('updated_at', { withTimezone: true, mode: 'date' }).defaultNow(),
+}, (table) => {
+  return {
+    bucketLogsOwnerUpdatedAtIdIdx: index('bucket_logs_owner_updated_at_id_idx').on(table.ownerId, table.updatedAt, table.id),
+  };
 });
 
 export const shareEvents = pgTable('share_events', {
@@ -107,4 +127,8 @@ export const syncDeletions = pgTable('sync_deletions', {
   entityId: uuid('entity_id').notNull(),
   entityType: text('entity_type').notNull(),
   createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' }).defaultNow(),
+}, (table) => {
+  return {
+    syncDeletionsOwnerCreatedAtIdIdx: index('sync_deletions_owner_created_at_id_idx').on(table.ownerId, table.createdAt, table.id),
+  };
 });

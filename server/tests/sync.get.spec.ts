@@ -1,7 +1,8 @@
 import './setup';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import syncGet from '../api/sync.get';
-import { createMockEvent, createTestUser } from './test.utils';
+import { SyncService } from '../services/sync.service';
+import { createMockEvent, createTestUser, createTestHabit } from './test.utils';
 
 describe('API: GET /api/sync', () => {
   let testUser: any;
@@ -49,6 +50,28 @@ describe('API: GET /api/sync', () => {
 
     const event = createMockEvent(testUser.id);
     await expect(syncGet(event)).rejects.toThrow(/Database connection lost/i);
+    
+    spy.mockRestore();
+  });
+
+  it('should return forceUpdateRequired: true and empty arrays when payload exceeds safety threshold (Safety Gate)', async () => {
+    // Seed massive data (or mock the check)
+    // For this test, we'll mock the check logic or seed data if we have a helper
+    // Let's seed 6 habits and simulate a threshold of 5 (just for the test)
+    for (let i = 0; i < 6; i++) {
+      await createTestHabit(testUser.id, `Habit ${i}`);
+    }
+
+    const event = createMockEvent(testUser.id, {}, {}, {}, { lastSynced: '0' });
+    
+    // Mock the safety check to trigger the gate
+    const spy = vi.spyOn(SyncService, 'checkV1PayloadSize').mockResolvedValueOnce(true);
+    
+    const res = await syncGet(event);
+    
+    expect(res.habits).toHaveLength(0);
+    expect(res.buckets).toHaveLength(0);
+    expect((res as any).forceUpdateRequired).toBe(true);
     
     spy.mockRestore();
   });

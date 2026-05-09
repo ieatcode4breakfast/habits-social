@@ -28,15 +28,17 @@ export class MyDatabase extends Dexie {
   buckets!: Table<LocalBucket>;
   bucketLogs!: Table<LocalBucketLog>;
   syncQueue!: Table<{ id?: number, type: string, action: string, payload: any }>;
+  syncState!: Table<{ id: string, lastSynced: number, cursors: any, status?: string }>;
 
   constructor() {
     super('HabitsSocialDB');
-    this.version(4).stores({
+    this.version(5).stores({
       habits: 'id, ownerId, synced, updatedAt',
       habitLogs: 'id, habitId, ownerId, date, synced, updatedAt',
       buckets: 'id, ownerId, synced, updatedAt',
       bucketLogs: 'id, bucketId, ownerId, date, synced, updatedAt',
-      syncQueue: '++id, type, action'
+      syncQueue: '++id, type, action',
+      syncState: 'id'
     });
   }
 }
