@@ -1,5 +1,5 @@
-import { eq, and, sql } from 'drizzle-orm';
-import { habitLogs, habits as habitsTable, bucketHabits, shareEvents, syncDeletions } from '~~/server/db/schema';
+import { eq, and, or, sql, inArray } from 'drizzle-orm';
+import { habitLogs, habits as habitsTable, bucketHabits, shareEvents, syncDeletions, friendships } from '~~/server/db/schema';
 import { recalculateHabitStreak } from '~~/server/utils/streaks';
 import { syncBucketLogsForHabit, reevaluateMultipleBuckets } from '~~/server/utils/buckets';
 import { markBucketHabitsRemoved } from '~~/server/utils/shared-buckets';
@@ -91,6 +91,26 @@ export const HabitService = {
     }
 
     const updatedHabit = await db.transaction(async (tx: any) => {
+      // Friendship Guard: Sanitize sharedWith list
+      let sanitizedSharedWith = data.sharedWith;
+      if (sanitizedSharedWith && sanitizedSharedWith.length > 0) {
+        const friendshipsRes = await tx.select()
+          .from(friendships)
+          .where(and(
+            inArray(friendships.status, ['accepted', 'pending']),
+            or(
+              and(eq(friendships.initiatorId, userId), inArray(friendships.receiverId, sanitizedSharedWith)),
+              and(eq(friendships.receiverId, userId), inArray(friendships.initiatorId, sanitizedSharedWith))
+            )
+          ));
+        
+        const validFriendIds = new Set(friendshipsRes.map((f: any) => 
+          f.initiatorId === userId ? f.receiverId : f.initiatorId
+        ));
+        
+        sanitizedSharedWith = sanitizedSharedWith.filter((rid: string) => validFriendIds.has(rid));
+      }
+
       const result = await tx.update(habitsTable)
         .set({
           title: data.title ?? habit.title,
@@ -98,7 +118,7 @@ export const HabitService = {
           skipsCount: skipsCount,
           skipsPeriod: skipsPeriod,
           color: data.color ?? habit.color,
-          sharedWith: data.sharedWith ?? habit.sharedWith,
+          sharedWith: sanitizedSharedWith ?? habit.sharedWith,
           sortOrder: data.sortOrder ?? habit.sortOrder,
           userDate: data.userDate ?? habit.userDate,
           updatedAt: new Date()

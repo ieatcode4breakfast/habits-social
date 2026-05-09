@@ -27,6 +27,15 @@
 
             <!-- Scrollable Content -->
             <div class="flex-1 overflow-y-auto p-4 sm:p-8 sm:py-6">
+              <!-- Offline Warning Banner -->
+              <div v-if="!isOnline" class="mb-6 p-4 bg-amber-500/10 border border-amber-500/20 rounded-2xl flex items-start gap-3">
+                <WifiOff class="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
+                <div class="space-y-1">
+                  <p class="text-amber-500 text-sm font-bold leading-none">Connection Lost</p>
+                  <p class="text-amber-500/70 text-xs leading-relaxed">Changes cannot be saved while offline.</p>
+                </div>
+              </div>
+
               <form id="profileForm" @submit.prevent="triggerProfileUpdate" class="space-y-4">
                 <!-- Avatar Selection -->
                 <AvatarPicker 
@@ -146,7 +155,7 @@
               <button
                 type="submit"
                 form="profileForm"
-                :disabled="isUpdating"
+                :disabled="isUpdating || !isOnline"
                 class="flex-1 px-5 py-3 bg-white hover:bg-zinc-200 text-black font-semibold rounded-xl transition-all shadow-lg shadow-white/5 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer whitespace-nowrap"
               >
                 <template v-if="isUpdating">
@@ -254,7 +263,7 @@
 </template>
 
 <script setup lang="ts">
-import { User as UserIcon, Mail, Lock, ChevronLeft, Loader2, Eye, EyeOff, RefreshCw } from 'lucide-vue-next';
+import { User as UserIcon, Mail, Lock, ChevronLeft, Loader2, Eye, EyeOff, RefreshCw, WifiOff } from 'lucide-vue-next';
 
 const props = defineProps<{
   modelValue: boolean
@@ -264,6 +273,7 @@ const emit = defineEmits(['update:modelValue']);
 
 const { user, fetchUser } = useAuth();
 const { showToast } = useToast();
+const { isOnline } = useNetwork();
 
 // Internal visibility ref linked to prop
 const isOpen = computed({

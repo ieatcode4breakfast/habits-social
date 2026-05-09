@@ -29,7 +29,7 @@
 
         <div v-if="user" class="flex items-center gap-0">
           <button 
-            @click="showProfileModal = true"
+            @click="handleEditProfile"
             class="flex items-center gap-2 group text-sm font-medium text-zinc-400 hover:text-white transition-colors cursor-pointer px-3 py-2 rounded-xl hover:bg-zinc-900"
           >
             Hi, {{ user.username }}!
@@ -77,6 +77,8 @@
 import { LogOut, Target, Users, User as UserIcon, PaintBucket } from 'lucide-vue-next';
 
 const { user, fetchUser } = useAuth();
+const { showToast } = useToast();
+const { isOnline } = useNetwork();
 const { pendingCount, init: initSocial, cleanup: cleanupSocial, logoutCleanup } = useSocial();
 
 useSeoMeta({
@@ -103,6 +105,14 @@ const route = useRoute();
 
 // Profile Modal State
 const showProfileModal = ref(false);
+
+const handleEditProfile = () => {
+  if (!isOnline.value) {
+    showToast('You are offline. Profile changes require a connection.', 'failed');
+    return;
+  }
+  showProfileModal.value = true;
+};
 
 const logout = async () => {
   await $fetch('/api/auth/logout', { method: 'POST' });

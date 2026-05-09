@@ -21,11 +21,11 @@ export default defineEventHandler(async (event) => {
 
   const targetId = String(targetUserId);
   
-  // Verify accepted friendship exists
+  // Verify friendship exists (accepted or pending)
   const friendshipRes = await db.select({ id: friendships.id })
     .from(friendships)
     .where(and(
-      eq(friendships.status, 'accepted'),
+      inArray(friendships.status, ['accepted', 'pending']),
       or(
         and(eq(friendships.initiatorId, userId), eq(friendships.receiverId, targetId)),
         and(eq(friendships.initiatorId, targetId), eq(friendships.receiverId, userId))

@@ -26,7 +26,7 @@
             <XIcon v-else-if="type === 'failed'" class="w-4 h-4" />
             <MinusIcon v-else-if="type === 'skipped'" class="w-4 h-4" />
           </div>
-          <span class="text-sm font-bold tracking-tight text-white text-left">{{ message }}</span>
+          <span class="text-sm font-bold tracking-tight text-white text-center">{{ message }}</span>
         </div>
       </Transition>
     </Teleport>
@@ -52,7 +52,7 @@ onMounted(() => {
 // Watch connectivity for UI feedback and auto-sync
 watch(isOnline, (online) => {
   if (!online) {
-    showToast('You are offline. Changes will be saved locally.', 'failed');
+    showToast('You are offline. Changes will be saved locally. Some features may not be available.', 'failed');
   } else {
     showToast('Back online! Syncing changes...', 'completed');
     sync();

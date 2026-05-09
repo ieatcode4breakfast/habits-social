@@ -1,6 +1,6 @@
 import './setup';
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import { createTestUser, deleteTestUser, createTestHabit, deleteTestHabit, createTestBucket, deleteTestBucket, User, Habit, Bucket, db } from './test.utils';
+import { createTestUser, deleteTestUser, createTestHabit, deleteTestHabit, createTestBucket, deleteTestBucket, createFriendship, User, Habit, Bucket, db } from './test.utils';
 import { HabitService } from '../services/habit.service';
 import { eq, and } from 'drizzle-orm';
 import { shareEvents, bucketHabits, habits, habitLogs } from '../db/schema';
@@ -16,6 +16,10 @@ describe('HabitService - Stress Testing', () => {
     userA = await createTestUser(`hab_A_${Date.now()}`, `hab_A_${Date.now()}@ex.com`);
     userB = await createTestUser(`hab_B_${Date.now()}`, `hab_B_${Date.now()}@ex.com`);
     userC = await createTestUser(`hab_C_${Date.now()}`, `hab_C_${Date.now()}@ex.com`);
+
+    // Establish friendships so the "Friendship Guard" allows sharing
+    await createFriendship(userA.id, userB.id, 'accepted');
+    await createFriendship(userA.id, userC.id, 'accepted');
     
     habitA = await createTestHabit(userA.id, 'Habit A');
     
