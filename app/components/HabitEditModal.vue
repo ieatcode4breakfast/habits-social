@@ -482,7 +482,10 @@ const getStatusMap = () => {
 
 const openLogMenu = (day: Date, event: MouseEvent) => {
   if (props.habit) {
-    emit('open-log-menu', props.habit, day, event);
+    emit('open-log-menu', props.habit, day, event, {
+      skipsPeriod: editSkipsPeriod.value,
+      skipsCount: editSkipsCount.value
+    });
   }
 };
 

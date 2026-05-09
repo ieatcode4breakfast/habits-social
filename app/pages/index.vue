@@ -215,6 +215,8 @@ const showModal = ref(false);
 const showReorderModal = ref(false);
 const showEditModal = ref(false);
 const editingHabit = ref<Habit | null>(null);
+const editSkipsPeriod = ref<'none' | 'weekly' | 'monthly' | undefined>(undefined);
+const editSkipsCount = ref<number | undefined>(undefined);
 const editSharedWith = ref<string[]>([]);
 const editSharedWithWorking = ref<string[]>([]);
 const isEditingSharing = ref(false);
@@ -345,11 +347,21 @@ const activeHabitForMenu = computed(() => {
   if (!activeLogMenu.value) return null;
   return habits.value.find(h => h.id === activeLogMenu.value?.habitId) || (editingHabit.value?.id === activeLogMenu.value?.habitId ? editingHabit.value : null);
 });
-const openLogMenu = (habit: Habit, day: Date, event: MouseEvent) => {
+const openLogMenu = (habit: Habit, day: Date, event: MouseEvent, options?: { skipsPeriod?: any, skipsCount?: number }) => {
   if (!isMarkable(day)) {
     showToast('You can only update habits for the last 14 days', 'failed');
     return;
   }
+  
+  // Capture temporary skip settings from Edit Modal if provided
+  if (options) {
+    editSkipsPeriod.value = options.skipsPeriod;
+    editSkipsCount.value = options.skipsCount;
+  } else {
+    editSkipsPeriod.value = undefined;
+    editSkipsCount.value = undefined;
+  }
+
   if (activeLogMenu.value && activeLogMenu.value.habitId === habit.id && isSameDay(activeLogMenu.value.date, day)) {
     activeLogMenu.value = null;
     referenceRef.value = null;
