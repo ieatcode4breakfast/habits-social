@@ -60,6 +60,89 @@ export const HabitService = {
     }
   },
 
+  async createHabit(db: any, userId: string, data: any, event: any) {
+    const nextSortOrder = data.sortOrder !== undefined ? data.sortOrder : 0;
+    
+    let skipsCount = data.skipsCount ?? 2;
+    const skipsPeriod = data.skipsPeriod ?? 'weekly';
+    if (skipsPeriod === 'none') {
+      skipsCount = 0;
+    } else if (skipsPeriod === 'weekly') {
+      skipsCount = Math.max(0, Math.min(6, skipsCount));
+    } else if (skipsPeriod === 'monthly') {
+      skipsCount = Math.max(0, Math.min(28, skipsCount));
+    }
+
+    const habitId = data.id || crypto.randomUUID();
+
+    const result = await db.transaction(async (tx: any) => {
+      // Friendship Guard: Sanitize sharedWith list
+      let sanitizedSharedWith = data.sharedWith || [];
+      if (sanitizedSharedWith.length > 0) {
+        const friendshipsRes = await tx.select()
+          .from(friendships)
+          .where(and(
+            inArray(friendships.status, ['accepted', 'pending']),
+            or(
+              and(eq(friendships.initiatorId, userId), inArray(friendships.receiverId, sanitizedSharedWith)),
+              and(eq(friendships.receiverId, userId), inArray(friendships.initiatorId, sanitizedSharedWith))
+            )
+          ));
+        
+        const validFriendIds = new Set(friendshipsRes.map((f: any) => 
+          f.initiatorId === userId ? f.receiverId : f.initiatorId
+        ));
+        
+        sanitizedSharedWith = sanitizedSharedWith.filter((rid: string) => validFriendIds.has(rid));
+      }
+
+      const insertRes = await tx.insert(habitsTable)
+        .values({
+          id: habitId,
+          ownerId: userId,
+          title: data.title,
+          description: data.description || '',
+          skipsCount: skipsCount,
+          skipsPeriod: skipsPeriod,
+          color: data.color || '#6366f1',
+          sharedWith: sanitizedSharedWith,
+          sortOrder: nextSortOrder,
+          userDate: data.userDate || null,
+          createdAt: new Date(),
+          updatedAt: new Date()
+        })
+        .onConflictDoUpdate({
+          target: habitsTable.id,
+          set: {
+            title: data.title,
+            description: data.description || '',
+            skipsCount: skipsCount,
+            skipsPeriod: skipsPeriod,
+            color: data.color || '#6366f1',
+            sharedWith: sanitizedSharedWith,
+            sortOrder: nextSortOrder,
+            userDate: data.userDate || null,
+            updatedAt: new Date()
+          },
+          where: eq(habitsTable.ownerId, userId)
+        })
+        .returning();
+
+      return insertRes[0];
+    });
+
+    if (!result) {
+      throw createError({ statusCode: 409, statusMessage: 'Conflict: Habit already exists or ownership mismatch' });
+    }
+
+    const pusher = usePusher(event);
+    if (pusher) {
+      pusher.trigger(`user-${userId}-habits`, 'sync-settled', { timestamp: Date.now() });
+    }
+
+    return result;
+  },
+
   async deleteHabitLog(db: any, userId: string, habitId: string, dateStr: string, event: any) {
     await db.transaction(async (tx: any) => {
       await tx.delete(habitLogs)

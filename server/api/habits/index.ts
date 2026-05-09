@@ -3,6 +3,7 @@ import { habits as habitsTable } from '~~/server/db/schema';
 import { useDB as _useDB } from '~~/server/utils/db';
 import { requireAuth as _requireAuth } from '~~/server/utils/auth';
 import { habitSchema, throwZodError } from '~~/server/utils/validation';
+import { HabitService } from '~~/server/services/habit.service';
 
 export default defineEventHandler(async (event) => {
   const requireAuth = (event.context as any).requireAuth || _requireAuth;
@@ -35,68 +36,7 @@ export default defineEventHandler(async (event) => {
       return throwZodError(validation.error);
     }
 
-    const data = validation.data;
-    const nextSortOrder = data.sortOrder !== undefined ? data.sortOrder : 0;
-
-    if (nextSortOrder >= 30) {
-      throw createError({ statusCode: 400, statusMessage: 'Habit limit of 30 reached' });
-    }
-
-    let skipsCount = data.skipsCount ?? 2;
-    const skipsPeriod = data.skipsPeriod ?? 'weekly';
-    if (skipsPeriod === 'none') {
-      skipsCount = 0;
-    } else if (skipsPeriod === 'weekly') {
-      skipsCount = Math.max(0, Math.min(6, skipsCount));
-    } else if (skipsPeriod === 'monthly') {
-      skipsCount = Math.max(0, Math.min(28, skipsCount));
-    }
-
-    const habitId = data.id || crypto.randomUUID();
-
-    try {
-      const result = await db.insert(habitsTable)
-        .values({
-          id: habitId,
-          ownerId: userId,
-          title: data.title,
-          description: data.description || '',
-          skipsCount: skipsCount,
-          skipsPeriod: skipsPeriod,
-          color: data.color || '#6366f1',
-          sharedWith: data.sharedWith || [],
-          sortOrder: nextSortOrder,
-          userDate: data.userDate || null,
-          createdAt: new Date(),
-          updatedAt: new Date()
-        })
-        .onConflictDoUpdate({
-          target: habitsTable.id,
-          set: {
-            title: data.title,
-            description: data.description || '',
-            skipsCount: skipsCount,
-            skipsPeriod: skipsPeriod,
-            color: data.color || '#6366f1',
-            sharedWith: data.sharedWith || [],
-            sortOrder: nextSortOrder,
-            userDate: data.userDate || null,
-            updatedAt: new Date()
-          },
-          where: eq(habitsTable.ownerId, userId)
-        })
-        .returning();
-
-      if (!result[0]) {
-        throw createError({ statusCode: 409, statusMessage: 'Conflict: Habit already exists or ownership mismatch' });
-      }
-
-      return { data: result[0] };
-    } catch (e: any) {
-      if (e.code === '23505') {
-        throw createError({ statusCode: 409, statusMessage: 'Conflict: Unique constraint violation' });
-      }
-      throw e;
-    }
+    const result = await HabitService.createHabit(db, userId, validation.data, event);
+    return { data: result };
   }
 });
