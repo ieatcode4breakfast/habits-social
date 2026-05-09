@@ -1,170 +1,83 @@
-# 🚀 PRODUCTION READINESS REVIEW — HabitsSocial
+# Production Readiness Review
 
-## 🔴 CRITICAL ISSUES (Must fix before deployment)
-
-### 1. Pusher Realtime is Completely Non-Functional - FIXED
-- **Files:** All `server/api/` route handlers
-- **Explanation:** The V1 API (`server/_v1_archive/`) had Pusher server-side publishing in 36 locations across habit, bucket, habitlog, and social route handlers. These are all excluded from the Nitro build by `nuxt.config.ts` line 25: `ignore: ['api/_v1/**']`. The V2 route handlers (`server/api/`) contain zero imports of the Pusher server SDK and zero calls to `pusher.trigger()`. Meanwhile, the frontend composables `useRealtime.ts` and `useSocial.ts` subscribe to channels expecting events like `sync-settled`, `friend-request-received`, `habit-updated`, `bucket-updated`, etc. — events that will never be published.
-- **Business Impact:** The realtime social feed, friend request notifications, live habit updates, and sync-settled triggers are all non-functional. The social feed relies on manual polling/refresh. Friend request notifications will never arrive until a manual page refresh.
-- **Fix:** Reintroduce Pusher server-side publishing in the V2 handlers. At minimum: `sync-settled` events after habit/habitlog mutations, `friend-request-received`/`accepted` after friendship mutations, `habit-updated`/`deleted` after habit mutations, `bucket-updated`/`deleted` after bucket mutations.
+This document outlines critical risks, warnings, and best practices identified during the pre-production audit of the **Habits Social** platform.
 
 ---
 
-### 2. User Account Deletion Leaves Orphaned Data - FIXED
-- **File:** `server/api/users/me.delete.ts` (lines 13-18)
-- **Explanation:** The DELETE handler only removes the row from the `users` table. The database schema (`server/db/schema.ts`) defines zero foreign key constraints (no `references()`, no `onDelete`, no `onUpdate`). This means deleting a user leaves behind orphaned habits, logs, buckets, friendships, and share events.
-- **Business Impact:** GDPR/data privacy violation — user data is not fully deleted. Orphaned rows will accumulate, polluting friend feeds and slowing queries indefinitely.
-- **Fix:** Before deleting the user, delete all related records across all tables in a transaction:
+## 🛑 Critical Risks (Immediate Action Required)
+
+### 1. Unbounded Payload in Initial Sync
+- **Location**: `server/services/sync.service.ts` (`getDeltas` function)
+- **Risk**: **Memory Exhaustion (OOM) / Timeout**.
+- **Details**: The endpoint queries and returns all habits, buckets, and logs without limits or pagination. Long-term users syncing to new devices will generate massive payloads, risking server-side crashes and client-side instability.
+- **Proposed Fix**: Implement cursor-based pagination or date-chunking.
+  
 ```typescript
-// In order of dependency:
-await db.delete(bucketLogs).where(eq(bucketLogs.ownerId, userId));
-await db.delete(habitLogs).where(eq(habitLogs.ownerId, userId));
-await db.delete(shareEvents).where(or(
-  eq(shareEvents.ownerId, userId),
-  eq(shareEvents.recipientId, userId)
-));
-await db.delete(syncDeletions).where(eq(syncDeletions.ownerId, userId));
-await db.delete(sharedBucketMembers).where(eq(sharedBucketMembers.userId, userId));
-await db.delete(bucketHabits).where(eq(bucketHabits.addedBy, userId));
-await db.delete(buckets).where(eq(buckets.ownerId, userId));
-await db.delete(habits).where(eq(habits.ownerId, userId));
-await db.delete(friendships).where(or(
-  eq(friendships.initiatorId, userId),
-  eq(friendships.receiverId, userId)
-));
-await db.delete(users).where(eq(users.id, userId));
+// Example adjustment in sync parameters:
+const { lastSynced = 0, startDate, endDate, limit = 500, offset = 0 } = params;
+// Apply limits and offsets to queries, and return whether more data exists
 ```
 
 ---
 
-### 3. JWT Secret Fallback in Production - FIXED
-- **File:** `server/utils/auth.ts` line 14, `nuxt.config.ts` line 41
-- **Explanation:** `nuxt.config.ts` sets `jwtSecret: process.env.JWT_SECRET || 'fallback-secret-for-dev'`. The `auth.ts` `getSecret()` function check depends on `NODE_ENV` being set to 'production' in the Cloudflare environment. If the `JWT_SECRET` was never set via `wrangler secret put`, the app falls back to a hardcoded string public in the source code.
-- **Business Impact:** Any attacker with source code access can forge valid authentication tokens for any user.
-- **Fix:**
-    - Remove the fallback string entirely. Always throw if the secret is missing.
-    - Add `JWT_SECRET` to the `wrangler secret put` commands in the deploy workflow.
-    - Remove the `|| 'fallback-secret-for-dev'` from `nuxt.config.ts`.
+## ⚠️ Warnings (Highly Recommended)
 
----
+### 1. Schema Type Mismatch for Foreign Keys
+- **Location**: `server/db/schema.ts`
+- **Details**: `users.id` is a `uuid`, but foreign keys in `habits`, `habitLogs`, and `buckets` are typed as `text`. This forces expensive manual type casting in joins (e.g., `sql`${habitLogs.ownerId}::uuid = ${users.id}``), bypassing index optimizations.
+- **Proposed Fix**: Run a migration to convert `ownerId` columns to `uuid`.
 
-### 4. ILIKE-Based Uniqueness Enumeration Vulnerability - FIXED
-- **File:** `server/api/auth/login.post.ts`, `server/api/auth/register.post.ts`, `server/api/users/me.put.ts`
-- **Explanation:** Using `ILIKE` for uniqueness checks allows pattern-based attacks. A user with username `test` could be impersonated or enumerated by logging in with `test%` as the identifier.
-- **Business Impact:** Account enumeration via wildcard behavior and potential for bypassing uniqueness constraints.
-- **Fix:** Replace `ILIKE` with exact comparison using `eq()` (or `lower()` comparison) for user lookup and uniqueness checks.
-
----
-
-### 5. Habit Logs DELETE Endpoint Doesn't Recalculate Streaks - FIXED
-- **File:** `server/api/habitlogs/index.ts` (lines 103-129)
-- **Explanation:** The DELETE handler removes a habit log but does not call `recalculateHabitStreak` or `syncBucketLogsForHabit`. Habit stats become stale and inconsistent.
-- **Business Impact:** Inconsistent streak counts and bucket statuses after users clear or delete a habit log.
-- **Fix:** Add the following calls after the DELETE operation:
 ```typescript
-await recalculateHabitStreak(db, habitId, userId, dateStr);
-await syncBucketLogsForHabit(db, habitId, userId, dateStr);
+export const habits = pgTable('habits', {
+  id: uuid('id').primaryKey(),
+  ownerId: uuid('owner_id').notNull(), // Change from text to uuid
+  // ...
+});
 ```
 
----
+### 2. Missing Pagination for Social Feed
+- **Location**: `server/api/social/feed.get.ts` (Lines 43, 67, 85)
+- **Details**: The feed uses a hardcoded `.limit(100)` for various event types and merges them in memory. This prevents fetching older history and can lead to incorrect chronological ordering.
+- **Proposed Fix**: Implement cursor-based pagination and push merging/sorting logic to the database (e.g., via `UNION ALL`).
 
-### 6. bcrypt-ts on Cloudflare Workers — CPU Timeout Risk - SKIP
-- **File:** `server/api/auth/register.post.ts`, `server/api/auth/login.post.ts`
-- **Explanation:** `bcrypt-ts` is a pure JavaScript implementation. On Cloudflare Workers free/bundled plans (10ms-50ms budget), hashing with 10 rounds takes ~40-80ms, risking request termination.
-- **Business Impact:** Random 500 errors or timeouts during login and registration, especially under load.
-- **Fix:** Either upgrade to Cloudflare Workers Unbound plan or replace `bcrypt-ts` with Web Crypto API's native `SubtleCrypto` (e.g., PBKDF2).
+### 3. Inefficient Bucket Log Re-evaluation
+- **Location**: `server/utils/buckets.ts` (`reevaluateBucketLogs`)
+- **Details**: Deletes and reconstructs historical logs synchronously in a loop. Large buckets will block the event loop and trigger timeouts.
+- **Proposed Fix**: Use bulk inserts (`db.insert(...).values(array)`) or move re-evaluation to a background worker.
 
----
-
-## ⚠️ WARNINGS (Highly recommended to address)
-
-### 7. Multi-Step Mutations Lack Database Transactions
-- **Affected Files:** `habits/[id].ts`, `buckets/[id].ts`, `friendships/[id].ts`, `buckets.ts`
-- **Explanation:** Multiple sequential SQL writes are performed without `db.transaction()`. If an intermediate write fails, data enters an inconsistent state.
-- **Fix:** Wrap multi-step mutations in `await db.transaction(async (tx) => { ... })`.
-
-### 8. Password Truncation by bcrypt - FIXED
-- **File:** `server/utils/validation.ts`
-- **Explanation:** bcrypt silently truncates input to 72 bytes. The current validation accepts up to 128 characters.
-- **Fix:** Change validation to `z.string().min(8).max(72)`.
-
-### 9. No Rate Limiting on Authentication & Search
-- **Explanation:** No rate limiting exists at any layer.
-- **Fix:** Implement Cloudflare WAF rate limiting or application-level middleware.
-
-### 10. Login Identifier Wildcard Issue - FIXED
-- **File:** `server/api/auth/login.post.ts` (lines 31-32)
-- **Explanation:** Using `ILIKE` for login allows pattern matching. If a user's username is john, an attacker could log in using JOHN (case-insensitive) or %ohn (wildcard).
-- **Business Impact:** Ambiguous login behavior.
-- **Fix:** Switch to exact comparison: use `eq(users.username, identifier.toLowerCase())`.
-
-### 11. /api/sync Returns All Data on First Sync (60-Day Window)
-- **File:** `server/api/sync.get.ts` (lines 43-48)
-- **Explanation:** When `lastSynced` is 0, the habit/bucket log queries return up to 60 days of logs. ALL habits and buckets are returned regardless of date range.
-- **Business Impact:** Initial sync for long-time users could time out or produce oversized responses.
-- **Fix:** Implement pagination or incremental deltas only.
-
-### 12. Legacy Log Purge on Every Sync Cycle - FIXED
-- **File:** `app/composables/useHabitsApi.ts` (lines 528-539)
-- **Explanation:** On every sync cycle, the client scans ALL local logs to find "legacy" entries. O(n) scan runs repeatedly.
-- **Business Impact:** UI jank during sync cycles for long-time users.
-- **Fix:** Run the legacy purge only once on first login.
-
-### 13. Double-Fetch on Pusher Events - FIXED
-- **File:** `app/composables/useSocial.ts` (lines 101-114)
-- **Explanation:** When a Pusher event triggers, the code updates local state AND calls `refresh()`, resulting in two network round-trips.
-- **Business Impact:** Twice the API requests for realtime social events.
-- **Fix:** Trust the optimistic update and skip `refresh()`.
+### 4. Unbounded PostgreSQL Arrays
+- **Location**: `server/db/schema.ts` (`habits.sharedWith`)
+- **Details**: `sharedWith` arrays are unbounded. Malicious clients could bloat table size and degrade query performance.
+- **Proposed Fix**: Add a Zod validation limit (e.g., `.max(50)`) and a database-level `CHECK` constraint.
 
 ---
 
-## 💡 NITPICKS & BEST PRACTICES (Optional polish)
+## 💡 Nitpicks & Best Practices
 
-### 14. Reorder Endpoints Use Sequential UPDATEs - FIXED
-- **Files:** `habits/reorder.ts`, `buckets/reorder.ts`
-- **Explanation:** Both reorder endpoints perform N sequential UPDATE queries in a loop.
-- **Fix:** Use a single bulk update using a `CASE` statement.
-
-### 15. Global Cache-Control Applies to Static Assets - FIXED
-- **File:** `nuxt.config.ts` (lines 30-36)
-- **Explanation:** `/**` rule applies to static assets, causing them to be re-fetched every page load.
-- **Fix:** Add specific route rules for `/public/**` with long cache lifetimes.
-
-### 16. nuxt.config.ts Typo in Comment - FIXED
-- **Line 45:** Comment removed (Issue no longer present).
-
-### 17. Logout Only Deletes Cookie — Token Remains Valid
-- **File:** `server/api/auth/logout.post.ts`
-- **Explanation:** Logout only deletes the cookie; the JWT remains valid for 7 days via headers.
-- **Fix:** Implement a token blacklist.
-
-### 18. Test Coverage Gaps - FIXED
-- **Explanation:** No E2E tests exist at `tests/e2e/`. Potential credential exposure in `.env` file.
-
-### 19. sync.get.ts Line 28: notExists condition - FIXED
-- **Explanation:** `lastSynced > 0` ternary could produce undefined; should be made explicit.
+*   **Redundant Drizzle `.where()`**: In `habit-details.get.ts`, subsequent `.where()` calls overwrite the previous one. Use `and(...conditions)` for dynamic filtering.
+*   **Ownership Scoping**: In `updateHabit`, explicitly include `eq(habitsTable.ownerId, userId)` in the `UPDATE` query as a "Defense in Depth" measure.
+*   **Auth Timing Attacks**: Ensure the fallback dummy hash in `login.post.ts` matches the cost factor (10) used in registration to prevent timing leaks.
 
 ---
 
-## 📊 SUMMARY TABLE
+## ✅ Production Readiness Checklist
 
-| Severity | Count | Key Items |
-| :--- | :--- | :--- |
-| **🔴 CRITICAL** | 6 | Pusher non-functional, user deletion orphans data, JWT fallback, ILIKE enumeration, streak calculation bugs, bcrypt timeouts |
-| **⚠️ WARNING** | 7 | Missing transactions, password truncation, no rate limiting, sync payload scaling, legacy purge O(n), double-fetch |
-| **💡 NITPICK** | 6 | Sequential updates, static asset caching, logout token persistence, test coverage gaps |
+This checklist is prioritized by implementation ease and risk level (low to high).
 
-**CONCLUSION:** The codebase is **NOT safe** for production deployment. These issues must be addressed before deployment.
+### Phase 1: Documentation & Basic Config (Easiest / No Risk)
+- [ ] **Environment Variable Audit**: Verify all `.env.example` keys match required production secrets.
+- [ ] **README Update**: Ensure setup instructions for production environments are clear and accurate.
+- [ ] **Dependency Check**: Run `npm audit` to identify and resolve high-priority security vulnerabilities.
+- [ ] **Static Assets**: Confirm all favicon, manifest, and meta-tags are production-ready (no placeholders).
 
----
+### Phase 2: Observability & Stability (Low Risk)
+- [ ] **Error Handling**: Verify global error boundaries are in place to prevent UI crashes.
+- [ ] **Structured Logging**: Ensure server-side logs use a consistent JSON format for easier parsing.
+- [ ] **Health Check Endpoint**: Implement a `/health` route that returns `200 OK` when the service is healthy.
+- [ ] **Graceful Shutdown**: Ensure the application handles `SIGTERM` signals to close database connections gracefully.
 
-## 🏗️ IMPLEMENTATION ROADMAP (Ranked by Complexity)
-
-This section ranks the remaining unfinished items by lowest complexity, lowest risk, and ease of implementation.
-
-| Rank | Item # | Description | Rationale | Priority |
-| :--- | :--- | :--- | :--- | :--- |
-| **1** | **7** | **Database Transactions** | **Complexity: Medium.** Straightforward but requires careful "search and replace" across multiple files to ensure the `tx` object is passed correctly. | MEDIUM |
-| **2** | **17** | **Logout Token Blacklist** | **Complexity: Medium-High.** Requires a storage layer (like KV or Redis) and middleware to verify tokens on every request. High impact on auth flow. | MEDIUM |
-| **3** | **9** | **Rate Limiting** | **Complexity: Medium-High.** Best handled at the WAF level (Cloudflare). App-level implementation is risky and could block legitimate users if misconfigured. | HIGH |
-| **4** | **11** | **`/api/sync` Pagination** | **Complexity: High.** A fundamental refactor of the synchronization engine. High risk of data inconsistency if the delta logic is flawed. | HIGH |
+### Phase 3: Performance & Infrastructure (Moderate Risk)
+- [ ] **Database Indexing**: Review slow-query logs and ensure critical search fields are indexed.
+- [ ] **Content Delivery Network (CDN)**: Confirm static assets are served via CDN with appropriate cache headers.
+- [ ] **Rate Limiting**: Implement basic rate limiting on API endpoints to prevent abuse.
+- [ ] **Automated Backups**: Confirm database backup routines are active and restoration has been tested.
