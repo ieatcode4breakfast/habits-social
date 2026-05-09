@@ -2,7 +2,6 @@ import { eq, and, or, sql, inArray, desc } from 'drizzle-orm';
 import { friendships as friendshipsTable, habitLogs, habits as habitsTable, users, shareEvents } from '~~/server/db/schema';
 import { useDB as _useDB } from '~~/server/utils/db';
 import { requireAuth as _requireAuth } from '~~/server/utils/auth';
-import { format, parseISO } from 'date-fns';
 import { SocialNarratorService } from '~~/server/services/social-narrator.service';
 
 export default defineEventHandler(async (event) => {
@@ -10,6 +9,12 @@ export default defineEventHandler(async (event) => {
   const useDB = (event.context as any).useDB || _useDB;
   const userId = await requireAuth(event);
   const db = useDB(event);
+
+  const query = getQuery(event);
+  const cursorDate = query.cursorDate as string;
+  const cursorTimestamp = query.cursorTimestamp as string;
+  const cursorId = query.cursorId as string;
+  const limit = Math.min(Number(query.limit) || 20, 50);
 
   // 1. Get friend IDs (only accepted friendships)
   const friendshipRes = await db.select({
@@ -22,100 +27,108 @@ export default defineEventHandler(async (event) => {
     eq(friendshipsTable.status, 'accepted')
   ));
 
-  const friendIds = friendshipRes.map((f: any) => f.initiatorId === userId ? f.receiverId : f.initiatorId);
-  const hasFriends = friendIds.length > 0;
+  const friendIds = [userId, ...friendshipRes.map((f: any) => f.initiatorId === userId ? f.receiverId : f.initiatorId)];
 
-  // 2. Query habit logs (Categories 1 & 2)
-  const logsQuery = db.select({
-    id: habitLogs.id,
-    habitId: habitLogs.habitId,
-    ownerId: habitLogs.ownerId,
-    date: habitLogs.date,
-    status: habitLogs.status,
-    streakCount: habitLogs.streakCount,
-    brokenStreakCount: habitLogs.brokenStreakCount,
-    sharedWith: habitLogs.sharedWith,
-    updatedAt: habitLogs.updatedAt,
-    habitTitle: habitsTable.title,
-    username: users.username,
-    photoUrl: users.photoUrl
-  })
-  .from(habitLogs)
-  .innerJoin(habitsTable, eq(habitLogs.habitId, habitsTable.id))
-  .innerJoin(users, sql`${habitLogs.ownerId}::uuid = ${users.id}`);
+  // 2. Stage 1: The Final Engine
+  // We use a LATERAL join to fetch records per friend and union them.
+  // This allows the index to be used effectively for each friend in the list.
+  const cursorCondition = cursorDate && cursorTimestamp && cursorId 
+    ? sql`AND (sort_date, sort_timestamp, id) < (${cursorDate}, ${cursorTimestamp}::timestamptz, ${cursorId})`
+    : sql``;
 
-  if (hasFriends) {
-    logsQuery.where(or(
-      and(inArray(habitLogs.ownerId, friendIds), sql`${habitsTable.sharedWith} @> ARRAY[${userId}]::text[]`),
-      eq(habitLogs.ownerId, userId)
-    ));
-  } else {
-    logsQuery.where(eq(habitLogs.ownerId, userId));
-  }
+  const engineQuery = sql`
+    WITH friend_list AS (
+      SELECT unnest(ARRAY[${sql.join(friendIds.map(id => sql`${id}`), sql`, `)}]::text[]) as friend_id
+    )
+    SELECT feed.*, u.username, u.photo_url
+    FROM friend_list f
+    CROSS JOIN LATERAL (
+      -- Branch 1: Habit Logs
+      SELECT 
+        hl.id::text as id,
+        hl.owner_id::text as owner_id,
+        hl.date as sort_date,
+        hl.updated_at as sort_timestamp,
+        'log' as source_type,
+        json_build_object(
+          'id', hl.id,
+          'habitId', hl.habit_id,
+          'ownerId', hl.owner_id,
+          'date', hl.date,
+          'status', hl.status,
+          'streakCount', hl.streak_count,
+          'brokenStreakCount', hl.broken_streak_count,
+          'sharedWith', hl.shared_with,
+          'updatedAt', hl.updated_at,
+          'habitTitle', h.title
+        ) as raw_data
+      FROM ${habitLogs} hl
+      JOIN ${habitsTable} h ON hl.habit_id = h.id
+      WHERE hl.owner_id = f.friend_id
+        AND (${userId}::text = ANY(h.shared_with) OR hl.owner_id = ${userId}::text)
+        ${cursorCondition}
+      
+      UNION ALL
 
-  const logsRaw = await logsQuery.orderBy(desc(habitLogs.date), desc(habitLogs.updatedAt), desc(habitLogs.id)).limit(100);
+      -- Branch 2: Habits (Commitments)
+      SELECT 
+        h.id::text as id,
+        h.owner_id::text as owner_id,
+        h.user_date as sort_date,
+        h.created_at as sort_timestamp,
+        'habit' as source_type,
+        json_build_object(
+          'id', h.id,
+          'ownerId', h.owner_id,
+          'date', h.user_date,
+          'updatedAt', h.created_at,
+          'habitTitle', h.title
+        ) as raw_data
+      FROM ${habitsTable} h
+      WHERE h.owner_id = f.friend_id
+        AND h.user_date IS NOT NULL
+        AND (${userId}::text = ANY(h.shared_with) OR h.owner_id = ${userId}::text)
+        ${cursorCondition}
 
-  // 3. Query habit commitments (Category 3 - Trigger 3.1)
-  const commitmentsQuery = db.select({
-    id: habitsTable.id,
-    ownerId: habitsTable.ownerId,
-    date: habitsTable.userDate,
-    updatedAt: habitsTable.createdAt,
-    habitTitle: habitsTable.title,
-    username: users.username,
-    photoUrl: users.photoUrl
-  })
-  .from(habitsTable)
-  .innerJoin(users, sql`${habitsTable.ownerId}::uuid = ${users.id}`)
-  .where(sql`${habitsTable.userDate} IS NOT NULL`);
+      UNION ALL
 
-  if (hasFriends) {
-    commitmentsQuery.where(and(
-      sql`${habitsTable.userDate} IS NOT NULL`,
-      or(
-        eq(habitsTable.ownerId, userId),
-        and(inArray(habitsTable.ownerId, friendIds), sql`${habitsTable.sharedWith} @> ARRAY[${userId}]::text[]`)
-      )
-    ));
-  } else {
-    commitmentsQuery.where(and(
-      sql`${habitsTable.userDate} IS NOT NULL`,
-      eq(habitsTable.ownerId, userId)
-    ));
-  }
+      -- Branch 3: Share Events
+      SELECT 
+        se.id::text as id,
+        se.owner_id::text as owner_id,
+        se.user_date as sort_date,
+        se.created_at as sort_timestamp,
+        'share' as source_type,
+        json_build_object(
+          'id', se.id,
+          'ownerId', se.owner_id,
+          'recipientId', se.recipient_id,
+          'habitIds', se.habit_ids,
+          'date', se.user_date,
+          'updatedAt', se.created_at
+        ) as raw_data
+      FROM ${shareEvents} se
+      WHERE se.owner_id = f.friend_id::uuid
+        AND (se.recipient_id = ${userId}::uuid OR se.owner_id = ${userId}::uuid)
+        ${cursorCondition}
 
-  const commitmentsRaw = await commitmentsQuery.orderBy(desc(habitsTable.userDate), desc(habitsTable.createdAt)).limit(100);
+      ORDER BY sort_date DESC, sort_timestamp DESC, id DESC
+      LIMIT ${limit + 1}
+    ) feed
+    JOIN ${users} u ON feed.owner_id::uuid = u.id
+    ORDER BY feed.sort_date DESC, feed.sort_timestamp DESC, feed.id DESC
+    LIMIT ${limit + 1}
+  `;
 
-  // 4. Query share events (Category 3 - Trigger 3.2)
-  const shareEventsQuery = db.select({
-    id: shareEvents.id,
-    ownerId: shareEvents.ownerId,
-    recipientId: shareEvents.recipientId,
-    habitIds: shareEvents.habitIds,
-    date: shareEvents.userDate,
-    updatedAt: shareEvents.createdAt,
-    username: users.username,
-    photoUrl: users.photoUrl,
-    recipientUsername: sql<string>`ru.username`
-  })
-  .from(shareEvents)
-  .innerJoin(users, eq(shareEvents.ownerId, users.id))
-  .innerJoin(sql`users ru`, eq(shareEvents.recipientId, sql`ru.id`));
+  const rawResults = await db.execute(engineQuery);
+  const rows = rawResults.rows as any[];
 
-  if (hasFriends) {
-    shareEventsQuery.where(or(
-      and(inArray(shareEvents.ownerId, friendIds), eq(shareEvents.recipientId, userId)),
-      eq(shareEvents.ownerId, userId)
-    ));
-  } else {
-    shareEventsQuery.where(eq(shareEvents.ownerId, userId));
-  }
-
-  const shareEventsRaw = await shareEventsQuery.orderBy(desc(shareEvents.userDate), desc(shareEvents.createdAt)).limit(100);
-
-  // 5. Resolve habit titles for share events
-  const allShareHabitIds = [...new Set(shareEventsRaw.flatMap((se: any) => se.habitIds || []))];
+  // 3. Stage 2: Protected Look-Ahead for Share Events
+  // If we have share events, we need to resolve habit titles.
+  const shareRows = rows.filter(r => r.source_type === 'share');
+  const allShareHabitIds = [...new Set(shareRows.flatMap(r => r.raw_data.habitIds || []))];
   let shareHabitTitles: Record<string, string> = {};
+  
   if (allShareHabitIds.length > 0) {
     const habitRows = await db.select({ id: habitsTable.id, title: habitsTable.title })
       .from(habitsTable)
@@ -123,47 +136,60 @@ export default defineEventHandler(async (event) => {
     shareHabitTitles = Object.fromEntries(habitRows.map((r: any) => [String(r.id), r.title]));
   }
 
-  // 6. The "Narrator" Logic — Categories 1 & 2 (habit logs)
-  const feedFromLogs = logsRaw.map((log: any) => SocialNarratorService.narrateLog(log, userId)).filter(Boolean);
+  // Extra look-ahead for recipient usernames if needed (handled in narrative pass)
+  // We'll also need recipient usernames for share events where current user is the owner
+  const recipientIds = [...new Set(shareRows.map(r => r.raw_data.recipientId).filter(Boolean))];
+  let recipientNames: Record<string, string> = {};
+  if (recipientIds.length > 0) {
+    const userRows = await db.select({ id: users.id, username: users.username })
+      .from(users)
+      .where(inArray(users.id, recipientIds as any));
+    recipientNames = Object.fromEntries(userRows.map((r: any) => [String(r.id), r.username]));
+  }
 
-  // 7. Narrator Logic — Category 3: Commitments (Trigger 3.1)
-  const feedFromCommitments = commitmentsRaw.map((c: any) => SocialNarratorService.narrateCommitment(c, userId));
-
-  // 8. Narrator Logic — Category 3: Share Events (Trigger 3.2)
-  const groupedShares: any[] = [];
+  // 4. Stage 3: Hybrid Narrative Pass
+  const narratedFeed: any[] = [];
   const shareGroups = new Map<string, any[]>();
 
-  for (const se of shareEventsRaw) {
-    const isOwner = se.ownerId === userId;
-    if (isOwner) {
-      const habitKey = (se.habitIds || []).map(String).sort().join(',');
-      const ts = new Date(se.updatedAt).getTime();
-      const groupKey = `${se.ownerId}-${se.date}-${habitKey}-${ts}`;
-      if (!shareGroups.has(groupKey)) shareGroups.set(groupKey, []);
-      shareGroups.get(groupKey)!.push(se);
-    } else {
-      groupedShares.push(se);
+  for (const row of rows) {
+    const data = row.raw_data;
+    const itemWithUser = { ...data, username: row.username, photoUrl: row.photo_url };
+
+    if (row.source_type === 'log') {
+      const narrated = SocialNarratorService.narrateLog(itemWithUser, userId);
+      if (narrated) narratedFeed.push(narrated);
+    } else if (row.source_type === 'habit') {
+      narratedFeed.push(SocialNarratorService.narrateCommitment(itemWithUser, userId));
+    } else if (row.source_type === 'share') {
+      const isOwner = row.owner_id === userId;
+      if (isOwner) {
+        const habitKey = (data.habitIds || []).map(String).sort().join(',');
+        const ts = new Date(data.updatedAt).getTime();
+        const groupKey = `${row.owner_id}-${data.date}-${habitKey}-${ts}`;
+        if (!shareGroups.has(groupKey)) shareGroups.set(groupKey, []);
+        shareGroups.get(groupKey)!.push({ ...itemWithUser, recipientUsername: recipientNames[data.recipientId] });
+      } else {
+        narratedFeed.push(SocialNarratorService.narrateShare({ ...itemWithUser, recipientUsername: recipientNames[data.recipientId] }, userId, shareHabitTitles));
+      }
     }
   }
 
+  // Grouped Share Processing
   for (const group of shareGroups.values()) {
     if (group.length === 1) {
-      groupedShares.push(group[0]);
+      narratedFeed.push(SocialNarratorService.narrateShare(group[0], userId, shareHabitTitles));
     } else {
       const first = group[0];
-      groupedShares.push({
+      narratedFeed.push(SocialNarratorService.narrateShare({
         ...first,
         recipientCount: group.length,
         isGroupedAction: true
-      });
+      }, userId, shareHabitTitles));
     }
   }
 
-  const feedFromShares = groupedShares.map((se: any) => SocialNarratorService.narrateShare(se, userId, shareHabitTitles));
-
-  // 9. Merge and sort
-  const allFeed = [...feedFromLogs, ...feedFromCommitments, ...feedFromShares];
-  allFeed.sort((a: any, b: any) => {
+  // Final sorting of narrated items (since grouping might have slightly shifted order)
+  narratedFeed.sort((a: any, b: any) => {
     if (a.date !== b.date) return a.date > b.date ? -1 : 1;
     const tsA = new Date(a.timestamp).getTime();
     const tsB = new Date(b.timestamp).getTime();
@@ -171,5 +197,21 @@ export default defineEventHandler(async (event) => {
     return String(b.id).localeCompare(String(a.id));
   });
 
-  return { data: allFeed.slice(0, 100) };
+  const hasNextPage = narratedFeed.length > limit;
+  const data = narratedFeed.slice(0, limit);
+  
+  let nextCursor = null;
+  if (hasNextPage && data.length > 0) {
+    const lastItem = data[data.length - 1];
+    nextCursor = {
+      date: lastItem.date,
+      timestamp: lastItem.timestamp,
+      id: lastItem.id
+    };
+  }
+
+  return { 
+    data,
+    nextCursor
+  };
 });

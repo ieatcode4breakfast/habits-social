@@ -30,6 +30,7 @@ export const habits = pgTable('habits', {
 }, (table) => {
   return {
     habitsOwnerUpdatedAtIdIdx: index('habits_owner_updated_at_id_idx').on(table.ownerId, table.updatedAt, table.id),
+    habitsFeedPaginationIdx: index('habits_feed_pagination_idx').on(table.ownerId, table.userDate, table.createdAt, table.id),
   };
 });
 
@@ -46,6 +47,7 @@ export const habitLogs = pgTable('habit_logs', {
 }, (table) => {
   return {
     habitLogsOwnerUpdatedAtIdIdx: index('habit_logs_owner_updated_at_id_idx').on(table.ownerId, table.updatedAt, table.id),
+    habitLogsFeedPaginationIdx: index('habit_logs_feed_pagination_idx').on(table.ownerId, table.date, table.updatedAt, table.id),
   };
 });
 
@@ -108,6 +110,10 @@ export const shareEvents = pgTable('share_events', {
   habitIds: text('habit_ids').array().notNull(),
   userDate: text('user_date').notNull(),
   createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' }).defaultNow(),
+}, (table) => {
+  return {
+    shareEventsFeedPaginationIdx: index('share_events_feed_pagination_idx').on(table.ownerId, table.userDate, table.createdAt, table.id),
+  };
 });
 
 export const friendships = pgTable('friendships', {
