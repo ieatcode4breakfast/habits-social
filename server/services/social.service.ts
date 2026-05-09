@@ -1,7 +1,7 @@
 import { eq, and, or, sql } from 'drizzle-orm';
 import { friendships as friendshipsTable, habits, habitLogs, users } from '~~/server/db/schema';
 import { extractRows } from '~~/server/utils/db';
-import { reevaluateBucketLogs } from '~~/server/utils/buckets';
+import { reevaluateBucketLogs, reevaluateMultipleBuckets } from '~~/server/utils/buckets';
 import { usePusher } from '~~/server/utils/pusher';
 
 export const SocialService = {
@@ -109,8 +109,8 @@ export const SocialService = {
     `);
 
     const rows = extractRows<{ bucket_id: string, owner_id: string }>(affected);
-    for (const row of rows) {
-      await reevaluateBucketLogs(db, row.bucket_id, row.owner_id);
+    if (rows.length > 0) {
+      await reevaluateMultipleBuckets(db, rows.map(r => ({ bucketId: r.bucket_id, ownerId: r.owner_id })));
     }
 
     // Cleanup sharing flags

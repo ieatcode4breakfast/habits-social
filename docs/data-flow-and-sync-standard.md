@@ -24,6 +24,15 @@ The server acts as the ultimate source of truth for the system, validating and p
     *   Unfriending must mark all cross-owned bucket habits as `'removed'`.
     *   Deleting a habit must physically remove it from all buckets and trigger bucket streak re-evaluations.
 
+### Performance: Set-Based vs. Procedural Processing
+The server must strictly avoid **Procedural Processing** (the "Loop-and-Query" anti-pattern).
+
+*   **The Anti-Pattern (Procedural):** Fetching a list of records in TypeScript, looping through them, and executing individual `db.insert` or `db.update` calls. This transforms a single user action into $N$ network round-trips, causing connection pool exhaustion and API timeouts as user history grows.
+*   **The Standard (Set-Based):** All bulk operations must be handed to the database as a single logical unit. 
+    *   **Batch Operations:** Use Drizzle's batching APIs (`db.insert(...).values([...])`) for creating or updating multiple related records (e.g., assigning 20 habits to a bucket).
+    *   **Bulk Aggregation (SQL-Native):** For complex re-evaluations (like recalculating a bucket's entire history), use a single `INSERT ... SELECT` query with Postgres aggregation functions. Let the database engine do the heavy lifting of joining and counting instead of pulling raw data into TypeScript for processing.
+*   **Rationale:** The primary bottleneck is Network Round-Trip Time (RTT). A single complex query is always faster and safer than sequential queries.
+
 ### Hybrid Server Validation & Storage
 *   **Server Calculation:** Upon receiving the sync request, the server executes its own logic to process the root action and calculates derived data (like bucket streaks) to store in Neon. This ensures the database has fully calculated state ready for fast queries, feeds, and analytics.
 *   **Initiating Client Trust:** The client that initiated the push trusts its own local calculations and generally *ignores* the server's calculated response to avoid redundant database writes or UI jitter. It only relies on the server's response if it needs conflict resolution.

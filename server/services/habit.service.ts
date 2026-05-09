@@ -127,17 +127,15 @@ export const HabitService = {
       }
 
       if (newRecipients.length > 0 && updated.userDate) {
-        for (const recipientId of newRecipients) {
-          await tx.insert(shareEvents)
-            .values({
-              id: crypto.randomUUID(),
-              ownerId: userId,
-              recipientId: recipientId,
-              habitIds: [id],
-              userDate: updated.userDate,
-              createdAt: new Date()
-            });
-        }
+        await tx.insert(shareEvents)
+          .values(newRecipients.map((recipientId: string) => ({
+            id: crypto.randomUUID(),
+            ownerId: userId,
+            recipientId: recipientId,
+            habitIds: [id],
+            userDate: updated.userDate!,
+            createdAt: new Date()
+          })));
       }
       return updated;
     });

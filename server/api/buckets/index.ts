@@ -99,13 +99,14 @@ export default defineEventHandler(async (event) => {
       
       const validIds = validHabits.map((h: any) => h.id);
 
-      await db.delete(bucketHabits).where(eq(bucketHabits.bucketId, newBucket.id));
-      for (const hid of validIds) {
+      // Manage bucket_habits in batch
+      if (validIds.length > 0) {
+        await db.delete(bucketHabits).where(eq(bucketHabits.bucketId, newBucket.id));
         await db.insert(bucketHabits)
-          .values({
+          .values(validIds.map(hid => ({
             bucketId: newBucket.id,
             habitId: hid
-          })
+          })))
           .onConflictDoNothing();
       }
     }

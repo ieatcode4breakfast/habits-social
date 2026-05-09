@@ -1,7 +1,7 @@
 import { eq, and, sql, inArray, ne } from 'drizzle-orm';
 import { extractRows } from './db';
 import { bucketHabits, buckets } from '../db/schema';
-import { reevaluateBucketLogs } from './buckets';
+import { reevaluateBucketLogs, reevaluateMultipleBuckets } from './buckets';
 
 /**
  * Marks specific habits as 'removed' in all buckets owned by the target users.
@@ -30,7 +30,7 @@ export async function markBucketHabitsRemoved(db: any, habitIds: string[], targe
     new Map(rows.map((a: any) => [`${a.bucket_id}-${a.owner_id}`, a])).values()
   ) as { bucket_id: string; owner_id: string }[];
 
-  for (const row of uniqueBuckets) {
-    await reevaluateBucketLogs(db, row.bucket_id, row.owner_id);
+  if (uniqueBuckets.length > 0) {
+    await reevaluateMultipleBuckets(db, uniqueBuckets.map(r => ({ bucketId: r.bucket_id, ownerId: r.owner_id })));
   }
 }

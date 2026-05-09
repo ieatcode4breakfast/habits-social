@@ -129,15 +129,15 @@ export const BucketService = {
             .where(eq(bucketHabits.bucketId, id));
         }
 
-        // Add own habits
-        for (const hid of ownHabitIds) {
+        // Add own habits in batch
+        if (ownHabitIds.length > 0) {
           await tx.insert(bucketHabits)
-            .values({
+            .values(ownHabitIds.map(hid => ({
               bucketId: id,
               habitId: hid,
               addedBy: userId as any,
               approvalStatus: 'accepted'
-            })
+            })))
             .onConflictDoUpdate({
               target: [bucketHabits.bucketId, bucketHabits.habitId],
               set: {
@@ -147,15 +147,15 @@ export const BucketService = {
             });
         }
 
-        // Add foreign habits
-        for (const h of validForeignHabits) {
+        // Add foreign habits in batch
+        if (validForeignHabits.length > 0) {
           await tx.insert(bucketHabits)
-            .values({
+            .values(validForeignHabits.map(h => ({
               bucketId: id,
               habitId: h.id,
               addedBy: userId as any,
               approvalStatus: 'pending'
-            })
+            })))
             .onConflictDoUpdate({
               target: [bucketHabits.bucketId, bucketHabits.habitId],
               set: {
@@ -165,16 +165,16 @@ export const BucketService = {
             });
         }
 
-        // Manage members
-        for (const foreignOwnerId of uniqueForeignOwners) {
+        // Manage members in batch
+        if (uniqueForeignOwners.size > 0) {
           await tx.insert(sharedBucketMembers)
-            .values({
+            .values(Array.from(uniqueForeignOwners).map(foreignOwnerId => ({
               bucketId: id,
               userId: foreignOwnerId,
               status: 'pending',
               createdAt: new Date(),
               updatedAt: new Date()
-            })
+            })))
             .onConflictDoNothing();
         }
 
@@ -185,25 +185,33 @@ export const BucketService = {
             ne(sharedBucketMembers.userId, userId)
           ));
 
-        for (const member of currentMembers) {
-          const memberId = member.userId;
-          const activeHabits = await tx.select({ habitId: bucketHabits.habitId })
-            .from(bucketHabits)
-            .innerJoin(habitsTable, eq(bucketHabits.habitId, habitsTable.id))
-            .where(and(
-              eq(bucketHabits.bucketId, id),
-              eq(habitsTable.ownerId, memberId),
-              or(
-                sql`${bucketHabits.approvalStatus} IS NULL`,
-                inArray(bucketHabits.approvalStatus, ['accepted', 'pending'])
-              )
-            ));
+        if (currentMembers.length > 0) {
+          // Identify members who no longer have any active habits in this bucket via a single query
+          const activeHabitCounts = await tx.select({
+            memberId: habitsTable.ownerId
+          })
+          .from(bucketHabits)
+          .innerJoin(habitsTable, eq(bucketHabits.habitId, habitsTable.id))
+          .where(and(
+            eq(bucketHabits.bucketId, id),
+            inArray(habitsTable.ownerId, currentMembers.map((m: any) => m.userId)),
+            or(
+              sql`${bucketHabits.approvalStatus} IS NULL`,
+              inArray(bucketHabits.approvalStatus, ['accepted', 'pending'])
+            )
+          ))
+          .groupBy(habitsTable.ownerId);
 
-          if (activeHabits.length === 0) {
+          const activeMemberIds = new Set(activeHabitCounts.map((row: any) => row.memberId));
+          const membersToDelete = currentMembers
+            .map((m: any) => m.userId)
+            .filter(mid => !activeMemberIds.has(mid));
+
+          if (membersToDelete.length > 0) {
             await tx.delete(sharedBucketMembers)
               .where(and(
                 eq(sharedBucketMembers.bucketId, id),
-                eq(sharedBucketMembers.userId, memberId)
+                inArray(sharedBucketMembers.userId, membersToDelete)
               ));
           }
         }

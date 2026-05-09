@@ -1,5 +1,5 @@
 import { parseISO, startOfDay, differenceInDays } from 'date-fns';
-import { eq, sql, desc, asc, and, inArray } from 'drizzle-orm';
+import { eq, and, or, sql, desc, asc, inArray } from 'drizzle-orm';
   import { buckets, bucketLogs, bucketHabits, habits as habitsTable, sharedBucketMembers, habitLogs } from '../db/schema';
 import { calculateStreakFromLogs } from '../../utils/habits';
 
@@ -118,22 +118,58 @@ export async function recalculateBucketStreak(db: any, bucketId: string, userId:
 
 export async function syncBucketLogsForHabit(db: any, habitId: string, userId: string, date: string) {
   if (!habitId || habitId.length < 36) return [];
+  
+  // 1. Find all affected buckets
   const bucketsRes = await db.select({
-    id: buckets.id
+    id: buckets.id,
+    ownerId: buckets.ownerId
   })
   .from(buckets)
   .innerJoin(bucketHabits, eq(buckets.id, bucketHabits.bucketId))
   .where(and(eq(bucketHabits.habitId, habitId), eq(buckets.ownerId, userId)));
 
-  const updatedBuckets = [];
+  if (bucketsRes.length === 0) return [];
+
+  // 2. Bulk Sync: Calculate and update logs for all buckets on this date in one query
+  const bucketIds = bucketsRes.map(b => b.id);
+  const idList = sql.join(bucketIds.map(id => sql`${id}`), sql`, `);
+
+  await db.execute(sql`
+    INSERT INTO bucket_logs (id, bucket_id, owner_id, date, status, updated_at)
+    SELECT 
+      b.id::text || '_' || ${date} || '_' || b.owner_id::text as id,
+      b.id as bucket_id,
+      b.owner_id as owner_id,
+      ${date} as date,
+      CASE 
+        WHEN COUNT(DISTINCT hl.habit_id) < (SELECT COUNT(*) FROM bucket_habits WHERE bucket_id = b.id AND approval_status = 'accepted') THEN 'cleared'
+        WHEN bool_or(hl.status = 'failed') THEN 'failed'
+        WHEN bool_or(hl.status = 'skipped') THEN 'skipped'
+        WHEN bool_or(hl.status = 'vacation') THEN 'vacation'
+        ELSE 'completed'
+      END as status,
+      NOW() as updated_at
+    FROM buckets b
+    JOIN bucket_habits bh ON b.id = bh.bucket_id
+    LEFT JOIN habit_logs hl ON bh.habit_id = hl.habit_id AND hl.owner_id = b.owner_id AND hl.date = ${date} AND hl.status != 'cleared'
+    WHERE b.id::text IN (${idList})
+      AND bh.approval_status = 'accepted'
+    GROUP BY b.id, b.owner_id
+    ON CONFLICT (id) DO UPDATE SET
+      status = EXCLUDED.status,
+      updated_at = EXCLUDED.updated_at
+  `);
+
+  // 3. Recalculate streaks for all affected buckets
+  const results = [];
   for (const bucket of bucketsRes) {
-    const updated = await syncSingleBucketLog(db, bucket.id, userId, date);
-    if (updated) updatedBuckets.push(updated);
+    const res = await recalculateBucketStreak(db, bucket.id, bucket.ownerId, date);
+    if (res) results.push(res);
   }
-  return updatedBuckets;
+  return results;
 }
 
-export async function syncSingleBucketLog(db: any, bucketId: string, userId: string, date: string) {
+export async function syncSingleBucketLog(db: any, bucketId: string, userId: string, date: string, options: { skipStreakRecalculation?: boolean } = {}) {
   if (!bucketId || bucketId.length < 36) return;
   
   const sharedMembersRes = await db.select({ count: sql`count(*)` })
@@ -222,57 +258,63 @@ export async function syncSingleBucketLog(db: any, bucketId: string, userId: str
       });
   }
 
+  if (options.skipStreakRecalculation) {
+    return { bucketId, date, userId };
+  }
   return await recalculateBucketStreak(db, bucketId, userId, date);
 }
 
 export async function reevaluateBucketLogs(db: any, bucketId: string, userId: string) {
-  await db.delete(bucketLogs)
-    .where(and(eq(bucketLogs.bucketId, bucketId), eq(bucketLogs.ownerId, userId)));
-  
-  const sharedMembersRes = await db.select({ count: sql`count(*)` })
-    .from(sharedBucketMembers)
-    .where(eq(sharedBucketMembers.bucketId, bucketId));
-  const isShared = Number(sharedMembersRes[0].count) > 0;
+  return await reevaluateMultipleBuckets(db, [{ bucketId, ownerId: userId }]);
+}
 
-  let habitsRes;
-  if (isShared) {
-    habitsRes = await db.select({
-      habitId: bucketHabits.habitId
-    })
-    .from(bucketHabits)
-    .innerJoin(habitsTable, eq(bucketHabits.habitId, habitsTable.id))
-    .where(and(
-      eq(bucketHabits.bucketId, bucketId),
-      eq(habitsTable.ownerId, userId),
-      eq(bucketHabits.approvalStatus, 'accepted')
-    ));
-  } else {
-    habitsRes = await db.select({
-      habitId: bucketHabits.habitId
-    })
-    .from(bucketHabits)
-    .where(eq(bucketHabits.bucketId, bucketId));
-  }
+/**
+ * Bulk reevaluates logs for multiple buckets in a single SQL operation.
+ * Eliminates the "Power User unfriend" locking risk.
+ */
+export async function reevaluateMultipleBuckets(db: any, items: { bucketId: string, ownerId: string }[]) {
+  if (items.length === 0) return;
 
-  if (habitsRes.length === 0) {
-    await recalculateBucketStreak(db, bucketId, userId);
-    return;
+  // 1. Delete all existing bucket logs for target buckets/owners
+  const conditions = items.map(i => and(eq(bucketLogs.bucketId, i.bucketId), eq(bucketLogs.ownerId, i.ownerId)));
+  await db.delete(bucketLogs).where(or(...conditions));
+
+  // 2. Perform bulk reevaluation
+  const values = items.map(i => sql`(${i.bucketId}::text, ${i.ownerId}::text)`);
+  const valuesList = sql.join(values, sql`, `);
+
+  await db.execute(sql`
+    WITH target_buckets(id, owner_id) AS (
+      VALUES ${valuesList}
+    )
+    INSERT INTO bucket_logs (id, bucket_id, owner_id, date, status, updated_at)
+    SELECT 
+      tb.id || '_' || hl.date || '_' || tb.owner_id as id,
+      tb.id::uuid as bucket_id,
+      tb.owner_id::uuid as owner_id,
+      hl.date,
+      CASE 
+        WHEN COUNT(DISTINCT hl.habit_id) < (SELECT COUNT(*) FROM bucket_habits WHERE bucket_id = tb.id::uuid AND approval_status = 'accepted') THEN 'cleared'
+        WHEN bool_or(hl.status = 'failed') THEN 'failed'
+        WHEN bool_or(hl.status = 'skipped') THEN 'skipped'
+        WHEN bool_or(hl.status = 'vacation') THEN 'vacation'
+        ELSE 'completed'
+      END as status,
+      NOW() as updated_at
+    FROM target_buckets tb
+    JOIN bucket_habits bh ON tb.id::uuid = bh.bucket_id
+    JOIN habit_logs hl ON bh.habit_id = hl.habit_id AND hl.owner_id = tb.owner_id::uuid
+    WHERE hl.status != 'cleared'
+      AND bh.approval_status = 'accepted'
+    GROUP BY tb.id, tb.owner_id, hl.date
+    ON CONFLICT (id) DO UPDATE SET
+      status = EXCLUDED.status,
+      updated_at = EXCLUDED.updated_at
+  `);
+
+  // 3. Recalculate streaks
+  // While this is still sequential for now, the internal N+1 date loop is gone.
+  for (const item of items) {
+    await recalculateBucketStreak(db, item.bucketId, item.ownerId);
   }
-  const habitIds = habitsRes.map((h: any) => h.habitId);
-  
-  const datesRes = await db.selectDistinct({
-    date: habitLogs.date
-  })
-  .from(habitLogs)
-  .where(and(
-    inArray(habitLogs.habitId, habitIds),
-    eq(habitLogs.ownerId, userId),
-    sql`${habitLogs.status} != 'cleared'`
-  ));
-  
-  for (const row of datesRes) {
-    await syncSingleBucketLog(db, bucketId, userId, String(row.date));
-  }
-  
-  await recalculateBucketStreak(db, bucketId, userId);
 }
