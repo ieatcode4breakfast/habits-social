@@ -38,7 +38,7 @@ export default defineEventHandler(async (event) => {
 
   const engineQuery = sql`
     WITH friend_list AS (
-      SELECT unnest(ARRAY[${sql.join(friendIds.map(id => sql`${id}`), sql`, `)}]::text[]) as friend_id
+      SELECT unnest(ARRAY[${sql.join(friendIds.map(id => sql`${id}::uuid`), sql`, `)}]) as friend_id
     )
     SELECT feed.*, u.username, u.photo_url
     FROM friend_list f
@@ -65,7 +65,7 @@ export default defineEventHandler(async (event) => {
       FROM ${habitLogs} hl
       JOIN ${habitsTable} h ON hl.habit_id = h.id
       WHERE hl.owner_id = f.friend_id
-        AND (${userId}::text = ANY(h.shared_with) OR hl.owner_id = ${userId}::text)
+        AND (${userId}::text = ANY(h.shared_with) OR hl.owner_id = ${userId}::uuid)
         ${cursorCondition}
       
       UNION ALL
@@ -87,7 +87,7 @@ export default defineEventHandler(async (event) => {
       FROM ${habitsTable} h
       WHERE h.owner_id = f.friend_id
         AND h.user_date IS NOT NULL
-        AND (${userId}::text = ANY(h.shared_with) OR h.owner_id = ${userId}::text)
+        AND (${userId}::text = ANY(h.shared_with) OR h.owner_id = ${userId}::uuid)
         ${cursorCondition}
 
       UNION ALL
@@ -108,7 +108,7 @@ export default defineEventHandler(async (event) => {
           'updatedAt', se.created_at
         ) as raw_data
       FROM ${shareEvents} se
-      WHERE se.owner_id = f.friend_id::uuid
+      WHERE se.owner_id = f.friend_id
         AND (se.recipient_id = ${userId}::uuid OR se.owner_id = ${userId}::uuid)
         ${cursorCondition}
 

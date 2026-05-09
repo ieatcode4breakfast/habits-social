@@ -1,4 +1,5 @@
-import { pgTable, text, timestamp, integer, uuid, boolean, date, index, primaryKey } from 'drizzle-orm/pg-core';
+import { sql } from 'drizzle-orm';
+import { pgTable, text, timestamp, integer, uuid, boolean, date, index, primaryKey, uniqueIndex } from 'drizzle-orm/pg-core';
 
 export const users = pgTable('users', {
   id: uuid('id').primaryKey(),
@@ -9,11 +10,16 @@ export const users = pgTable('users', {
   emailVerifiedAt: timestamp('email_verified_at', { withTimezone: true, mode: 'date' }),
   createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' }).defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true, mode: 'date' }).defaultNow(),
+}, (table) => {
+  return {
+    usersEmailUniqueIdx: uniqueIndex('users_email_unique_idx').on(sql`lower(${table.email})`),
+    usersUsernameUniqueIdx: uniqueIndex('users_username_unique_idx').on(sql`lower(${table.username})`),
+  };
 });
 
 export const habits = pgTable('habits', {
   id: uuid('id').primaryKey(),
-  ownerId: text('owner_id').notNull(),
+  ownerId: uuid('owner_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
   title: text('title').notNull(),
   description: text('description'),
   skipsCount: integer('skips_count').default(0),
@@ -36,8 +42,8 @@ export const habits = pgTable('habits', {
 
 export const habitLogs = pgTable('habit_logs', {
   id: text('id').primaryKey(),
-  habitId: uuid('habit_id').notNull(),
-  ownerId: text('owner_id').notNull(),
+  habitId: uuid('habit_id').notNull().references(() => habits.id, { onDelete: 'cascade' }),
+  ownerId: uuid('owner_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
   date: text('date').notNull(),
   status: text('status').notNull(),
   streakCount: integer('streak_count').default(0),
@@ -53,7 +59,7 @@ export const habitLogs = pgTable('habit_logs', {
 
 export const buckets = pgTable('buckets', {
   id: uuid('id').primaryKey(),
-  ownerId: text('owner_id').notNull(),
+  ownerId: uuid('owner_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
   title: text('title').notNull(),
   description: text('description'),
   color: text('color'),
@@ -70,9 +76,9 @@ export const buckets = pgTable('buckets', {
 });
 
 export const bucketHabits = pgTable('bucket_habits', {
-  bucketId: uuid('bucket_id').notNull(),
-  habitId: uuid('habit_id').notNull(),
-  addedBy: uuid('added_by'),
+  bucketId: uuid('bucket_id').notNull().references(() => buckets.id, { onDelete: 'cascade' }),
+  habitId: uuid('habit_id').notNull().references(() => habits.id, { onDelete: 'cascade' }),
+  addedBy: uuid('added_by').references(() => users.id, { onDelete: 'cascade' }),
   approvalStatus: text('approval_status').default('approved'),
 }, (table) => {
   return {
@@ -81,8 +87,8 @@ export const bucketHabits = pgTable('bucket_habits', {
 });
 
 export const sharedBucketMembers = pgTable('shared_bucket_members', {
-  bucketId: uuid('bucket_id').notNull(),
-  userId: uuid('user_id').notNull(),
+  bucketId: uuid('bucket_id').notNull().references(() => buckets.id, { onDelete: 'cascade' }),
+  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
   status: text('status').notNull(),
   createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' }).defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true, mode: 'date' }).defaultNow(),
@@ -90,8 +96,8 @@ export const sharedBucketMembers = pgTable('shared_bucket_members', {
 
 export const bucketLogs = pgTable('bucket_logs', {
   id: text('id').primaryKey(),
-  bucketId: uuid('bucket_id').notNull(),
-  ownerId: text('owner_id').notNull(),
+  bucketId: uuid('bucket_id').notNull().references(() => buckets.id, { onDelete: 'cascade' }),
+  ownerId: uuid('owner_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
   date: text('date').notNull(),
   status: text('status').notNull(),
   streakCount: integer('streak_count').default(0),
@@ -105,8 +111,8 @@ export const bucketLogs = pgTable('bucket_logs', {
 
 export const shareEvents = pgTable('share_events', {
   id: uuid('id').primaryKey(),
-  ownerId: uuid('owner_id').notNull(),
-  recipientId: uuid('recipient_id').notNull(),
+  ownerId: uuid('owner_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  recipientId: uuid('recipient_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
   habitIds: text('habit_ids').array().notNull(),
   userDate: text('user_date').notNull(),
   createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' }).defaultNow(),
@@ -118,8 +124,8 @@ export const shareEvents = pgTable('share_events', {
 
 export const friendships = pgTable('friendships', {
   id: uuid('id').primaryKey(),
-  initiatorId: text('initiator_id').notNull(),
-  receiverId: text('receiver_id').notNull(),
+  initiatorId: uuid('initiator_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  receiverId: uuid('receiver_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
   status: text('status').notNull(),
   initiatorFavorite: boolean('initiator_favorite').default(false),
   receiverFavorite: boolean('receiver_favorite').default(false),
@@ -129,7 +135,7 @@ export const friendships = pgTable('friendships', {
 
 export const syncDeletions = pgTable('sync_deletions', {
   id: uuid('id').primaryKey(),
-  ownerId: uuid('owner_id').notNull(),
+  ownerId: uuid('owner_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
   entityId: uuid('entity_id').notNull(),
   entityType: text('entity_type').notNull(),
   createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' }).defaultNow(),

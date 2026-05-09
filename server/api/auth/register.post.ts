@@ -33,38 +33,50 @@ export default defineEventHandler(async (event) => {
 
   const passwordHash = await hash(password, BCRYPT_COST_FACTOR);
 
-  const result = await db.insert(users)
-    .values({
-      id: crypto.randomUUID(),
-      email,
-      username,
-      passwordHash,
-      photoUrl: photoUrl || null,
-      createdAt: new Date(),
-      updatedAt: new Date()
-    })
-    .returning({
-      id: users.id,
-      email: users.email,
-      username: users.username,
-      photoUrl: users.photoUrl
+  try {
+    const result = await db.insert(users)
+      .values({
+        id: crypto.randomUUID(),
+        email,
+        username,
+        passwordHash,
+        photoUrl: photoUrl || null,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      })
+      .returning({
+        id: users.id,
+        email: users.email,
+        username: users.username,
+        photoUrl: users.photoUrl
+      });
+
+    if (result.length === 0) {
+      throw createError({ statusCode: 500, statusMessage: 'Failed to create user' });
+    }
+
+    const user = result[0];
+    const token = await generateToken(user.id, event);
+
+    setCookie(event, 'auth_token', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      maxAge: 60 * 60 * 24 * 7, // 7 days
+      path: '/',
+      sameSite: 'lax'
     });
 
-  if (result.length === 0) {
-    throw createError({ statusCode: 500, statusMessage: 'Failed to create user' });
+    return { data: { token, id: user.id, email: user.email, username: user.username, photoUrl: user.photoUrl } };
+  } catch (error: any) {
+    // Catch PostgreSQL unique violation (code 23505) or Neon wrapper errors
+    if (error.code === '23505' || 
+        error.message?.toLowerCase().includes('unique') || 
+        error.message?.toLowerCase().includes('duplicate') ||
+        error.cause?.message?.toLowerCase().includes('unique') ||
+        error.cause?.message?.toLowerCase().includes('duplicate')) {
+      throw createError({ statusCode: 409, statusMessage: 'Email or username already taken' });
+    }
+    throw error;
   }
-
-  const user = result[0];
-  const token = await generateToken(user.id, event);
-
-  setCookie(event, 'auth_token', token, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    maxAge: 60 * 60 * 24 * 7, // 7 days
-    path: '/',
-    sameSite: 'lax'
-  });
-
-  return { data: { token, id: user.id, email: user.email, username: user.username, photoUrl: user.photoUrl } };
 });
 
