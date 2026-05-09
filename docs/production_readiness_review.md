@@ -64,9 +64,9 @@ export const habits = pgTable('habits', {
 
 This checklist is ranked solely by **ease of implementation** and **least risk to code**, allowing for rapid clearing of low-complexity items.
 
-- [ ] **Nitpicks & Best Practices - Redundant Drizzle**: Refactor `habit-details.get.ts` to use `and(...)` for dynamic filtering instead of overwriting `.where()`.
-- [ ] **Nitpicks & Best Practices - Auth Timing Attacks**: Ensure the fallback dummy hash in `login.post.ts` matches the cost factor (10) used in registration.
-- [ ] **Nitpicks & Best Practices - Ownership Scoping**: Explicitly include `eq(habitsTable.ownerId, userId)` in the `updateHabit` query.
+- [x] **Nitpicks & Best Practices - Redundant Drizzle**: Refactor `habit-details.get.ts` to use `and(...)` for dynamic filtering instead of overwriting `.where()`.
+- [x] **Nitpicks & Best Practices - Auth Timing Attacks**: Ensure the fallback dummy hash in `login.post.ts` matches the cost factor (10) used in registration.
+- [x] **Nitpicks & Best Practices - Ownership Scoping**: Explicitly include `eq(habitsTable.ownerId, userId)` in the `updateHabit` query.
 - [ ] **General Infrastructure - Health Check Endpoint**: Implement a `/health` route that returns `200 OK` when the service is healthy.
 - [ ] **General Infrastructure - Error Handling**: Verify global error boundaries are in place to prevent UI crashes.
 - [ ] **General Infrastructure - Structured Logging**: Ensure server-side logs use a consistent JSON format for easier parsing.
