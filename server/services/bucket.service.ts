@@ -7,35 +7,46 @@ export const BucketService = {
   async logBucket(db: any, userId: string, data: any, event: any) {
     const logId = data.id || `${data.bucketId}_${data.date}`;
 
-    const result = await db.insert(bucketLogs)
-      .values({
-        id: logId,
-        bucketId: data.bucketId,
-        ownerId: userId,
-        date: data.date,
-        status: data.status,
-        streakCount: data.streakCount ?? 0,
-        brokenStreakCount: data.brokenStreakCount ?? 0,
-        updatedAt: new Date()
-      })
-      .onConflictDoUpdate({
-        target: bucketLogs.id,
-        set: {
+    try {
+      const result = await db.insert(bucketLogs)
+        .values({
+          id: logId,
+          bucketId: data.bucketId,
+          ownerId: userId,
+          date: data.date,
           status: data.status,
           streakCount: data.streakCount ?? 0,
           brokenStreakCount: data.brokenStreakCount ?? 0,
           updatedAt: new Date()
-        },
-        where: eq(bucketLogs.ownerId, userId)
-      })
-      .returning();
+        })
+        .onConflictDoUpdate({
+          target: bucketLogs.id,
+          set: {
+            status: data.status,
+            streakCount: data.streakCount ?? 0,
+            brokenStreakCount: data.brokenStreakCount ?? 0,
+            updatedAt: new Date()
+          },
+          where: eq(bucketLogs.ownerId, userId)
+        })
+        .returning();
 
-    const pusher = usePusher(event);
-    if (pusher) {
-      pusher.trigger(`user-${userId}-buckets`, 'sync-settled', { timestamp: Date.now() });
+      if (!result[0]) {
+        throw createError({ statusCode: 409, statusMessage: 'Conflict: Bucket log already exists or ownership mismatch' });
+      }
+
+      const pusher = usePusher(event);
+      if (pusher) {
+        pusher.trigger(`user-${userId}-buckets`, 'sync-settled', { timestamp: Date.now() });
+      }
+
+      return result[0];
+    } catch (e: any) {
+      if (e.code === '23505') {
+        throw createError({ statusCode: 409, statusMessage: 'Conflict: Unique constraint violation' });
+      }
+      throw e;
     }
-
-    return result[0];
   },
 
   async updateBucket(db: any, userId: string, id: string, data: any, bucket: any, event: any) {

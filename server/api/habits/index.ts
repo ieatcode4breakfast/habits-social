@@ -54,24 +54,11 @@ export default defineEventHandler(async (event) => {
 
     const habitId = data.id || crypto.randomUUID();
 
-    const result = await db.insert(habitsTable)
-      .values({
-        id: habitId,
-        ownerId: userId,
-        title: data.title,
-        description: data.description || '',
-        skipsCount: skipsCount,
-        skipsPeriod: skipsPeriod,
-        color: data.color || '#6366f1',
-        sharedWith: data.sharedWith || [],
-        sortOrder: nextSortOrder,
-        userDate: data.userDate || null,
-        createdAt: new Date(),
-        updatedAt: new Date()
-      })
-      .onConflictDoUpdate({
-        target: habitsTable.id,
-        set: {
+    try {
+      const result = await db.insert(habitsTable)
+        .values({
+          id: habitId,
+          ownerId: userId,
           title: data.title,
           description: data.description || '',
           skipsCount: skipsCount,
@@ -80,16 +67,36 @@ export default defineEventHandler(async (event) => {
           sharedWith: data.sharedWith || [],
           sortOrder: nextSortOrder,
           userDate: data.userDate || null,
+          createdAt: new Date(),
           updatedAt: new Date()
-        },
-        where: eq(habitsTable.ownerId, userId)
-      })
-      .returning();
+        })
+        .onConflictDoUpdate({
+          target: habitsTable.id,
+          set: {
+            title: data.title,
+            description: data.description || '',
+            skipsCount: skipsCount,
+            skipsPeriod: skipsPeriod,
+            color: data.color || '#6366f1',
+            sharedWith: data.sharedWith || [],
+            sortOrder: nextSortOrder,
+            userDate: data.userDate || null,
+            updatedAt: new Date()
+          },
+          where: eq(habitsTable.ownerId, userId)
+        })
+        .returning();
 
-    if (!result[0]) {
-      throw createError({ statusCode: 500, statusMessage: 'Failed to create habit' });
+      if (!result[0]) {
+        throw createError({ statusCode: 409, statusMessage: 'Conflict: Habit already exists or ownership mismatch' });
+      }
+
+      return { data: result[0] };
+    } catch (e: any) {
+      if (e.code === '23505') {
+        throw createError({ statusCode: 409, statusMessage: 'Conflict: Unique constraint violation' });
+      }
+      throw e;
     }
-
-    return { data: result[0] };
   }
 });

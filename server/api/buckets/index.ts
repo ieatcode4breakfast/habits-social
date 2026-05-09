@@ -60,34 +60,35 @@ export default defineEventHandler(async (event) => {
 
     const bucketId = data.id || crypto.randomUUID();
 
-    const result = await db.insert(bucketsTable)
-      .values({
-        id: bucketId,
-        ownerId: userId,
-        title: data.title,
-        description: data.description || '',
-        color: data.color || '#6366f1',
-        sortOrder: nextSortOrder,
-        createdAt: new Date(),
-        updatedAt: new Date()
-      })
-      .onConflictDoUpdate({
-        target: bucketsTable.id,
-        set: {
+    try {
+      const result = await db.insert(bucketsTable)
+        .values({
+          id: bucketId,
+          ownerId: userId,
           title: data.title,
           description: data.description || '',
           color: data.color || '#6366f1',
           sortOrder: nextSortOrder,
+          createdAt: new Date(),
           updatedAt: new Date()
-        },
-        where: eq(bucketsTable.ownerId, userId)
-      })
-      .returning();
+        })
+        .onConflictDoUpdate({
+          target: bucketsTable.id,
+          set: {
+            title: data.title,
+            description: data.description || '',
+            color: data.color || '#6366f1',
+            sortOrder: nextSortOrder,
+            updatedAt: new Date()
+          },
+          where: eq(bucketsTable.ownerId, userId)
+        })
+        .returning();
 
-    const newBucket = result[0];
-    if (!newBucket) {
-      throw createError({ statusCode: 500, statusMessage: 'Failed to create bucket' });
-    }
+      const newBucket = result[0];
+      if (!newBucket) {
+        throw createError({ statusCode: 409, statusMessage: 'Conflict: Bucket already exists or ownership mismatch' });
+      }
 
     // Manage bucket_habits
     if (data.habitIds && data.habitIds.length > 0) {
@@ -114,5 +115,11 @@ export default defineEventHandler(async (event) => {
       .where(eq(bucketHabits.bucketId, newBucket.id));
 
     return { data: { ...newBucket, habitIds: habitsData.map((h: any) => h.habitId) } };
+    } catch (e: any) {
+      if (e.code === '23505') {
+        throw createError({ statusCode: 409, statusMessage: 'Conflict: Unique constraint violation' });
+      }
+      throw e;
+    }
   }
 });

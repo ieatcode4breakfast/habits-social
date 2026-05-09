@@ -63,6 +63,10 @@ const syncNeeded = ref(false);
 const retryCount = ref(0);
 const retryTimer = ref<any>(null);
 
+const isConflictError = (e: any) => {
+  return (e.statusCode || e.response?.status) === 409;
+};
+
 // For testing only
 export const _resetSyncState = () => {
   isSyncing.value = false;
@@ -306,6 +310,10 @@ export const useHabitsApi = () => {
             const res = isNew ? await client.postHabit(h) : await client.putHabit(h.id, h);
             await db.habits.update(h.id, { synced: 1, id: res.data.id, userDate: res.data.userDate });
           } catch (e: any) {
+            if (isConflictError(e)) {
+              await db.habits.update(h.id, { synced: 1 });
+              continue;
+            }
             const status = e.statusCode || e.response?.status;
             if (status === 404) {
               await store.deleteHabit(h.id);
@@ -325,6 +333,10 @@ export const useHabitsApi = () => {
             await client.postHabitLog(l);
             await db.habitLogs.update(l.id, { synced: 1 });
           } catch (e: any) {
+            if (isConflictError(e)) {
+              await db.habitLogs.update(l.id, { synced: 1 });
+              continue;
+            }
             const status = e.statusCode || e.response?.status;
             if (status >= 400 && status < 500 && status !== 429) {
               await db.habitLogs.delete(l.id);
@@ -342,6 +354,10 @@ export const useHabitsApi = () => {
             const res = isNew ? await client.postBucket(b) : await client.putBucket(b.id, b);
             await db.buckets.update(b.id, { synced: 1, id: res.data.id });
           } catch (e: any) {
+            if (isConflictError(e)) {
+              await db.buckets.update(b.id, { synced: 1 });
+              continue;
+            }
             const status = e.statusCode || e.response?.status;
             if (status === 404) {
               await db.buckets.delete(b.id);
@@ -360,6 +376,10 @@ export const useHabitsApi = () => {
             await client.postBucketLog(bl);
             await db.bucketLogs.update(bl.id, { synced: 1 });
           } catch (e: any) {
+            if (isConflictError(e)) {
+              await db.bucketLogs.update(bl.id, { synced: 1 });
+              continue;
+            }
             const status = e.statusCode || e.response?.status;
             if (status >= 400 && status < 500 && status !== 429) {
               await db.bucketLogs.delete(bl.id);

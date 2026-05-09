@@ -9,40 +9,51 @@ export const HabitService = {
   async logHabit(db: any, userId: string, data: any, event: any) {
     const logId = data.id || `${data.habitId}_${data.date}`;
 
-    const result = await db.insert(habitLogs)
-      .values({
-        id: logId,
-        habitId: data.habitId,
-        ownerId: userId,
-        date: data.date,
-        status: data.status,
-        sharedWith: data.sharedWith || [],
-        streakCount: data.streakCount ?? 0,
-        brokenStreakCount: data.brokenStreakCount ?? 0,
-        updatedAt: new Date()
-      })
-      .onConflictDoUpdate({
-        target: habitLogs.id,
-        set: {
+    try {
+      const result = await db.insert(habitLogs)
+        .values({
+          id: logId,
+          habitId: data.habitId,
+          ownerId: userId,
+          date: data.date,
           status: data.status,
           sharedWith: data.sharedWith || [],
           streakCount: data.streakCount ?? 0,
           brokenStreakCount: data.brokenStreakCount ?? 0,
           updatedAt: new Date()
-        },
-        where: eq(habitLogs.ownerId, userId)
-      })
-      .returning();
+        })
+        .onConflictDoUpdate({
+          target: habitLogs.id,
+          set: {
+            status: data.status,
+            sharedWith: data.sharedWith || [],
+            streakCount: data.streakCount ?? 0,
+            brokenStreakCount: data.brokenStreakCount ?? 0,
+            updatedAt: new Date()
+          },
+          where: eq(habitLogs.ownerId, userId)
+        })
+        .returning();
 
-    await recalculateHabitStreak(db, data.habitId, userId, data.date);
-    await syncBucketLogsForHabit(db, data.habitId, userId, data.date);
+      if (!result[0]) {
+        throw createError({ statusCode: 409, statusMessage: 'Conflict: Habit log already exists or ownership mismatch' });
+      }
 
-    const pusher = usePusher(event);
-    if (pusher) {
-      pusher.trigger(`user-${userId}-habits`, 'sync-settled', { timestamp: Date.now() });
+      await recalculateHabitStreak(db, data.habitId, userId, data.date);
+      await syncBucketLogsForHabit(db, data.habitId, userId, data.date);
+
+      const pusher = usePusher(event);
+      if (pusher) {
+        pusher.trigger(`user-${userId}-habits`, 'sync-settled', { timestamp: Date.now() });
+      }
+
+      return result[0];
+    } catch (e: any) {
+      if (e.code === '23505') {
+        throw createError({ statusCode: 409, statusMessage: 'Conflict: Unique constraint violation' });
+      }
+      throw e;
     }
-
-    return result[0];
   },
 
   async deleteHabitLog(db: any, userId: string, habitId: string, dateStr: string, event: any) {

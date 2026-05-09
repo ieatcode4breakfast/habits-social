@@ -134,4 +134,32 @@ describe('useHabitsApi - Resilience', () => {
     await vi.advanceTimersByTimeAsync(300000);
     expect(mockClient.fetchSync).not.toHaveBeenCalled();
   });
+
+  it('sync() treats 409 Conflict as a successful sync and does not retry or show toast', async () => {
+    const { db } = await import('~/utils/db');
+    const unsyncedHabit = { id: 'h_conflict', title: 'Conflict Habit', synced: 0 };
+    (db.habits.where as any).mockReturnValue({
+      notEqual: vi.fn().mockReturnThis(),
+      toArray: vi.fn().mockResolvedValue([unsyncedHabit])
+    });
+    (db.habits.get as any).mockResolvedValue(unsyncedHabit);
+    
+    // Simulate 409 Conflict
+    mockClient.postHabit.mockRejectedValue({ statusCode: 409 });
+    mockClient.fetchSync.mockResolvedValue({ habits: [], buckets: [], habitLogs: [], bucketLogs: [], serverTime: 1000 });
+
+    const api = useHabitsApi();
+    await api.sync();
+
+    // Verify item marked as synced
+    expect(db.habits.update).toHaveBeenCalledWith('h_conflict', { synced: 1 });
+    
+    // Verify NO toast shown for conflict
+    expect(mockToast.showToast).not.toHaveBeenCalled();
+    
+    // Verify NO retry is scheduled
+    mockClient.fetchSync.mockClear();
+    await vi.advanceTimersByTimeAsync(300000);
+    expect(mockClient.fetchSync).not.toHaveBeenCalled();
+  });
 });
