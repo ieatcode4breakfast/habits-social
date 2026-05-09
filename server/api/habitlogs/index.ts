@@ -1,4 +1,4 @@
-import { parseISO, startOfDay, subDays, addDays, isBefore, isAfter } from 'date-fns';
+import { parseISO, startOfDay, addDays, isAfter } from 'date-fns';
 import { eq, and, gte, lte, sql } from 'drizzle-orm';
 import { habitLogs, habits as habitsTable } from '~~/server/db/schema';
 import { useDB as _useDB } from '~~/server/utils/db';
@@ -48,14 +48,13 @@ export default defineEventHandler(async (event) => {
 
     const data = validation.data;
 
-    // Validate date is within last 14 days
+    // Validate date is not in the future
     const logDate = startOfDay(parseISO(data.date));
     const today = startOfDay(new Date());
-    const limitDate = startOfDay(subDays(today, 13));
     const maxDate = addDays(today, 1);
 
-    if (isBefore(logDate, limitDate) || isAfter(logDate, maxDate)) {
-      throw createError({ statusCode: 400, statusMessage: 'Habit updates are only allowed for the last 14 days' });
+    if (isAfter(logDate, maxDate)) {
+      throw createError({ statusCode: 400, statusMessage: 'Habit updates are not allowed for future dates' });
     }
 
     // Validate habit exists and is owned by user
@@ -81,14 +80,13 @@ export default defineEventHandler(async (event) => {
       throw createError({ statusCode: 400, statusMessage: 'habitId and date are required' });
     }
 
-    // Validate date is within last 14 days
+    // Validate date is not in the future
     const logDate = startOfDay(parseISO(dateStr));
     const today = startOfDay(new Date());
-    const limitDate = startOfDay(subDays(today, 13));
     const maxDate = addDays(today, 1);
 
-    if (isBefore(logDate, limitDate) || isAfter(logDate, maxDate)) {
-      throw createError({ statusCode: 400, statusMessage: 'Habit updates are only allowed for the last 14 days' });
+    if (isAfter(logDate, maxDate)) {
+      throw createError({ statusCode: 400, statusMessage: 'Habit updates are not allowed for future dates' });
     }
 
     await HabitService.deleteHabitLog(db, userId, habitId, dateStr, event);

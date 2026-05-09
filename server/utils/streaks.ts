@@ -91,17 +91,20 @@ export async function recalculateHabitStreak(db: any, habitId: string, userId: s
     habit.streakAnchorDate
   );
 
-  // 5. Update habitlogs
+  // 5. Update habitlogs in batch
   if (logUpdates.length > 0) {
-    for (const update of logUpdates) {
-      await db.update(habitLogs)
-        .set({
-          streakCount: update.streakCount,
-          brokenStreakCount: update.brokenStreakCount,
-          updatedAt: new Date()
-        })
-        .where(eq(habitLogs.id, update.id));
-    }
+    const sqlValues = logUpdates.map(u => sql`(${u.id}::text, ${u.streakCount}::integer, ${u.brokenStreakCount}::integer)`);
+    const valuesList = sql.join(sqlValues, sql`, `);
+    
+    await db.execute(sql`
+      UPDATE habit_logs AS hl
+      SET 
+        streak_count = v.streak_count,
+        broken_streak_count = v.broken_streak_count,
+        updated_at = NOW()
+      FROM (VALUES ${valuesList}) AS v(id, streak_count, broken_streak_count)
+      WHERE hl.id = v.id
+    `);
   }
 
   // 6. Final Habit Update: Set current and longest streak

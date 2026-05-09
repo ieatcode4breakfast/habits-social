@@ -87,16 +87,20 @@ export async function recalculateBucketStreak(db: any, bucketId: string, userId:
     bucket.streakAnchorDate
   );
 
+  // 5. Update bucketlogs in batch
   if (logUpdates.length > 0) {
-    for (const update of logUpdates) {
-      await db.update(bucketLogs)
-        .set({
-          streakCount: update.streakCount,
-          brokenStreakCount: update.brokenStreakCount,
-          updatedAt: new Date()
-        })
-        .where(eq(bucketLogs.id, update.id));
-    }
+    const sqlValues = logUpdates.map(u => sql`(${u.id}::text, ${u.streakCount}::integer, ${u.brokenStreakCount}::integer)`);
+    const valuesList = sql.join(sqlValues, sql`, `);
+    
+    await db.execute(sql`
+      UPDATE bucket_logs AS bl
+      SET 
+        streak_count = v.streak_count,
+        broken_streak_count = v.broken_streak_count,
+        updated_at = NOW()
+      FROM (VALUES ${valuesList}) AS v(id, streak_count, broken_streak_count)
+      WHERE bl.id = v.id
+    `);
   }
 
   const result = await db.update(buckets)

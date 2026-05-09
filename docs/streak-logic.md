@@ -30,7 +30,8 @@ The streak state is persisted across the parent entities (`habits` and `buckets`
 > This daily-only logic is **intentional and immutable**. While habits have frequency goals (weekly/monthly), the **Streak** is a separate measure of daily accountability. 
 > * **Forgiving:** Users can retroactively log missed days to "save" a streak.
 > * **Strict:** A "Missing Day" (gap > 1 day) always breaks the chain.
-> * **Security Limit:** Retroactive edits are strictly limited to a **14-day trailing window** to prevent massive historical manipulation.
+> * **Future Boundary:** Logs cannot be created for future dates to prevent "anchoring" streaks in the future.
+> * **Historical Sync:** While the frontend limits manual entries to a 14-day window for UX consistency, the backend permits unbounded historical synchronization to support long-term offline reconciliation.
 
 Streaks are recalculated automatically whenever:
 1.  A habit log or bucket log is created, updated, or deleted.

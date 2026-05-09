@@ -200,4 +200,36 @@ describe('Streak Calculation Engine - Stress Testing', () => {
     // Day 9 cleared -> streak is 0
     expect(habitResult!.currentStreak).toBe(0);
   }, 60000);
+
+  it('PERFORMANCE: should process 365 days of historical logs without timeout', async () => {
+    const STREAK_DAYS = 365;
+    const startDate = new Date('2021-01-01T00:00:00.000Z');
+    const logsToInsert = [];
+    const now = new Date();
+
+    for (let i = 0; i < STREAK_DAYS; i++) {
+      const current = addDays(startDate, i);
+      const dateStr = formatISO(current, { representation: 'date' });
+      logsToInsert.push({
+        id: `${habit.id}_${dateStr}`,
+        habitId: habit.id,
+        ownerId: user.id,
+        date: dateStr,
+        status: 'completed' as const,
+        updatedAt: now
+      });
+    }
+
+    // Batch insert 365 logs
+    await db.insert(habitLogs).values(logsToInsert);
+
+    const startTime = Date.now();
+    const habitResult = await recalculateHabitStreak(db, habit.id, user.id);
+    const duration = Date.now() - startTime;
+
+    console.log(`[Stress Test] 365-day recalculation took ${duration}ms`);
+    
+    expect(habitResult!.currentStreak).toBe(365);
+    expect(duration).toBeLessThan(10000); // Should definitely be under 10s
+  }, 120000);
 });

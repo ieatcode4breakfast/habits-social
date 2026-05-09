@@ -6,7 +6,7 @@ This document outlines critical risks, warnings, and best practices identified d
 
 ## 🛑 Critical Risks (Immediate Action Required)
 
-### 1. Unbounded Payload in Initial Sync
+### 1. Unbounded Payload in Initial Sync - DONE
 - **Location**: `server/services/sync.service.ts` (`getDeltas` function)
 - **Risk**: **Memory Exhaustion (OOM) / Timeout**.
 - **Details**: The endpoint queries and returns all habits, buckets, and logs without limits or pagination. Long-term users syncing to new devices will generate massive payloads, risking server-side crashes and client-side instability.
