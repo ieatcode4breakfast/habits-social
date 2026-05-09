@@ -403,6 +403,7 @@ const isUpdatingHabit = ref(false);
 const isDeletingHabit = ref(false);
 const isInitializingEdit = ref(false);
 const isDirty = ref(false);
+const editDescriptionRef = ref<HTMLTextAreaElement | null>(null);
 
 const isInternalModalOpen = computed(() => showDeleteModal.value || showSharingConfirmModal.value);
 const isSelfOrInternalOpen = computed(() => props.modelValue || isInternalModalOpen.value);
