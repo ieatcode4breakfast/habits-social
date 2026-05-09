@@ -1,6 +1,6 @@
 import { eq, and, or, sql, inArray, notInArray, ne } from 'drizzle-orm';
 import { buckets as bucketsTable, bucketHabits, habits as habitsTable, friendships, sharedBucketMembers, syncDeletions, bucketLogs } from '~~/server/db/schema';
-import { reevaluateBucketLogs } from '~~/server/utils/buckets';
+import { reevaluateMultipleBuckets } from '~~/server/utils/buckets';
 import { usePusher } from '~~/server/utils/pusher';
 
 export const BucketService = {
@@ -216,7 +216,7 @@ export const BucketService = {
           }
         }
 
-        await reevaluateBucketLogs(tx, id, userId);
+        await reevaluateMultipleBuckets(tx, [{ bucketId: id, ownerId: userId }]);
       }
 
       const habitsResult = await tx.select({ habitId: bucketHabits.habitId })

@@ -1,7 +1,7 @@
 import { eq, and, or, sql } from 'drizzle-orm';
 import { friendships as friendshipsTable, habits, habitLogs, users } from '~~/server/db/schema';
 import { extractRows } from '~~/server/utils/db';
-import { reevaluateBucketLogs, reevaluateMultipleBuckets } from '~~/server/utils/buckets';
+import { reevaluateMultipleBuckets } from '~~/server/utils/buckets';
 import { usePusher } from '~~/server/utils/pusher';
 
 export const SocialService = {

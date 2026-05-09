@@ -3,7 +3,6 @@ import { buckets as bucketsTable, bucketHabits, habits as habitsTable, friendshi
 import { useDB as _useDB } from '~~/server/utils/db';
 import { requireAuth as _requireAuth } from '~~/server/utils/auth';
 import { bucketUpdateSchema } from '~~/server/utils/validation';
-import { reevaluateBucketLogs } from '~~/server/utils/buckets';
 
 import { BucketService } from '~~/server/services/bucket.service';
 

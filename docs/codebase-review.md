@@ -2,14 +2,6 @@
 
 ## 🔴 CRITICAL ISSUES (Must fix before deployment)
 
-### 1. Severe N+1 Query and O(N) Complexity in Bucket Reevaluation
-- **Location:** `server/utils/buckets.ts` (`reevaluateBucketLogs` and `syncSingleBucketLog`)
-- **Explanation:** When a bucket's composition changes, `reevaluateBucketLogs` sequentially loops over every unique logged date in the habit's history, calling `syncSingleBucketLog`. Crucially, `syncSingleBucketLog` queries the database multiple times and ends by calling `recalculateBucketStreak`, which executes multiple queries of its own. If a user has a year of history (365 dates), this triggers thousands of sequential, blocking database queries on a single request, leading to massive memory spikes, database locking, and immediate API timeouts.
-- **Fix:** 
-  1. Add an optional `skipStreakRecalculation` parameter to `syncSingleBucketLog` so it doesn't recalculate streaks on every single iteration of the loop.
-  2. Call `recalculateBucketStreak` exactly once at the very end of `reevaluateBucketLogs`.
-  3. For the long-term, refactor the `for (const row of datesRes)` loop to resolve dates via a single bulk `INSERT ... ON CONFLICT DO UPDATE` query.
-
 ---
 
 ## 🟡 WARNINGS (Highly recommended to address)

@@ -1,7 +1,7 @@
 import { eq, and, sql, inArray, ne } from 'drizzle-orm';
 import { extractRows } from './db';
 import { bucketHabits, buckets } from '../db/schema';
-import { reevaluateBucketLogs, reevaluateMultipleBuckets } from './buckets';
+import { reevaluateMultipleBuckets } from './buckets';
 
 /**
  * Marks specific habits as 'removed' in all buckets owned by the target users.

@@ -2,7 +2,7 @@ import './setup';
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { createTestUser, deleteTestUser, createTestHabit, deleteTestHabit, createTestBucket, deleteTestBucket, User, Habit, Bucket, db } from './test.utils';
 import { recalculateHabitStreak } from '../utils/streaks';
-import { reevaluateBucketLogs, syncSingleBucketLog } from '../utils/buckets';
+import { reevaluateMultipleBuckets } from '../utils/buckets';
 import { formatISO, addDays } from 'date-fns';
 import { eq, and, sql } from 'drizzle-orm';
 import { bucketHabits, habitLogs, bucketLogs, buckets, habits } from '../db/schema';
@@ -71,7 +71,7 @@ describe('Streak Calculation Engine - Stress Testing', () => {
     expect(habitResult!.longestStreak).toBe(STREAK_DAYS);
 
     // 3. Trigger bucket reevaluation
-    await reevaluateBucketLogs(db, bucket.id, user.id);
+    await reevaluateMultipleBuckets(db, [{ bucketId: bucket.id, ownerId: user.id }]);
     
     const bucketRes = await db.select().from(buckets).where(eq(buckets.id, bucket.id));
     expect(bucketRes[0]!.currentStreak).toBe(STREAK_DAYS);
@@ -102,7 +102,7 @@ describe('Streak Calculation Engine - Stress Testing', () => {
     expect(habitResult!.longestStreak).toBe(5);
 
     // Bucket should follow same logic
-    await syncSingleBucketLog(db, bucket.id, user.id, dateStr6);
+    await reevaluateMultipleBuckets(db, [{ bucketId: bucket.id, ownerId: user.id }]);
     const bucketRes = await db.select().from(buckets).where(eq(buckets.id, bucket.id));
     expect(bucketRes[0]!.currentStreak).toBe(1);
     expect(bucketRes[0]!.longestStreak).toBe(5);
@@ -135,7 +135,7 @@ describe('Streak Calculation Engine - Stress Testing', () => {
     expect(failedLog[0]!.brokenStreakCount).toBe(2); // Broke the initial 2 day streak (Days 0,1)
 
     // Reevaluate Bucket
-    await reevaluateBucketLogs(db, bucket.id, user.id);
+    await reevaluateMultipleBuckets(db, [{ bucketId: bucket.id, ownerId: user.id }]);
     const bucketRes = await db.select().from(buckets).where(eq(buckets.id, bucket.id));
     expect(bucketRes[0]!.currentStreak).toBe(1);
     expect(bucketRes[0]!.longestStreak).toBe(2);

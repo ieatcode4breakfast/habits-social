@@ -65,7 +65,7 @@ describe('Transactional Integrity', () => {
     });
 
     // We'll spy on reevaluateBucketLogs which is called AFTER the deletion in deleteHabit
-    const spy = vi.spyOn(bucketsUtils, 'reevaluateBucketLogs').mockRejectedValueOnce(new Error('Sync Deletion sync failed'));
+    const spy = vi.spyOn(bucketsUtils, 'reevaluateMultipleBuckets').mockRejectedValueOnce(new Error('Sync Deletion sync failed'));
 
     await expect(HabitService.deleteHabit(db, user.id, habit.id, null))
       .rejects.toThrow('Sync Deletion sync failed');

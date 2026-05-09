@@ -2,7 +2,6 @@ import { eq, and, or, sql } from 'drizzle-orm';
 import { friendships, bucketHabits, buckets, habits, habitLogs } from '~~/server/db/schema';
 import { useDB as _useDB, extractRows } from '~~/server/utils/db';
 import { requireAuth as _requireAuth } from '~~/server/utils/auth';
-import { reevaluateBucketLogs } from '~~/server/utils/buckets';
 
 import { SocialService } from '~~/server/services/social.service';
 

@@ -79,37 +79,39 @@ export const SyncService = {
       bucketLogsFilters.push(and(gte(bucketLogs.date, startDate), lte(bucketLogs.date, endDate)));
     }
 
-    // 1. Fetch main deltas in parallel
-    const [habitsRes, bucketsRawRes, habitLogsRes, bucketLogsRes, deletionsRes] = await Promise.all([
-      db.select().from(habitsTable)
-        .where(and(...habitsFilters))
-        .orderBy(asc(habitsTable.sortOrder), desc(habitsTable.createdAt)),
+    // 1. Fetch main deltas in parallel (wrapped in transaction to use a single connection)
+    const [habitsRes, bucketsRawRes, habitLogsRes, bucketLogsRes, deletionsRes] = await db.transaction(async (tx: any) => {
+      return await Promise.all([
+        tx.select().from(habitsTable)
+          .where(and(...habitsFilters))
+          .orderBy(asc(habitsTable.sortOrder), desc(habitsTable.createdAt)),
 
-      db.select({
-        bucket: bucketsTable,
-        bh: bucketHabits,
-        habitOwnerId: habitsTable.ownerId,
-        sbm: sharedBucketMembers,
-        memberUsername: users.username
-      })
-      .from(bucketsTable)
-      .leftJoin(bucketHabits, eq(bucketsTable.id, bucketHabits.bucketId))
-      .leftJoin(habitsTable, eq(bucketHabits.habitId, habitsTable.id))
-      .leftJoin(sharedBucketMembers, eq(bucketsTable.id, sharedBucketMembers.bucketId))
-      .leftJoin(users, eq(sharedBucketMembers.userId, users.id))
-      .where(and(...bucketFilters))
-      .orderBy(asc(bucketsTable.sortOrder), desc(bucketsTable.createdAt)),
+        tx.select({
+          bucket: bucketsTable,
+          bh: bucketHabits,
+          habitOwnerId: habitsTable.ownerId,
+          sbm: sharedBucketMembers,
+          memberUsername: users.username
+        })
+        .from(bucketsTable)
+        .leftJoin(bucketHabits, eq(bucketsTable.id, bucketHabits.bucketId))
+        .leftJoin(habitsTable, eq(bucketHabits.habitId, habitsTable.id))
+        .leftJoin(sharedBucketMembers, eq(bucketsTable.id, sharedBucketMembers.bucketId))
+        .leftJoin(users, eq(sharedBucketMembers.userId, users.id))
+        .where(and(...bucketFilters))
+        .orderBy(asc(bucketsTable.sortOrder), desc(bucketsTable.createdAt)),
 
-      db.select().from(habitLogs)
-        .where(and(...habitLogsFilters)),
+        tx.select().from(habitLogs)
+          .where(and(...habitLogsFilters)),
 
-      db.select().from(bucketLogs)
-        .where(and(...bucketLogsFilters)),
+        tx.select().from(bucketLogs)
+          .where(and(...bucketLogsFilters)),
 
-      db.select({ entityId: syncDeletions.entityId, entityType: syncDeletions.entityType })
-        .from(syncDeletions)
-        .where(and(...deletionsFilters))
-    ]);
+        tx.select({ entityId: syncDeletions.entityId, entityType: syncDeletions.entityType })
+          .from(syncDeletions)
+          .where(and(...deletionsFilters))
+      ]);
+    });
 
     // 2. Aggregate bucket results (handle Cartesian product from left joins)
     const bucketMap = new Map<string, any>();
@@ -218,35 +220,34 @@ export const SyncService = {
       };
     }
 
-    // 1. Fetch Habits
-    const habitsQuery = db.select().from(habitsTable)
-      .where(and(
-        eq(habitsTable.ownerId, userId),
-        habitCursor ? buildCursorFilter(habitsTable, habitCursor as any, fallbackDate) : gte(habitsTable.updatedAt, fallbackDate)
-      ))
-      .orderBy(asc(habitsTable.updatedAt), asc(habitsTable.id))
-      .limit(limit + 1);
+    const [habitsResRaw, bucketIdsResRaw] = await db.transaction(async (tx: any) => {
+      // Subquery to identify accessible bucket IDs (to avoid join duplicates)
+      const bucketIdsSubquery = tx.select({ id: bucketsTable.id })
+        .from(bucketsTable)
+        .leftJoin(sharedBucketMembers, eq(bucketsTable.id, sharedBucketMembers.bucketId))
+        .where(or(
+          eq(bucketsTable.ownerId, userId),
+          and(eq(sharedBucketMembers.userId, userId), eq(sharedBucketMembers.status, 'accepted'))
+        ));
 
-    // 2. Fetch Buckets (IDs first to avoid Cartesian truncation)
-    
-    // Subquery to identify accessible bucket IDs (to avoid join duplicates)
-    const bucketIdsSubquery = db.select({ id: bucketsTable.id })
-      .from(bucketsTable)
-      .leftJoin(sharedBucketMembers, eq(bucketsTable.id, sharedBucketMembers.bucketId))
-      .where(or(
-        eq(bucketsTable.ownerId, userId),
-        and(eq(sharedBucketMembers.userId, userId), eq(sharedBucketMembers.status, 'accepted'))
-      ));
-
-    const bucketIdsQuery = db.select({ id: bucketsTable.id }).from(bucketsTable)
-      .where(and(
-        inArray(bucketsTable.id, bucketIdsSubquery),
-        bucketCursor ? buildCursorFilter(bucketsTable, bucketCursor as any, fallbackDate) : gte(bucketsTable.updatedAt, fallbackDate)
-      ))
-      .orderBy(asc(bucketsTable.updatedAt), asc(bucketsTable.id))
-      .limit(limit + 1);
-
-    const [habitsResRaw, bucketIdsResRaw] = await Promise.all([habitsQuery, bucketIdsQuery]);
+      return await Promise.all([
+        tx.select().from(habitsTable)
+          .where(and(
+            eq(habitsTable.ownerId, userId),
+            habitCursor ? buildCursorFilter(habitsTable, habitCursor as any, fallbackDate) : gte(habitsTable.updatedAt, fallbackDate)
+          ))
+          .orderBy(asc(habitsTable.updatedAt), asc(habitsTable.id))
+          .limit(limit + 1),
+        
+        tx.select({ id: bucketsTable.id }).from(bucketsTable)
+          .where(and(
+            inArray(bucketsTable.id, bucketIdsSubquery),
+            bucketCursor ? buildCursorFilter(bucketsTable, bucketCursor as any, fallbackDate) : gte(bucketsTable.updatedAt, fallbackDate)
+          ))
+          .orderBy(asc(bucketsTable.updatedAt), asc(bucketsTable.id))
+          .limit(limit + 1)
+      ]);
+    });
 
     const habitsHasMore = habitsResRaw.length > limit;
     const habitsRes = habitsResRaw.slice(0, limit);
@@ -265,31 +266,33 @@ export const SyncService = {
     let deletionsHasMore = false;
 
     if (!suppressChildren) {
-      const [hLogs, bLogs, deletionsRaw] = await Promise.all([
-        db.select().from(habitLogs)
-          .where(and(
-            eq(habitLogs.ownerId, userId),
-            logCursor ? buildCursorFilter(habitLogs, logCursor, fallbackDate) : gte(habitLogs.updatedAt, fallbackDate)
-          ))
-          .orderBy(asc(habitLogs.updatedAt), asc(habitLogs.id))
-          .limit(limit + 1),
+      const [hLogs, bLogs, deletionsRaw] = await db.transaction(async (tx: any) => {
+        return await Promise.all([
+          tx.select().from(habitLogs)
+            .where(and(
+              eq(habitLogs.ownerId, userId),
+              logCursor ? buildCursorFilter(habitLogs, logCursor, fallbackDate) : gte(habitLogs.updatedAt, fallbackDate)
+            ))
+            .orderBy(asc(habitLogs.updatedAt), asc(habitLogs.id))
+            .limit(limit + 1),
 
-        db.select().from(bucketLogs)
-          .where(and(
-            eq(bucketLogs.ownerId, userId),
-            bLogCursor ? buildCursorFilter(bucketLogs, bLogCursor, fallbackDate) : gte(bucketLogs.updatedAt, fallbackDate)
-          ))
-          .orderBy(asc(bucketLogs.updatedAt), asc(bucketLogs.id))
-          .limit(limit + 1),
+          tx.select().from(bucketLogs)
+            .where(and(
+              eq(bucketLogs.ownerId, userId),
+              bLogCursor ? buildCursorFilter(bucketLogs, bLogCursor, fallbackDate) : gte(bucketLogs.updatedAt, fallbackDate)
+            ))
+            .orderBy(asc(bucketLogs.updatedAt), asc(bucketLogs.id))
+            .limit(limit + 1),
 
-        db.select().from(syncDeletions)
-          .where(and(
-            eq(syncDeletions.ownerId, userId),
-            delCursor ? buildCursorFilter(syncDeletions, delCursor, fallbackDate) : gte(syncDeletions.createdAt, fallbackDate)
-          ))
-          .orderBy(asc(syncDeletions.createdAt), asc(syncDeletions.id))
-          .limit(limit + 1)
-      ]);
+          tx.select().from(syncDeletions)
+            .where(and(
+              eq(syncDeletions.ownerId, userId),
+              delCursor ? buildCursorFilter(syncDeletions, delCursor, fallbackDate) : gte(syncDeletions.createdAt, fallbackDate)
+            ))
+            .orderBy(asc(syncDeletions.createdAt), asc(syncDeletions.id))
+            .limit(limit + 1)
+        ]);
+      });
 
       logsHasMore = hLogs.length > limit || bLogs.length > limit;
       deletionsHasMore = deletionsRaw.length > limit;

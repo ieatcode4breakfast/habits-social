@@ -3,7 +3,6 @@ import { habits as habitsTable, bucketHabits, shareEvents, syncDeletions } from 
 import { useDB as _useDB } from '~~/server/utils/db';
 import { requireAuth as _requireAuth } from '~~/server/utils/auth';
 import { habitUpdateSchema } from '~~/server/utils/validation';
-import { reevaluateBucketLogs } from '~~/server/utils/buckets';
 import { markBucketHabitsRemoved } from '~~/server/utils/shared-buckets';
 
 import { HabitService } from '~~/server/services/habit.service';

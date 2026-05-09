@@ -1,7 +1,7 @@
 import { eq, and, sql } from 'drizzle-orm';
 import { habitLogs, habits as habitsTable, bucketHabits, shareEvents, syncDeletions } from '~~/server/db/schema';
 import { recalculateHabitStreak } from '~~/server/utils/streaks';
-import { syncBucketLogsForHabit, reevaluateBucketLogs } from '~~/server/utils/buckets';
+import { syncBucketLogsForHabit, reevaluateMultipleBuckets } from '~~/server/utils/buckets';
 import { markBucketHabitsRemoved } from '~~/server/utils/shared-buckets';
 import { usePusher } from '~~/server/utils/pusher';
 
@@ -168,9 +168,7 @@ export const HabitService = {
           createdAt: new Date()
         });
 
-      for (const bid of bucketIds) {
-        await reevaluateBucketLogs(tx, bid, userId);
-      }
+      await reevaluateMultipleBuckets(tx, bucketIds.map((id: string) => ({ bucketId: id, ownerId: userId })));
     });
 
     const pusher = usePusher(event);
