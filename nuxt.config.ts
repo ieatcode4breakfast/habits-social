@@ -7,8 +7,57 @@ export default defineNuxtConfig({
   modules: [
     '@vueuse/nuxt',
     '@vueuse/motion/nuxt',
-    '@nuxtjs/seo'
-  ],
+    '@nuxtjs/seo',
+    process.env.NODE_ENV !== 'test' ? '@vite-pwa/nuxt' : undefined
+  ].filter(Boolean) as any[],
+  pwa: {
+    registerType: 'autoUpdate',
+    manifest: {
+      name: 'Habits Social',
+      short_name: 'HabitsSocial',
+      theme_color: '#000000',
+      background_color: '#000000',
+      display: 'standalone',
+      start_url: '/?source=pwa',
+      icons: [
+        {
+          src: 'favicon-rounded.svg',
+          sizes: 'any',
+          type: 'image/svg+xml',
+          purpose: 'any'
+        },
+        {
+          src: 'favicon-rounded.svg',
+          sizes: '512x512',
+          type: 'image/svg+xml',
+          purpose: 'maskable'
+        }
+      ],
+    },
+    workbox: {
+      navigateFallback: '/',
+      runtimeCaching: [
+        {
+          urlPattern: ({ url }) => url.pathname.startsWith('/api'),
+          handler: 'NetworkOnly',
+        },
+        {
+          urlPattern: ({ url }) => url.pathname.startsWith('/_nuxt/'),
+          handler: 'CacheFirst',
+          options: {
+            cacheName: 'nuxt-assets',
+            expiration: {
+              maxEntries: 100,
+              maxAgeSeconds: 60 * 60 * 24 * 30, // 30 days
+            },
+          },
+        }
+      ],
+    },
+    devOptions: {
+      enabled: false, // Disabled in dev to prevent caching issues during active development
+    },
+  },
   app: {
     head: {
       viewport: 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0',

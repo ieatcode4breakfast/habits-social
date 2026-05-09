@@ -46,15 +46,7 @@ const { isOnline } = useNetwork();
 const { showToast } = useToast();
 
 onMounted(() => {
-  // ... existing service worker logic ...
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.getRegistrations().then((registrations) => {
-      for (const registration of registrations) {
-        console.log('[System] Purging stale service worker:', registration.scope);
-        registration.unregister();
-      }
-    });
-  }
+  // Social state is now initialized globally in default.vue layout or via watch effects
 });
 
 // Watch connectivity for UI feedback and auto-sync
