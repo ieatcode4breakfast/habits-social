@@ -57,26 +57,3 @@ export const habits = pgTable('habits', {
 *   **Redundant Drizzle `.where()`**: In `habit-details.get.ts`, subsequent `.where()` calls overwrite the previous one. Use `and(...conditions)` for dynamic filtering.
 *   **Ownership Scoping**: In `updateHabit`, explicitly include `eq(habitsTable.ownerId, userId)` in the `UPDATE` query as a "Defense in Depth" measure.
 *   **Auth Timing Attacks**: Ensure the fallback dummy hash in `login.post.ts` matches the cost factor (10) used in registration to prevent timing leaks.
-
----
-
-## ✅ Production Readiness Checklist
-
-This checklist is ranked solely by **ease of implementation** and **least risk to code**, allowing for rapid clearing of low-complexity items.
-
-- [x] **Nitpicks & Best Practices - Redundant Drizzle**: Refactor `habit-details.get.ts` to use `and(...)` for dynamic filtering instead of overwriting `.where()`.
-- [x] **Nitpicks & Best Practices - Auth Timing Attacks**: Ensure the fallback dummy hash in `login.post.ts` matches the cost factor (10) used in registration.
-- [x] **Nitpicks & Best Practices - Ownership Scoping**: Explicitly include `eq(habitsTable.ownerId, userId)` in the `updateHabit` query.
-- [ ] **General Infrastructure - Health Check Endpoint**: Implement a `/health` route that returns `200 OK` when the service is healthy.
-- [ ] **General Infrastructure - Error Handling**: Verify global error boundaries are in place to prevent UI crashes.
-- [ ] **General Infrastructure - Structured Logging**: Ensure server-side logs use a consistent JSON format for easier parsing.
-- [ ] **General Infrastructure - Graceful Shutdown**: Ensure the application handles `SIGTERM` signals to close database connections gracefully.
-- [ ] **Warnings - Unbounded PostgreSQL Arrays**: Add Zod validation limits and database `CHECK` constraints to the `sharedWith` array.
-- [ ] **General Infrastructure - Database Indexing**: Review slow-query logs and ensure critical search fields are indexed.
-- [ ] **General Infrastructure - Rate Limiting**: Implement basic rate limiting on API endpoints to prevent abuse.
-- [ ] **General Infrastructure - Content Delivery Network (CDN)**: Confirm static assets are served via CDN with appropriate cache headers.
-- [ ] **General Infrastructure - Automated Backups**: Confirm database backup routines are active and restoration has been tested.
-- [ ] **Warnings - Inefficient Bucket Log Re-evaluation**: Use bulk inserts (`db.insert(...).values(array)`) or move re-evaluation to a background worker.
-- [ ] **Warnings - Schema Type Mismatch for Foreign Keys**: Run a migration to convert `ownerId` columns to `uuid` to fix index-bypassing type casts.
-- [ ] **Warnings - Missing Pagination for Social Feed**: Implement cursor-based pagination and push merging logic to the database (e.g., via `UNION ALL`).
-- [ ] **Critical Risks - Unbounded Payload in Initial Sync**: Implement cursor-based pagination or date-chunking in the `getDeltas` function.
