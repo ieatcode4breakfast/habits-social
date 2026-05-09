@@ -80,26 +80,32 @@ export const SyncService = {
     }
 
     // 1. Fetch main deltas in parallel (wrapped in transaction to use a single connection)
-    const [habitsRes, bucketsRawRes, habitLogsRes, bucketLogsRes, deletionsRes] = await db.transaction(async (tx: any) => {
+    const [habitsRes, bucketsRes, bucketHabitsRes, membersRes, habitLogsRes, bucketLogsRes, deletionsRes] = await db.transaction(async (tx: any) => {
+      // Parallel fetch to avoid Cartesian product and OOM
       return await Promise.all([
         tx.select().from(habitsTable)
           .where(and(...habitsFilters))
           .orderBy(asc(habitsTable.sortOrder), desc(habitsTable.createdAt)),
 
+        tx.select().from(bucketsTable)
+          .where(and(...bucketFilters))
+          .orderBy(asc(bucketsTable.sortOrder), desc(bucketsTable.createdAt)),
+
         tx.select({
-          bucket: bucketsTable,
           bh: bucketHabits,
-          habitOwnerId: habitsTable.ownerId,
+          habitOwnerId: habitsTable.ownerId
+        })
+        .from(bucketHabits)
+        .leftJoin(habitsTable, eq(bucketHabits.habitId, habitsTable.id))
+        .where(inArray(bucketHabits.bucketId, bucketIdsSubquery)),
+
+        tx.select({
           sbm: sharedBucketMembers,
           memberUsername: users.username
         })
-        .from(bucketsTable)
-        .leftJoin(bucketHabits, eq(bucketsTable.id, bucketHabits.bucketId))
-        .leftJoin(habitsTable, eq(bucketHabits.habitId, habitsTable.id))
-        .leftJoin(sharedBucketMembers, eq(bucketsTable.id, sharedBucketMembers.bucketId))
+        .from(sharedBucketMembers)
         .leftJoin(users, eq(sharedBucketMembers.userId, users.id))
-        .where(and(...bucketFilters))
-        .orderBy(asc(bucketsTable.sortOrder), desc(bucketsTable.createdAt)),
+        .where(inArray(sharedBucketMembers.bucketId, bucketIdsSubquery)),
 
         tx.select().from(habitLogs)
           .where(and(...habitLogsFilters)),
@@ -113,52 +119,8 @@ export const SyncService = {
       ]);
     });
 
-    // 2. Aggregate bucket results (handle Cartesian product from left joins)
-    const bucketMap = new Map<string, any>();
-    for (const row of bucketsRawRes) {
-      const b = row.bucket;
-      if (!bucketMap.has(b.id)) {
-        bucketMap.set(b.id, {
-          ...b,
-          habitIds: new Set<string>(),
-          sharedMembers: new Map<string, any>(),
-          sharedHabits: new Map<string, any>()
-        });
-      }
-
-      const entry = bucketMap.get(b.id);
-      
-      if (row.bh) {
-        entry.habitIds.add(row.bh.habitId);
-        if (!entry.sharedHabits.has(row.bh.habitId)) {
-          entry.sharedHabits.set(row.bh.habitId, {
-            habitId: row.bh.habitId,
-            approvalStatus: row.bh.approvalStatus,
-            addedBy: row.bh.addedBy,
-            habitOwnerId: row.habitOwnerId
-          });
-        }
-      }
-
-      if (row.sbm) {
-        if (!entry.sharedMembers.has(row.sbm.userId)) {
-          entry.sharedMembers.set(row.sbm.userId, {
-            userId: row.sbm.userId,
-            username: row.memberUsername,
-            status: row.sbm.status
-          });
-        }
-      }
-    }
-
-    const normalizedBuckets = Array.from(bucketMap.values()).map(b => {
-      return {
-        ...b,
-        habitIds: Array.from(b.habitIds),
-        sharedMembers: Array.from(b.sharedMembers.values()),
-        sharedHabits: Array.from(b.sharedHabits.values())
-      };
-    });
+    // 2. Aggregate bucket results (Stitch separate query results together)
+    const normalizedBuckets = this.stitchBuckets(bucketsRes, bucketHabitsRes, membersRes);
 
     return {
       habits: habitsRes,
@@ -168,6 +130,49 @@ export const SyncService = {
       deletions: deletionsRes.map((d: any) => ({ id: d.entityId, type: d.entityType })),
       serverTime
     };
+  },
+
+  /**
+   * Stitches together separate bucket, habit assignment, and member assignment queries
+   * to avoid Cartesian product explosions while maintaining expected sync payload shape.
+   */
+  stitchBuckets(buckets: any[], habitAssignments: any[], memberAssignments: any[]): any[] {
+    const bucketMap = new Map<string, any>();
+    
+    for (const b of buckets) {
+      bucketMap.set(b.id, {
+        ...b,
+        habitIds: [],
+        sharedMembers: [],
+        sharedHabits: []
+      });
+    }
+
+    for (const row of habitAssignments) {
+      const entry = bucketMap.get(row.bh.bucketId);
+      if (entry) {
+        entry.habitIds.push(row.bh.habitId);
+        entry.sharedHabits.push({
+          habitId: row.bh.habitId,
+          approvalStatus: row.bh.approvalStatus,
+          addedBy: row.bh.addedBy,
+          habitOwnerId: row.habitOwnerId
+        });
+      }
+    }
+
+    for (const row of memberAssignments) {
+      const entry = bucketMap.get(row.sbm.bucketId);
+      if (entry) {
+        entry.sharedMembers.push({
+          userId: row.sbm.userId,
+          username: row.memberUsername,
+          status: row.sbm.status
+        });
+      }
+    }
+
+    return Array.from(bucketMap.values());
   },
 
   async getPaginatedDeltas(db: any, userId: string, params: SyncParams): Promise<SyncResponse> {
@@ -304,60 +309,31 @@ export const SyncService = {
 
     // Fetch Bucket Details if we have IDs
     if (bucketIds.length > 0) {
-      const bucketDetails = await db.select({
-        bucket: bucketsTable,
-        bh: bucketHabits,
-        habitOwnerId: habitsTable.ownerId,
-        sbm: sharedBucketMembers,
-        memberUsername: users.username
-      })
-      .from(bucketsTable)
-      .leftJoin(bucketHabits, eq(bucketsTable.id, bucketHabits.bucketId))
-      .leftJoin(habitsTable, eq(bucketHabits.habitId, habitsTable.id))
-      .leftJoin(sharedBucketMembers, eq(bucketsTable.id, sharedBucketMembers.bucketId))
-      .leftJoin(users, eq(sharedBucketMembers.userId, users.id))
-      .where(inArray(bucketsTable.id, bucketIds))
-      .orderBy(asc(bucketsTable.updatedAt), asc(bucketsTable.id));
+      const [rawBuckets, habitAssignments, memberAssignments] = await db.transaction(async (tx: any) => {
+        return await Promise.all([
+          tx.select().from(bucketsTable)
+            .where(inArray(bucketsTable.id, bucketIds))
+            .orderBy(asc(bucketsTable.updatedAt), asc(bucketsTable.id)),
+          
+          tx.select({
+            bh: bucketHabits,
+            habitOwnerId: habitsTable.ownerId
+          })
+          .from(bucketHabits)
+          .leftJoin(habitsTable, eq(bucketHabits.habitId, habitsTable.id))
+          .where(inArray(bucketHabits.bucketId, bucketIds)),
 
-      const bucketMap = new Map<string, any>();
-      for (const row of bucketDetails) {
-        const b = row.bucket;
-        if (!bucketMap.has(b.id)) {
-          bucketMap.set(b.id, {
-            ...b,
-            habitIds: new Set<string>(),
-            sharedMembers: new Map<string, any>(),
-            sharedHabits: new Map<string, any>()
-          });
-        }
-        const entry = bucketMap.get(b.id);
-        if (row.bh) {
-          entry.habitIds.add(row.bh.habitId);
-          if (!entry.sharedHabits.has(row.bh.habitId)) {
-            entry.sharedHabits.set(row.bh.habitId, {
-              habitId: row.bh.habitId,
-              approvalStatus: row.bh.approvalStatus,
-              addedBy: row.bh.addedBy,
-              habitOwnerId: row.habitOwnerId
-            });
-          }
-        }
-        if (row.sbm) {
-          if (!entry.sharedMembers.has(row.sbm.userId)) {
-            entry.sharedMembers.set(row.sbm.userId, {
-              userId: row.sbm.userId,
-              username: row.memberUsername,
-              status: row.sbm.status
-            });
-          }
-        }
-      }
-      normalizedBuckets = Array.from(bucketMap.values()).map(b => ({
-        ...b,
-        habitIds: Array.from(b.habitIds),
-        sharedMembers: Array.from(b.sharedMembers.values()),
-        sharedHabits: Array.from(b.sharedHabits.values())
-      }));
+          tx.select({
+            sbm: sharedBucketMembers,
+            memberUsername: users.username
+          })
+          .from(sharedBucketMembers)
+          .leftJoin(users, eq(sharedBucketMembers.userId, users.id))
+          .where(inArray(sharedBucketMembers.bucketId, bucketIds))
+        ]);
+      });
+
+      normalizedBuckets = this.stitchBuckets(rawBuckets, habitAssignments, memberAssignments);
     }
 
     const nextCursors: Record<string, string> = {};

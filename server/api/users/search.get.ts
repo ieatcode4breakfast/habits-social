@@ -13,6 +13,7 @@ export default defineEventHandler(async (event) => {
   if (!username || typeof username !== 'string') return { data: [] };
 
   const sanitizedUsername = username.slice(0, 100);
+  const safeString = sanitizedUsername.replace(/[%_]/g, '\\$&');
 
   const results = await db.select({
     id: users.id,
@@ -21,7 +22,7 @@ export default defineEventHandler(async (event) => {
   })
   .from(users)
   .where(and(
-    ilike(users.username, `%${sanitizedUsername}%`),
+    ilike(users.username, `%${safeString}%`),
     ne(users.id, userId)
   ))
   .limit(25);
