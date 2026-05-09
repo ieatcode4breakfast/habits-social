@@ -64,10 +64,6 @@ export const habits = pgTable('habits', {
 
 This checklist is ranked solely by **ease of implementation** and **least risk to code**, allowing for rapid clearing of low-complexity items.
 
-- [ ] **General Infrastructure - README Update**: Ensure setup instructions for production environments are clear and accurate.
-- [ ] **General Infrastructure - Environment Variable Audit**: Verify all `.env.example` keys match required production secrets.
-- [ ] **General Infrastructure - Static Assets**: Confirm all favicon, manifest, and meta-tags are production-ready (no placeholders).
-- [ ] **General Infrastructure - Dependency Check**: Run `npm audit` to identify and resolve high-priority security vulnerabilities.
 - [ ] **Nitpicks & Best Practices - Redundant Drizzle**: Refactor `habit-details.get.ts` to use `and(...)` for dynamic filtering instead of overwriting `.where()`.
 - [ ] **Nitpicks & Best Practices - Auth Timing Attacks**: Ensure the fallback dummy hash in `login.post.ts` matches the cost factor (10) used in registration.
 - [ ] **Nitpicks & Best Practices - Ownership Scoping**: Explicitly include `eq(habitsTable.ownerId, userId)` in the `updateHabit` query.
