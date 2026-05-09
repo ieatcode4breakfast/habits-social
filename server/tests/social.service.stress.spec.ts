@@ -1,15 +1,9 @@
 import './setup';
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import { createTestUser, deleteTestUser, createTestHabit, deleteTestHabit, createTestBucket, deleteTestBucket, createFriendship, shareHabitWithUser, User, Habit, Bucket, Friendship } from './test.utils';
+import { createTestUser, deleteTestUser, createTestHabit, deleteTestHabit, createTestBucket, deleteTestBucket, createFriendship, shareHabitWithUser, User, Habit, Bucket, Friendship, db } from './test.utils';
 import { SocialService } from '../services/social.service';
-import { neon } from '@neondatabase/serverless';
-import { drizzle } from 'drizzle-orm/neon-http';
 import { eq, and } from 'drizzle-orm';
 import { bucketHabits, habits, habitLogs } from '../db/schema';
-import * as schema from '../db/schema';
-
-const client = neon(process.env.DATABASE_URL!);
-const db = drizzle(client, { schema });
 
 describe('SocialService - Stress Testing', () => {
   let userA: User;

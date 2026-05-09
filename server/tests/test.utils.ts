@@ -1,6 +1,9 @@
 import { hash } from 'bcrypt-ts';
-import { neon } from '@neondatabase/serverless';
-import { drizzle } from 'drizzle-orm/neon-http';
+import { Pool, neonConfig } from '@neondatabase/serverless';
+import ws from 'ws';
+import { drizzle } from 'drizzle-orm/neon-serverless';
+
+neonConfig.webSocketConstructor = ws;
 import { eq, sql } from 'drizzle-orm';
 import { users, habits, buckets, friendships } from '../db/schema';
 import * as schema from '../db/schema';
@@ -12,8 +15,8 @@ export type Bucket = InferSelectModel<typeof buckets>;
 export type Friendship = InferSelectModel<typeof friendships>;
 
 // Initialize direct DB connection for setup/teardown
-const client = neon(process.env.DATABASE_URL!);
-export const db = drizzle(client, { schema });
+const pool = new Pool({ connectionString: process.env.DATABASE_URL! });
+export const db = drizzle(pool, { schema });
 
 
 export const createTestUser = async (username: string, email: string): Promise<User> => {

@@ -53,51 +53,52 @@ export default defineEventHandler(async (event) => {
 
   const actuallySharedIds: string[] = [];
 
-  // Remove sharing for habits no longer selected
-  if (toRemove.length > 0) {
-    await db.update(habitsTable)
-      .set({
-        sharedWith: sql`array_remove(${habitsTable.sharedWith}, ${targetId})`,
-        updatedAt: new Date()
-      })
-      .where(and(
-        inArray(habitsTable.id, toRemove),
-        eq(habitsTable.ownerId, userId)
-      ));
+  await db.transaction(async (tx: any) => {
+    // Remove sharing for habits no longer selected
+    if (toRemove.length > 0) {
+      await tx.update(habitsTable)
+        .set({
+          sharedWith: sql`array_remove(${habitsTable.sharedWith}, ${targetId})`,
+          updatedAt: new Date()
+        })
+        .where(and(
+          inArray(habitsTable.id, toRemove),
+          eq(habitsTable.ownerId, userId)
+        ));
 
-    await markBucketHabitsRemoved(db, toRemove, [targetId]);
-  }
+      await markBucketHabitsRemoved(tx, toRemove, [targetId]);
+    }
 
-  // Add sharing for newly selected habits
-  if (toAdd.length > 0) {
-    const result = await db.update(habitsTable)
-      .set({
-        sharedWith: sql`array_append(${habitsTable.sharedWith}, ${targetId})`,
-        updatedAt: new Date()
-      })
-      .where(and(
-        inArray(habitsTable.id, toAdd),
-        eq(habitsTable.ownerId, userId),
-        sql`NOT (${targetId}::text = ANY(${habitsTable.sharedWith}))`
-      ))
+    // Add sharing for newly selected habits
+    if (toAdd.length > 0) {
+      const result = await tx.update(habitsTable)
+        .set({
+          sharedWith: sql`array_append(${habitsTable.sharedWith}, ${targetId})`,
+          updatedAt: new Date()
+        })
+        .where(and(
+          inArray(habitsTable.id, toAdd),
+          eq(habitsTable.ownerId, userId),
+          sql`NOT (${targetId}::text = ANY(${habitsTable.sharedWith}))`
+        ))
+        .returning({ id: habitsTable.id });
+      
+      actuallySharedIds.push(...result.map((r: any) => r.id));
+    }
 
-      .returning({ id: habitsTable.id });
-    
-    actuallySharedIds.push(...result.map((r: any) => r.id));
-  }
-
-  // Record share event for all newly shared habits
-  if (actuallySharedIds.length > 0 && userDate) {
-    await db.insert(shareEvents)
-      .values({
-        id: crypto.randomUUID(),
-        ownerId: userId,
-        recipientId: targetId,
-        habitIds: actuallySharedIds,
-        userDate: userDate,
-        createdAt: new Date()
-      });
-  }
+    // Record share event for all newly shared habits
+    if (actuallySharedIds.length > 0 && userDate) {
+      await tx.insert(shareEvents)
+        .values({
+          id: crypto.randomUUID(),
+          ownerId: userId,
+          recipientId: targetId,
+          habitIds: actuallySharedIds,
+          userDate: userDate,
+          createdAt: new Date()
+        });
+    }
+  });
 
   return { data: { success: true } };
 });

@@ -10,44 +10,48 @@ export const HabitService = {
     const logId = data.id || `${data.habitId}_${data.date}`;
 
     try {
-      const result = await db.insert(habitLogs)
-        .values({
-          id: logId,
-          habitId: data.habitId,
-          ownerId: userId,
-          date: data.date,
-          status: data.status,
-          sharedWith: data.sharedWith || [],
-          streakCount: data.streakCount ?? 0,
-          brokenStreakCount: data.brokenStreakCount ?? 0,
-          updatedAt: new Date()
-        })
-        .onConflictDoUpdate({
-          target: habitLogs.id,
-          set: {
+      const result = await db.transaction(async (tx: any) => {
+        const insertRes = await tx.insert(habitLogs)
+          .values({
+            id: logId,
+            habitId: data.habitId,
+            ownerId: userId,
+            date: data.date,
             status: data.status,
             sharedWith: data.sharedWith || [],
             streakCount: data.streakCount ?? 0,
             brokenStreakCount: data.brokenStreakCount ?? 0,
             updatedAt: new Date()
-          },
-          where: eq(habitLogs.ownerId, userId)
-        })
-        .returning();
+          })
+          .onConflictDoUpdate({
+            target: habitLogs.id,
+            set: {
+              status: data.status,
+              sharedWith: data.sharedWith || [],
+              streakCount: data.streakCount ?? 0,
+              brokenStreakCount: data.brokenStreakCount ?? 0,
+              updatedAt: new Date()
+            },
+            where: eq(habitLogs.ownerId, userId)
+          })
+          .returning();
 
-      if (!result[0]) {
-        throw createError({ statusCode: 409, statusMessage: 'Conflict: Habit log already exists or ownership mismatch' });
-      }
+        if (!insertRes[0]) {
+          throw createError({ statusCode: 409, statusMessage: 'Conflict: Habit log already exists or ownership mismatch' });
+        }
 
-      await recalculateHabitStreak(db, data.habitId, userId, data.date);
-      await syncBucketLogsForHabit(db, data.habitId, userId, data.date);
+        await recalculateHabitStreak(tx, data.habitId, userId, data.date);
+        await syncBucketLogsForHabit(tx, data.habitId, userId, data.date);
+
+        return insertRes[0];
+      });
 
       const pusher = usePusher(event);
       if (pusher) {
         pusher.trigger(`user-${userId}-habits`, 'sync-settled', { timestamp: Date.now() });
       }
 
-      return result[0];
+      return result;
     } catch (e: any) {
       if (e.code === '23505') {
         throw createError({ statusCode: 409, statusMessage: 'Conflict: Unique constraint violation' });
@@ -57,15 +61,17 @@ export const HabitService = {
   },
 
   async deleteHabitLog(db: any, userId: string, habitId: string, dateStr: string, event: any) {
-    await db.delete(habitLogs)
-      .where(and(
-        eq(habitLogs.habitId, habitId),
-        eq(habitLogs.ownerId, userId),
-        eq(habitLogs.date, dateStr)
-      ));
+    await db.transaction(async (tx: any) => {
+      await tx.delete(habitLogs)
+        .where(and(
+          eq(habitLogs.habitId, habitId),
+          eq(habitLogs.ownerId, userId),
+          eq(habitLogs.date, dateStr)
+        ));
 
-    await recalculateHabitStreak(db, habitId, userId, dateStr);
-    await syncBucketLogsForHabit(db, habitId, userId, dateStr);
+      await recalculateHabitStreak(tx, habitId, userId, dateStr);
+      await syncBucketLogsForHabit(tx, habitId, userId, dateStr);
+    });
 
     const pusher = usePusher(event);
     if (pusher) {
@@ -84,54 +90,57 @@ export const HabitService = {
       skipsCount = Math.max(0, Math.min(28, skipsCount || 0));
     }
 
-    const result = await db.update(habitsTable)
-      .set({
-        title: data.title ?? habit.title,
-        description: data.description ?? habit.description,
-        skipsCount: skipsCount,
-        skipsPeriod: skipsPeriod,
-        color: data.color ?? habit.color,
-        sharedWith: data.sharedWith ?? habit.sharedWith,
-        sortOrder: data.sortOrder ?? habit.sortOrder,
-        userDate: data.userDate ?? habit.userDate,
-        updatedAt: new Date()
-      })
-      .where(and(
-        eq(habitsTable.id, id),
-        eq(habitsTable.ownerId, userId)
-      ))
-      .returning();
+    const updatedHabit = await db.transaction(async (tx: any) => {
+      const result = await tx.update(habitsTable)
+        .set({
+          title: data.title ?? habit.title,
+          description: data.description ?? habit.description,
+          skipsCount: skipsCount,
+          skipsPeriod: skipsPeriod,
+          color: data.color ?? habit.color,
+          sharedWith: data.sharedWith ?? habit.sharedWith,
+          sortOrder: data.sortOrder ?? habit.sortOrder,
+          userDate: data.userDate ?? habit.userDate,
+          updatedAt: new Date()
+        })
+        .where(and(
+          eq(habitsTable.id, id),
+          eq(habitsTable.ownerId, userId)
+        ))
+        .returning();
 
-    if (result.length === 0) {
-      throw createError({ statusCode: 404, statusMessage: 'Habit not found or ownership mismatch' });
-    }
-
-    const updatedHabit = result[0];
-
-    // Handle sharing logic
-    const oldSharedSet = new Set((habit.sharedWith || []).map(String));
-    const newSharedSet = new Set((updatedHabit.sharedWith || []).map(String));
-    
-    const newRecipients = (updatedHabit.sharedWith || []).filter((rid: string) => !oldSharedSet.has(String(rid)));
-    const removedRecipients = Array.from(oldSharedSet).filter((rid) => !newSharedSet.has(String(rid))) as string[];
-
-    if (removedRecipients.length > 0) {
-      await markBucketHabitsRemoved(db, [id], removedRecipients);
-    }
-
-    if (newRecipients.length > 0 && updatedHabit.userDate) {
-      for (const recipientId of newRecipients) {
-        await db.insert(shareEvents)
-          .values({
-            id: crypto.randomUUID(),
-            ownerId: userId,
-            recipientId: recipientId,
-            habitIds: [id],
-            userDate: updatedHabit.userDate,
-            createdAt: new Date()
-          });
+      if (result.length === 0) {
+        throw createError({ statusCode: 404, statusMessage: 'Habit not found or ownership mismatch' });
       }
-    }
+
+      const updated = result[0];
+
+      // Handle sharing logic
+      const oldSharedSet = new Set((habit.sharedWith || []).map(String));
+      const newSharedSet = new Set((updated.sharedWith || []).map(String));
+      
+      const newRecipients = (updated.sharedWith || []).filter((rid: string) => !oldSharedSet.has(String(rid)));
+      const removedRecipients = Array.from(oldSharedSet).filter((rid) => !newSharedSet.has(String(rid))) as string[];
+
+      if (removedRecipients.length > 0) {
+        await markBucketHabitsRemoved(tx, [id], removedRecipients);
+      }
+
+      if (newRecipients.length > 0 && updated.userDate) {
+        for (const recipientId of newRecipients) {
+          await tx.insert(shareEvents)
+            .values({
+              id: crypto.randomUUID(),
+              ownerId: userId,
+              recipientId: recipientId,
+              habitIds: [id],
+              userDate: updated.userDate,
+              createdAt: new Date()
+            });
+        }
+      }
+      return updated;
+    });
 
     const pusher = usePusher(event);
     if (pusher) {
@@ -142,27 +151,29 @@ export const HabitService = {
   },
 
   async deleteHabit(db: any, userId: string, id: string, event: any) {
-    const bucketsRes = await db.select({ bucketId: bucketHabits.bucketId })
-      .from(bucketHabits)
-      .where(eq(bucketHabits.habitId, id));
-    
-    const bucketIds = bucketsRes.map((b: any) => b.bucketId);
-    
-    await db.delete(bucketHabits).where(eq(bucketHabits.habitId, id));
-    await db.delete(habitsTable).where(eq(habitsTable.id, id));
-    
-    await db.insert(syncDeletions)
-      .values({
-        id: crypto.randomUUID(),
-        ownerId: userId,
-        entityId: id,
-        entityType: 'habit',
-        createdAt: new Date()
-      });
+    await db.transaction(async (tx: any) => {
+      const bucketsRes = await tx.select({ bucketId: bucketHabits.bucketId })
+        .from(bucketHabits)
+        .where(eq(bucketHabits.habitId, id));
+      
+      const bucketIds = bucketsRes.map((b: any) => b.bucketId);
+      
+      await tx.delete(bucketHabits).where(eq(bucketHabits.habitId, id));
+      await tx.delete(habitsTable).where(eq(habitsTable.id, id));
+      
+      await tx.insert(syncDeletions)
+        .values({
+          id: crypto.randomUUID(),
+          ownerId: userId,
+          entityId: id,
+          entityType: 'habit',
+          createdAt: new Date()
+        });
 
-    for (const bid of bucketIds) {
-      await reevaluateBucketLogs(db, bid, userId);
-    }
+      for (const bid of bucketIds) {
+        await reevaluateBucketLogs(tx, bid, userId);
+      }
+    });
 
     const pusher = usePusher(event);
     if (pusher) {

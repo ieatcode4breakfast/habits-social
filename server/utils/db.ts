@@ -1,5 +1,8 @@
-import { neon } from '@neondatabase/serverless';
-import { drizzle } from 'drizzle-orm/neon-http';
+import { Pool, neonConfig } from '@neondatabase/serverless';
+import ws from 'ws';
+import { drizzle } from 'drizzle-orm/neon-serverless';
+
+neonConfig.webSocketConstructor = ws;
 import { sql } from 'drizzle-orm';
 import * as schema from '../db/schema';
 import type { H3Event } from 'h3';
@@ -25,8 +28,8 @@ export const useDB = (event?: H3Event) => {
     throw createError({ statusCode: 500, statusMessage: 'Database configuration missing' });
   }
 
-  const sql = neon(uri);
-  return drizzle(sql, { schema });
+  const pool = new Pool({ connectionString: uri });
+  return drizzle(pool, { schema });
 };
 
 /**

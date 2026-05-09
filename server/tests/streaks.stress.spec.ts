@@ -1,17 +1,11 @@
 import './setup';
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import { createTestUser, deleteTestUser, createTestHabit, deleteTestHabit, createTestBucket, deleteTestBucket, User, Habit, Bucket } from './test.utils';
+import { createTestUser, deleteTestUser, createTestHabit, deleteTestHabit, createTestBucket, deleteTestBucket, User, Habit, Bucket, db } from './test.utils';
 import { recalculateHabitStreak } from '../utils/streaks';
 import { reevaluateBucketLogs, syncSingleBucketLog } from '../utils/buckets';
 import { formatISO, addDays } from 'date-fns';
-import { neon } from '@neondatabase/serverless';
-import { drizzle } from 'drizzle-orm/neon-http';
 import { eq, and, sql } from 'drizzle-orm';
 import { bucketHabits, habitLogs, bucketLogs, buckets, habits } from '../db/schema';
-import * as schema from '../db/schema';
-
-const client = neon(process.env.DATABASE_URL!);
-const db = drizzle(client, { schema });
 
 describe('Streak Calculation Engine - Stress Testing', () => {
   let user: User;

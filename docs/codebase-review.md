@@ -2,19 +2,7 @@
 
 ## 🔴 CRITICAL ISSUES (Must fix before deployment)
 
-### 1. Missing Database Transactions for Multi-Step Operations
-- **Location:** `server/services/habit.service.ts` (`deleteHabit`), `server/services/bucket.service.ts` (`deleteBucket`, `updateBucket`), and `server/api/social/share-habits.post.ts`
-- **Explanation:** Operations that mutate multiple tables are executing discrete SQL statements sequentially without an atomic database transaction. For example, `deleteHabit` deletes from `bucketHabits`, then `habitsTable`, and finally inserts into `syncDeletions`. If any step fails halfway through (e.g., constraint error, network timeout), the database is left in a permanently inconsistent state, leading to orphaned records and broken client synchronization.
-- **Fix:** Wrap all multi-step mutations inside a `db.transaction()` block. 
-  ```typescript
-  await db.transaction(async (tx) => {
-    await tx.delete(bucketHabits).where(eq(bucketHabits.habitId, id));
-    await tx.delete(habitsTable).where(eq(habitsTable.id, id));
-    await tx.insert(syncDeletions).values({ ... });
-  });
-  ```
-
-### 2. Severe N+1 Query and O(N) Complexity in Bucket Reevaluation
+### 1. Severe N+1 Query and O(N) Complexity in Bucket Reevaluation
 - **Location:** `server/utils/buckets.ts` (`reevaluateBucketLogs` and `syncSingleBucketLog`)
 - **Explanation:** When a bucket's composition changes, `reevaluateBucketLogs` sequentially loops over every unique logged date in the habit's history, calling `syncSingleBucketLog`. Crucially, `syncSingleBucketLog` queries the database multiple times and ends by calling `recalculateBucketStreak`, which executes multiple queries of its own. If a user has a year of history (365 dates), this triggers thousands of sequential, blocking database queries on a single request, leading to massive memory spikes, database locking, and immediate API timeouts.
 - **Fix:** 

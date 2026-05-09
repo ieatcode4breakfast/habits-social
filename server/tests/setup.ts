@@ -1,7 +1,5 @@
 import { vi } from 'vitest';
 import { createError } from 'h3';
-import { neon } from '@neondatabase/serverless';
-import { drizzle } from 'drizzle-orm/neon-http';
 import * as schema from '../db/schema';
 
 vi.stubGlobal('useRuntimeConfig', (event?: any) => {
