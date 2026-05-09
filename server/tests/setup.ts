@@ -60,5 +60,7 @@ vi.mock('../utils/auth', () => ({
     if (event._cookies?.auth_token === 'invalid') return null;
     return event.context?.userId || null;
   },
-  generateToken: async (userId: string) => `mock-token-${userId}`
+  generateToken: async (userId: string) => `mock-token-${userId}`,
+  BCRYPT_COST_FACTOR: 10,
+  DUMMY_HASH: '$2b$10$N9qo8uLOickgx2ZMRZoMyeIjZAgNIhp.pX7wMQRpM64ls7ZSXH0uz'
 }));

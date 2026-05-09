@@ -96,8 +96,15 @@ export const HabitService = {
         userDate: data.userDate ?? habit.userDate,
         updatedAt: new Date()
       })
-      .where(eq(habitsTable.id, id))
+      .where(and(
+        eq(habitsTable.id, id),
+        eq(habitsTable.ownerId, userId)
+      ))
       .returning();
+
+    if (result.length === 0) {
+      throw createError({ statusCode: 404, statusMessage: 'Habit not found or ownership mismatch' });
+    }
 
     const updatedHabit = result[0];
 

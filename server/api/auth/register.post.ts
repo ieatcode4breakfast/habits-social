@@ -2,7 +2,7 @@ import { hash } from 'bcrypt-ts';
 import { or, eq, sql } from 'drizzle-orm';
 import { users } from '~~/server/db/schema';
 import { useDB as _useDB } from '~~/server/utils/db';
-import { generateToken as _generateToken } from '~~/server/utils/auth';
+import { generateToken as _generateToken, BCRYPT_COST_FACTOR } from '~~/server/utils/auth';
 import { registerSchema, throwZodError } from '~~/server/utils/validation';
 
 export default defineEventHandler(async (event) => {
@@ -31,7 +31,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 409, statusMessage: 'Email or username already taken' });
   }
 
-  const passwordHash = await hash(password, 10);
+  const passwordHash = await hash(password, BCRYPT_COST_FACTOR);
 
   const result = await db.insert(users)
     .values({

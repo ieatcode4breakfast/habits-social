@@ -54,18 +54,16 @@ export default defineEventHandler(async (event) => {
     startDateStr = cutoff.toISOString().slice(0, 10);
   }
 
-  const logsQuery = db.select().from(habitLogs).where(and(
+  const conditions = [
     eq(habitLogs.habitId, hIdStr),
     gte(habitLogs.date, startDateStr)
-  ));
+  ];
 
   if (endDateStr) {
-    logsQuery.where(and(
-      eq(habitLogs.habitId, hIdStr),
-      gte(habitLogs.date, startDateStr),
-      lte(habitLogs.date, endDateStr)
-    ));
+    conditions.push(lte(habitLogs.date, endDateStr));
   }
+
+  const logsQuery = db.select().from(habitLogs).where(and(...conditions));
 
   const logs = await logsQuery.orderBy(desc(habitLogs.date));
 

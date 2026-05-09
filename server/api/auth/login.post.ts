@@ -2,7 +2,7 @@ import { compare } from 'bcrypt-ts';
 import { or, eq, sql } from 'drizzle-orm';
 import { users } from '~~/server/db/schema';
 import { useDB as _useDB } from '~~/server/utils/db';
-import { generateToken as _generateToken } from '~~/server/utils/auth';
+import { generateToken as _generateToken, DUMMY_HASH } from '~~/server/utils/auth';
 import { loginSchema, throwZodError } from '~~/server/utils/validation';
 
 export default defineEventHandler(async (event) => {
@@ -37,7 +37,7 @@ export default defineEventHandler(async (event) => {
 
   if (!user) {
     // Mitigate timing attack: perform a dummy comparison if user is not found
-    await compare(password, '$2b$10$N9qo8uLOickgx2ZMRZoMyeIjZAgNIhp.pX7wMQRpM64ls7ZSXH0uz');
+    await compare(password, DUMMY_HASH);
     throw createError({ statusCode: 400, statusMessage: 'Invalid username, email or password' });
   }
 

@@ -1,6 +1,9 @@
 import { SignJWT, jwtVerify } from 'jose';
 import type { H3Event } from 'h3';
 
+export const BCRYPT_COST_FACTOR = 10;
+export const DUMMY_HASH = '$2b$10$N9qo8uLOickgx2ZMRZoMyeIjZAgNIhp.pX7wMQRpM64ls7ZSXH0uz';
+
 const getSecret = (event?: H3Event) => {
   let config: any = {};
   try {
