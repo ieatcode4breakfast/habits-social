@@ -13,9 +13,9 @@ describe('calculateStreakFromLogs', () => {
     expect(result.longestStreak).toBe(3);
     expect(result.streakAnchorDate).toBe('2023-01-03');
     expect(result.logUpdates).toHaveLength(3);
-    expect(result.logUpdates[0].streakCount).toBe(1);
-    expect(result.logUpdates[1].streakCount).toBe(2);
-    expect(result.logUpdates[2].streakCount).toBe(3);
+    expect(result.logUpdates[0]!.streakCount).toBe(1);
+    expect(result.logUpdates[1]!.streakCount).toBe(2);
+    expect(result.logUpdates[2]!.streakCount).toBe(3);
   });
 
   it('should reset streak on a gap longer than 1 day', () => {
@@ -39,7 +39,7 @@ describe('calculateStreakFromLogs', () => {
     expect(result.currentStreak).toBe(0);
     expect(result.longestStreak).toBe(2);
     expect(result.logUpdates).toHaveLength(3);
-    expect(result.logUpdates[2].brokenStreakCount).toBe(2);
+    expect(result.logUpdates[2]!.brokenStreakCount).toBe(2);
   });
 
   it('should keep streak intact on skipped or vacation status', () => {

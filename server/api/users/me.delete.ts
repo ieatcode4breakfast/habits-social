@@ -21,7 +21,7 @@ export default defineEventHandler(async (event) => {
   const userId = await requireAuth(event);
   const db = useDB(event);
 
-  const result = await db.transaction(async (tx) => {
+  const result = await db.transaction(async (tx: any) => {
     await tx.delete(bucketLogs).where(eq(bucketLogs.ownerId, userId));
     await tx.delete(habitLogs).where(eq(habitLogs.ownerId, userId));
     

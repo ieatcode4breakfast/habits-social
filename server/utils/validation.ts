@@ -139,7 +139,7 @@ export const syncQuerySchema = z.object({
 export const syncV2QuerySchema = z.object({
   lastSynced: z.coerce.number().min(0).default(0),
   limit: z.coerce.number().int().min(0).max(5000).default(50),
-  cursors: z.record(z.string()).optional()
+  cursors: z.record(z.string(), z.string()).optional()
 });
 
 

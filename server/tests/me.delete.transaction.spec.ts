@@ -23,8 +23,8 @@ describe('Atomic User Deletion (Transaction Test)', () => {
     const originalTransaction = db.transaction.bind(db);
     
     // 2. Mock: Wrap the real transaction to inject a failure inside it
-    vi.spyOn(db, 'transaction').mockImplementation(async (callback) => {
-      return await originalTransaction(async (tx) => {
+    vi.spyOn(db, 'transaction').mockImplementation(async (callback: any) => {
+      return await originalTransaction(async (tx: any) => {
         const originalDelete = tx.delete.bind(tx);
         const poisonedTx = new Proxy(tx, {
           get(target, prop, receiver) {

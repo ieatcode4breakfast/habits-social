@@ -17,8 +17,8 @@ export async function syncBucketLogsForHabit(db: any, habitId: string, userId: s
   if (bucketsRes.length === 0) return [];
 
   // 2. Bulk Sync: Calculate and update logs for all buckets on this date in one query
-  const bucketIds = bucketsRes.map(b => b.id);
-  const idList = sql.join(bucketIds.map(id => sql`${id}`), sql`, `);
+  const bucketIds = bucketsRes.map((b: any) => b.id);
+  const idList = sql.join(bucketIds.map((id: string) => sql`${id}`), sql`, `);
 
   await db.execute(sql`
     INSERT INTO bucket_logs (id, bucket_id, owner_id, date, status, updated_at)
@@ -47,7 +47,7 @@ export async function syncBucketLogsForHabit(db: any, habitId: string, userId: s
   `);
 
   // 3. Recalculate streaks for all affected buckets in bulk
-  await recalculateMultipleBucketStreaks(db, bucketsRes.map(b => ({ bucketId: b.id, ownerId: b.ownerId })));
+  await recalculateMultipleBucketStreaks(db, bucketsRes.map((b: any) => ({ bucketId: b.id, ownerId: b.ownerId })));
   return bucketsRes;
 }
 
@@ -125,10 +125,10 @@ export async function recalculateMultipleBucketStreaks(db: any, items: { bucketI
   const logUpdates = [];
 
   for (const item of items) {
-    const bucket = bucketInfo.find(b => b.id === item.bucketId);
+    const bucket = bucketInfo.find((b: any) => b.id === item.bucketId);
     if (!bucket) continue;
 
-    const logs = allLogs.filter(l => l.bucketId === item.bucketId && l.ownerId === item.ownerId);
+    const logs = allLogs.filter((l: any) => l.bucketId === item.bucketId && l.ownerId === item.ownerId);
     const result = calculateStreakFromLogs(logs);
 
     bucketUpdates.push({

@@ -52,7 +52,7 @@ describe('Transactional Integrity', () => {
       createdAt: new Date(),
       updatedAt: new Date()
     }).returning();
-    const bucketId = bucket[0].id;
+    const bucketId = bucket[0]!.id;
 
     habit = await createTestHabit(user.id, 'Delete Integrity Habit');
     
@@ -87,7 +87,7 @@ describe('Transactional Integrity', () => {
       createdAt: new Date(),
       updatedAt: new Date()
     }).returning();
-    const bucketId = bucket[0].id;
+    const bucketId = bucket[0]!.id;
 
     // We can't spy on a raw DB insert easily, but we can spy on a utility or mock the DB
     // However, deleteBucket doesn't call any utilities before the final Pusher call.

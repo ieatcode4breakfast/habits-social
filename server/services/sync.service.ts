@@ -75,8 +75,11 @@ export const SyncService = {
       bucketLogsFilters.push(gte(bucketLogs.updatedAt, syncDate));
       deletionsFilters.push(gte(syncDeletions.createdAt, syncDate));
     } else if (startDate && endDate) {
-      habitLogsFilters.push(and(gte(habitLogs.date, startDate), lte(habitLogs.date, endDate)));
-      bucketLogsFilters.push(and(gte(bucketLogs.date, startDate), lte(bucketLogs.date, endDate)));
+      const hFilter = and(gte(habitLogs.date, startDate), lte(habitLogs.date, endDate));
+      if (hFilter) habitLogsFilters.push(hFilter);
+
+      const bFilter = and(gte(bucketLogs.date, startDate), lte(bucketLogs.date, endDate));
+      if (bFilter) bucketLogsFilters.push(bFilter);
     }
 
     // 1. Fetch main deltas in parallel (wrapped in transaction to use a single connection)
@@ -185,9 +188,9 @@ export const SyncService = {
         const decoded = Buffer.from(cursor, 'base64').toString('utf-8');
         if (!decoded.includes('|')) return 'INVALID';
         const [ts, id] = decoded.split('|');
-        const date = new Date(ts);
+        const date = new Date(ts as string);
         if (isNaN(date.getTime())) return 'INVALID';
-        return { ts: date, id };
+        return { ts: date, id: id as string };
       } catch {
         return 'INVALID';
       }
@@ -258,7 +261,7 @@ export const SyncService = {
     const habitsRes = habitsResRaw.slice(0, limit);
     
     const bucketsHasMore = bucketIdsResRaw.length > limit;
-    const bucketIds = bucketIdsResRaw.slice(0, limit).map(b => b.id);
+    const bucketIds = bucketIdsResRaw.slice(0, limit).map((b: any) => b.id);
 
     // 3. Topological Suppression: If parents have more, don't fetch children yet
     const suppressChildren = habitsHasMore || bucketsHasMore;
@@ -276,7 +279,7 @@ export const SyncService = {
           tx.select().from(habitLogs)
             .where(and(
               eq(habitLogs.ownerId, userId),
-              logCursor ? buildCursorFilter(habitLogs, logCursor, fallbackDate) : gte(habitLogs.updatedAt, fallbackDate)
+              logCursor ? buildCursorFilter(habitLogs, logCursor as { ts: Date, id: string }, fallbackDate) : gte(habitLogs.updatedAt, fallbackDate)
             ))
             .orderBy(asc(habitLogs.updatedAt), asc(habitLogs.id))
             .limit(limit + 1),
@@ -284,7 +287,7 @@ export const SyncService = {
           tx.select().from(bucketLogs)
             .where(and(
               eq(bucketLogs.ownerId, userId),
-              bLogCursor ? buildCursorFilter(bucketLogs, bLogCursor, fallbackDate) : gte(bucketLogs.updatedAt, fallbackDate)
+              bLogCursor ? buildCursorFilter(bucketLogs, bLogCursor as { ts: Date, id: string }, fallbackDate) : gte(bucketLogs.updatedAt, fallbackDate)
             ))
             .orderBy(asc(bucketLogs.updatedAt), asc(bucketLogs.id))
             .limit(limit + 1),
@@ -292,7 +295,7 @@ export const SyncService = {
           tx.select().from(syncDeletions)
             .where(and(
               eq(syncDeletions.ownerId, userId),
-              delCursor ? buildCursorFilter(syncDeletions, delCursor, fallbackDate) : gte(syncDeletions.createdAt, fallbackDate)
+              delCursor ? buildCursorFilter(syncDeletions, delCursor as { ts: Date, id: string }, fallbackDate) : gte(syncDeletions.createdAt, fallbackDate)
             ))
             .orderBy(asc(syncDeletions.createdAt), asc(syncDeletions.id))
             .limit(limit + 1)

@@ -103,7 +103,7 @@ export default defineEventHandler(async (event) => {
       if (validIds.length > 0) {
         await db.delete(bucketHabits).where(eq(bucketHabits.bucketId, newBucket.id));
         await db.insert(bucketHabits)
-          .values(validIds.map(hid => ({
+          .values(validIds.map((hid: string) => ({
             bucketId: newBucket.id,
             habitId: hid
           })))
