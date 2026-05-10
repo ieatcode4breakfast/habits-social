@@ -13,14 +13,10 @@
 - **Explanation:** There is no application-level rate limiting on the authentication routes. While you've implemented an excellent defense against timing attacks (`await compare(password, DUMMY_HASH)`), your endpoints are currently exposed to credential stuffing, brute-forcing, and mass bot registrations.
 - **Fix:** Implement a rate limiting middleware specifically for `/api/auth/*` routes, utilizing Redis or a similar fast-access store, to restrict the number of login/register attempts per IP or identifier within a standard rolling window (e.g., 5 attempts per 15 minutes).
 
-### ~~2. Unvalidated UUID Route Parameters causing 500 DB Errors~~ ✅ RESOLVED
-- **Fixed in:** `server/api/buckets/[id].ts`, `server/api/habits/[id].ts`, `server/api/friendships/[id].ts`
-- **Fix applied:** UUID regex guard added before DB queries — non-UUID strings now return 400 Bad Request.
-
-### 3. Cross-Request State Pollution Risk during SSR
+### ~~2. Cross-Request State Pollution Risk during SSR~~ ✅ RESOLVED
 - **Location:** `app/composables/useHabitsApi.ts`
-- **Explanation:** Reactive variables (`isSyncing`, `syncNeeded`, `retryCount`, `retryTimer`) are declared outside the composable function at the module root. In a Nuxt 3 SSR environment, module-level state is shared across *all* concurrent requests on the Node server. While currently shielded by `if (!process.client)` checks in the `sync()` function, this is a major architectural trap that can lead to catastrophic state/memory leakage if SSR logic ever changes.
-- **Fix:** Move these variables inside the `useHabitsApi` function block, or use Nuxt's `useState()` to ensure SSR safety.
+- **Explanation:** Reactive variables (`isSyncing`, `syncNeeded`, `retryCount`, `retryTimer`) were declared outside the composable function at the module root, risking state leakage between requests in SSR.
+- **Fix Applied:** Refactored to use Nuxt's `useState()` for request-scoped isolation on the server and shared state on the client.
 
 ---
 

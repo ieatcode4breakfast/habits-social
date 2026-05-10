@@ -58,10 +58,13 @@ export interface BucketLog {
   brokenStreakCount?: number;
 }
 
-const isSyncing = ref(false);
-const syncNeeded = ref(false);
-const retryCount = ref(0);
-const retryTimer = ref<any>(null);
+// Fallback state for non-Nuxt environments (e.g., unit tests)
+const _testSyncState = {
+  isSyncing: ref(false),
+  syncNeeded: ref(false),
+  retryCount: ref(0),
+  retryTimer: ref<any>(null),
+};
 
 const isConflictError = (e: any) => {
   return (e.statusCode || e.response?.status) === 409;
@@ -69,12 +72,24 @@ const isConflictError = (e: any) => {
 
 // For testing only
 export const _resetSyncState = () => {
-  isSyncing.value = false;
-  syncNeeded.value = false;
-  retryCount.value = 0;
-  if (retryTimer.value) {
-    clearTimeout(retryTimer.value);
-    retryTimer.value = null;
+  try {
+    useState('h_isSyncing').value = false;
+    useState('h_syncNeeded').value = false;
+    useState('h_retryCount').value = 0;
+    const timer = useState<any>('h_retryTimer');
+    if (timer.value) {
+      clearTimeout(timer.value);
+      timer.value = null;
+    }
+  } catch {
+    // Fallback for tests where useState is not defined
+    _testSyncState.isSyncing.value = false;
+    _testSyncState.syncNeeded.value = false;
+    _testSyncState.retryCount.value = 0;
+    if (_testSyncState.retryTimer.value) {
+      clearTimeout(_testSyncState.retryTimer.value);
+      _testSyncState.retryTimer.value = null;
+    }
   }
 };
 
@@ -84,6 +99,24 @@ export const useHabitsApi = () => {
   const { user } = useAuth();
   const { showToast } = useToast();
   const { isOnline } = useNetwork();
+  
+  // Sync Engine State (SSR-Safe)
+  let isSyncing: Ref<boolean>;
+  let syncNeeded: Ref<boolean>;
+  let retryCount: Ref<number>;
+  let retryTimer: Ref<any>;
+
+  try {
+    isSyncing = useState('h_isSyncing', () => false);
+    syncNeeded = useState('h_syncNeeded', () => false);
+    retryCount = useState('h_retryCount', () => 0);
+    retryTimer = useState<any>('h_retryTimer', () => null);
+  } catch {
+    isSyncing = _testSyncState.isSyncing;
+    syncNeeded = _testSyncState.syncNeeded;
+    retryCount = _testSyncState.retryCount;
+    retryTimer = _testSyncState.retryTimer;
+  }
   
   let lastSyncTime: Ref<number>;
   try {
