@@ -133,6 +133,7 @@ export async function recalculateMultipleBucketStreaks(db: any, items: { bucketI
 
     bucketUpdates.push({
       id: item.bucketId,
+      ownerId: item.ownerId,
       currentStreak: result.currentStreak,
       longestStreak: result.longestStreak,
       streakAnchorDate: result.streakAnchorDate
@@ -144,7 +145,7 @@ export async function recalculateMultipleBucketStreaks(db: any, items: { bucketI
   // 2. Bulk Update Buckets
   if (bucketUpdates.length > 0) {
     const values = bucketUpdates.map(u => 
-      sql`(${u.id}::uuid, ${u.currentStreak}::int, ${u.longestStreak}::int, ${u.streakAnchorDate}::date)`
+      sql`(${u.id}::uuid, ${u.currentStreak}::int, ${u.longestStreak}::int, ${u.streakAnchorDate}::date, ${u.ownerId}::uuid)`
     );
     const valuesList = sql.join(values, sql`, `);
     await db.execute(sql`
@@ -154,8 +155,8 @@ export async function recalculateMultipleBucketStreaks(db: any, items: { bucketI
         longest_streak = v.longest_streak,
         streak_anchor_date = v.streak_anchor_date,
         updated_at = NOW()
-      FROM (VALUES ${valuesList}) AS v(id, current_streak, longest_streak, streak_anchor_date)
-      WHERE b.id = v.id
+      FROM (VALUES ${valuesList}) AS v(id, current_streak, longest_streak, streak_anchor_date, owner_id)
+      WHERE b.id = v.id AND b.owner_id = v.owner_id
     `);
   }
 

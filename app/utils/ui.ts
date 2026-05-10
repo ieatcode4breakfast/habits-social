@@ -1,4 +1,13 @@
-import { subDays, startOfDay, parseISO, isAfter } from 'date-fns';
+import { subDays, startOfDay, parseISO, isAfter, differenceInDays } from 'date-fns';
+
+/**
+ * Determines if a date is within the 14-day markable window.
+ */
+export const isMarkable = (day: Date) => {
+  const today = new Date();
+  const diff = differenceInDays(startOfDay(today), startOfDay(day));
+  return diff >= 0 && diff < 14;
+};
 
 /**
  * Returns a consistent theme based on the streak count.

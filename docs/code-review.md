@@ -1,7 +1,7 @@
 # Code Review
 
-## 🔴 CRITICAL ISSUES (Must fix before deployment)
-*App-breaking vulnerabilities and immediately exploitable security flaws via DevTools/Console.*
+## 🔴 CRITICAL ISSUES
+*App-breaking vulnerabilities and immediately exploitable security flaws.
 
 ### 1. Broken Object Level Authorization (BOLA) - Core Deletion & Streaks
 - **Locations:** 

@@ -9,7 +9,7 @@
       leave-to-class="opacity-0 scale-95 -translate-y-2"
     >
       <div v-if="habit && date && referenceEl" class="fixed inset-0 z-[190] touch-none" @click.stop="emit('close')">
-        <div class="fixed inset-0 bg-black/60 backdrop-blur-sm touch-none" @click.stop="emit('close')"></div>
+        <div class="fixed inset-0 bg-transparent touch-none" @click.stop="emit('close')"></div>
         <div 
           ref="floatingRef"
           class="fixed z-[200] bg-zinc-900/95 backdrop-blur-xl border border-zinc-800 rounded-2xl shadow-2xl p-1.5 flex flex-row gap-1.5"

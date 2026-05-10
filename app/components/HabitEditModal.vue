@@ -181,7 +181,7 @@
                           getStatusMap()[format(day, 'yyyy-MM-dd')] === 'failed' ? 'bg-rose-500 border-rose-500 shadow-md shadow-rose-500/20' :
                           getStatusMap()[format(day, 'yyyy-MM-dd')] === 'skipped' ? 'bg-zinc-500 border-zinc-500 shadow-none' :
                           getStatusMap()[format(day, 'yyyy-MM-dd')] === 'vacation' ? 'bg-amber-500 border-amber-500 shadow-md shadow-amber-500/20' :
-                          'border-dashed border-zinc-800 bg-transparent'
+                          isMarkable(day) ? 'border-dashed border-zinc-800 bg-transparent' : 'bg-white/[0.03] border-dashed border-zinc-900'
                         ]"
                       >
                         <Check v-if="getStatusMap()[format(day, 'yyyy-MM-dd')] === 'completed'" class="w-4 h-4 text-white" />
@@ -374,7 +374,7 @@ import { useModalHistory } from '~/composables/useModalHistory';
 import { Trash2, Check, X as XIcon, Minus, ChevronLeft, ChevronRight, User, ChevronUp, ChevronDown, Edit2, Save, CheckSquare, Flame, Palmtree } from 'lucide-vue-next';
 import { format, subDays, startOfMonth, endOfMonth, eachDayOfInterval, addDays, isAfter, startOfDay, subMonths, addMonths, parseISO, isBefore, isSameDay, isSameWeek, isSameMonth } from 'date-fns';
 import type { Habit, HabitLog } from '~/composables/useHabitsApi';
-import { getStreakTheme, isStreakFaded as isFaded, autoExpandTextarea as autoExpand } from '~/utils/ui';
+import { getStreakTheme, isStreakFaded as isFaded, autoExpandTextarea as autoExpand, isMarkable } from '~/utils/ui';
 import { useCalendar } from '~/composables/useCalendar';
 
 const props = defineProps<{

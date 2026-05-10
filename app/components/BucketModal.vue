@@ -129,7 +129,7 @@
                             statusMap[format(day, 'yyyy-MM-dd')] === 'failed' ? 'bg-rose-500 border-rose-500 shadow-md shadow-rose-500/20' :
                             statusMap[format(day, 'yyyy-MM-dd')] === 'skipped' ? 'bg-zinc-500 border-zinc-500 shadow-none' :
                             statusMap[format(day, 'yyyy-MM-dd')] === 'vacation' ? 'bg-amber-500 border-amber-500 shadow-md shadow-amber-500/20' :
-                            'border-dashed border-zinc-800 bg-transparent'
+                            isMarkable(day) ? 'border-dashed border-zinc-800 bg-transparent' : 'bg-white/[0.03] border-dashed border-zinc-900'
                           ]"
                         >
                           <Check v-if="statusMap[format(day, 'yyyy-MM-dd')] === 'completed'" class="w-4 h-4 text-white" />
@@ -196,7 +196,7 @@
 import { ref, computed, watch } from 'vue';
 import { ChevronLeft, ChevronRight, Flame, Trash2, Check, X as XIcon, Minus, Palmtree, CheckSquare } from 'lucide-vue-next';
 import { format, isToday } from 'date-fns';
-import { getStreakTheme, isStreakFaded, autoExpandTextarea } from '~/utils/ui';
+import { getStreakTheme, isStreakFaded, autoExpandTextarea, isMarkable } from '~/utils/ui';
 import { useCalendar } from '~/composables/useCalendar';
 import type { Bucket, Habit } from '~/composables/useHabitsApi';
 

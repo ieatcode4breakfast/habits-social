@@ -33,7 +33,8 @@
 
 <script setup lang="ts">
 import { Check, X as XIcon, Minus, Palmtree } from 'lucide-vue-next';
-import { format, startOfDay, differenceInDays } from 'date-fns';
+import { format } from 'date-fns';
+import { isMarkable } from '@/utils/ui';
 
 const props = defineProps<{
   days: Date[];
@@ -43,9 +44,4 @@ const props = defineProps<{
 
 defineEmits(['click-day']);
 
-const today = new Date();
-const isMarkable = (day: Date) => {
-  const diff = differenceInDays(startOfDay(today), startOfDay(day));
-  return diff >= 0 && diff < 14;
-};
 </script>
