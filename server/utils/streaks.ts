@@ -1,5 +1,5 @@
 import { parseISO, startOfDay, differenceInDays } from 'date-fns';
-import { eq, lt, gte, desc, asc, sql } from 'drizzle-orm';
+import { eq, lt, gte, desc, asc, sql, and } from 'drizzle-orm';
 import { habits, habitLogs } from '../db/schema';
 import { calculateStreakFromLogs } from '../../utils/habits';
 
@@ -11,7 +11,7 @@ export async function recalculateHabitStreak(db: any, habitId: string, userId: s
     streakAnchorDate: habits.streakAnchorDate
   })
   .from(habits)
-  .where(eq(habits.id, habitId));
+  .where(and(eq(habits.id, habitId), eq(habits.ownerId, userId)));
 
   if (!habitRes || habitRes.length === 0) return;
   const habit = habitRes[0];
@@ -67,7 +67,7 @@ export async function recalculateHabitStreak(db: any, habitId: string, userId: s
           streakAnchorDate: null,
           updatedAt: new Date()
         })
-        .where(eq(habits.id, habitId))
+        .where(and(eq(habits.id, habitId), eq(habits.ownerId, userId)))
         .returning();
       return result[0];
     }
@@ -77,7 +77,7 @@ export async function recalculateHabitStreak(db: any, habitId: string, userId: s
         currentStreak: runningStreak,
         updatedAt: new Date()
       })
-      .where(eq(habits.id, habitId))
+      .where(and(eq(habits.id, habitId), eq(habits.ownerId, userId)))
       .returning();
     return result[0];
   }
@@ -115,7 +115,7 @@ export async function recalculateHabitStreak(db: any, habitId: string, userId: s
       streakAnchorDate: streakAnchorDate,
       updatedAt: new Date()
     })
-    .where(eq(habits.id, habitId))
+    .where(and(eq(habits.id, habitId), eq(habits.ownerId, userId)))
     .returning();
 
   return result[0];

@@ -29,6 +29,11 @@ export default defineEventHandler(async (event) => {
 
   if (event.method === 'DELETE') {
     const success = await SocialService.removeFriendship(db, userId, id, event);
+    
+    if (!success) {
+      throw createError({ statusCode: 403, statusMessage: 'Not authorized to delete this friendship' });
+    }
+
     return { data: { success } };
   }
 });

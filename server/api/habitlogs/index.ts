@@ -89,6 +89,15 @@ export default defineEventHandler(async (event) => {
       throw createError({ statusCode: 400, statusMessage: 'Habit updates are not allowed for future dates' });
     }
 
+    // Validate habit exists and is owned by user
+    const habitCheck = await db.select({ id: habitsTable.id })
+      .from(habitsTable)
+      .where(and(eq(habitsTable.id, habitId), eq(habitsTable.ownerId, userId)));
+    
+    if (habitCheck.length === 0) {
+      throw createError({ statusCode: 404, statusMessage: 'Habit not found or ownership mismatch' });
+    }
+
     await HabitService.deleteHabitLog(db, userId, habitId, dateStr, event);
 
     return { data: { success: true } };

@@ -86,7 +86,13 @@ export const SocialService = {
   async removeFriendship(db: any, userId: string, id: string, event: any) {
     const friendshipsRes = await db.select()
       .from(friendshipsTable)
-      .where(eq(friendshipsTable.id, id));
+      .where(and(
+        eq(friendshipsTable.id, id),
+        or(
+          eq(friendshipsTable.initiatorId, userId),
+          eq(friendshipsTable.receiverId, userId)
+        )
+      ));
     
     if (friendshipsRes.length === 0) return false;
 
@@ -130,7 +136,13 @@ export const SocialService = {
       .set({ sharedWith: sql`array_remove(shared_with, ${u1})` })
       .where(eq(habitLogs.ownerId, u2));
 
-    await db.delete(friendshipsTable).where(eq(friendshipsTable.id, id));
+    await db.delete(friendshipsTable).where(and(
+      eq(friendshipsTable.id, id),
+      or(
+        eq(friendshipsTable.initiatorId, userId),
+        eq(friendshipsTable.receiverId, userId)
+      )
+    ));
 
     const pusher = usePusher(event);
     if (pusher) {
