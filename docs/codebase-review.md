@@ -2,6 +2,11 @@
 
 ## 🔴 CRITICAL ISSUES (Must fix before deployment)
 
+### 1. Severe Connection Pool Exhaustion (Memory Leak / DB Crash)
+- **Location:** `server/utils/db.ts`, `useDB` function.
+- **Explanation:** Every time `useDB()` is invoked (which occurs on every single API request), a brand-new `Pool` instance is instantiated (`const pool = new Pool({ connectionString: uri });`). Because the pool is never cached or closed, incoming traffic will rapidly exhaust the database connection limits, cause massive memory leaks, and severely degrade performance due to TLS/WebSocket connection overhead on every query.
+- **Fix:** Cache the Drizzle database/Pool instance globally outside the function scope so it is reused across requests within the same serverless isolate.
+
 ---
 
 ## 🟡 WARNINGS (Highly recommended to address)
@@ -10,6 +15,16 @@
 - **Location:** `server/api/auth/login.post.ts` & `server/api/auth/register.post.ts`
 - **Explanation:** There is no application-level rate limiting on the authentication routes. While you've implemented an excellent defense against timing attacks (`await compare(password, DUMMY_HASH)`), your endpoints are currently exposed to credential stuffing, brute-forcing, and mass bot registrations.
 - **Fix:** Implement a rate limiting middleware specifically for `/api/auth/*` routes, utilizing Redis or a similar fast-access store, to restrict the number of login/register attempts per IP or identifier within a standard rolling window (e.g., 5 attempts per 15 minutes).
+
+### 2. Unvalidated UUID Route Parameters causing 500 DB Errors
+- **Location:** `server/api/buckets/[id].ts`, `server/api/users/[id]/profile.get.ts`, and other `[id].ts` files.
+- **Explanation:** The route parameter `id` is retrieved using `getRouterParam(event, 'id')` and passed directly into Drizzle's `.where(eq(..., id))`. If a non-UUID string is sent by the client, PostgreSQL throws a syntax error (`invalid input syntax for type uuid`), resulting in a 500 Server Error instead of the correct 400 Bad Request.
+- **Fix:** Validate the `id` against a UUID regex or Zod schema at the top of the route handler before executing any queries.
+
+### 3. Cross-Request State Pollution Risk during SSR
+- **Location:** `app/composables/useHabitsApi.ts`
+- **Explanation:** Reactive variables (`isSyncing`, `syncNeeded`, `retryCount`, `retryTimer`) are declared outside the composable function at the module root. In a Nuxt 3 SSR environment, module-level state is shared across *all* concurrent requests on the Node server. While currently shielded by `if (!process.client)` checks in the `sync()` function, this is a major architectural trap that can lead to catastrophic state/memory leakage if SSR logic ever changes.
+- **Fix:** Move these variables inside the `useHabitsApi` function block, or use Nuxt's `useState()` to ensure SSR safety.
 
 ---
 
@@ -39,3 +54,13 @@
 - **Location:** `server/api/auth/login.post.ts`
 - **Explanation:** `maxAge: 60 * 60 * 24 * 7` (7 days) is hardcoded for the authentication cookie.
 - **Fix:** Extract this into a shared constant (e.g., `AUTH_COOKIE_MAX_AGE_SECONDS`) so it can be imported both here and wherever your `jwt.sign` configuration lives. This guarantees that the cookie and the JWT naturally expire at the exact same time without relying on synchronized "magic numbers."
+
+### 6. Overwritten Where Clauses in Drizzle
+- **Location:** `server/utils/streaks.ts`, inside `recalculateHabitStreak` - DEFERRED
+- **Explanation:** The code calls `logsQuery.where(...)` and then optionally calls `logsQuery.where(...)` again if `queryStartDate` exists. In Drizzle ORM, subsequent `.where()` calls completely *overwrite* the previous clause rather than appending to it. While the code currently works because it manually re-declares the entire logical condition in the second call, it is highly fragile and confusing.
+- **Fix:** Use Drizzle's `and()` to append conditions dynamically.
+
+### 7. Limit Fallback Ignores Explicit Zeros - DEFERRED
+- **Location:** `server/api/social/feed.get.ts`
+- **Explanation:** `Number(query.limit) || 20` evaluates to `20` if `query.limit` is explicitly sent as `0`. If a valid UI use case ever involves fetching exactly `0` items (e.g., just checking for connectivity or headers), the API forces it to `20`.
+- **Fix:** Use the nullish coalescing operator `??` or explicitly check for `undefined` if you want to permit `0`.

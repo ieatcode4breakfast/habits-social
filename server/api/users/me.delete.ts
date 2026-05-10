@@ -21,31 +21,33 @@ export default defineEventHandler(async (event) => {
   const userId = await requireAuth(event);
   const db = useDB(event);
 
-  // Note: Neon HTTP driver does not support transactions in this environment.
-  // We perform sequential deletes in order of dependency.
-  await db.delete(bucketLogs).where(eq(bucketLogs.ownerId, userId));
-  await db.delete(habitLogs).where(eq(habitLogs.ownerId, userId));
-  
-  await db.delete(shareEvents).where(or(
-    eq(shareEvents.ownerId, userId),
-    eq(shareEvents.recipientId, userId)
-  ));
-  
-  await db.delete(syncDeletions).where(eq(syncDeletions.ownerId, userId));
-  await db.delete(sharedBucketMembers).where(eq(sharedBucketMembers.userId, userId));
-  await db.delete(bucketHabits).where(eq(bucketHabits.addedBy, userId));
-  
-  await db.delete(buckets).where(eq(buckets.ownerId, userId));
-  await db.delete(habits).where(eq(habits.ownerId, userId));
-  
-  await db.delete(friendships).where(or(
-    eq(friendships.initiatorId, userId),
-    eq(friendships.receiverId, userId)
-  ));
+  const result = await db.transaction(async (tx) => {
+    await tx.delete(bucketLogs).where(eq(bucketLogs.ownerId, userId));
+    await tx.delete(habitLogs).where(eq(habitLogs.ownerId, userId));
+    
+    await tx.delete(shareEvents).where(or(
+      eq(shareEvents.ownerId, userId),
+      eq(shareEvents.recipientId, userId)
+    ));
+    
+    await tx.delete(syncDeletions).where(eq(syncDeletions.ownerId, userId));
+    await tx.delete(sharedBucketMembers).where(eq(sharedBucketMembers.userId, userId));
+    await tx.delete(bucketHabits).where(eq(bucketHabits.addedBy, userId));
+    
+    await tx.delete(buckets).where(eq(buckets.ownerId, userId));
+    await tx.delete(habits).where(eq(habits.ownerId, userId));
+    
+    await tx.delete(friendships).where(or(
+      eq(friendships.initiatorId, userId),
+      eq(friendships.receiverId, userId)
+    ));
 
-  const result = await db.delete(users)
-    .where(eq(users.id, userId))
-    .returning({ id: users.id });
+    const deleteRes = await tx.delete(users)
+      .where(eq(users.id, userId))
+      .returning({ id: users.id });
+
+    return deleteRes;
+  });
 
   if (result.length === 0) {
     throw createError({ statusCode: 404, statusMessage: 'User not found' });

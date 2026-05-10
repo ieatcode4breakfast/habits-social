@@ -72,4 +72,15 @@ describe('Social Feed Pagination & Engine Hardening', () => {
     const response = (await handler(event)) as any;
     expect(response.data).toBeDefined();
   });
+
+  it('Test 4: Negative Limit Hardening - Should handle negative limit without crashing', async () => {
+    // Pass a negative limit string in the query parameter position (5th argument)
+    const event = createMockEvent(userB.id, {}, {}, {}, { limit: '-10' }, 'GET');
+    
+    // This call should NOT throw a 500/SQL error
+    const response = (await handler(event)) as any;
+    
+    expect(response.data).toBeDefined();
+    expect(Array.isArray(response.data)).toBe(true);
+  });
 });

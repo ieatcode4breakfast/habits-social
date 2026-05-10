@@ -14,7 +14,7 @@ export default defineEventHandler(async (event) => {
   const cursorDate = query.cursorDate as string;
   const cursorTimestamp = query.cursorTimestamp as string;
   const cursorId = query.cursorId as string;
-  const limit = Math.min(Number(query.limit) || 20, 50);
+  const limit = Math.max(1, Math.min(Number(query.limit) || 20, 50));
 
   // 1. Get friend IDs (only accepted friendships)
   const friendshipRes = await db.select({
