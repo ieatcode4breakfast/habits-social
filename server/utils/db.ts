@@ -7,7 +7,12 @@ import { sql } from 'drizzle-orm';
 import * as schema from '../db/schema';
 import type { H3Event } from 'h3';
 
+let cachedPool: Pool | null = null;
+let cachedDb: any = null;
+
 export const useDB = (event?: H3Event) => {
+  if (cachedDb) return cachedDb;
+
   let config: any = {};
   try {
     config = useRuntimeConfig(event);
@@ -28,8 +33,9 @@ export const useDB = (event?: H3Event) => {
     throw createError({ statusCode: 500, statusMessage: 'Database configuration missing' });
   }
 
-  const pool = new Pool({ connectionString: uri });
-  return drizzle(pool, { schema });
+  cachedPool = new Pool({ connectionString: uri });
+  cachedDb = drizzle(cachedPool, { schema });
+  return cachedDb;
 };
 
 /**

@@ -2,10 +2,7 @@
 
 ## 🔴 CRITICAL ISSUES (Must fix before deployment)
 
-### 1. Severe Connection Pool Exhaustion (Memory Leak / DB Crash)
-- **Location:** `server/utils/db.ts`, `useDB` function.
-- **Explanation:** Every time `useDB()` is invoked (which occurs on every single API request), a brand-new `Pool` instance is instantiated (`const pool = new Pool({ connectionString: uri });`). Because the pool is never cached or closed, incoming traffic will rapidly exhaust the database connection limits, cause massive memory leaks, and severely degrade performance due to TLS/WebSocket connection overhead on every query.
-- **Fix:** Cache the Drizzle database/Pool instance globally outside the function scope so it is reused across requests within the same serverless isolate.
+*None remaining.*
 
 ---
 
@@ -16,10 +13,9 @@
 - **Explanation:** There is no application-level rate limiting on the authentication routes. While you've implemented an excellent defense against timing attacks (`await compare(password, DUMMY_HASH)`), your endpoints are currently exposed to credential stuffing, brute-forcing, and mass bot registrations.
 - **Fix:** Implement a rate limiting middleware specifically for `/api/auth/*` routes, utilizing Redis or a similar fast-access store, to restrict the number of login/register attempts per IP or identifier within a standard rolling window (e.g., 5 attempts per 15 minutes).
 
-### 2. Unvalidated UUID Route Parameters causing 500 DB Errors
-- **Location:** `server/api/buckets/[id].ts`, `server/api/users/[id]/profile.get.ts`, and other `[id].ts` files.
-- **Explanation:** The route parameter `id` is retrieved using `getRouterParam(event, 'id')` and passed directly into Drizzle's `.where(eq(..., id))`. If a non-UUID string is sent by the client, PostgreSQL throws a syntax error (`invalid input syntax for type uuid`), resulting in a 500 Server Error instead of the correct 400 Bad Request.
-- **Fix:** Validate the `id` against a UUID regex or Zod schema at the top of the route handler before executing any queries.
+### ~~2. Unvalidated UUID Route Parameters causing 500 DB Errors~~ ✅ RESOLVED
+- **Fixed in:** `server/api/buckets/[id].ts`, `server/api/habits/[id].ts`, `server/api/friendships/[id].ts`
+- **Fix applied:** UUID regex guard added before DB queries — non-UUID strings now return 400 Bad Request.
 
 ### 3. Cross-Request State Pollution Risk during SSR
 - **Location:** `app/composables/useHabitsApi.ts`
@@ -27,6 +23,7 @@
 - **Fix:** Move these variables inside the `useHabitsApi` function block, or use Nuxt's `useState()` to ensure SSR safety.
 
 ---
+
 
 ## 🔵 NITPICKS & BEST PRACTICES (Optional polish)
 
