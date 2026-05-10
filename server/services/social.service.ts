@@ -128,13 +128,7 @@ export const SocialService = {
       .set({ sharedWith: sql`array_remove(shared_with, ${u1})` })
       .where(eq(habits.ownerId, u2));
     
-    await db.update(habitLogs)
-      .set({ sharedWith: sql`array_remove(shared_with, ${u2})` })
-      .where(eq(habitLogs.ownerId, u1));
-    
-    await db.update(habitLogs)
-      .set({ sharedWith: sql`array_remove(shared_with, ${u1})` })
-      .where(eq(habitLogs.ownerId, u2));
+    // No longer cleaning up habit_logs.shared_with (consolidated at Habit-level)
 
     await db.delete(friendshipsTable).where(and(
       eq(friendshipsTable.id, id),

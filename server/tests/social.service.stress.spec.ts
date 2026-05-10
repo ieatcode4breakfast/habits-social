@@ -65,8 +65,6 @@ describe('SocialService - Stress Testing', () => {
     const hRes = await db.select().from(habits).where(eq(habits.id, habitH.id));
     expect(hRes[0]?.sharedWith).not.toContain(userB.id);
 
-    // 3. User B's ID is removed from the sharedWith array on all its historical logs
-    const hlRes = await db.select().from(habitLogs).where(eq(habitLogs.id, `${habitH.id}_2024-01-01`));
-    expect(hlRes[0]?.sharedWith).not.toContain(userB.id);
+    // 3. Log-level cleanup is no longer performed (consolidated at Habit-level)
   }, 60000);
 });

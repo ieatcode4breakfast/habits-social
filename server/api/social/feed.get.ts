@@ -58,7 +58,6 @@ export default defineEventHandler(async (event) => {
           'status', hl.status,
           'streakCount', hl.streak_count,
           'brokenStreakCount', hl.broken_streak_count,
-          'sharedWith', hl.shared_with,
           'updatedAt', hl.updated_at,
           'habitTitle', h.title
         ) as raw_data

@@ -18,7 +18,7 @@ export const HabitService = {
             ownerId: userId,
             date: data.date,
             status: data.status,
-            sharedWith: data.sharedWith || [],
+            sharedWith: [], // Consolidated at Habit-level
             streakCount: data.streakCount ?? 0,
             brokenStreakCount: data.brokenStreakCount ?? 0,
             updatedAt: new Date()
@@ -27,7 +27,7 @@ export const HabitService = {
             target: habitLogs.id,
             set: {
               status: data.status,
-              sharedWith: data.sharedWith || [],
+              sharedWith: [], // Consolidated at Habit-level
               streakCount: data.streakCount ?? 0,
               brokenStreakCount: data.brokenStreakCount ?? 0,
               updatedAt: new Date()

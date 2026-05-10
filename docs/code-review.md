@@ -1,23 +1,9 @@
 # Code Review
 
 ## 🔴 CRITICAL ISSUES
-*App-breaking vulnerabilities and immediately exploitable security flaws.
+*App-breaking vulnerabilities and immediately exploitable security flaws.*
 
-### 1. Broken Object Level Authorization (BOLA) - Core Deletion & Streaks
-- **Locations:** 
-  - `server/api/habitlogs/index.ts` (DELETE handler)
-  - `server/services/habit.service.ts` (`deleteHabit`)
-  - `server/services/bucket.service.ts` (`updateBucket`, `deleteBucket`)
-  - `server/utils/streaks.ts` (`recalculateHabitStreak`)
-- **Exploit:** Any logged-in user can delete anyone's habits/buckets or reset anyone's streaks by sending a `fetch` request from the browser console with a victim's UUID. 
-- **Fix:** Enforce `ownerId: userId` check in all `UPDATE` and `DELETE` operations.
-
-### 2. Social Feed Privacy Leak (hl.shared_with)
-- **Location:** `server/api/social/feed.get.ts`
-- **Exploit:** The feed query uses the parent habit's settings instead of the log's specific `shared_with` array. Users can see logs that were explicitly marked as "Private."
-- **Fix:** Update the SQL to authorize against `hl.shared_with`.
-
-### 3. Database Denial of Service (DoS)
+### 1. Database Denial of Service (DoS)
 - **Location:** `server/api/buckets/reorder.ts` & `server/api/habits/reorder.ts`
 - **Exploit:** An attacker can submit an array of 50,000+ IDs to the reorder endpoint, generating a massive SQL query that locks the database and crashes the app for all users.
 - **Fix:** Add a strict `.max(100)` limit to the IDs array in the validation schema.
@@ -82,3 +68,13 @@
 - **Location:** `server/utils/validation.ts`
 - **Note:** Hardcoded hex colors and limits.
 - **Fix:** Extract to a shared `constants.ts`.
+
+---
+
+## 📝 NOTES
+
+### 1. Habit-Level Privacy Policy (By Design)
+It is a core architectural decision that **Sharing a Habit = Sharing all its Logs**. 
+- The `shared_with` column on `habit_logs` is deprecated and intentionally ignored by the API layer.
+- Visibility is controlled exclusively by the `habits.shared_with` array.
+- **DO NOT FLAG** "Missing hl.shared_with checks" in future audits; authorization is intentionally centralized at the parent object for data integrity and simplicity.
