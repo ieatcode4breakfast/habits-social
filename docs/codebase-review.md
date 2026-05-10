@@ -13,11 +13,6 @@
 - **Explanation:** There is no application-level rate limiting on the authentication routes. While you've implemented an excellent defense against timing attacks (`await compare(password, DUMMY_HASH)`), your endpoints are currently exposed to credential stuffing, brute-forcing, and mass bot registrations.
 - **Fix:** Implement a rate limiting middleware specifically for `/api/auth/*` routes, utilizing Redis or a similar fast-access store, to restrict the number of login/register attempts per IP or identifier within a standard rolling window (e.g., 5 attempts per 15 minutes).
 
-### ~~2. Cross-Request State Pollution Risk during SSR~~ ✅ RESOLVED
-- **Location:** `app/composables/useHabitsApi.ts`
-- **Explanation:** Reactive variables (`isSyncing`, `syncNeeded`, `retryCount`, `retryTimer`) were declared outside the composable function at the module root, risking state leakage between requests in SSR.
-- **Fix Applied:** Refactored to use Nuxt's `useState()` for request-scoped isolation on the server and shared state on the client.
-
 ---
 
 
