@@ -180,7 +180,6 @@ export const SyncService = {
 
   async getPaginatedDeltas(db: any, userId: string, params: SyncParams): Promise<SyncResponse> {
     const { lastSynced = 0, limit = 50, cursors = {} } = params;
-    const serverTime = await getServerTime(db);
 
     const decodeCursor = (cursor?: string) => {
       if (!cursor) return null;
@@ -228,8 +227,9 @@ export const SyncService = {
       };
     }
 
-    const [habitsResRaw, bucketIdsResRaw] = await db.transaction(async (tx: any) => {
-      // Subquery to identify accessible bucket IDs (to avoid join duplicates)
+    // Wrap everything in a single transaction to minimize round-trips and ensure consistency
+    return await db.transaction(async (tx: any) => {
+      // 1. Fetch Server Time, Habits, and Bucket IDs in the first batched round-trip
       const bucketIdsSubquery = tx.select({ id: bucketsTable.id })
         .from(bucketsTable)
         .leftJoin(sharedBucketMembers, eq(bucketsTable.id, sharedBucketMembers.bucketId))
@@ -238,7 +238,8 @@ export const SyncService = {
           and(eq(sharedBucketMembers.userId, userId), eq(sharedBucketMembers.status, 'accepted'))
         ));
 
-      return await Promise.all([
+      const [serverTime, habitsResRaw, bucketIdsResRaw] = await Promise.all([
+        getServerTime(tx),
         tx.select().from(habitsTable)
           .where(and(
             eq(habitsTable.ownerId, userId),
@@ -255,27 +256,28 @@ export const SyncService = {
           .orderBy(asc(bucketsTable.updatedAt), asc(bucketsTable.id))
           .limit(limit + 1)
       ]);
-    });
 
-    const habitsHasMore = habitsResRaw.length > limit;
-    const habitsRes = habitsResRaw.slice(0, limit);
-    
-    const bucketsHasMore = bucketIdsResRaw.length > limit;
-    const bucketIds = bucketIdsResRaw.slice(0, limit).map((b: any) => b.id);
+      const habitsHasMore = habitsResRaw.length > limit;
+      const habitsRes = habitsResRaw.slice(0, limit);
+      
+      const bucketsHasMore = bucketIdsResRaw.length > limit;
+      const bucketIds = bucketIdsResRaw.slice(0, limit).map((b: any) => b.id);
 
-    // 3. Topological Suppression: If parents have more, don't fetch children yet
-    const suppressChildren = habitsHasMore || bucketsHasMore;
+      // 2. Topological Suppression: If parents have more, don't fetch children yet
+      const suppressChildren = habitsHasMore || bucketsHasMore;
 
-    let habitLogsRes: any[] = [];
-    let bucketLogsRes: any[] = [];
-    let deletionsRes: any[] = [];
-    let normalizedBuckets: any[] = [];
-    let logsHasMore = false;
-    let deletionsHasMore = false;
+      let habitLogsRes: any[] = [];
+      let bucketLogsRes: any[] = [];
+      let deletionsRes: any[] = [];
+      let normalizedBuckets: any[] = [];
+      let logsHasMore = false;
+      let deletionsHasMore = false;
 
-    if (!suppressChildren) {
-      const [hLogs, bLogs, deletionsRaw] = await db.transaction(async (tx: any) => {
-        return await Promise.all([
+      // 3. Fetch Children and Bucket Details in the second batched round-trip
+      const batchPromises: Promise<any>[] = [];
+
+      if (!suppressChildren) {
+        batchPromises.push(
           tx.select().from(habitLogs)
             .where(and(
               eq(habitLogs.ownerId, userId),
@@ -299,21 +301,11 @@ export const SyncService = {
             ))
             .orderBy(asc(syncDeletions.createdAt), asc(syncDeletions.id))
             .limit(limit + 1)
-        ]);
-      });
+        );
+      }
 
-      logsHasMore = hLogs.length > limit || bLogs.length > limit;
-      deletionsHasMore = deletionsRaw.length > limit;
-      
-      habitLogsRes = hLogs.slice(0, limit);
-      bucketLogsRes = bLogs.slice(0, limit);
-      deletionsRes = deletionsRaw.slice(0, limit);
-    }
-
-    // Fetch Bucket Details if we have IDs
-    if (bucketIds.length > 0) {
-      const [rawBuckets, habitAssignments, memberAssignments] = await db.transaction(async (tx: any) => {
-        return await Promise.all([
+      if (bucketIds.length > 0) {
+        batchPromises.push(
           tx.select().from(bucketsTable)
             .where(inArray(bucketsTable.id, bucketIds))
             .orderBy(asc(bucketsTable.updatedAt), asc(bucketsTable.id)),
@@ -333,52 +325,75 @@ export const SyncService = {
           .from(sharedBucketMembers)
           .leftJoin(users, eq(sharedBucketMembers.userId, users.id))
           .where(inArray(sharedBucketMembers.bucketId, bucketIds))
-        ]);
-      });
+        );
+      }
 
-      normalizedBuckets = this.stitchBuckets(rawBuckets, habitAssignments, memberAssignments);
-    }
+      if (batchPromises.length > 0) {
+        const results = await Promise.all(batchPromises);
+        let ptr = 0;
 
-    const nextCursors: Record<string, string> = {};
-    if (habitsRes.length > 0) {
-      nextCursors.habits = encodeCursor(habitsRes[habitsRes.length - 1].updatedAt, habitsRes[habitsRes.length - 1].id);
-    } else if (habitCursor) {
-      nextCursors.habits = cursors.habits!;
-    }
+        if (!suppressChildren) {
+          const hLogs = results[ptr++];
+          const bLogs = results[ptr++];
+          const deletionsRaw = results[ptr++];
 
-    if (normalizedBuckets.length > 0) {
-      nextCursors.buckets = encodeCursor(normalizedBuckets[normalizedBuckets.length - 1].updatedAt, normalizedBuckets[normalizedBuckets.length - 1].id);
-    } else if (bucketCursor) {
-      nextCursors.buckets = cursors.buckets!;
-    }
+          logsHasMore = hLogs.length > limit || bLogs.length > limit;
+          deletionsHasMore = deletionsRaw.length > limit;
+          
+          habitLogsRes = hLogs.slice(0, limit);
+          bucketLogsRes = bLogs.slice(0, limit);
+          deletionsRes = deletionsRaw.slice(0, limit);
+        }
 
-    if (habitLogsRes.length > 0) {
-      nextCursors.habitLogs = encodeCursor(habitLogsRes[habitLogsRes.length - 1].updatedAt, habitLogsRes[habitLogsRes.length - 1].id);
-    } else if (logCursor) {
-      nextCursors.habitLogs = cursors.habitLogs!;
-    }
+        if (bucketIds.length > 0) {
+          const rawBuckets = results[ptr++];
+          const habitAssignments = results[ptr++];
+          const memberAssignments = results[ptr++];
+          normalizedBuckets = this.stitchBuckets(rawBuckets, habitAssignments, memberAssignments);
+        }
+      }
 
-    if (bucketLogsRes.length > 0) {
-      nextCursors.bucketLogs = encodeCursor(bucketLogsRes[bucketLogsRes.length - 1].updatedAt, bucketLogsRes[bucketLogsRes.length - 1].id);
-    } else if (bLogCursor) {
-      nextCursors.bucketLogs = cursors.bucketLogs!;
-    }
+      const nextCursors: Record<string, string> = {};
+      if (habitsRes.length > 0) {
+        nextCursors.habits = encodeCursor(habitsRes[habitsRes.length - 1].updatedAt, habitsRes[habitsRes.length - 1].id);
+      } else if (habitCursor) {
+        nextCursors.habits = cursors.habits!;
+      }
 
-    if (deletionsRes.length > 0) {
-      nextCursors.deletions = encodeCursor(deletionsRes[deletionsRes.length - 1].createdAt, deletionsRes[deletionsRes.length - 1].id);
-    } else if (delCursor) {
-      nextCursors.deletions = cursors.deletions!;
-    }
+      if (normalizedBuckets.length > 0) {
+        nextCursors.buckets = encodeCursor(normalizedBuckets[normalizedBuckets.length - 1].updatedAt, normalizedBuckets[normalizedBuckets.length - 1].id);
+      } else if (bucketCursor) {
+        nextCursors.buckets = cursors.buckets!;
+      }
 
-    return {
-      habits: habitsRes,
-      buckets: normalizedBuckets,
-      habitLogs: habitLogsRes,
-      bucketLogs: bucketLogsRes,
-      deletions: deletionsRes.map((d: any) => ({ id: d.entityId, type: d.entityType })),
-      serverTime,
-      nextCursors,
-      hasMore: habitsHasMore || bucketsHasMore || logsHasMore || deletionsHasMore
-    };
+      if (habitLogsRes.length > 0) {
+        nextCursors.habitLogs = encodeCursor(habitLogsRes[habitLogsRes.length - 1].updatedAt, habitLogsRes[habitLogsRes.length - 1].id);
+      } else if (logCursor) {
+        nextCursors.habitLogs = cursors.habitLogs!;
+      }
+
+      if (bucketLogsRes.length > 0) {
+        nextCursors.bucketLogs = encodeCursor(bucketLogsRes[bucketLogsRes.length - 1].updatedAt, bucketLogsRes[bucketLogsRes.length - 1].id);
+      } else if (bLogCursor) {
+        nextCursors.bucketLogs = cursors.bucketLogs!;
+      }
+
+      if (deletionsRes.length > 0) {
+        nextCursors.deletions = encodeCursor(deletionsRes[deletionsRes.length - 1].createdAt, deletionsRes[deletionsRes.length - 1].id);
+      } else if (delCursor) {
+        nextCursors.deletions = cursors.deletions!;
+      }
+
+      return {
+        habits: habitsRes,
+        buckets: normalizedBuckets,
+        habitLogs: habitLogsRes,
+        bucketLogs: bucketLogsRes,
+        deletions: deletionsRes.map((d: any) => ({ id: d.entityId, type: d.entityType })),
+        serverTime,
+        nextCursors,
+        hasMore: habitsHasMore || bucketsHasMore || logsHasMore || deletionsHasMore
+      };
+    });
   }
 };

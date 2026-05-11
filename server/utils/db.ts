@@ -1,5 +1,6 @@
-import { Pool } from '@neondatabase/serverless';
+import { Pool, neon } from '@neondatabase/serverless';
 import { drizzle } from 'drizzle-orm/neon-serverless';
+import { drizzle as drizzleHttp } from 'drizzle-orm/neon-http';
 import { sql } from 'drizzle-orm';
 import * as schema from '../db/schema';
 import type { H3Event } from 'h3';
@@ -8,13 +9,17 @@ let cachedPool: Pool | null = null;
 let cachedDb: any = null;
 
 export const useDB = (event?: H3Event) => {
-  if (cachedDb) return cachedDb;
+  // 1. Request-scoped cache (Highest priority for Cloudflare Workers I/O safety)
+  if (event?.context?._db) return event.context._db;
+
+  // 2. Global singleton fallback (Tests or background startup)
+  if (!event && cachedDb) return cachedDb;
 
   let config: any = {};
   try {
     config = useRuntimeConfig(event);
   } catch (e) {
-    // Fallback for tests or environments where useRuntimeConfig is unavailable
+    // Fallback for tests
   }
 
   const cf = (event as any)?.context?.cloudflare;
@@ -30,9 +35,29 @@ export const useDB = (event?: H3Event) => {
     throw createError({ statusCode: 500, statusMessage: 'Database configuration missing' });
   }
 
-  cachedPool = new Pool({ connectionString: uri });
-  cachedDb = drizzle(cachedPool, { schema });
-  return cachedDb;
+  let db: any;
+  const isProduction = process.env.NODE_ENV === 'production' || !!cf;
+
+  if (isProduction) {
+    // Stateless HTTP mode for Production/Workers
+    const sqlClient = neon(uri);
+    db = drizzleHttp(sqlClient, { schema });
+  } else {
+    // Stateful Pool mode for Development/Tests
+    if (!cachedPool) {
+      cachedPool = new Pool({ connectionString: uri });
+    }
+    db = drizzle(cachedPool, { schema });
+  }
+
+  // Cache appropriately
+  if (event) {
+    event.context._db = db;
+  } else {
+    cachedDb = db;
+  }
+
+  return db;
 };
 
 /**
@@ -47,6 +72,7 @@ export function extractRows<T>(result: any): T[] {
 
 /**
  * Gets the current server time from the database as a numeric timestamp (ms).
+ * Accepts standard DB instance or transaction instance.
  */
 export async function getServerTime(db: any): Promise<number> {
   const result = await db.execute(sql`SELECT (EXTRACT(EPOCH FROM NOW()) * 1000)::bigint as now`);

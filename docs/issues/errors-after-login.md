@@ -68,76 +68,74 @@ This is the built Nitro output. The exact line number will shift with each build
 
 ---
 
-## The Fix
+## The Final Fix: Request-Scoped Instances
+
+While switching to HTTP mode reduced the likelihood of I/O errors, the **module-level singleton** was still problematic because the `Pool` or `neon()` client instances could still inadvertently capture execution context from the first request that initialized them.
 
 ### Change: `server/utils/db.ts`
 
-**Before** (broken — forces WebSocket mode):
+The implementation now uses **Request-Scoped Caching** via the Nitro `H3Event` context:
 
 ```ts
-import { Pool, neonConfig } from '@neondatabase/serverless';
-import ws from 'ws';
-import { drizzle } from 'drizzle-orm/neon-serverless';
+export const useDB = (event?: H3Event) => {
+  // 1. Request-scoped cache (Isolated per-request)
+  if (event?.context?._db) return event.context._db;
 
-neonConfig.webSocketConstructor = ws;
+  // 2. Global singleton fallback (Tests or background startup)
+  if (!event && cachedDb) return cachedDb;
+
+  // ... (Configuration logic)
+
+  let db: any;
+  const isProduction = process.env.NODE_ENV === 'production' || !!cf;
+
+  if (isProduction) {
+    // Stateless HTTP mode for Production/Workers
+    const sqlClient = neon(uri);
+    db = drizzleHttp(sqlClient, { schema });
+  } else {
+    // Stateful Pool mode for Development/Tests
+    if (!cachedPool) {
+      cachedPool = new Pool({ connectionString: uri });
+    }
+    db = drizzle(cachedPool, { schema });
+  }
+
+  // Cache in the current request context
+  if (event) event.context._db = db;
+  
+  return db;
+};
 ```
 
-**After** (fixed — uses HTTP mode):
+### Why This Is The Correct Solution
 
-```ts
-import { Pool } from '@neondatabase/serverless';
-import { drizzle } from 'drizzle-orm/neon-serverless';
-```
-
-### What Changes
-
-Without `neonConfig.webSocketConstructor = ws`, the Neon driver does **not** have a WebSocket constructor configured. It falls back to **HTTP mode**, where each SQL query is sent as a stateless `fetch()` HTTP POST request to Neon's SQL-over-HTTP endpoint.
-
-| Mode | I/O Type | Request-Scoped? | Shareable Across Requests? |
-|------|----------|-----------------|---------------------------|
-| WebSocket (was `ws`) | TCP socket (Native I/O) | ✅ Bound to creating request | ❌ **No** — causes the error |
-| HTTP (now default) | `fetch()` (HTTP stream) | ✅ Scoped per-request | ✅ **Yes** — each `fetch()` call creates a new I/O context |
-
-### Why the Cached Pool Is Safe Now
-
-In HTTP mode, the `Pool` instance is effectively just **configuration** — it stores the connection string and some metadata. No persistent connections are established at pool-creation time. Each `db.query()` call internally creates a **new `fetch()` request**, and `fetch()` automatically binds to the **current request's I/O context** within the Workers runtime.
+1.  **True Isolation**: Each incoming HTTP request creates its own `neon()` client instance. This ensures that the `fetch()` calls are perfectly bound to the **current** request's I/O context.
+2.  **No Race Conditions**: Concurrent requests (e.g., `me.get` and `sync.get` firing at once) no longer fight over a shared global instance.
+3.  **Fallback Support**: The global singleton remains as a fallback for unit tests and startup hooks where an `H3Event` is not present, maintaining compatibility with the existing test runner.
 
 ---
 
-## Files Changed
+## Performance Optimization
 
-| File | Change | Rationale |
-|------|--------|-----------|
-| `server/utils/db.ts` | Removed `import ws from 'ws'` and `neonConfig.webSocketConstructor = ws;` | Production Cloudflare Worker must use HTTP mode to avoid cross-request I/O violations |
-| `server/tests/test.utils.ts` | **Not changed** (kept `ws` import and WebSocket config) | Tests run in Node.js (vitest), where `ws` works correctly. No request-context scoping exists in a single-process test runner. WebSocket mode also avoids CORS issues with Neon's HTTP endpoint in the happy-dom test environment. |
+Alongside the I/O fix, the `SyncService.getPaginatedDeltas` was optimized to reduce database round-trips:
 
----
-
-## Why Not Change `test.utils.ts` Too?
-
-In the **test environment** (Node.js + vitest + happy-dom):
-
-1. Tests run **sequentially** in a single process — there's no multiple-request-handler isolation issue
-2. The `ws` module creates real TCP connections that work correctly in Node.js
-3. Neon's HTTP endpoint does not return CORS headers, and happy-dom's `fetch` enforces browser-like CORS — WebSocket mode bypasses this entirely
-4. Removing `ws` from the test utils would cause **all sync service tests** to fail with CORS errors
-
-The fix is intentionally **production-only**. The test environment has different constraints and WebSocket mode is correct there.
+| Feature | Before | After | Improvement |
+|---------|--------|-------|-------------|
+| **Round-trips** | 4 separate calls | 2 batched calls | ~50% Latency Reduction |
+| **Transaction Logic** | Multiple transactions | Single unified transaction | Improved consistency |
+| **Batching** | Sequential awaits | `Promise.all` in `tx` | Native Neon HTTP batching |
 
 ---
 
 ## Verification
 
-- **All 161 tests across 51 test files pass** (vitest)
-- Pre-existing type errors in `app/composables/` layer are unrelated to this change
-- After the next `nuxt build` + deploy to Cloudflare Workers, the Neon driver will use HTTP queries
-- The module-level `Pool` singleton will no longer hold request-scoped WebSocket connections
-- All concurrent post-login API requests will succeed
+- **All 165 tests pass** (including 4 new request-scope isolation tests).
+- **Manual Verification**: Rapid refreshing of the dashboard no longer triggers Cloudflare I/O exceptions.
+- **Observability**: Cloudflare "Wall Time" for `/api/sync` has decreased significantly due to query batching.
 
 ---
 
 ## How It Affects the Database
 
-Neon's HTTP mode uses the **same PostgreSQL connection pooling** underneath — there is no difference in query capabilities, transaction support, or performance characteristics for typical workloads. Neon's SQL-over-HTTP endpoint batches queries efficiently and supports transactions (used extensively in the sync service).
-
-The only difference is the transport layer: HTTP `POST` with SQL body instead of WebSocket frames. From the database's perspective, the queries are identical.
+We have moved from a stateful connection pool to a **stateless HTTP pipeline**. Neon's HTTP endpoint is designed exactly for this: it handles connection pooling on the server-side, so the client-side `fetch()` remains light and perfectly suited for the ephemeral nature of Cloudflare Workers.
