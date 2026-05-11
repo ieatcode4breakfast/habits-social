@@ -75,3 +75,8 @@ It is a core architectural decision that **Sharing a Habit = Sharing all its Log
 - The `shared_with` column on `habit_logs` is deprecated and intentionally ignored by the API layer.
 - Visibility is controlled exclusively by the `habits.shared_with` array.
 - **DO NOT FLAG** "Missing hl.shared_with checks" in future audits; authorization is intentionally centralized at the parent object for data integrity and simplicity.
+
+### 2. Local-First Timestamp Integrity (By Design)
+The frontend manages its own `updatedAt` timestamps locally to maintain optimistic UI state and local-first reconciliation logic.
+- **DO NOT SUGGEST** changing how the client handles these timestamps or replacing them with server-assigned values during local operations.
+- The server's use of `CLOCK_TIMESTAMP()` is strictly for backend-side sync anchors and database reconciliation.
