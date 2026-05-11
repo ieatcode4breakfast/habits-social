@@ -35,7 +35,6 @@ export default defineNuxtConfig({
       ],
     },
     workbox: {
-      navigateFallback: '/',
       runtimeCaching: [
         {
           urlPattern: ({ url }) => url.pathname.startsWith('/api'),

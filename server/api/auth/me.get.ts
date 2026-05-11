@@ -11,7 +11,7 @@ export default defineEventHandler(async (event) => {
   const userId = await getUserFromEvent(event);
 
   if (!userId) {
-    throw createError({ statusCode: 401, statusMessage: 'Unauthorized' });
+    return { data: null };
   }
 
   const results = await db.select({
