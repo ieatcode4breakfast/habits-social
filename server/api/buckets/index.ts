@@ -52,11 +52,17 @@ export default defineEventHandler(async (event) => {
     }
 
     const data = validation.data;
-    const nextSortOrder = data.sortOrder !== undefined ? data.sortOrder : 0;
-
-    if (nextSortOrder >= 30) {
-      throw createError({ statusCode: 400, statusMessage: 'Bucket limit of 30 reached' });
+    
+    // Check bucket limit
+    const existingBuckets = await db.select({ count: sql<number>`count(*)` })
+      .from(bucketsTable)
+      .where(eq(bucketsTable.ownerId, userId));
+    
+    if (existingBuckets[0].count >= 50) {
+      throw createError({ statusCode: 400, statusMessage: 'Bucket limit of 50 reached' });
     }
+
+    const nextSortOrder = data.sortOrder !== undefined ? data.sortOrder : 0;
 
     const bucketId = data.id || crypto.randomUUID();
 

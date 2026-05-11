@@ -1,17 +1,9 @@
 # Code Review
 
-## 🔴 CRITICAL ISSUES
-*App-breaking vulnerabilities and immediately exploitable security flaws.*
-
-### 1. Database Denial of Service (DoS)
-- **Location:** `server/api/buckets/reorder.ts` & `server/api/habits/reorder.ts`
-- **Exploit:** An attacker can submit an array of 50,000+ IDs to the reorder endpoint, generating a massive SQL query that locks the database and crashes the app for all users.
-- **Fix:** Add a strict `.max(100)` limit to the IDs array in the validation schema.
-
 ---
 
 ## 🟡 WARNINGS (Highly recommended to address)
-*UX failures, data integrity issues, and technical debt.*
+*UX failures, data integrity issues, scalability issues, and technical debt.*
 
 ### 1. Sync Deletion Misattribution ("Ghost" Records)
 - **Location:** Deletion services in `habit.service.ts` and `bucket.service.ts`.
@@ -47,6 +39,11 @@
 - **Location:** `server/services/bucket.service.ts`
 - **Issue:** No endpoint exists for a user to accept a friend's habit invitation into their bucket.
 - **Fix:** Create a member status update endpoint.
+
+### 8. Unbounded Payload Limits - DEFERRED
+- **Location:** `server/utils/validation.ts` (e.g., `shareHabitsSchema`, `habitSchema`)
+- **Issue:** Several schemas lack `.max()` constraints on arrays and strings, leaving the application vulnerable to memory exhaustion if a massive payload bypasses network-level WAF limits.
+- **Fix:** Enforce explicit business-logic `.max()` boundaries on all Zod arrays and strings.
 
 ---
 

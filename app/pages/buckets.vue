@@ -300,6 +300,7 @@ const habitLogs = ref<HabitLog[]>([]);
 const bucketLogs = ref<BucketLog[]>([]);
 const availableHabits = ref<Habit[]>([]);
 const loading = ref(true);
+const { checkLimit } = useBucketLimit(buckets);
 
 const showBucketModal = ref(false);
 const showReorderModal = ref(false);
@@ -483,6 +484,7 @@ const load = async (silent = false) => {
 };
 
 const openAddModal = () => {
+  if (!checkLimit()) return;
   editingBucket.value = null;
   showBucketModal.value = true;
 };
