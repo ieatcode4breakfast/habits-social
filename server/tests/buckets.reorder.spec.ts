@@ -41,4 +41,18 @@ describe('POST /api/buckets/reorder', () => {
     expect(b1.sortOrder).toBe(0);
     expect(b2.sortOrder).toBe(1);
   });
+  it('should fail if too many bucket IDs are submitted (max 50)', async () => {
+    const manyIds = Array.from({ length: 51 }, () => '00000000-0000-0000-0000-000000000000');
+    const event = createMockEvent(testUser.id, {
+      ids: manyIds
+    }, {}, {}, {}, 'POST');
+
+    try {
+      await handler(event);
+      expect.fail('Should have thrown an error');
+    } catch (error: any) {
+      expect(error.statusCode).toBe(400);
+      expect(error.statusMessage).toContain('ids: Too big');
+    }
+  });
 });

@@ -41,4 +41,18 @@ describe('POST /api/habits/reorder', () => {
     expect(h1.sortOrder).toBe(0);
     expect(h2.sortOrder).toBe(1);
   });
+  it('should fail if too many habit IDs are submitted (max 30)', async () => {
+    const manyIds = Array.from({ length: 31 }, () => '00000000-0000-0000-0000-000000000000');
+    const event = createMockEvent(testUser.id, {
+      ids: manyIds
+    }, {}, {}, {}, 'POST');
+
+    try {
+      await handler(event);
+      expect.fail('Should have thrown an error');
+    } catch (error: any) {
+      expect(error.statusCode).toBe(400);
+      expect(error.statusMessage).toContain('ids: Too big');
+    }
+  });
 });

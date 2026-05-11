@@ -2,7 +2,7 @@ import { eq, and, sql, inArray } from 'drizzle-orm';
 import { habits } from '~~/server/db/schema';
 import { useDB as _useDB } from '~~/server/utils/db';
 import { requireAuth as _requireAuth } from '~~/server/utils/auth';
-import { reorderSchema } from '~~/server/utils/validation';
+import { habitReorderSchema, getZodErrorMessage } from '~~/server/utils/validation';
 
 export default defineEventHandler(async (event) => {
   const requireAuth = (event.context as any).requireAuth || _requireAuth;
@@ -11,9 +11,9 @@ export default defineEventHandler(async (event) => {
   const db = useDB(event);
 
   const body = await readBody(event);
-  const validation = reorderSchema.safeParse(body);
+  const validation = habitReorderSchema.safeParse(body);
   if (!validation.success) {
-    throw createError({ statusCode: 400, statusMessage: 'Validation Failed', data: validation.error.flatten() });
+    throw createError({ statusCode: 400, statusMessage: getZodErrorMessage(validation.error), data: validation.error.flatten() });
   }
 
   const { ids } = validation.data;

@@ -126,8 +126,12 @@ export const shareHabitsSchema = z.object({
   userDate: z.string().optional()
 });
 
-export const reorderSchema = z.object({
-  ids: z.array(z.string().uuid()).min(1)
+export const habitReorderSchema = z.object({
+  ids: z.array(z.string().uuid()).min(1).max(30)
+});
+
+export const bucketReorderSchema = z.object({
+  ids: z.array(z.string().uuid()).min(1).max(50)
 });
 
 export const syncQuerySchema = z.object({
