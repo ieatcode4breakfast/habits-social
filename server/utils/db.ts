@@ -39,10 +39,10 @@ export const useDB = (event?: H3Event) => {
   // Configure driver for the environment
   if (isProduction) {
     // Force stateless HTTP fetch for Workers to ensure I/O context safety
-    neonConfig.useFetch = true;
+    (neonConfig as any).useFetch = true;
   } else {
     // Use WebSockets for local dev/tests where supported (faster)
-    neonConfig.useFetch = false;
+    (neonConfig as any).useFetch = false;
   }
 
   // We use a fresh pool configuration but keep the instance creation scoped

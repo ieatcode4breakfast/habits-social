@@ -12,10 +12,8 @@ export default defineEventHandler(async (event) => {
   const userId = await requireAuth(event);
   const db = useDB(event);
   const id = getRouterParam(event, 'id');
-  const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
-  if (!id || !UUID_REGEX.test(id)) {
-    throw createError({ statusCode: 400, statusMessage: 'Invalid ID format' });
+  if (!id) {
+    throw createError({ statusCode: 400, statusMessage: 'Bad Request' });
   }
 
   const bucketsRes = await db.select()

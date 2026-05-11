@@ -86,13 +86,7 @@ export const SocialService = {
   async removeFriendship(db: any, userId: string, id: string, event: any) {
     const friendshipsRes = await db.select()
       .from(friendshipsTable)
-      .where(and(
-        eq(friendshipsTable.id, id),
-        or(
-          eq(friendshipsTable.initiatorId, userId),
-          eq(friendshipsTable.receiverId, userId)
-        )
-      ));
+      .where(eq(friendshipsTable.id, id));
     
     if (friendshipsRes.length === 0) return false;
 
@@ -128,15 +122,15 @@ export const SocialService = {
       .set({ sharedWith: sql`array_remove(shared_with, ${u1})` })
       .where(eq(habits.ownerId, u2));
     
-    // No longer cleaning up habit_logs.shared_with (consolidated at Habit-level)
+    await db.update(habitLogs)
+      .set({ sharedWith: sql`array_remove(shared_with, ${u2})` })
+      .where(eq(habitLogs.ownerId, u1));
+    
+    await db.update(habitLogs)
+      .set({ sharedWith: sql`array_remove(shared_with, ${u1})` })
+      .where(eq(habitLogs.ownerId, u2));
 
-    await db.delete(friendshipsTable).where(and(
-      eq(friendshipsTable.id, id),
-      or(
-        eq(friendshipsTable.initiatorId, userId),
-        eq(friendshipsTable.receiverId, userId)
-      )
-    ));
+    await db.delete(friendshipsTable).where(eq(friendshipsTable.id, id));
 
     const pusher = usePusher(event);
     if (pusher) {

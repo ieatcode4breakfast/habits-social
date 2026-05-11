@@ -18,7 +18,7 @@ export const HabitService = {
             ownerId: userId,
             date: data.date,
             status: data.status,
-            sharedWith: [], // Consolidated at Habit-level
+            sharedWith: data.sharedWith || [],
             streakCount: data.streakCount ?? 0,
             brokenStreakCount: data.brokenStreakCount ?? 0,
             updatedAt: new Date()
@@ -27,7 +27,7 @@ export const HabitService = {
             target: habitLogs.id,
             set: {
               status: data.status,
-              sharedWith: [], // Consolidated at Habit-level
+              sharedWith: data.sharedWith || [],
               streakCount: data.streakCount ?? 0,
               brokenStreakCount: data.brokenStreakCount ?? 0,
               updatedAt: new Date()
@@ -253,29 +253,15 @@ export const HabitService = {
 
   async deleteHabit(db: any, userId: string, id: string, event: any) {
     await db.transaction(async (tx: any) => {
-      // 1. Fetch bucket IDs before deletion (due to cascade)
       const bucketsRes = await tx.select({ bucketId: bucketHabits.bucketId })
         .from(bucketHabits)
         .where(eq(bucketHabits.habitId, id));
       
       const bucketIds = bucketsRes.map((b: any) => b.bucketId);
-
-      // 2. Perform deletion with ownership check
-      const deleted = await tx.delete(habitsTable)
-        .where(and(
-          eq(habitsTable.id, id),
-          eq(habitsTable.ownerId, userId)
-        ))
-        .returning();
-
-      if (deleted.length === 0) {
-        throw createError({ statusCode: 404, statusMessage: 'Habit not found or ownership mismatch' });
-      }
-
-      // 3. Cleanup bucket associations (redundant but safe)
-      await tx.delete(bucketHabits).where(eq(bucketHabits.habitId, id));
       
-      // 4. Record deletion for sync
+      await tx.delete(bucketHabits).where(eq(bucketHabits.habitId, id));
+      await tx.delete(habitsTable).where(eq(habitsTable.id, id));
+      
       await tx.insert(syncDeletions)
         .values({
           id: crypto.randomUUID(),
@@ -285,10 +271,7 @@ export const HabitService = {
           createdAt: new Date()
         });
 
-      // 5. Trigger side effects
-      if (bucketIds.length > 0) {
-        await reevaluateMultipleBuckets(tx, bucketIds.map((bid: string) => ({ bucketId: bid, ownerId: userId })));
-      }
+      await reevaluateMultipleBuckets(tx, bucketIds.map((id: string) => ({ bucketId: id, ownerId: userId })));
     });
 
     const pusher = usePusher(event);

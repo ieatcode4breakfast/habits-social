@@ -11,10 +11,8 @@ export default defineEventHandler(async (event) => {
   const userId = await requireAuth(event);
   const db = useDB(event);
   const id = getRouterParam(event, 'id');
-  const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
-  if (!id || !UUID_REGEX.test(id)) {
-    throw createError({ statusCode: 400, statusMessage: 'Invalid ID format' });
+  if (!id) {
+    throw createError({ statusCode: 400, statusMessage: 'Bad Request' });
   }
 
   if (event.method === 'PUT') {
@@ -29,11 +27,6 @@ export default defineEventHandler(async (event) => {
 
   if (event.method === 'DELETE') {
     const success = await SocialService.removeFriendship(db, userId, id, event);
-    
-    if (!success) {
-      throw createError({ statusCode: 403, statusMessage: 'Not authorized to delete this friendship' });
-    }
-
     return { data: { success } };
   }
 });

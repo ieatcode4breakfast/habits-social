@@ -59,15 +59,8 @@ export const BucketService = {
           sortOrder: data.sortOrder ?? bucket.sortOrder,
           updatedAt: new Date()
         })
-        .where(and(
-          eq(bucketsTable.id, id),
-          eq(bucketsTable.ownerId, userId)
-        ))
+        .where(eq(bucketsTable.id, id))
         .returning();
-
-      if (result.length === 0) {
-        throw createError({ statusCode: 404, statusMessage: 'Bucket not found or ownership mismatch' });
-      }
 
       const updatedBucket = result[0];
 
@@ -212,7 +205,7 @@ export const BucketService = {
           const activeMemberIds = new Set(activeHabitCounts.map((row: any) => row.memberId));
           const membersToDelete = currentMembers
             .map((m: any) => m.userId)
-            .filter((mid: string) => !activeMemberIds.has(mid));
+            .filter(mid => !activeMemberIds.has(mid));
 
           if (membersToDelete.length > 0) {
             await tx.delete(sharedBucketMembers)
@@ -249,19 +242,9 @@ export const BucketService = {
 
   async deleteBucket(db: any, userId: string, id: string, event: any) {
     await db.transaction(async (tx: any) => {
-      const deleted = await tx.delete(bucketsTable)
-        .where(and(
-          eq(bucketsTable.id, id),
-          eq(bucketsTable.ownerId, userId)
-        ))
-        .returning();
-
-      if (deleted.length === 0) {
-        throw createError({ statusCode: 404, statusMessage: 'Bucket not found or ownership mismatch' });
-      }
-
       await tx.delete(sharedBucketMembers).where(eq(sharedBucketMembers.bucketId, id));
       await tx.delete(bucketHabits).where(eq(bucketHabits.bucketId, id));
+      await tx.delete(bucketsTable).where(eq(bucketsTable.id, id));
       
       await tx.insert(syncDeletions)
         .values({
