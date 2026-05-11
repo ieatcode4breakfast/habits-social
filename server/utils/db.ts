@@ -1,8 +1,5 @@
-import { Pool, neonConfig } from '@neondatabase/serverless';
-import ws from 'ws';
+import { Pool } from '@neondatabase/serverless';
 import { drizzle } from 'drizzle-orm/neon-serverless';
-
-neonConfig.webSocketConstructor = ws;
 import { sql } from 'drizzle-orm';
 import * as schema from '../db/schema';
 import type { H3Event } from 'h3';
