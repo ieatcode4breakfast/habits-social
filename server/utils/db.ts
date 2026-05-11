@@ -1,6 +1,5 @@
-import { Pool, neon } from '@neondatabase/serverless';
+import { Pool, neonConfig } from '@neondatabase/serverless';
 import { drizzle } from 'drizzle-orm/neon-serverless';
-import { drizzle as drizzleHttp } from 'drizzle-orm/neon-http';
 import { sql } from 'drizzle-orm';
 import * as schema from '../db/schema';
 import type { H3Event } from 'h3';
@@ -35,26 +34,28 @@ export const useDB = (event?: H3Event) => {
     throw createError({ statusCode: 500, statusMessage: 'Database configuration missing' });
   }
 
-  let db: any;
   const isProduction = process.env.NODE_ENV === 'production' || !!cf;
 
+  // Configure driver for the environment
   if (isProduction) {
-    // Stateless HTTP mode for Production/Workers
-    const sqlClient = neon(uri);
-    db = drizzleHttp(sqlClient, { schema });
+    // Force stateless HTTP fetch for Workers to ensure I/O context safety
+    neonConfig.useFetch = true;
   } else {
-    // Stateful Pool mode for Development/Tests
-    if (!cachedPool) {
-      cachedPool = new Pool({ connectionString: uri });
-    }
-    db = drizzle(cachedPool, { schema });
+    // Use WebSockets for local dev/tests where supported (faster)
+    neonConfig.useFetch = false;
   }
+
+  // We use a fresh pool configuration but keep the instance creation scoped
+  // to avoid cross-request I/O context leakage.
+  const pool = new Pool({ connectionString: uri });
+  const db = drizzle(pool, { schema });
 
   // Cache appropriately
   if (event) {
     event.context._db = db;
   } else {
     cachedDb = db;
+    cachedPool = pool;
   }
 
   return db;
