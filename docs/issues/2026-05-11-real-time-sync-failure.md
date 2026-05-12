@@ -1,39 +1,49 @@
 # Issue: Real-Time Sync Failure (Cloudflare Production Only)
 
 ## Status
-**Date:** 2026-05-11  
-**State:** Investigating (Implementation applied to Staging, but issue persists)  
+**Date:** 2026-05-12  
+**State:** Resolved  
 **Priority:** Critical  
 
 ## Problem Description
-Updates made on a primary device (Device 1) failed to trigger an automatic background pull on secondary devices (Device 2) when running in the Cloudflare Workers production environment. The issue was "deceptively simple" because it functioned perfectly in `localhost` but failed silently in deployment.
+Real-time synchronization between devices worked perfectly on `localhost` but failed silently in the Cloudflare Workers production environment. Signals sent from Device 1 were never received by Device 2, resulting in stale UI states and "ghost" data.
 
-## Root Cause Analysis
-The failure was traced to two primary factors:
+## The Root Cause: "Credential Blindness"
+The failure was not due to race conditions or clock skew, but rather a **silent initialization failure** of the Pusher service within the Cloudflare Worker.
 
-### 1. Fire-and-Forget Pusher Triggers
-The server-side `pusher.trigger` calls were not being `await`ed. In a serverless environment like Cloudflare Workers, the process can terminate as soon as the HTTP response is sent. If the Pusher broadcast hadn't finished, it was killed before the signal could be sent.
+### The Technical Breakdown:
+1.  **Nitro Mapping Failure:** Nuxt's `useRuntimeConfig` fails to automatically map Cloudflare Worker environment variables (secrets) to the application configuration unless those secrets are prefixed with `NUXT_`.
+2.  **Naming Mismatch:** The application expected `pusherSecret` (camelCase), but Cloudflare secrets are typically stored as `PUSHER_SECRET` (SCREAMING_SNAKE_CASE).
+3.  **Silent Fail:** The `usePusher` utility returned `null` when it couldn't find the credentials, causing the application to skip all real-time triggers without throwing an error.
 
-### 2. Distributed Clock Skew (The "Ghost" Data)
-This was the most significant finding. The application was using inconsistent clock sources:
-- **App Server (Cloudflare):** Used `new Date()` to set `updatedAt` for records.
-- **Database (Neon):** Used `NOW()` to generate the sync anchor returned to the client.
+## The Resolution: Resilient Mapping
+The fix involved refactoring the Pusher initialization to be "environment-aware." Instead of relying solely on Nuxt's configuration mapping, the utility now probes the native Cloudflare Worker context directly.
 
-If the Cloudflare clock was even a few milliseconds behind the Neon clock, a record saved at `12:00:00.450` would be "skipped" by a sync request asking for `updatedAt >= 12:00:00.500`. On `localhost`, where the clocks are the same, this never occurred.
+### The Code Fix (`server/utils/pusher.ts`):
+```typescript
+const cf = event?.context?.cloudflare;
 
-## Implementation Details (Staging)
+const appId = config?.pusherAppId 
+  || cf?.env?.PUSHER_APP_ID;
 
-### Server-Side Fixes
-- **Standardized Time:** All `updatedAt` updates in `HabitService`, `BucketService`, and `streaks.ts` now use `sql`now()` ` to ensure the record timestamp and sync anchor always share the same source (Database clock).
-- **Enforced Waits:** All `pusher.trigger` calls are now `await`ed to guarantee survival in serverless workers.
+const key = config?.public?.pusherKey 
+  || cf?.env?.PUSHER_KEY;
 
-### Client-Side Diagnostics
-- **Pusher Signal Monitoring:** Added a console log in `app.vue` to track the reception of the `sync-settled` event: `[Realtime] Sync signal received: sync-settled`.
+const secret = config?.pusherSecret 
+  || cf?.env?.PUSHER_SECRET;
 
-## Verification Status
-> [!CAUTION]
-> Despite standardizing the clocks and awaiting triggers, the issue remains unresolved in the staging environment as of the latest push. This suggests a deeper environmental or library-level failure beyond simple race conditions.
+const cluster = config?.public?.pusherCluster 
+  || cf?.env?.PUSHER_CLUSTER;
+```
 
-## Next Steps
-1. **Verification:** Monitor the browser console on Device 2 for the `sync-settled` log message.
-2. **Production Release:** Once confirmed, merge the `staging` branch into `main`.
+### Infrastructure Fix:
+- Added `NUXT_PUBLIC_PUSHER_KEY` and `NUXT_PUBLIC_PUSHER_CLUSTER` to the Cloudflare environment variables to ensure the **Browser** (Client) also has access to the public keys at runtime, independent of the build-time configuration.
+
+## Verification
+> [!TIP]
+> **SUCCESS:** With the resilient mapping in place, the Cloudflare Worker now successfully initializes Pusher using the native environment bindings. End-to-end sync is verified and functional.
+
+## Lessons Learned
+- **Don't Trust the Bridge:** Nuxt's `runtimeConfig` is a convenient bridge, but it is not a direct mirror of the Cloudflare environment. 
+- **Native Fallbacks:** Always provide a fallback to `event.context.cloudflare.env` for critical infrastructure services (DB, Pusher, Redis) when running on Cloudflare Workers.
+- **Public vs. Secret:** Remember that `publicRuntimeConfig` is baked at build-time. Use `NUXT_PUBLIC_` environment variables in Cloudflare to override these values at runtime for the browser.
