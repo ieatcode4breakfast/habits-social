@@ -30,9 +30,6 @@ If the Cloudflare clock was even a few milliseconds behind the Neon clock, a rec
 ### Client-Side Diagnostics
 - **Pusher Signal Monitoring:** Added a console log in `app.vue` to track the reception of the `sync-settled` event: `[Realtime] Sync signal received: sync-settled`.
 
-### Deployment Pipeline Fixes
-- **Node 22 Requirement:** Resolved a CI/CD failure where Wrangler v4 required Node 22, but the environment was defaulting to Node 20. Added `wrangler` to `devDependencies` and updated the GitHub Actions workflow to `22.x`.
-
 ## Verification Status
 > [!CAUTION]
 > Despite standardizing the clocks and awaiting triggers, the issue remains unresolved in the staging environment as of the latest push. This suggests a deeper environmental or library-level failure beyond simple race conditions.
