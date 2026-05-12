@@ -23,9 +23,9 @@ export const useDB = (event?: H3Event) => {
 
   const cf = (event as any)?.context?.cloudflare;
   
-  const uri = (config.databaseUrl as string)
-    || cf?.env?.DATABASE_URL
+  const uri = cf?.env?.DATABASE_URL
     || cf?.env?.NUXT_DATABASE_URL
+    || (config.databaseUrl as string)
     || (process as any)?.env?.DATABASE_URL
     || (process as any)?.env?.NUXT_DATABASE_URL;
 

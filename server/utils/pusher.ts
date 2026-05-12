@@ -18,21 +18,21 @@ export function usePusher(event?: any) {
 
   const cf = event?.context?.cloudflare;
   
-  const appId = config?.pusherAppId as string 
-    || cf?.env?.PUSHER_APP_ID 
-    || cf?.env?.NUXT_PUSHER_APP_ID;
+  const appId = cf?.env?.PUSHER_APP_ID 
+    || cf?.env?.NUXT_PUSHER_APP_ID
+    || config?.pusherAppId as string;
     
-  const key = config?.public?.pusherKey as string 
-    || cf?.env?.PUSHER_KEY 
-    || cf?.env?.NUXT_PUBLIC_PUSHER_KEY;
+  const key = cf?.env?.PUSHER_KEY 
+    || cf?.env?.NUXT_PUBLIC_PUSHER_KEY
+    || config?.public?.pusherKey as string;
     
-  const secret = config?.pusherSecret as string 
-    || cf?.env?.PUSHER_SECRET 
-    || cf?.env?.NUXT_PUSHER_SECRET;
+  const secret = cf?.env?.PUSHER_SECRET 
+    || cf?.env?.NUXT_PUSHER_SECRET
+    || config?.pusherSecret as string;
     
-  const cluster = config?.public?.pusherCluster as string 
-    || cf?.env?.PUSHER_CLUSTER 
-    || cf?.env?.NUXT_PUBLIC_PUSHER_CLUSTER;
+  const cluster = cf?.env?.PUSHER_CLUSTER 
+    || cf?.env?.NUXT_PUBLIC_PUSHER_CLUSTER
+    || config?.public?.pusherCluster as string;
 
   if (!appId || !key || !secret || !cluster || appId === 'undefined') {
     return null;
