@@ -16,10 +16,23 @@ export function usePusher(event?: any) {
     return null;
   }
 
-  const appId = config?.pusherAppId as string;
-  const key = config?.public?.pusherKey as string;
-  const secret = config?.pusherSecret as string;
-  const cluster = config?.public?.pusherCluster as string;
+  const cf = event?.context?.cloudflare;
+  
+  const appId = config?.pusherAppId as string 
+    || cf?.env?.PUSHER_APP_ID 
+    || cf?.env?.NUXT_PUSHER_APP_ID;
+    
+  const key = config?.public?.pusherKey as string 
+    || cf?.env?.PUSHER_KEY 
+    || cf?.env?.NUXT_PUBLIC_PUSHER_KEY;
+    
+  const secret = config?.pusherSecret as string 
+    || cf?.env?.PUSHER_SECRET 
+    || cf?.env?.NUXT_PUSHER_SECRET;
+    
+  const cluster = config?.public?.pusherCluster as string 
+    || cf?.env?.PUSHER_CLUSTER 
+    || cf?.env?.NUXT_PUBLIC_PUSHER_CLUSTER;
 
   if (!appId || !key || !secret || !cluster || appId === 'undefined') {
     return null;
