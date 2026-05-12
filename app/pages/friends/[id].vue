@@ -1,70 +1,102 @@
 <template>
-  <div class="space-y-1 relative">
+  <div class="relative">
     <!-- Header -->
-    <div class="px-4 sm:px-0 flex items-end justify-between gap-4 sticky top-0 md:top-[57px] z-40 bg-black pt-2 pb-2 sm:pt-4">
-      <div class="flex items-center gap-1">
-        <button @click="handleBack" class="inline-flex items-center justify-center p-1 -ml-1 text-zinc-500 hover:text-white transition-all flex-shrink-0 cursor-pointer">
-          <ChevronLeft class="w-6 h-6" />
-        </button>
-        <div v-if="profile" class="flex items-center gap-4 ml-1">
-          <UserAvatar 
-            :src="profile.photoUrl" 
-            container-class="w-12 h-12 bg-zinc-925 rounded-2xl shadow-sm"
-            icon-class="w-6 h-6 text-zinc-600"
-          />
-          <div>
-            <h1 class="text-xl font-bold tracking-tight text-white mb-1">{{ profile.username }}</h1>
-            <p class="text-zinc-400 text-xs">{{ habits.length }} habit{{ habits.length === 1 ? '' : 's' }} shared with you</p>
+    <!-- Sticky Wrapper -->
+    <div class="sticky top-0 md:top-[57px] z-40 bg-black">
+      <!-- Profile Header -->
+      <div class="px-4 sm:px-0 flex items-end justify-between gap-4 bg-black pt-2 pb-2 sm:pt-4">
+        <div class="flex items-center gap-1">
+          <button @click="handleBack" class="inline-flex items-center justify-center p-1 -ml-1 text-zinc-500 hover:text-white transition-all flex-shrink-0 cursor-pointer">
+            <ChevronLeft class="w-6 h-6" />
+          </button>
+          <div v-if="profile" class="flex items-center gap-4 ml-1">
+            <UserAvatar 
+              :src="profile.photoUrl" 
+              container-class="w-12 h-12 bg-zinc-925 rounded-2xl shadow-sm"
+              icon-class="w-6 h-6 text-zinc-600"
+            />
+            <div>
+              <h1 class="text-xl font-bold tracking-tight text-white mb-1">{{ profile.username }}</h1>
+              <p class="text-zinc-400 text-xs">{{ habits.length }} habit{{ habits.length === 1 ? '' : 's' }} shared with you</p>
+            </div>
           </div>
+        </div>
+
+        <!-- Action Row -->
+        <div v-if="profile && !loading" class="flex items-center gap-2">
+          <button v-if="relationshipStatus === 'friends'" @click="openShareModal" class="w-11 sm:w-auto py-2.5 sm:px-4 bg-white hover:bg-zinc-200 text-black font-semibold rounded-xl transition-all shadow-lg shadow-white/5 cursor-pointer text-sm flex items-center justify-center gap-2 active:scale-95" title="Share Habits">
+            <Share2 class="w-4 h-4" />
+            <span class="hidden sm:inline">Share</span>
+          </button>
+          <button v-if="relationshipStatus === 'friends'" @click="showUnfriendModal = true" class="w-11 sm:w-auto py-2.5 sm:px-4 bg-rose-500 hover:bg-rose-600 text-white font-semibold rounded-xl transition-all shadow-lg shadow-rose-500/20 cursor-pointer text-sm flex items-center justify-center gap-2 active:scale-95" title="Unfriend">
+            <UserMinus class="w-4 h-4" />
+            <span class="hidden sm:inline">Unfriend</span>
+          </button>
+          <button 
+            v-if="relationshipStatus === 'none'" 
+            @click="executeSendRequest" 
+            :disabled="isProcessing"
+            class="w-11 sm:w-auto py-2.5 sm:px-4 bg-white hover:bg-zinc-200 disabled:opacity-50 text-black font-semibold rounded-xl transition-all shadow-lg shadow-white/5 cursor-pointer text-sm flex items-center justify-center gap-2 active:scale-95"
+          >
+            <template v-if="isProcessing">
+              <div class="w-4 h-4 border-2 border-black/20 border-t-black rounded-full animate-spin"></div>
+            </template>
+            <template v-else>
+              <UserPlus class="w-4 h-4" />
+              <span class="hidden sm:inline">Add</span>
+            </template>
+          </button>
+          <button 
+            v-else-if="relationshipStatus === 'pending_incoming'" 
+            @click="executeAcceptRequest" 
+            :disabled="isProcessing"
+            class="w-11 sm:w-auto py-2.5 sm:px-4 bg-emerald-500 hover:bg-emerald-600 disabled:opacity-50 text-white font-semibold rounded-xl transition-all shadow-lg shadow-emerald-500/20 cursor-pointer text-sm flex items-center justify-center gap-2 active:scale-95"
+          >
+            <template v-if="isProcessing">
+              <div class="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>
+            </template>
+            <template v-else>
+              <Check class="w-4 h-4" />
+              <span class="hidden sm:inline">Accept</span>
+            </template>
+          </button>
+          <button v-else-if="relationshipStatus === 'pending_outgoing'" @click="showCancelRequestModal = true" class="py-2.5 px-4 bg-zinc-925 hover:bg-zinc-900 text-zinc-500 font-semibold rounded-xl border border-zinc-800 transition-all cursor-pointer text-sm flex items-center justify-center gap-2 active:scale-95">
+            Pending
+          </button>
         </div>
       </div>
 
-      <!-- Action Row -->
-      <div v-if="profile && !loading" class="flex items-center gap-2">
-        <button v-if="relationshipStatus === 'friends'" @click="openShareModal" class="w-11 sm:w-auto py-2.5 sm:px-4 bg-white hover:bg-zinc-200 text-black font-semibold rounded-xl transition-all shadow-lg shadow-white/5 cursor-pointer text-sm flex items-center justify-center gap-2 active:scale-95" title="Share Habits">
-          <Share2 class="w-4 h-4" />
-          <span class="hidden sm:inline">Share</span>
-        </button>
-        <button v-if="relationshipStatus === 'friends'" @click="showUnfriendModal = true" class="w-11 sm:w-auto py-2.5 sm:px-4 bg-rose-500 hover:bg-rose-600 text-white font-semibold rounded-xl transition-all shadow-lg shadow-rose-500/20 cursor-pointer text-sm flex items-center justify-center gap-2 active:scale-95" title="Unfriend">
-          <UserMinus class="w-4 h-4" />
-          <span class="hidden sm:inline">Unfriend</span>
-        </button>
-        <button 
-          v-if="relationshipStatus === 'none'" 
-          @click="executeSendRequest" 
-          :disabled="isProcessing"
-          class="w-11 sm:w-auto py-2.5 sm:px-4 bg-white hover:bg-zinc-200 disabled:opacity-50 text-black font-semibold rounded-xl transition-all shadow-lg shadow-white/5 cursor-pointer text-sm flex items-center justify-center gap-2 active:scale-95"
-        >
-          <template v-if="isProcessing">
-            <div class="w-4 h-4 border-2 border-black/20 border-t-black rounded-full animate-spin"></div>
-          </template>
-          <template v-else>
-            <UserPlus class="w-4 h-4" />
-            <span class="hidden sm:inline">Add</span>
-          </template>
-        </button>
-        <button 
-          v-else-if="relationshipStatus === 'pending_incoming'" 
-          @click="executeAcceptRequest" 
-          :disabled="isProcessing"
-          class="w-11 sm:w-auto py-2.5 sm:px-4 bg-emerald-500 hover:bg-emerald-600 disabled:opacity-50 text-white font-semibold rounded-xl transition-all shadow-lg shadow-emerald-500/20 cursor-pointer text-sm flex items-center justify-center gap-2 active:scale-95"
-        >
-          <template v-if="isProcessing">
-            <div class="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>
-          </template>
-          <template v-else>
-            <Check class="w-4 h-4" />
-            <span class="hidden sm:inline">Accept</span>
-          </template>
-        </button>
-        <button v-else-if="relationshipStatus === 'pending_outgoing'" @click="showCancelRequestModal = true" class="py-2.5 px-4 bg-zinc-925 hover:bg-zinc-900 text-zinc-500 font-semibold rounded-xl border border-zinc-800 transition-all cursor-pointer text-sm flex items-center justify-center gap-2 active:scale-95">
-          Pending
-        </button>
+      <!-- Date Header -->
+      <div v-if="habits.length > 0" class="bg-zinc-925 border-b border-t border-x-0 sm:border-x border-zinc-800/80 py-2 sm:rounded-t-2xl flex flex-col items-stretch sm:flex-row sm:items-center sm:justify-between gap-x-4 gap-y-2 sm:px-4">
+          <div class="w-full px-4 sm:px-0 sm:flex-1 sm:min-w-[200px] hidden sm:block pr-0 sm:pr-2"></div>
+          <div class="w-full sm:w-[320px] lg:w-[400px] shrink-0 px-2 sm:px-0">
+            <div class="flex items-end w-full">
+              <div v-for="(day, i) in days" :key="i" class="flex-1 flex flex-col items-center relative">
+                <!-- Sunday Divider -->
+                <div 
+                  v-if="i > 0 && day.getDay() === 0" 
+                  class="absolute left-0 top-0 bottom-0 w-px bg-zinc-800/80"
+                ></div>
+                <div 
+                  class="text-[10px] uppercase tracking-tighter font-black transition-colors"
+                  :class="isToday(day) ? 'text-white' : 'text-zinc-500'"
+                >
+                  {{ format(day, 'EEE') }}
+                </div>
+                <div 
+                  class="text-[10px] sm:text-xs font-bold transition-colors"
+                  :class="isToday(day) ? 'text-white' : 'text-zinc-500'"
+                >
+                  {{ format(day, 'd') }}
+                </div>
+              </div>
+            </div>
+          </div>
       </div>
     </div>
 
     <!-- Shared Habit List (Single Card) -->
-    <div v-motion-fade class="bg-zinc-925/80 backdrop-blur-md sm:rounded-2xl rounded-none shadow-2xl border-y border-x-0 sm:border border-zinc-800/80 divide-y divide-zinc-800/80 overflow-x-auto custom-scrollbar">
+    <div v-motion-fade class="bg-zinc-925/80 backdrop-blur-md sm:rounded-b-2xl rounded-none shadow-2xl border-b border-x-0 sm:border-x sm:border-b border-zinc-800/80 divide-y divide-zinc-800/80 overflow-x-auto custom-scrollbar relative">
       <div v-if="loading" class="flex justify-center p-12">
         <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
       </div>
@@ -75,76 +107,48 @@
       
       <div v-for="habit in habits" :key="habit.id" 
            @click="openHabitDetails(habit)"
-           class="p-4 pt-14 sm:pt-4 flex flex-wrap items-center justify-between gap-x-8 gap-y-4 relative group cursor-pointer hover:bg-zinc-925/50 transition-colors">
+           class="relative py-3 group transition-all flex flex-col items-stretch sm:flex-row sm:items-center sm:justify-between gap-x-4 gap-y-2 cursor-pointer hover:bg-zinc-800/40 sm:px-4">
         
-        <!-- Top Left Badges Container -->
-        <div class="absolute top-3 left-0 sm:top-2 flex items-center gap-2 z-20 transition-all duration-500">
-          <!-- Floating Streak Badge -->
-          <div 
-            v-if="(habit.currentStreak ?? 0) >= 2"
-            class="flex items-center gap-1.5 px-3 py-1 bg-black border border-l-0 rounded-r-full rounded-l-none transition-all duration-500"
-            :class="[
-              isFaded(habit) ? 'opacity-30' : 'opacity-100',
-              getStreakTheme(habit.currentStreak ?? 0).border
-            ]"
-          >
-            <span 
-              class="text-[10px] font-black tracking-tight"
-              :class="getStreakTheme(habit.currentStreak ?? 0).text"
-            >
-              x{{ habit.currentStreak }} STREAK
-            </span>
-            <Flame 
-              v-if="(habit.currentStreak ?? 0) >= 7"
-              class="w-3.5 h-3.5" 
+        <!-- Title Section -->
+        <div class="w-full px-4 sm:px-0 sm:flex-1 sm:min-w-[200px] flex flex-col gap-1 pr-0 sm:pr-2">
+          <div class="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+            <h3 class="text-sm font-bold text-zinc-200 leading-tight break-all group-hover:text-white transition-colors">{{ habit.title }}</h3>
+            <!-- Compact Streak Badge -->
+            <div 
+              v-if="(habit.currentStreak ?? 0) >= 2"
+              class="flex items-center gap-1 px-1.5 py-0.5 bg-black border rounded-md shrink-0"
               :class="[
-                getStreakTheme(habit.currentStreak ?? 0).text,
-                getStreakTheme(habit.currentStreak ?? 0).fill
+                isFaded(habit) ? 'opacity-30' : 'opacity-100',
+                getStreakTheme(habit.currentStreak ?? 0).border
               ]"
-            />
+            >
+              <Flame 
+                v-if="(habit.currentStreak ?? 0) >= 7"
+                class="w-2.5 h-2.5" 
+                :class="[
+                  getStreakTheme(habit.currentStreak ?? 0).text,
+                  getStreakTheme(habit.currentStreak ?? 0).fill
+                ]"
+              />
+              <span 
+                class="text-[10px] font-black tracking-tight"
+                :class="getStreakTheme(habit.currentStreak ?? 0).text"
+              >
+                x{{ habit.currentStreak }}
+              </span>
+            </div>
           </div>
-
-          <!-- Frequency Progress Badge -->
-          <div class="flex items-center px-2 py-1 bg-zinc-925 border border-zinc-800 rounded-lg text-[10px] font-bold tracking-tight text-zinc-400 shadow-sm" :class="{'ml-3': (habit.currentStreak ?? 0) < 2}">
+          <!-- Frequency Text -->
+          <div class="text-[10px] font-semibold tracking-tight text-zinc-500">
             {{ getFrequencyText(habit) }}
           </div>
         </div>
-
-        <!-- Title Section -->
-        <div class="flex items-center gap-3 min-w-[200px] flex-1">
-          <div class="text-left flex items-start gap-2 relative">
-            <h3 class="font-bold text-zinc-200 leading-tight break-all group-hover:text-white transition-colors">{{ habit.title }}</h3>
-          </div>
-        </div>
         
-        <!-- Checkboxes Section -->
-        <div class="flex-1 min-w-[320px] flex justify-center sm:justify-end items-end gap-4">
-          <div class="flex justify-evenly items-end w-full max-w-lg">
-            <div v-for="(day, i) in days" :key="i" class="flex flex-col items-center gap-2">
-              <div class="text-[10px] uppercase tracking-tighter text-zinc-500 font-black">
-                {{ format(day, 'EEE') }}
-              </div>
-              
-              <div
-                class="w-8 h-8 rounded-lg flex items-center justify-center border-2 transition-all relative"
-                :class="[
-                  getStatus(habit.id, day) === 'completed' ? 'bg-emerald-500 border-emerald-500 shadow-md shadow-emerald-500/20' :
-                  getStatus(habit.id, day) === 'failed' ? 'bg-rose-500 border-rose-500 shadow-md shadow-rose-500/20' :
-                  getStatus(habit.id, day) === 'skipped' ? 'bg-zinc-500 border-zinc-500 shadow-none' :
-                  'border-dashed border-zinc-800 bg-transparent'
-                ]"
-              >
-                <Check v-if="getStatus(habit.id, day) === 'completed'" class="w-4 h-4 text-white" />
-                <XIcon v-else-if="getStatus(habit.id, day) === 'failed'" class="w-4 h-4 text-white" />
-                <Minus v-else-if="getStatus(habit.id, day) === 'skipped'" class="w-4 h-4 text-white" />
-              </div>
-
-              <div class="text-[10px] font-bold text-white">
-                {{ format(day, 'd') }}
-              </div>
-            </div>
-          </div>
-        </div>
+        <!-- Interactive Logs (Read-only for friends) -->
+        <TimelineRow
+          :days="days"
+          :status-map="getHabitStatusMap(habit.id)"
+        />
       </div>
       </template>
     </div>
@@ -469,6 +473,14 @@ const openHabitDetails = (habit: Habit) => {
   selectedHabit.value = habit;
   currentCalendarDate.value = new Date();
   showModal.value = true;
+};
+
+const getHabitStatusMap = (habitId: string) => {
+  const map: Record<string, string> = {};
+  logs.value.filter(l => l.habitId === habitId).forEach(l => {
+    map[l.date] = l.status;
+  });
+  return map;
 };
 
 const getStatus = (habitId: string, day: Date) => {

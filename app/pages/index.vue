@@ -39,8 +39,13 @@
     <div class="bg-zinc-925 border-b border-t border-x-0 sm:border-x border-zinc-800/80 py-2 sm:rounded-t-2xl flex flex-col items-stretch sm:flex-row sm:items-center sm:justify-between gap-x-4 gap-y-2 sm:px-4">
         <div class="w-full px-4 sm:px-0 sm:flex-1 sm:min-w-[200px] hidden sm:block pr-0 sm:pr-2"></div>
         <div class="w-full sm:w-[320px] lg:w-[400px] shrink-0 px-2 sm:px-0">
-          <div class="flex justify-evenly sm:justify-between items-end w-full">
-            <div v-for="(day, i) in days" :key="i" class="flex flex-col items-center w-8">
+          <div class="flex items-end w-full">
+            <div v-for="(day, i) in days" :key="i" class="flex-1 flex flex-col items-center relative">
+              <!-- Sunday Divider -->
+              <div 
+                v-if="i > 0 && day.getDay() === 0" 
+                class="absolute left-0 top-0 bottom-0 w-px bg-zinc-800/80"
+              ></div>
               <div 
                 class="text-[10px] uppercase tracking-tighter font-black transition-colors"
                 :class="isToday(day) ? 'text-white' : 'text-zinc-500'"
@@ -277,7 +282,7 @@ const isMarkable = (day: Date) => {
   const limit = subDays(t, 13); // Last 14 days including today
   return !isBefore(d, limit) && !isAfter(d, t);
 };
-const days = Array.from({ length: 7 }, (_, i) => addDays(startOfWeek(today, { weekStartsOn: 0 }), i));
+const days = Array.from({ length: 7 }, (_, i) => subDays(new Date(), 6 - i));
 const startDate = format(startOfMonth(subMonths(today, 1)), 'yyyy-MM-dd');
 const endDate = format(endOfMonth(addMonths(today, 1)), 'yyyy-MM-dd');
 

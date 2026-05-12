@@ -1,7 +1,12 @@
 <template>
   <div class="w-full sm:w-[320px] lg:w-[400px] shrink-0 px-2 sm:px-0">
-    <div class="flex justify-evenly sm:justify-between items-center w-full">
-      <div v-for="(day, i) in days" :key="i" class="flex justify-center w-8">
+    <div class="flex items-center w-full">
+      <div v-for="(day, i) in days" :key="i" class="flex-1 flex justify-center relative">
+        <!-- Sunday Divider -->
+        <div 
+          v-if="i > 0 && day.getDay() === 0" 
+          class="absolute left-0 top-0 bottom-0 w-px bg-zinc-800/80"
+        ></div>
         <div class="relative">
           <component
             :is="interactive ? 'button' : 'div'"
