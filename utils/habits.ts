@@ -40,7 +40,8 @@ export function calculateStreakFromLogs(
     const currentDate = startOfDay(parseISO(log.date));
 
     // Check for gap (more than 1 day between logs)
-    if (lastDate) {
+    // IMPORTANT: 'cleared' logs must NOT trigger a gap reset, as they are transparent.
+    if (log.status !== 'cleared' && lastDate) {
       const diff = differenceInDays(currentDate, lastDate);
       if (diff > 1) {
         runningStreak = 0; // Gap detected, reset streak
@@ -56,7 +57,11 @@ export function calculateStreakFromLogs(
     } else if (log.status === 'skipped' || log.status === 'vacation') {
       // Streak remains intact (protected)
     } else if (log.status === 'cleared') {
-      runningStreak = 0;
+      // Invalidate anchor if this cleared log was the anchor
+      if (streakAnchorDate === log.date) {
+        streakAnchorDate = null;
+      }
+      continue; // Transparent: Don't update runningStreak or lastDate
     }
 
     maxStreak = Math.max(maxStreak, runningStreak);

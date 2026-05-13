@@ -3,6 +3,7 @@ import { eq, lt, gte, desc, asc, sql, and } from 'drizzle-orm';
 import { habits, habitLogs } from '../db/schema';
 import { calculateStreakFromLogs } from '../../utils/habits';
 
+
 export async function recalculateHabitStreak(db: any, habitId: string, userId: string, fromDate?: string) {
   if (!habitId || habitId.length < 36) return;
   // 1. Fetch habit info
@@ -20,6 +21,7 @@ export async function recalculateHabitStreak(db: any, habitId: string, userId: s
   let lastDate: Date | null = null;
   let queryStartDate = fromDate;
   let maxStreak = 0;
+  let baselineAnchor: string | null = habit.streakAnchorDate;
 
   // 2. If incremental, find the starting point state from the log just before fromDate
   if (fromDate) {
@@ -28,7 +30,7 @@ export async function recalculateHabitStreak(db: any, habitId: string, userId: s
       date: habitLogs.date
     })
     .from(habitLogs)
-    .where(sql`${habitLogs.habitId} = ${habitId} AND ${habitLogs.ownerId} = ${userId} AND ${habitLogs.date} < ${fromDate}`)
+    .where(sql`${habitLogs.habitId} = ${habitId} AND ${habitLogs.ownerId} = ${userId} AND ${habitLogs.date} < ${fromDate} AND ${habitLogs.status} != 'cleared'`)
     .orderBy(desc(habitLogs.date))
     .limit(1);
 
@@ -36,13 +38,14 @@ export async function recalculateHabitStreak(db: any, habitId: string, userId: s
       const prevLog = prevLogRes[0];
       runningStreak = prevLog.streakCount;
       lastDate = startOfDay(parseISO(prevLog.date));
+      baselineAnchor = prevLog.date;
     }
 
     const maxRes = await db.select({
       maxStreak: sql`MAX(${habitLogs.streakCount})`
     })
     .from(habitLogs)
-    .where(sql`${habitLogs.habitId} = ${habitId} AND ${habitLogs.ownerId} = ${userId} AND ${habitLogs.date} < ${fromDate}`);
+    .where(sql`${habitLogs.habitId} = ${habitId} AND ${habitLogs.ownerId} = ${userId} AND ${habitLogs.date} < ${fromDate} AND ${habitLogs.status} != 'cleared'`);
 
     maxStreak = Number(maxRes[0]?.maxStreak || 0);
   }
@@ -75,6 +78,7 @@ export async function recalculateHabitStreak(db: any, habitId: string, userId: s
     const result = await db.update(habits)
       .set({
         currentStreak: runningStreak,
+        streakAnchorDate: baselineAnchor,
         updatedAt: new Date()
       })
       .where(and(eq(habits.id, habitId), eq(habits.ownerId, userId)))
@@ -83,12 +87,12 @@ export async function recalculateHabitStreak(db: any, habitId: string, userId: s
   }
 
   // 4. Use shared logic for calculation
-  const { currentStreak, longestStreak, streakAnchorDate, logUpdates } = calculateStreakFromLogs(
+  let { currentStreak, longestStreak, streakAnchorDate, logUpdates } = calculateStreakFromLogs(
     rawLogs,
     runningStreak,
     lastDate,
     maxStreak,
-    habit.streakAnchorDate
+    baselineAnchor
   );
 
   // 5. Update habitlogs in batch

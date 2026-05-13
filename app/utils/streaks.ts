@@ -4,6 +4,7 @@ import type { LocalHabit, LocalBucket } from './db';
 
 import { calculateStreakFromLogs } from '~~/utils/habits';
 
+
 // Helper to port logic
 export const recalculateLocalHabitStreak = async (habitId: string, ownerId: string, fromDate?: string) => {
   const habit = await db.habits.get(habitId);
@@ -12,11 +13,14 @@ export const recalculateLocalHabitStreak = async (habitId: string, ownerId: stri
   let runningStreak = 0;
   let lastDate: Date | null = null;
   let queryStartDate = fromDate;
+  let maxStreak = 0;
+  let baselineAnchor: string | null = habit.streakAnchorDate || null;
 
+  // 2. If incremental, find the starting point state from the log just before fromDate
   if (fromDate) {
     const prevLogs = await db.habitLogs
       .where('ownerId').equals(ownerId)
-      .filter(l => l.habitId === habitId && l.date < fromDate)
+      .filter(l => l.habitId === habitId && l.date < fromDate && l.status !== 'cleared')
       .toArray();
 
     if (prevLogs.length > 0) {
@@ -25,7 +29,15 @@ export const recalculateLocalHabitStreak = async (habitId: string, ownerId: stri
       const prevLog = prevLogs[0]!;
       runningStreak = prevLog.streakCount || 0;
       lastDate = startOfDay(parseISO(prevLog.date));
+      baselineAnchor = prevLog.date;
     }
+
+    // Find max streak before fromDate
+    const earlierLogs = await db.habitLogs
+      .where('ownerId').equals(ownerId)
+      .filter(l => l.habitId === habitId && l.date < fromDate && l.status !== 'cleared')
+      .toArray();
+    maxStreak = earlierLogs.reduce((max, l) => Math.max(max, l.streakCount || 0), 0);
   }
 
   const logs = await db.habitLogs
@@ -47,18 +59,19 @@ export const recalculateLocalHabitStreak = async (habitId: string, ownerId: stri
 
     await db.habits.update(habitId, {
       currentStreak: runningStreak,
+      streakAnchorDate: baselineAnchor,
       updatedAt: Date.now()
     });
     return await db.habits.get(habitId);
   }
 
   // 4. Use shared logic for calculation
-  const { currentStreak, longestStreak, streakAnchorDate, logUpdates } = calculateStreakFromLogs(
+  let { currentStreak, longestStreak, streakAnchorDate, logUpdates } = calculateStreakFromLogs(
     logs,
     runningStreak,
     lastDate,
-    habit.longestStreak || 0,
-    habit.streakAnchorDate || null
+    maxStreak,
+    baselineAnchor
   );
 
   if (logUpdates.length > 0) {

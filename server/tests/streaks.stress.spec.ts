@@ -175,7 +175,7 @@ describe('Streak Calculation Engine - Stress Testing', () => {
     expect(habitResult!.currentStreak).toBe(2);
   }, 60000);
 
-  it('should reset streak to 0 on cleared status', async () => {
+  it('should maintain streak count on cleared status', async () => {
     const startDate = new Date('2020-01-01T00:00:00.000Z');
     const day9 = addDays(startDate, 9);
     const dateStr9 = formatISO(day9, { representation: 'date' });
@@ -191,8 +191,8 @@ describe('Streak Calculation Engine - Stress Testing', () => {
       });
 
     const habitResult = await recalculateHabitStreak(db, habit.id, user.id, dateStr9);
-    // Day 9 cleared -> streak is 0
-    expect(habitResult!.currentStreak).toBe(0);
+    // Day 9 cleared -> streak remains 2 (from Day 8)
+    expect(habitResult!.currentStreak).toBe(2);
   }, 60000);
 
   it('PERFORMANCE: should process 365 days of historical logs without timeout', async () => {

@@ -54,13 +54,13 @@ describe('calculateStreakFromLogs', () => {
     expect(result.longestStreak).toBe(2);
   });
 
-  it('should reset streak on cleared status', () => {
+  it('should NOT reset streak on cleared status', () => {
     const logs = [
       { id: '1', date: '2023-01-01', status: 'completed' },
       { id: '2', date: '2023-01-02', status: 'cleared' },
     ];
     const result = calculateStreakFromLogs(logs);
-    expect(result.currentStreak).toBe(0);
+    expect(result.currentStreak).toBe(1);
   });
 
   it('should respect initial running streak', () => {
