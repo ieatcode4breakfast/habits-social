@@ -102,19 +102,31 @@ export const recalculateLocalBucketStreak = async (bucketId: string, ownerId: st
   let runningStreak = 0;
   let lastDate: Date | null = null;
   let queryStartDate = fromDate;
+  let maxStreak = 0;
+  let baselineAnchor: string | null = bucket.streakAnchorDate || null;
 
+  // 2. If incremental, find the starting point state from the log just before fromDate
   if (fromDate) {
     const prevLogs = await db.bucketLogs
       .where('ownerId').equals(ownerId)
-      .filter(l => l.bucketId === bucketId && l.date < fromDate)
+      .filter(l => l.bucketId === bucketId && l.date < fromDate && l.status !== 'cleared')
       .toArray();
 
     if (prevLogs.length > 0) {
+      // sort desc
       prevLogs.sort((a, b) => b.date.localeCompare(a.date));
       const prevLog = prevLogs[0]!;
       runningStreak = prevLog.streakCount || 0;
       lastDate = startOfDay(parseISO(prevLog.date));
+      baselineAnchor = prevLog.date;
     }
+
+    // Find max streak before fromDate
+    const earlierLogs = await db.bucketLogs
+      .where('ownerId').equals(ownerId)
+      .filter(l => l.bucketId === bucketId && l.date < fromDate && l.status !== 'cleared')
+      .toArray();
+    maxStreak = earlierLogs.reduce((max, l) => Math.max(max, l.streakCount || 0), 0);
   }
 
   const logs = await db.bucketLogs
@@ -136,6 +148,7 @@ export const recalculateLocalBucketStreak = async (bucketId: string, ownerId: st
     
     await db.buckets.update(bucketId, {
       currentStreak: runningStreak,
+      streakAnchorDate: baselineAnchor,
       updatedAt: Date.now()
     });
     return await db.buckets.get(bucketId);
@@ -146,8 +159,8 @@ export const recalculateLocalBucketStreak = async (bucketId: string, ownerId: st
     logs,
     runningStreak,
     lastDate,
-    bucket.longestStreak || 0,
-    bucket.streakAnchorDate || null
+    maxStreak,
+    baselineAnchor
   );
 
   if (logUpdates.length > 0) {
