@@ -123,34 +123,25 @@ export const useHabitsStore = () => {
         .toArray();
 
       const uniqueLoggedHabits = new Set(logs.map(l => l.habitId));
-      if (uniqueLoggedHabits.size === habitsInBucket.length) {
-        let finalStatus: 'completed' | 'failed' | 'skipped' | 'vacation' = 'completed';
-        const statuses = logs.map(l => l.status);
+      const statuses = logs.map(l => l.status);
+      const isMissing = uniqueLoggedHabits.size < habitsInBucket.length;
 
-        if (statuses.includes('failed')) finalStatus = 'failed';
-        else if (statuses.includes('skipped')) finalStatus = 'skipped';
-        else if (statuses.includes('vacation')) finalStatus = 'vacation';
+      let finalStatus: 'completed' | 'failed' | 'skipped' | 'vacation' | 'cleared' = 'completed';
 
-        await db.bucketLogs.put({
-          id: `${bucket.id}_${date}`,
-          bucketId: bucket.id,
-          ownerId: getOwnerId(),
-          date: date,
-          status: finalStatus,
-          synced: 0,
-          updatedAt: Date.now()
-        } as any);
-      } else {
-        await db.bucketLogs.put({
-          id: `${bucket.id}_${date}`,
-          bucketId: bucket.id,
-          ownerId: getOwnerId(),
-          date: date,
-          status: 'cleared',
-          synced: 0,
-          updatedAt: Date.now()
-        } as any);
-      }
+      if (statuses.includes('failed')) finalStatus = 'failed';
+      else if (isMissing) finalStatus = 'cleared';
+      else if (statuses.includes('vacation')) finalStatus = 'vacation';
+      else if (statuses.includes('skipped')) finalStatus = 'skipped';
+
+      await db.bucketLogs.put({
+        id: `${bucket.id}_${date}`,
+        bucketId: bucket.id,
+        ownerId: getOwnerId(),
+        date: date,
+        status: finalStatus,
+        synced: 0,
+        updatedAt: Date.now()
+      } as any);
       await recalculateLocalBucketStreak(bucket.id, getOwnerId(), date);
     }
   };
