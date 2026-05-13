@@ -101,7 +101,7 @@ describe('useHabitsApi - V2 Resilience & Pagination', () => {
   beforeEach(() => {
     vi.useFakeTimers();
     vi.stubGlobal('process', { client: true });
-    vi.stubGlobal('useState', (key, fallback) => ref(fallback()));
+    vi.stubGlobal('useState', (key: string, fallback: () => any) => ref(fallback()));
     
     mockClient.fetchSync.mockReset();
     mockClient.postHabit.mockReset();

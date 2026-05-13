@@ -157,10 +157,10 @@
                     ]"
                   />
                   <span 
-                    class="text-[10px] font-black tracking-tight"
+                    class="text-[9px] font-black tracking-tight"
                     :class="getStreakTheme(bucket.currentStreak ?? 0).text"
                   >
-                    x{{ bucket.currentStreak }}
+                    x{{ bucket.currentStreak }} STREAK
                   </span>
                 </div>
               </div>
@@ -243,10 +243,10 @@
                             ]"
                           />
                           <span 
-                            class="text-[10px] font-black tracking-tight"
+                            class="text-[9px] font-black tracking-tight"
                             :class="getStreakTheme(habit.currentStreak ?? 0).text"
                           >
-                            x{{ habit.currentStreak }}
+                            x{{ habit.currentStreak }} STREAK
                           </span>
                         </div>
                       </div>

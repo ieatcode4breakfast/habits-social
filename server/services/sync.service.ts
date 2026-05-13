@@ -75,8 +75,10 @@ export const SyncService = {
       bucketLogsFilters.push(gte(bucketLogs.updatedAt, syncDate));
       deletionsFilters.push(gte(syncDeletions.createdAt, syncDate));
     } else if (startDate && endDate) {
-      habitLogsFilters.push(and(gte(habitLogs.date, startDate), lte(habitLogs.date, endDate)));
-      bucketLogsFilters.push(and(gte(bucketLogs.date, startDate), lte(bucketLogs.date, endDate)));
+      habitLogsFilters.push(gte(habitLogs.date, startDate as string));
+      habitLogsFilters.push(lte(habitLogs.date, endDate as string));
+      bucketLogsFilters.push(gte(bucketLogs.date, startDate as string));
+      bucketLogsFilters.push(lte(bucketLogs.date, endDate as string));
     }
 
     // 1. Fetch main deltas in parallel (wrapped in transaction to use a single connection)
@@ -185,7 +187,7 @@ export const SyncService = {
         const decoded = Buffer.from(cursor, 'base64').toString('utf-8');
         if (!decoded.includes('|')) return 'INVALID';
         const [ts, id] = decoded.split('|');
-        const date = new Date(ts);
+        const date = new Date(ts as string);
         if (isNaN(date.getTime())) return 'INVALID';
         return { ts: date, id };
       } catch {
@@ -258,7 +260,7 @@ export const SyncService = {
     const habitsRes = habitsResRaw.slice(0, limit);
     
     const bucketsHasMore = bucketIdsResRaw.length > limit;
-    const bucketIds = bucketIdsResRaw.slice(0, limit).map(b => b.id);
+    const bucketIds = bucketIdsResRaw.slice(0, limit).map((b: any) => b.id);
 
     // 3. Topological Suppression: If parents have more, don't fetch children yet
     const suppressChildren = habitsHasMore || bucketsHasMore;

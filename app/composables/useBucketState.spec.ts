@@ -15,8 +15,8 @@ describe('useBucketState', () => {
   it('separates personal and shared buckets', () => {
     const state = useBucketState();
     expect(state.personalBuckets.value).toHaveLength(1);
-    expect(state.personalBuckets.value[0].id).toBe('b1');
+    expect(state.personalBuckets.value[0]!.id).toBe('b1');
     expect(state.sharedBuckets.value).toHaveLength(1);
-    expect(state.sharedBuckets.value[0].id).toBe('b2');
+    expect(state.sharedBuckets.value[0]!.id).toBe('b2');
   });
 });

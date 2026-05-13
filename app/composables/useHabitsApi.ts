@@ -399,7 +399,7 @@ export const useHabitsApi = () => {
           });
 
           currentCursors = nextCursors;
-          hasMore = remoteHasMore;
+          hasMore = remoteHasMore || false;
           pagesFetched++;
           lastSyncTime.value = serverTime;
         }

@@ -205,7 +205,7 @@ export const BucketService = {
           const activeMemberIds = new Set(activeHabitCounts.map((row: any) => row.memberId));
           const membersToDelete = currentMembers
             .map((m: any) => m.userId)
-            .filter(mid => !activeMemberIds.has(mid));
+            .filter((mid: string) => !activeMemberIds.has(mid));
 
           if (membersToDelete.length > 0) {
             await tx.delete(sharedBucketMembers)

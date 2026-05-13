@@ -1,4 +1,5 @@
 import type { Habit, HabitLog, Bucket, BucketLog } from './useHabitsApi';
+import type { SyncResponse } from '~~/server/types/sync';
 
 export const useHabitsClient = () => {
   const fetchHabits = async () => {
@@ -47,14 +48,7 @@ export const useHabitsClient = () => {
   };
 
   const fetchSync = async (params: any) => {
-    return await $fetch<{
-      habits: Habit[],
-      buckets: Bucket[],
-      habitLogs: HabitLog[],
-      bucketLogs: BucketLog[],
-      deletions?: { id: string, type: string }[],
-      serverTime: number
-    }>('/api/sync', { query: params });
+    return await $fetch<SyncResponse>('/api/sync', { query: params });
   };
 
   return {
