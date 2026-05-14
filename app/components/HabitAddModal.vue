@@ -109,7 +109,7 @@
                         container-class="w-8 h-8 bg-zinc-925"
                         icon-class="w-4 h-4 text-zinc-600"
                       />
-                      <span class="text-sm font-semibold text-zinc-200">{{ friend.username || 'Unknown' }}</span>
+                      <span class="text-sm font-semibold text-zinc-200 truncate flex-1 min-w-0 mr-4">{{ friend.username || 'Unknown' }}</span>
                     </div>
                     <div 
                       class="w-6 h-6 rounded-lg flex items-center justify-center transition-all"

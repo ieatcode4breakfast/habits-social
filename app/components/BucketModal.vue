@@ -161,7 +161,7 @@
 
                 <div class="space-y-2 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
                   <label v-for="habit in sortedHabits" :key="habit.id" class="flex items-center justify-between p-3 bg-black border border-zinc-925 rounded-xl cursor-pointer hover:border-zinc-800 transition-colors">
-                    <span class="text-sm font-semibold text-zinc-200">{{ habit.title }}</span>
+                    <span class="text-sm font-semibold text-zinc-200 truncate flex-1 min-w-0 mr-4">{{ habit.title }}</span>
                     <div 
                       class="w-6 h-6 rounded-lg flex items-center justify-center transition-all"
                       :class="[selectedHabitIds.includes(habit.id) ? 'bg-indigo-500 shadow-lg shadow-indigo-500/20' : 'bg-zinc-925']"

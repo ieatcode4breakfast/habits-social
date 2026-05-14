@@ -414,18 +414,8 @@ const getStatus = (habitId: string, day: Date) => {
   return selectedHabitLogs.value.find(l => l.habitId === habitId && l.date === dateStr)?.status;
 };
 
-const isFaded = (habit: any) => {
-  if (!habit || !habit.streakAnchorDate) return false;
-  const anchor = startOfDay(parseISO(habit.streakAnchorDate));
-  const yesterday = startOfDay(subDays(new Date(), 1));
-  return isAfter(yesterday, anchor);
-};
-
-const getStreakTheme = (count: number) => {
-  if (count >= 30) return { border: 'border-yellow-400/50 shadow-lg shadow-yellow-400/10', text: 'text-yellow-400', fill: 'fill-yellow-400/80' };
-  if (count >= 7) return { border: 'border-violet-400/50 shadow-lg shadow-violet-400/10', text: 'text-violet-400', fill: 'fill-violet-400/80' };
-  return { border: 'border-emerald-500/50', text: 'text-emerald-500', fill: 'fill-emerald-500/80' };
-};
+import { isStreakFaded, getStreakTheme } from '~/utils/ui';
+const isFaded = (habit: any) => isStreakFaded(habit);
 
 // --- Activity Feed Logic ---
 const feed = ref<any[]>([]);

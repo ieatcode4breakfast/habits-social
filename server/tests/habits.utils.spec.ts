@@ -70,4 +70,20 @@ describe('calculateStreakFromLogs', () => {
     const result = calculateStreakFromLogs(logs, 5, new Date('2023-01-01'));
     expect(result.currentStreak).toBe(6);
   });
+
+  it('should reset streak on a gap created by a cleared log (TDD Verification)', () => {
+    const logs = [
+      { id: '1', date: '2023-01-01', status: 'completed' },
+      { id: '2', date: '2023-01-02', status: 'cleared' },
+      { id: '3', date: '2023-01-03', status: 'completed' },
+    ];
+    const result = calculateStreakFromLogs(logs);
+    
+    // Day 1: streak 1
+    // Day 2: cleared (gap detected against Day 1 when processing Day 3)
+    // Day 3: gap is 2 days (3-1). 2 > 1, so streak resets to 0 then +1 for Day 3.
+    expect(result.currentStreak).toBe(1);
+    // index 0 is Day 1, index 1 is Day 3 (Day 2 'cleared' is skipped in logUpdates)
+    expect(result.logUpdates[1]!.streakCount).toBe(1);
+  });
 });

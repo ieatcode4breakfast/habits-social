@@ -40,7 +40,6 @@ export function calculateStreakFromLogs(
     const currentDate = startOfDay(parseISO(log.date));
 
     // Check for gap (more than 1 day between logs)
-    // IMPORTANT: 'cleared' logs must NOT trigger a gap reset, as they are transparent.
     if (log.status !== 'cleared' && lastDate) {
       const diff = differenceInDays(currentDate, lastDate);
       if (diff > 1) {

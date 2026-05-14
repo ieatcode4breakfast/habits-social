@@ -32,13 +32,17 @@ export const getStreakTheme = (count: number) => {
 
 /**
  * Determines if a streak should be visually faded (e.g., if missed yesterday).
+ * Accepts either a string date or an object with a streakAnchorDate property.
  */
-export const isStreakFaded = (item: { streakAnchorDate?: string | null }) => {
-  if (!item || !item.streakAnchorDate) return false;
-  const anchor = startOfDay(parseISO(item.streakAnchorDate));
+export function isStreakFaded(item: string | { streakAnchorDate?: string | null } | null) {
+  if (!item) return false;
+  const dateStr = typeof item === 'string' ? item : item.streakAnchorDate;
+  if (!dateStr) return false;
+  
+  const anchor = startOfDay(parseISO(dateStr));
   const yesterday = startOfDay(subDays(new Date(), 1));
   return isAfter(yesterday, anchor);
-};
+}
 
 /**
  * Auto-expands a textarea height based on content.

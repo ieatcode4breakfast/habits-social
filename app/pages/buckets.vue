@@ -556,6 +556,8 @@ const handleDelete = async () => {
     await api.deleteBucket(editingBucket.value.id);
     buckets.value = buckets.value.filter(b => b.id !== editingBucket.value?.id);
     showDeleteModal.value = false;
+    showBucketModal.value = false;
+    editingBucket.value = null;
   } catch (error) {
     console.error('[Buckets] Failed to delete bucket:', error);
     showToast('Failed to delete bucket', 'failed');
