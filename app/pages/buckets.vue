@@ -170,7 +170,7 @@
                   <span>{{ getHabitsInBucket(bucket).length }} habits</span>
                   <button 
                     @click.stop="openEditModal(bucket)"
-                    class="p-1 hover:bg-white/10 rounded transition-colors"
+                    class="p-1 hover:bg-white/10 rounded transition-colors cursor-pointer"
                   >
                     <Edit2 class="w-3 h-3 text-zinc-600" />
                   </button>
@@ -190,7 +190,7 @@
                 <span>{{ getHabitsInBucket(bucket).length }} habits</span>
                 <button 
                   @click.stop="openEditModal(bucket)"
-                  class="p-1 hover:bg-white/10 rounded transition-colors"
+                  class="p-1 hover:bg-white/10 rounded transition-colors cursor-pointer"
                 >
                   <Edit2 class="w-3 h-3 text-zinc-600" />
                 </button>

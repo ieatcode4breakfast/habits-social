@@ -112,7 +112,7 @@
                   <div class="flex items-start gap-3">
                     <div class="flex items-center gap-3">
                       <div class="flex flex-col items-center">
-                        <button type="button" @click="adjustFrequency(1)" class="h-4 flex items-center justify-center text-zinc-500 hover:text-white transition-colors">
+                        <button type="button" @click="adjustFrequency(1)" class="h-4 flex items-center justify-center text-zinc-500 hover:text-white transition-colors cursor-pointer">
                           <ChevronUp class="w-3 h-3" />
                         </button>
                         <div class="pt-2 pb-1">
@@ -123,7 +123,7 @@
                             class="w-10 h-10 bg-black border border-zinc-800 rounded-lg text-center text-sm font-medium text-white focus:outline-none focus:ring-1 focus:ring-zinc-600 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                           />
                         </div>
-                        <button type="button" @click="adjustFrequency(-1)" class="h-4 flex items-center justify-center text-zinc-500 hover:text-white transition-colors">
+                        <button type="button" @click="adjustFrequency(-1)" class="h-4 flex items-center justify-center text-zinc-500 hover:text-white transition-colors cursor-pointer">
                           <ChevronDown class="w-3 h-3" />
                         </button>
                       </div>

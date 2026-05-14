@@ -78,7 +78,7 @@
                   <div class="flex items-start gap-3">
                     <div class="flex items-center gap-3">
                       <div class="flex flex-col items-center">
-                        <button type="button" @click="adjustFrequency(1)" class="h-4 flex items-center justify-center text-zinc-500 hover:text-white transition-colors">
+                        <button type="button" @click="adjustFrequency(1)" class="h-4 flex items-center justify-center text-zinc-500 hover:text-white transition-colors cursor-pointer">
                           <ChevronUp class="w-3 h-3" />
                         </button>
                         <div class="pt-2 pb-1">
@@ -88,7 +88,7 @@
                             class="w-10 h-10 bg-black border border-zinc-800 rounded-lg text-center text-sm font-medium text-white focus:outline-none focus:ring-1 focus:ring-zinc-600 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                           />
                         </div>
-                        <button type="button" @click="adjustFrequency(-1)" class="h-4 flex items-center justify-center text-zinc-500 hover:text-white transition-colors">
+                        <button type="button" @click="adjustFrequency(-1)" class="h-4 flex items-center justify-center text-zinc-500 hover:text-white transition-colors cursor-pointer">
                           <ChevronDown class="w-3 h-3" />
                         </button>
                       </div>
@@ -129,7 +129,7 @@
             <button
               type="button"
               @click="$emit('update:modelValue', false)"
-              class="flex-1 px-5 py-3 text-zinc-400 hover:text-zinc-200 font-semibold rounded-xl transition-all"
+              class="flex-1 px-5 py-3 text-zinc-400 hover:text-zinc-200 font-semibold rounded-xl transition-all cursor-pointer"
             >
               Cancel
             </button>
@@ -137,7 +137,7 @@
               type="submit"
               form="addHabitForm"
               :disabled="saving"
-              class="flex-1 px-5 py-3 bg-white hover:bg-zinc-200 text-black font-semibold rounded-xl transition-all shadow-lg shadow-white/5 flex items-center justify-center gap-2"
+              class="flex-1 px-5 py-3 bg-white hover:bg-zinc-200 text-black font-semibold rounded-xl transition-all shadow-lg shadow-white/5 flex items-center justify-center gap-2 cursor-pointer"
             >
               <template v-if="saving">
                 <div class="w-4 h-4 border-2 border-black/20 border-t-black rounded-full animate-spin"></div>

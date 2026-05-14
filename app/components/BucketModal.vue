@@ -177,11 +177,11 @@
 
           <!-- Footer -->
           <div class="px-8 py-4 border-t border-zinc-800 bg-zinc-925/80 backdrop-blur-md flex gap-3">
-            <button @click="$emit('update:modelValue', false)" class="flex-1 px-5 py-3 text-zinc-400 hover:text-zinc-200 font-semibold rounded-xl transition-all">Cancel</button>
+            <button @click="$emit('update:modelValue', false)" class="flex-1 px-5 py-3 text-zinc-400 hover:text-zinc-200 font-semibold rounded-xl transition-all cursor-pointer">Cancel</button>
             <button 
               @click="handleSave" 
               :disabled="saving"
-              class="flex-1 px-5 py-3 bg-white hover:bg-zinc-200 text-black font-semibold rounded-xl transition-all shadow-lg shadow-white/5 flex items-center justify-center gap-2"
+              class="flex-1 px-5 py-3 bg-white hover:bg-zinc-200 text-black font-semibold rounded-xl transition-all shadow-lg shadow-white/5 flex items-center justify-center gap-2 cursor-pointer"
             >
               {{ isEdit ? 'Save' : 'Add Bucket' }}
             </button>

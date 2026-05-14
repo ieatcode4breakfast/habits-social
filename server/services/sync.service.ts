@@ -1,4 +1,4 @@
-import { eq, and, or, sql, inArray, gte, lte, asc, desc, gt } from 'drizzle-orm';
+import { eq, and, or, sql, inArray, gte, lte, asc, desc, gt, isNull, ne } from 'drizzle-orm';
 import { 
   habits as habitsTable, 
   buckets as bucketsTable, 
@@ -99,7 +99,13 @@ export const SyncService = {
         })
         .from(bucketHabits)
         .leftJoin(habitsTable, eq(bucketHabits.habitId, habitsTable.id))
-        .where(inArray(bucketHabits.bucketId, bucketIdsSubquery)),
+        .where(and(
+          inArray(bucketHabits.bucketId, bucketIdsSubquery),
+          or(
+            isNull(bucketHabits.approvalStatus),
+            ne(bucketHabits.approvalStatus, 'removed')
+          )
+        )),
 
         tx.select({
           sbm: sharedBucketMembers,
@@ -323,7 +329,13 @@ export const SyncService = {
           })
           .from(bucketHabits)
           .leftJoin(habitsTable, eq(bucketHabits.habitId, habitsTable.id))
-          .where(inArray(bucketHabits.bucketId, bucketIds)),
+          .where(and(
+            inArray(bucketHabits.bucketId, bucketIds),
+            or(
+              isNull(bucketHabits.approvalStatus),
+              ne(bucketHabits.approvalStatus, 'removed')
+            )
+          )),
 
           tx.select({
             sbm: sharedBucketMembers,
