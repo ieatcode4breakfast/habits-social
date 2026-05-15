@@ -59,8 +59,12 @@ export const BucketService = {
           sortOrder: data.sortOrder ?? bucket.sortOrder,
           updatedAt: new Date()
         })
-        .where(eq(bucketsTable.id, id))
+        .where(and(eq(bucketsTable.id, id), eq(bucketsTable.ownerId, userId)))
         .returning();
+
+      if (result.length === 0) {
+        throw createError({ statusCode: 403, statusMessage: 'Forbidden: You do not own this bucket' });
+      }
 
       const updatedBucket = result[0];
 
@@ -242,6 +246,20 @@ export const BucketService = {
 
   async deleteBucket(db: any, userId: string, id: string, event: any) {
     await db.transaction(async (tx: any) => {
+      // Fetch before delete to verify ownership and get true ownerId for sync attribution
+      const records = await tx.select({ ownerId: bucketsTable.ownerId })
+        .from(bucketsTable)
+        .where(eq(bucketsTable.id, id));
+      
+      if (records.length === 0) {
+        throw createError({ statusCode: 404, statusMessage: 'Bucket not found' });
+      }
+
+      const bucket = records[0];
+      if (bucket.ownerId !== userId) {
+        throw createError({ statusCode: 403, statusMessage: 'Forbidden: You do not own this bucket' });
+      }
+
       await tx.delete(sharedBucketMembers).where(eq(sharedBucketMembers.bucketId, id));
       await tx.delete(bucketHabits).where(eq(bucketHabits.bucketId, id));
       await tx.delete(bucketsTable).where(eq(bucketsTable.id, id));
@@ -249,7 +267,7 @@ export const BucketService = {
       await tx.insert(syncDeletions)
         .values({
           id: crypto.randomUUID(),
-          ownerId: userId,
+          ownerId: bucket.ownerId,
           entityId: id,
           entityType: 'bucket',
           createdAt: new Date()

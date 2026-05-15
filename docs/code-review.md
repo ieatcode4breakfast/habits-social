@@ -5,42 +5,37 @@
 ## 🟡 WARNINGS (Highly recommended to address)
 *UX failures, data integrity issues, scalability issues, and technical debt.*
 
-### 1. Sync Deletion Misattribution ("Ghost" Records)
-- **Location:** Deletion services in `habit.service.ts` and `bucket.service.ts`.
-- **Issue:** When an attacker deletes a victim's record, the `sync_deletions` record is saved under the attacker's ID. The victim's app never receives the sync event and continues showing stale "ghost" data.
-- **Fix:** Ensure `sync_deletions` records the event under the object's true `ownerId`.
-
-### 2. Account Deletion Data Rot
+### 1. Account Deletion Data Rot
 - **Location:** `server/api/users/me.delete.ts`
 - **Issue:** Raw deletes bypass cascading logic, leaving orphaned data and breaking friends' bucket views.
 - **Fix:** Refactor to use service-layer deletion logic.
 
-### 3. Fragile SQL Condition Logic (Drizzle Overwrites)
+### 2. Fragile SQL Condition Logic (Drizzle Overwrites)
 - **Location:** `server/utils/streaks.ts`
 - **Issue:** Subsequent `.where()` calls in Drizzle overwrite previous ones. A small code change could accidentally remove ownership checks.
 - **Fix:** Use `and()` utility to combine conditions.
 
-### 4. Private Habit ID Probing
+### 3. Private Habit ID Probing
 - **Location:** `server/services/bucket.service.ts` (`updateBucket`)
 - **Issue:** The return value of `updateBucket` leaks the existence of private `habitIds` to anyone who can guess a bucket UUID.
 - **Fix:** Sanitize return values to only include habit mappings if authorized.
 
-### 5. Broken Shared Bucket Sync - DEFERRED
+### 4. Broken Shared Bucket Sync - DEFERRED
 - **Location:** `server/services/sync.service.ts`
 - **Issue:** The sync engine doesn't fetch metadata for habits owned by friends, even if they are in a shared bucket.
 - **Fix:** Expand sync queries to include habits where the user is an accepted bucket member.
 
-### 6. Missing Rate Limiting on Auth - DEFERRED
+### 5. Missing Rate Limiting on Auth - DEFERRED
 - **Location:** `server/api/auth/login.post.ts`
 - **Issue:** Vulnerability to credential stuffing and brute-force attacks.
 - **Fix:** Implement rate limiting middleware for auth routes.
 
-### 7. Missing API for Accepting Shared Habits - DEFERRED
+### 6. Missing API for Accepting Shared Habits - DEFERRED
 - **Location:** `server/services/bucket.service.ts`
 - **Issue:** No endpoint exists for a user to accept a friend's habit invitation into their bucket.
 - **Fix:** Create a member status update endpoint.
 
-### 8. Unbounded Payload Limits - DEFERRED
+### 7. Unbounded Payload Limits - DEFERRED
 - **Location:** `server/utils/validation.ts` (e.g., `shareHabitsSchema`, `habitSchema`)
 - **Issue:** Several schemas lack `.max()` constraints on arrays and strings, leaving the application vulnerable to memory exhaustion if a massive payload bypasses network-level WAF limits.
 - **Fix:** Enforce explicit business-logic `.max()` boundaries on all Zod arrays and strings.

@@ -145,12 +145,24 @@ export const HabitService = {
 
   async deleteHabitLog(db: any, userId: string, habitId: string, dateStr: string, event: any) {
     await db.transaction(async (tx: any) => {
-      await tx.delete(habitLogs)
+      const deleted = await tx.delete(habitLogs)
         .where(and(
           eq(habitLogs.habitId, habitId),
           eq(habitLogs.ownerId, userId),
           eq(habitLogs.date, dateStr)
-        ));
+        ))
+        .returning({ id: habitLogs.id, ownerId: habitLogs.ownerId });
+
+      if (deleted.length > 0) {
+        await tx.insert(syncDeletions)
+          .values({
+            id: crypto.randomUUID(),
+            ownerId: deleted[0].ownerId,
+            entityId: deleted[0].id,
+            entityType: 'habit_log',
+            createdAt: new Date()
+          });
+      }
 
       await recalculateHabitStreak(tx, habitId, userId, dateStr);
       await syncBucketLogsForHabit(tx, habitId, userId, dateStr);
@@ -253,6 +265,20 @@ export const HabitService = {
 
   async deleteHabit(db: any, userId: string, id: string, event: any) {
     await db.transaction(async (tx: any) => {
+      // Fetch before delete to verify ownership and get true ownerId for sync attribution
+      const records = await tx.select({ ownerId: habitsTable.ownerId })
+        .from(habitsTable)
+        .where(eq(habitsTable.id, id));
+      
+      if (records.length === 0) {
+        throw createError({ statusCode: 404, statusMessage: 'Habit not found' });
+      }
+
+      const habit = records[0];
+      if (habit.ownerId !== userId) {
+        throw createError({ statusCode: 403, statusMessage: 'Forbidden: You do not own this habit' });
+      }
+
       const bucketsRes = await tx.select({ bucketId: bucketHabits.bucketId })
         .from(bucketHabits)
         .where(eq(bucketHabits.habitId, id));
@@ -265,7 +291,7 @@ export const HabitService = {
       await tx.insert(syncDeletions)
         .values({
           id: crypto.randomUUID(),
-          ownerId: userId,
+          ownerId: habit.ownerId,
           entityId: id,
           entityType: 'habit',
           createdAt: new Date()

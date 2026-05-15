@@ -136,7 +136,7 @@ export const friendships = pgTable('friendships', {
 export const syncDeletions = pgTable('sync_deletions', {
   id: uuid('id').primaryKey(),
   ownerId: uuid('owner_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
-  entityId: uuid('entity_id').notNull(),
+  entityId: text('entity_id').notNull(),
   entityType: text('entity_type').notNull(),
   createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' }).defaultNow(),
 }, (table) => {
