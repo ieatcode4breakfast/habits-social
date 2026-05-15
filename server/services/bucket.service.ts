@@ -225,11 +225,16 @@ export const BucketService = {
 
       const habitsResult = await tx.select({ habitId: bucketHabits.habitId })
         .from(bucketHabits)
+        .innerJoin(habitsTable, eq(bucketHabits.habitId, habitsTable.id))
         .where(and(
           eq(bucketHabits.bucketId, id),
           or(
             sql`${bucketHabits.approvalStatus} IS NULL`,
             inArray(bucketHabits.approvalStatus, ['accepted', 'pending'])
+          ),
+          or(
+            eq(habitsTable.ownerId, userId),
+            sql`${habitsTable.sharedWith} @> ARRAY[${userId}]::text[]`
           )
         ));
 

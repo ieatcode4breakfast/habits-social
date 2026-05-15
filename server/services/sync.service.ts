@@ -98,12 +98,16 @@ export const SyncService = {
           habitOwnerId: habitsTable.ownerId
         })
         .from(bucketHabits)
-        .leftJoin(habitsTable, eq(bucketHabits.habitId, habitsTable.id))
+        .innerJoin(habitsTable, eq(bucketHabits.habitId, habitsTable.id))
         .where(and(
           inArray(bucketHabits.bucketId, bucketIdsSubquery),
           or(
             isNull(bucketHabits.approvalStatus),
             ne(bucketHabits.approvalStatus, 'removed')
+          ),
+          or(
+            eq(habitsTable.ownerId, userId),
+            sql`${habitsTable.sharedWith} @> ARRAY[${userId}]::text[]`
           )
         )),
 
@@ -328,12 +332,16 @@ export const SyncService = {
             habitOwnerId: habitsTable.ownerId
           })
           .from(bucketHabits)
-          .leftJoin(habitsTable, eq(bucketHabits.habitId, habitsTable.id))
+          .innerJoin(habitsTable, eq(bucketHabits.habitId, habitsTable.id))
           .where(and(
             inArray(bucketHabits.bucketId, bucketIds),
             or(
               isNull(bucketHabits.approvalStatus),
               ne(bucketHabits.approvalStatus, 'removed')
+            ),
+            or(
+              eq(habitsTable.ownerId, userId),
+              sql`${habitsTable.sharedWith} @> ARRAY[${userId}]::text[]`
             )
           )),
 

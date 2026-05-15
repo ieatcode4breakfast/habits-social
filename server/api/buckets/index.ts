@@ -1,4 +1,4 @@
-import { eq, and, gte, asc, desc, sql, inArray } from 'drizzle-orm';
+import { eq, and, or, gte, asc, desc, sql, inArray } from 'drizzle-orm';
 import { buckets as bucketsTable, bucketHabits, habits as habitsTable } from '~~/server/db/schema';
 import { useDB as _useDB } from '~~/server/utils/db';
 import { requireAuth as _requireAuth } from '~~/server/utils/auth';
@@ -34,7 +34,14 @@ export default defineEventHandler(async (event) => {
       habitId: bucketHabits.habitId
     })
     .from(bucketHabits)
-    .where(inArray(bucketHabits.bucketId, bucketIds));
+    .innerJoin(habitsTable, eq(bucketHabits.habitId, habitsTable.id))
+    .where(and(
+      inArray(bucketHabits.bucketId, bucketIds),
+      or(
+        eq(habitsTable.ownerId, userId),
+        sql`${habitsTable.sharedWith} @> ARRAY[${userId}]::text[]`
+      )
+    ));
 
     const bucketsWithHabits = buckets.map((b: any) => ({
       ...b,
@@ -119,7 +126,14 @@ export default defineEventHandler(async (event) => {
 
     const habitsData = await db.select({ habitId: bucketHabits.habitId })
       .from(bucketHabits)
-      .where(eq(bucketHabits.bucketId, newBucket.id));
+      .innerJoin(habitsTable, eq(bucketHabits.habitId, habitsTable.id))
+      .where(and(
+        eq(bucketHabits.bucketId, newBucket.id),
+        or(
+          eq(habitsTable.ownerId, userId),
+          sql`${habitsTable.sharedWith} @> ARRAY[${userId}]::text[]`
+        )
+      ));
 
     return { data: { ...newBucket, habitIds: habitsData.map((h: any) => h.habitId) } };
     } catch (e: any) {

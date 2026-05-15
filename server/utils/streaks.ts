@@ -1,5 +1,5 @@
 import { parseISO, startOfDay, differenceInDays } from 'date-fns';
-import { eq, lt, gte, desc, asc, sql, and } from 'drizzle-orm';
+import { eq, ne, lt, gte, desc, asc, sql, and } from 'drizzle-orm';
 import { habits, habitLogs } from '../db/schema';
 import { calculateStreakFromLogs } from '../../utils/habits';
 
@@ -30,7 +30,12 @@ export async function recalculateHabitStreak(db: any, habitId: string, userId: s
       date: habitLogs.date
     })
     .from(habitLogs)
-    .where(sql`${habitLogs.habitId} = ${habitId} AND ${habitLogs.ownerId} = ${userId} AND ${habitLogs.date} < ${fromDate} AND ${habitLogs.status} != 'cleared'`)
+    .where(and(
+      eq(habitLogs.habitId, habitId),
+      eq(habitLogs.ownerId, userId),
+      lt(habitLogs.date, fromDate),
+      ne(habitLogs.status, 'cleared')
+    ))
     .orderBy(desc(habitLogs.date))
     .limit(1);
 
@@ -45,21 +50,30 @@ export async function recalculateHabitStreak(db: any, habitId: string, userId: s
       maxStreak: sql`MAX(${habitLogs.streakCount})`
     })
     .from(habitLogs)
-    .where(sql`${habitLogs.habitId} = ${habitId} AND ${habitLogs.ownerId} = ${userId} AND ${habitLogs.date} < ${fromDate} AND ${habitLogs.status} != 'cleared'`);
+    .where(and(
+      eq(habitLogs.habitId, habitId),
+      eq(habitLogs.ownerId, userId),
+      lt(habitLogs.date, fromDate),
+      ne(habitLogs.status, 'cleared')
+    ));
 
     maxStreak = Number(maxRes[0]?.maxStreak || 0);
   }
 
   // 3. Fetch logs from starting point onwards
-  const logsQuery = db.select()
-    .from(habitLogs)
-    .where(sql`${habitLogs.habitId} = ${habitId} AND ${habitLogs.ownerId} = ${userId}`);
+  const conditions = [
+    eq(habitLogs.habitId, habitId),
+    eq(habitLogs.ownerId, userId)
+  ];
 
   if (queryStartDate) {
-    logsQuery.where(sql`${habitLogs.habitId} = ${habitId} AND ${habitLogs.ownerId} = ${userId} AND ${habitLogs.date} >= ${queryStartDate}`);
+    conditions.push(gte(habitLogs.date, queryStartDate));
   }
-  
-  const rawLogs = await logsQuery.orderBy(asc(habitLogs.date));
+
+  const rawLogs = await db.select()
+    .from(habitLogs)
+    .where(and(...conditions))
+    .orderBy(asc(habitLogs.date));
 
   if (!rawLogs || rawLogs.length === 0) {
     // If we're doing a full rebuild and no logs, reset habit.
