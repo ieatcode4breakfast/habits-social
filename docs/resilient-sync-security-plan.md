@@ -5,7 +5,21 @@
 > **Phases**: 3 (sequential)  
 > **Prerequisite Reading**: `docs/data-flow-and-sync-standard.md`, `docs/streak-logic.md`
 
+## Implemented So Far
+
+### Phase 1: Schema Hardening & Centralization
+- **Created** `server/utils/schemaPrimitives.ts` containing centralized Zod primitives (`zId`, `zShortText`, `zLongText`, `zColor`, `zDateString`, `zStandardArray`, `zPassword`, `zLoginPassword`).
+- **Refactored** `server/utils/validation.ts` to use these primitives across schemas:
+  - Fixed CPU DoS on `loginSchema` by adding `max(72)` to password.
+  - Applied bounds to `habitSchema`, `bucketSchema`, `habitLogSchema`, `bucketLogSchema`, `shareHabitsSchema`, `habitReorderSchema`, and `bucketReorderSchema`.
+- **Added Tests** in `server/tests/validation.schema.spec.ts` for:
+  - `loginSchema` password length limit.
+  - `habitSchema` `sharedWith` array limit.
+- **Verified** that all 61 test files and 212 tests pass successfully.
+
 ---
+
+
 
 ## Table of Contents
 
@@ -169,52 +183,7 @@ bcrypt truncates input at 72 bytes. Any password longer than 72 chars is silentl
 
 ---
 
-### 3.1 [NEW] `server/utils/schemaPrimitives.ts`
 
-Create standardized, bounded Zod primitives. All schemas across the project must import from this file to prevent drift.
-
-```
-zId              → z.string().uuid()
-zShortText       → z.string().max(255)
-zLongText        → z.string().max(2048)
-zColor           → z.string().max(50)
-zDateString      → z.string().regex(/^\d{4}-\d{2}-\d{2}$/)
-zStandardArray(s)→ z.array(s).max(100)
-zPassword        → z.string().min(8).max(72)       // Registration, Reset, Profile Update
-zLoginPassword   → z.string().min(1).max(72)       // Login only (min 1 because we validate credentials, not strength)
-```
-
-**Note**: Use Zod v4 syntax (`zod@^4.4.2` is the project version).
-
----
-
-### 3.2 [MODIFY] `server/utils/validation.ts`
-
-Refactor existing schemas to use primitives from `schemaPrimitives.ts`.
-
-| Schema Field | Current | New |
-|-------------|---------|-----|
-| `habitSchema.title` | `.min(1).max(255)` | `zShortText.min(1)` |
-| `habitSchema.description` | `.max(2000)` | `zLongText` |
-| `habitSchema.color` | `.max(50)` | `zColor` |
-| `habitSchema.sharedWith` | `z.array(z.string().uuid())` (unbounded) | `zStandardArray(zId)` |
-| `habitLogSchema.date` | inline regex | `zDateString` |
-| `habitLogSchema.sharedWith` | `z.array(z.string().uuid())` (unbounded) | `zStandardArray(zId)` |
-| `registerSchema.password` | `.min(8).max(72)` | `zPassword` |
-| `loginSchema.password` | `.min(1)` **(no max)** | `zLoginPassword` (`min(1).max(72)`) |
-| `updateProfileSchema.password` | `.min(8).max(72)` optional | `zPassword.optional()` |
-| `bucketSchema.title` | `.min(1).max(255)` | `zShortText.min(1)` |
-| `bucketSchema.description` | `.max(2000)` | `zLongText` |
-| `bucketSchema.color` | `.max(50)` | `zColor` |
-| `bucketSchema.habitIds` | `z.array(z.string().uuid()).optional()` | `zStandardArray(zId).optional()` |
-| `bucketLogSchema.date` | inline regex | `zDateString` |
-| `habitReorderSchema.ids` | `z.array(...).min(1).max(30)` | `zStandardArray(zId).min(1).max(30)` |
-| `bucketReorderSchema.ids` | `z.array(...).min(1).max(50)` | `zStandardArray(zId).min(1).max(50)` |
-| `shareHabitsSchema.habitIds` | `z.array(z.string().uuid())` | `zStandardArray(zId)` |
-
-**Do not change**: `insertUserSchema.passwordHash` bounds. This field validates the bcrypt hash output (~60 chars) and is only used internally during user insertion.
-
----
 
 ### 3.3 [NEW] `server/middleware/bodyLimit.ts`
 
@@ -254,27 +223,7 @@ Test the middleware function in isolation. `createMockEvent()` bypasses middlewa
 | 6 | POST without `Content-Length`, body >100KB | Mock event with large body | 413 Payload Too Large |
 | 7 | POST without `Content-Length`, body <100KB | Mock event with small body | Passes through |
 
-#### [MODIFY] `server/tests/validation.schema.spec.ts`
 
-Add test cases for primitives and password limits:
-
-| # | Test Case | Expected |
-|---|-----------|----------|
-| 1 | `zPassword` with 8-char string | Valid |
-| 2 | `zPassword` with 72-char string | Valid |
-| 3 | `zPassword` with 7-char string | Invalid |
-| 4 | `zPassword` with 73-char string | Invalid |
-| 5 | `zLoginPassword` with 1-char string | Valid |
-| 6 | `zLoginPassword` with 72-char string | Valid |
-| 7 | `zLoginPassword` with 73-char string | Invalid |
-| 8 | `zShortText` with 256-char string | Invalid |
-| 9 | `zLongText` with 2049-char string | Invalid |
-| 10 | `zStandardArray(z.string())` with 101 items | Invalid |
-| 11 | `zStandardArray(z.string())` with 100 items | Valid |
-| 12 | Existing `registerSchema` test suite still passes | No regressions |
-| 13 | Existing `loginSchema` test suite still passes | No regressions |
-
----
 
 ## 4. Phase 2: Batch Synchronization
 

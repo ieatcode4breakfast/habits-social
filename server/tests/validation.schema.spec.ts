@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { registerSchema, updateProfileSchema } from '../utils/validation';
+import { registerSchema, updateProfileSchema, loginSchema, habitSchema } from '../utils/validation';
+
 
 describe('User Validation Schemas', () => {
   describe('registerSchema', () => {
@@ -86,4 +87,22 @@ describe('User Validation Schemas', () => {
       expect(result.success).toBe(true);
     });
   });
+
+  describe('loginSchema', () => {
+    it('should reject password > 72 chars', () => {
+      const result = loginSchema.safeParse({ identifier: 'user', password: 'p'.repeat(73) });
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe('habitSchema', () => {
+    it('should reject sharedWith > 100 items', () => {
+      const result = habitSchema.safeParse({
+        title: 'Habit',
+        sharedWith: Array(101).fill('00000000-0000-0000-0000-000000000000')
+      });
+      expect(result.success).toBe(false);
+    });
+  });
 });
+
