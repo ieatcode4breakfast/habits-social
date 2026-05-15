@@ -4,6 +4,7 @@ import { users } from '~~/server/db/schema';
 import { useDB as _useDB } from '~~/server/utils/db';
 import { generateToken as _generateToken, setAuthCookie as _setAuthCookie, DUMMY_HASH } from '~~/server/utils/auth';
 import { loginSchema, throwZodError } from '~~/server/utils/validation';
+import { checkRateLimit, resetRateLimit } from '~~/server/utils/rateLimit';
 
 export default defineEventHandler(async (event) => {
   const useDB = (event.context as any).useDB || _useDB;
@@ -19,6 +20,9 @@ export default defineEventHandler(async (event) => {
   }
 
   const { identifier, password } = validation.data;
+
+  // Rate limiting check
+  await checkRateLimit(event, identifier);
 
   const results = await db.select({
     id: users.id,
@@ -48,6 +52,9 @@ export default defineEventHandler(async (event) => {
   }
 
   const token = await generateToken(user.id, event);
+
+  // Success: Reset identifier rate limit
+  await resetRateLimit(event, identifier);
 
   setAuthCookie(event, token);
 

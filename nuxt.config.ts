@@ -84,6 +84,12 @@ export default defineNuxtConfig({
           'Vary': 'Cookie'
         } 
       }
+    },
+    storage: {
+      authRateLimit: {
+        driver: (process.env.NODE_ENV === 'production' || process.env.KV_BINDING) ? 'cloudflare-kv-binding' : 'memory',
+        binding: 'AUTH_KV'
+      }
     }
   },
   runtimeConfig: {

@@ -39,8 +39,8 @@ export const deleteTestUser = async (userId: string) => {
   await db.delete(users).where(eq(users.id, userId));
 };
 
-export const createMockEvent = (userId: string, body: any = {}, cookies: any = {}, params: any = {}, query: any = {}, method: string = 'GET') => {
-  return {
+export const createMockEvent = (userId: string, body: any = {}, cookies: any = {}, params: any = {}, query: any = {}, method: string = 'GET', ip: string = '127.0.0.1') => {
+  const event = {
     _body: body,
     _cookies: {
       auth_token: 'mock-token', 
@@ -49,6 +49,7 @@ export const createMockEvent = (userId: string, body: any = {}, cookies: any = {
     _params: params,
     _query: query,
     _method: method,
+    _ip: ip,
     method,
     context: {
       userId,
@@ -64,6 +65,11 @@ export const createMockEvent = (userId: string, body: any = {}, cookies: any = {
       generateToken: async (uid: string) => `mock-token-${uid}`
     }
   } as any;
+
+  // Mock getRequestIP
+  (event as any)._getRequestIP = () => ip;
+
+  return event;
 };
 
 export const createTestHabit = async (ownerId: string, title: string): Promise<Habit> => {

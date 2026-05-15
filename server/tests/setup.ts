@@ -16,8 +16,25 @@ vi.stubGlobal('getCookie', (event: any, name: string) => event._cookies?.[name])
 vi.stubGlobal('getRouterParam', (event: any, name: string) => event._params?.[name]);
 vi.stubGlobal('getQuery', (event: any) => event._query || {});
 vi.stubGlobal('getMethod', (event: any) => event._method || 'GET');
-vi.stubGlobal('setResponseHeader', () => {});
-vi.stubGlobal('setHeader', () => {});
+vi.stubGlobal('setResponseHeader', (event: any, name: string, value: string) => {
+  if (!event._headers) event._headers = {};
+  event._headers[name.toLowerCase()] = value;
+});
+vi.stubGlobal('setHeader', (event: any, name: string, value: string) => {
+  if (!event._headers) event._headers = {};
+  event._headers[name.toLowerCase()] = value;
+});
+vi.stubGlobal('getRequestIP', (event: any) => event._ip || '127.0.0.1');
+
+const storageMock: Record<string, any> = {};
+vi.stubGlobal('useStorage', (base: string) => {
+  return {
+    getItem: async (key: string) => storageMock[`${base}:${key}`] || null,
+    setItem: async (key: string, value: any) => { storageMock[`${base}:${key}`] = value; },
+    removeItem: async (key: string) => { delete storageMock[`${base}:${key}`]; },
+    clear: async () => { for (const key in storageMock) delete storageMock[key]; }
+  };
+});
 
 vi.stubGlobal('setCookie', (event: any, name: string, value: string, opts?: any) => {
   if (!event._cookies) event._cookies = {};

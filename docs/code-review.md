@@ -5,21 +5,6 @@
 ## 🟡 WARNINGS (Highly recommended to address)
 *UX failures, data integrity issues, scalability issues, and technical debt.*
 
-### 1. Account Deletion Data Rot
-- **Location:** `server/api/users/me.delete.ts`
-- **Issue:** Raw deletes bypass cascading logic, leaving orphaned data and breaking friends' bucket views.
-- **Fix:** Refactor to use service-layer deletion logic.
-
-### 2. Fragile SQL Condition Logic (Drizzle Overwrites)
-- **Location:** `server/utils/streaks.ts`
-- **Issue:** Subsequent `.where()` calls in Drizzle overwrite previous ones. A small code change could accidentally remove ownership checks.
-- **Fix:** Use `and()` utility to combine conditions.
-
-### 3. Private Habit ID Probing
-- **Location:** `server/services/bucket.service.ts` (`updateBucket`)
-- **Issue:** The return value of `updateBucket` leaks the existence of private `habitIds` to anyone who can guess a bucket UUID.
-- **Fix:** Sanitize return values to only include habit mappings if authorized.
-
 ### 4. Broken Shared Bucket Sync - DEFERRED
 - **Location:** `server/services/sync.service.ts`
 - **Issue:** The sync engine doesn't fetch metadata for habits owned by friends, even if they are in a shared bucket.
