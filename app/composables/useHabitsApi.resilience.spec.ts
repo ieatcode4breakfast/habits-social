@@ -42,10 +42,10 @@ vi.mock('@vueuse/core', () => ({
 vi.mock('~/utils/db', () => ({
   db: {
     syncQueue: { toArray: vi.fn(() => []), delete: vi.fn() },
-    habits: { where: vi.fn(() => ({ notEqual: vi.fn(() => ({ toArray: vi.fn(() => []) })) })), get: vi.fn(), update: vi.fn() },
-    habitLogs: { where: vi.fn(() => ({ equals: vi.fn(() => ({ toArray: vi.fn(() => []) })) })), update: vi.fn(), delete: vi.fn() },
-    buckets: { where: vi.fn(() => ({ notEqual: vi.fn(() => ({ toArray: vi.fn(() => []) })) })), update: vi.fn(), delete: vi.fn() },
-    bucketLogs: { where: vi.fn(() => ({ equals: vi.fn(() => ({ toArray: vi.fn(() => []) })) })), update: vi.fn(), delete: vi.fn() },
+    habits: { where: vi.fn(() => ({ notEqual: vi.fn(() => ({ filter: vi.fn(() => ({ toArray: vi.fn(() => []) })) })) })), get: vi.fn(), update: vi.fn() },
+    habitLogs: { where: vi.fn(() => ({ equals: vi.fn(() => ({ filter: vi.fn(() => ({ toArray: vi.fn(() => []) })) })) })), update: vi.fn(), delete: vi.fn() },
+    buckets: { where: vi.fn(() => ({ notEqual: vi.fn(() => ({ filter: vi.fn(() => ({ toArray: vi.fn(() => []) })) })) })), update: vi.fn(), delete: vi.fn() },
+    bucketLogs: { where: vi.fn(() => ({ equals: vi.fn(() => ({ filter: vi.fn(() => ({ toArray: vi.fn(() => []) })) })) })), update: vi.fn(), delete: vi.fn() },
     syncState: {
       get: vi.fn(() => Promise.resolve(null)),
       put: vi.fn(),
@@ -121,8 +121,11 @@ describe('useHabitsApi - Resilience', () => {
     const { db } = await import('~/utils/db');
     const unsyncedHabit = { id: 'h1', title: 'Bad Habit', synced: 0 };
     (db.habits.where as any).mockReturnValue({
-      notEqual: vi.fn().mockReturnThis(),
-      toArray: vi.fn().mockResolvedValue([unsyncedHabit])
+      notEqual: vi.fn().mockReturnValue({
+        filter: vi.fn().mockReturnValue({
+          toArray: vi.fn().mockResolvedValue([unsyncedHabit])
+        })
+      })
     });
     (db.habits.get as any).mockResolvedValue(unsyncedHabit);
     
@@ -146,8 +149,11 @@ describe('useHabitsApi - Resilience', () => {
     const { db } = await import('~/utils/db');
     const unsyncedHabit = { id: 'h_conflict', title: 'Conflict Habit', synced: 0 };
     (db.habits.where as any).mockReturnValue({
-      notEqual: vi.fn().mockReturnThis(),
-      toArray: vi.fn().mockResolvedValue([unsyncedHabit])
+      notEqual: vi.fn().mockReturnValue({
+        filter: vi.fn().mockReturnValue({
+          toArray: vi.fn().mockResolvedValue([unsyncedHabit])
+        })
+      })
     });
     (db.habits.get as any).mockResolvedValue(unsyncedHabit);
     

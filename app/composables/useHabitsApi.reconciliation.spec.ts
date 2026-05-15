@@ -58,8 +58,21 @@ vi.mock('./useHabitsStore', () => ({
   useHabitsStore: () => mockStore
 }));
 
+vi.mock('./useAuth', () => ({
+  useAuth: () => ({ user: { value: { id: 'test-user-id' } } })
+}));
+
+vi.mock('./useToast', () => ({
+  useToast: () => ({ showToast: vi.fn() })
+}));
+
+vi.mock('@vueuse/core', () => ({
+  useNetwork: () => ({ isOnline: { value: true } })
+}));
+
 const mockCollection = {
   toArray: vi.fn(() => []),
+  filter: vi.fn(function(this: any) { return this; }),
   modify: vi.fn(),
 };
 
@@ -147,8 +160,11 @@ describe('useHabitsApi - Reconciliation', () => {
   it('sync() pushes local unsynced habits', async () => {
     const unsyncedHabit = { id: 'local-h1', title: 'Local Habit', synced: 0 };
     (db.habits.where as any).mockReturnValue({
-      notEqual: vi.fn().mockReturnThis(),
-      toArray: vi.fn().mockResolvedValue([unsyncedHabit])
+      notEqual: vi.fn().mockReturnValue({
+        filter: vi.fn().mockReturnValue({
+          toArray: vi.fn().mockResolvedValue([unsyncedHabit])
+        })
+      })
     });
     (db.habits.get as any).mockResolvedValue(unsyncedHabit);
     mockClient.postHabit.mockResolvedValue({ data: { id: 'remote-id', userDate: '2026-01-01' } });

@@ -2,12 +2,13 @@ import { hash } from 'bcrypt-ts';
 import { or, eq, sql } from 'drizzle-orm';
 import { users } from '~~/server/db/schema';
 import { useDB as _useDB } from '~~/server/utils/db';
-import { generateToken as _generateToken, BCRYPT_COST_FACTOR } from '~~/server/utils/auth';
+import { generateToken as _generateToken, setAuthCookie as _setAuthCookie, BCRYPT_COST_FACTOR } from '~~/server/utils/auth';
 import { registerSchema, throwZodError } from '~~/server/utils/validation';
 
 export default defineEventHandler(async (event) => {
   const useDB = (event.context as any).useDB || _useDB;
   const generateToken = (event.context as any).generateToken || _generateToken;
+  const setAuthCookie = (event.context as any).setAuthCookie || _setAuthCookie;
   const db = useDB(event);
 
   const body = await readBody(event);
@@ -58,13 +59,7 @@ export default defineEventHandler(async (event) => {
     const user = result[0];
     const token = await generateToken(user.id, event);
 
-    setCookie(event, 'auth_token', token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      maxAge: 60 * 60 * 24 * 7, // 7 days
-      path: '/',
-      sameSite: 'lax'
-    });
+    setAuthCookie(event, token);
 
     return { data: { token, id: user.id, email: user.email, username: user.username, photoUrl: user.photoUrl } };
   } catch (error: any) {

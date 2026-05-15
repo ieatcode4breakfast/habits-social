@@ -41,6 +41,7 @@ vi.mock('@vueuse/core', () => ({
 
 const mockCollection = {
   toArray: vi.fn(() => []),
+  filter: vi.fn(function(this: any) { return this; }),
   delete: vi.fn(),
   modify: vi.fn(),
 };

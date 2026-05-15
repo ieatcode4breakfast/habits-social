@@ -58,7 +58,27 @@ vi.mock('../utils/auth', () => ({
     if (event._cookies?.auth_token === 'invalid') return null;
     return event.context?.userId || null;
   },
+  getUserAndPayloadFromEvent: async (event: any) => {
+    if (event._cookies?.auth_token === 'invalid') return null;
+    if (!event.context?.userId) return null;
+    // Support custom payload injection for sliding renewal tests
+    const payload = event.context?.jwtPayload || {
+      userId: event.context.userId,
+      iat: Math.floor(Date.now() / 1000),
+      exp: Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 7,
+    };
+    return { userId: event.context.userId, payload };
+  },
   generateToken: async (userId: string) => `mock-token-${userId}`,
+  setAuthCookie: (event: any, token: string) => {
+    if (!event._cookies) event._cookies = {};
+    event._cookies.auth_token = token;
+    // Track that a cookie was set for test assertions
+    event._cookieWasRefreshed = true;
+  },
+  AUTH_COOKIE_NAME: 'auth_token',
+  SESSION_MAX_AGE_SECONDS: 60 * 60 * 24 * 7,
+  SESSION_EXPIRATION_JWT: '7d',
   BCRYPT_COST_FACTOR: 10,
   DUMMY_HASH: '$2b$10$N9qo8uLOickgx2ZMRZoMyeIjZAgNIhp.pX7wMQRpM64ls7ZSXH0uz'
 }));

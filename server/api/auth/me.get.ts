@@ -1,18 +1,22 @@
 import { eq } from 'drizzle-orm';
 import { users } from '~~/server/db/schema';
 import { useDB as _useDB } from '~~/server/utils/db';
-import { getUserFromEvent as _getUserFromEvent } from '~~/server/utils/auth';
+import { getUserAndPayloadFromEvent as _getUserAndPayloadFromEvent, generateToken as _generateToken, setAuthCookie as _setAuthCookie } from '~~/server/utils/auth';
 
 export default defineEventHandler(async (event) => {
   const useDB = (event.context as any).useDB || _useDB;
-  const getUserFromEvent = (event.context as any).getUserFromEvent || _getUserFromEvent;
+  const getUserAndPayloadFromEvent = (event.context as any).getUserAndPayloadFromEvent || _getUserAndPayloadFromEvent;
+  const generateToken = (event.context as any).generateToken || _generateToken;
+  const setAuthCookie = (event.context as any).setAuthCookie || _setAuthCookie;
   const db = useDB(event);
 
-  const userId = await getUserFromEvent(event);
+  const authResult = await getUserAndPayloadFromEvent(event);
 
-  if (!userId) {
-    return { data: null };
+  if (!authResult) {
+    throw createError({ statusCode: 401, statusMessage: 'Unauthorized' });
   }
+
+  const { userId, payload } = authResult;
 
   const results = await db.select({
     id: users.id,
@@ -29,6 +33,20 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 404, statusMessage: 'User not found' });
   }
 
+  // Sliding session renewal: only issue a new token if the current one
+  // has consumed more than 50% of its total lifetime.
+  if (payload.iat && payload.exp) {
+    const now = Math.floor(Date.now() / 1000);
+    const issuedAt = payload.iat as number;
+    const expiresAt = payload.exp as number;
+    const totalLifetime = expiresAt - issuedAt;
+    const elapsed = now - issuedAt;
+
+    if (elapsed > totalLifetime / 2) {
+      const newToken = await generateToken(userId, event);
+      setAuthCookie(event, newToken);
+    }
+  }
+
   return { data: user };
 });
-

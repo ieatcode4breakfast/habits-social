@@ -117,7 +117,23 @@ const handleEditProfile = () => {
 const logout = async () => {
   await $fetch('/api/auth/logout', { method: 'POST' });
   logoutCleanup();
-  await fetchUser();
+
+  // Destroy all local data (shared device security).
+  // This is the ONLY code path that wipes IndexedDB.
+  const { db } = await import('~/utils/db');
+  await Promise.all([
+    db.habits.clear(),
+    db.habitLogs.clear(),
+    db.buckets.clear(),
+    db.bucketLogs.clear(),
+    db.syncQueue.clear(),
+    db.syncState.clear(),
+  ]);
+
+  // Clear cached auth profile
+  if (import.meta.client) localStorage.removeItem('auth-user');
+
+  user.value = null;
   router.push('/login');
 };
 </script>

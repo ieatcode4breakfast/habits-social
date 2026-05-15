@@ -460,7 +460,11 @@ export const useHabitsApi = () => {
     }
 
     // 1. Push local changes (Habits, Logs, Buckets)
-    const unsyncedHabits = await db.habits.where('synced').notEqual(1).toArray();
+    // Defense-in-depth: only push data belonging to the current user
+    const currentUserId = user.value?.id;
+    if (!currentUserId) return;
+
+    const unsyncedHabits = await db.habits.where('synced').notEqual(1).filter(h => h.ownerId === currentUserId).toArray();
     for (const h of unsyncedHabits) {
       try {
         const isNew = (h as any).synced === 0;
@@ -475,7 +479,7 @@ export const useHabitsApi = () => {
       }
     }
 
-    const unsyncedLogs = await db.habitLogs.where('synced').equals(0).toArray();
+    const unsyncedLogs = await db.habitLogs.where('synced').equals(0).filter(l => l.ownerId === currentUserId).toArray();
     for (const l of unsyncedLogs) {
       try {
         await client.postHabitLog(l);
@@ -488,7 +492,7 @@ export const useHabitsApi = () => {
       }
     }
 
-    const unsyncedBuckets = await db.buckets.where('synced').notEqual(1).toArray();
+    const unsyncedBuckets = await db.buckets.where('synced').notEqual(1).filter(b => b.ownerId === currentUserId).toArray();
     for (const b of unsyncedBuckets) {
       try {
         const isNew = (b as any).synced === 0;
@@ -503,7 +507,7 @@ export const useHabitsApi = () => {
       }
     }
 
-    const unsyncedBucketLogs = await db.bucketLogs.where('synced').equals(0).toArray();
+    const unsyncedBucketLogs = await db.bucketLogs.where('synced').equals(0).filter(bl => bl.ownerId === currentUserId).toArray();
     for (const bl of unsyncedBucketLogs) {
       try {
         await client.postBucketLog(bl);
