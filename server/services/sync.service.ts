@@ -68,17 +68,19 @@ export const SyncService = {
     const deletionsFilters = [eq(syncDeletions.ownerId, userId)];
 
     if (lastSynced > 0) {
-      const syncDate = new Date(lastSynced);
+      const syncDate = new Date(lastSynced as number);
       habitsFilters.push(gte(habitsTable.updatedAt, syncDate));
       bucketFilters.push(gte(bucketsTable.updatedAt, syncDate));
       habitLogsFilters.push(gte(habitLogs.updatedAt, syncDate));
       bucketLogsFilters.push(gte(bucketLogs.updatedAt, syncDate));
       deletionsFilters.push(gte(syncDeletions.createdAt, syncDate));
     } else if (startDate && endDate) {
-      habitLogsFilters.push(gte(habitLogs.date, startDate as string));
-      habitLogsFilters.push(lte(habitLogs.date, endDate as string));
-      bucketLogsFilters.push(gte(bucketLogs.date, startDate as string));
-      bucketLogsFilters.push(lte(bucketLogs.date, endDate as string));
+      const s = startDate as string;
+      const e = endDate as string;
+      habitLogsFilters.push(gte(habitLogs.date, s));
+      habitLogsFilters.push(lte(habitLogs.date, e));
+      bucketLogsFilters.push(gte(bucketLogs.date, s));
+      bucketLogsFilters.push(lte(bucketLogs.date, e));
     }
 
     // 1. Fetch main deltas in parallel (wrapped in transaction to use a single connection)
@@ -217,12 +219,12 @@ export const SyncService = {
       );
     };
 
-    const fallbackDate = new Date(lastSynced);
-    const habitCursor = decodeCursor(cursors.habits);
-    const bucketCursor = decodeCursor(cursors.buckets);
-    const logCursor = decodeCursor(cursors.habitLogs);
-    const bLogCursor = decodeCursor(cursors.bucketLogs);
-    const delCursor = decodeCursor(cursors.deletions);
+    const fallbackDate = new Date(lastSynced || 0);
+    const habitCursor = decodeCursor(cursors?.habits);
+    const bucketCursor = decodeCursor(cursors?.buckets);
+    const logCursor = decodeCursor(cursors?.habitLogs);
+    const bLogCursor = decodeCursor(cursors?.bucketLogs);
+    const delCursor = decodeCursor(cursors?.deletions);
 
     // If any cursor is malformed, trigger a force update
     if ([habitCursor, bucketCursor, logCursor, bLogCursor, delCursor].includes('INVALID')) {

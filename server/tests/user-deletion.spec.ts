@@ -80,7 +80,7 @@ describe('User Deletion TDD Regression Suite', () => {
     const updatedHabitB = await db.select().from(habitsTable).where(eq(habitsTable.id, habitB.id));
     
     // EXPECTATION: array_remove should have been called.
-    expect(updatedHabitB[0].sharedWith).not.toContain(userA.id);
+    expect(updatedHabitB[0]!.sharedWith).not.toContain(userA.id);
   });
 
   it('should re-evaluate friend buckets after deletion', async () => {

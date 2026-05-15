@@ -3,6 +3,7 @@ import { liveQuery } from 'dexie';
 import { db } from '~/utils/db';
 import { useHabitsClient } from './useHabitsClient';
 import { useHabitsStore } from './useHabitsStore';
+import type { SyncResponse } from '../../server/types/sync';
 
 export interface Habit {
   id: string;
@@ -324,7 +325,7 @@ export const useHabitsApi = () => {
             queryParams.endDate = format(addDays(new Date(), 30), 'yyyy-MM-dd');
           }
 
-          const response = await client.fetchSync(queryParams);
+          const response = await client.fetchSync(queryParams) as SyncResponse;
           
           if (response.forceUpdateRequired) {
             // Safe Force Reset: We already pushed changes above, now we can safely wipe and reset

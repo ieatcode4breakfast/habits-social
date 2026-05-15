@@ -25,7 +25,7 @@ export const checkRateLimit = async (event: H3Event, identifier: string) => {
     if (idData && idData.resetAt > now) {
       if (idData.count >= IDENTIFIER_LIMIT) {
         const retryAfter = idData.resetAt - now;
-        setResponseHeader(event, 'Retry-After', retryAfter.toString());
+        setResponseHeader(event, 'Retry-After', retryAfter);
         throw createError({
           statusCode: 429,
           statusMessage: 'Too many requests. Please try again later.',
@@ -41,7 +41,7 @@ export const checkRateLimit = async (event: H3Event, identifier: string) => {
     if (ipData && ipData.resetAt > now) {
       if (ipData.count >= IP_LIMIT) {
         const retryAfter = ipData.resetAt - now;
-        setResponseHeader(event, 'Retry-After', retryAfter.toString());
+        setResponseHeader(event, 'Retry-After', retryAfter);
         throw createError({
           statusCode: 429,
           statusMessage: 'Too many requests from this IP. Please try again later.',

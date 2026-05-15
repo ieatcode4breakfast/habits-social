@@ -10,11 +10,6 @@
 - **Issue:** The sync engine doesn't fetch metadata for habits owned by friends, even if they are in a shared bucket.
 - **Fix:** Expand sync queries to include habits where the user is an accepted bucket member.
 
-### 5. Missing Rate Limiting on Auth - DEFERRED
-- **Location:** `server/api/auth/login.post.ts`
-- **Issue:** Vulnerability to credential stuffing and brute-force attacks.
-- **Fix:** Implement rate limiting middleware for auth routes.
-
 ### 6. Missing API for Accepting Shared Habits - DEFERRED
 - **Location:** `server/services/bucket.service.ts`
 - **Issue:** No endpoint exists for a user to accept a friend's habit invitation into their bucket.

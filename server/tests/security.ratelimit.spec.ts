@@ -6,8 +6,20 @@ describe('Security: Auth Rate Limiting', () => {
   let loginHandler: any;
   let registerHandler: any;
   let testUser: any;
+  const { mockCompare } = vi.hoisted(() => ({
+    mockCompare: vi.fn()
+  }));
+
+  vi.mock('bcrypt-ts', async (importOriginal) => {
+    const actual = await importOriginal() as any;
+    return {
+      ...actual,
+      compare: (p: string, h: string) => mockCompare(p, h)
+    };
+  });
 
   beforeAll(async () => {
+    mockCompare.mockImplementation(async () => false); // Default to failure
     loginHandler = (await import('../api/auth/login.post')).default;
     registerHandler = (await import('../api/auth/register.post')).default;
     testUser = await createTestUser(`ratelimit_${Date.now() % 1000000}`, `ratelimit_${Date.now()}@ex.com`);
@@ -68,16 +80,33 @@ describe('Security: Auth Rate Limiting', () => {
   it('should block an IP after 50 attempts even if identifiers are different (volumetric check)', async () => {
     const ip = '4.4.4.4';
     
-    // We mock the storage to simulate 50 attempts
-    // Or we just run it in a loop if it's fast enough. 
-    // Since we use bcrypt-ts, it might be slow. 
-    // Let's assume we implement the logic correctly.
+    // Ensure bcrypt is fast for the loop
+    mockCompare.mockImplementation(async () => false);
+
+    // Perform 50 attempts from the same IP with different identifiers
+    for (let i = 0; i < 50; i++) {
+      const body = { identifier: `user_${i}_${Date.now()}@ex.com`, password: 'password' };
+      const event = createMockEvent('', body, {}, {}, {}, 'POST', ip);
+      await expect(loginHandler(event)).rejects.toThrow();
+    }
+
+    // 51st attempt from SAME IP with a different identifier should be blocked (429)
+    const body51 = { identifier: `user_51_${Date.now()}@ex.com`, password: 'password' };
+    const event51 = createMockEvent('', body51, {}, {}, {}, 'POST', ip);
+    try {
+      await loginHandler(event51);
+    } catch (error: any) {
+      expect(error.statusCode).toBe(429);
+      expect(error.statusMessage).toContain('Too many requests from this IP');
+    }
   });
 
   it('should reset identifier counter on successful login', async () => {
     const identifier = testUser.email;
     const bodyWrong = { identifier, password: 'wrongpassword' };
     const bodyCorrect = { identifier, password: 'password123' };
+
+    mockCompare.mockImplementation(async (p) => p === 'password123');
 
     // 4 failed attempts
     for (let i = 0; i < 4; i++) {
@@ -96,10 +125,50 @@ describe('Security: Auth Rate Limiting', () => {
   });
 
   it('should provide Retry-After header on 429', async () => {
-    // ... test for header
+    const identifier = `retry_${Date.now()}@ex.com`;
+    const body = { identifier, password: 'wrong' };
+
+    // Hit the limit
+    for (let i = 0; i < 5; i++) {
+      const event = createMockEvent('', body, {}, {}, {}, 'POST', '6.6.6.6');
+      await expect(loginHandler(event)).rejects.toThrow();
+    }
+
+    // 6th attempt
+    const event6 = createMockEvent('', body, {}, {}, {}, 'POST', '6.6.6.6');
+    try {
+      await loginHandler(event6);
+    } catch (error: any) {
+      expect(error.statusCode).toBe(429);
+      expect(event6._headers).toBeDefined();
+      expect(event6._headers['retry-after']).toBeDefined();
+      const retryAfter = parseInt(event6._headers['retry-after']);
+      expect(retryAfter).toBeGreaterThan(0);
+      expect(retryAfter).toBeLessThanOrEqual(900);
+    }
   });
 
   it('should fail-closed if storage throws error', async () => {
-    // ... mock storage to throw
+    const originalUseStorage = (global as any).useStorage;
+    (global as any).useStorage = vi.fn().mockImplementation(() => {
+      return {
+        getItem: () => { throw new Error('KV storage failure'); },
+        setItem: () => { throw new Error('KV storage failure'); },
+        removeItem: () => { throw new Error('KV storage failure'); },
+        clear: () => { throw new Error('KV storage failure'); }
+      };
+    });
+
+    try {
+      const identifier = 'error@ex.com';
+      const body = { identifier, password: 'password' };
+      const event = createMockEvent('', body, {}, {}, {}, 'POST', '7.7.7.7');
+      await expect(loginHandler(event)).rejects.toMatchObject({
+        statusCode: 500,
+        statusMessage: expect.stringContaining('Internal security error')
+      });
+    } finally {
+      (global as any).useStorage = originalUseStorage;
+    }
   });
 });

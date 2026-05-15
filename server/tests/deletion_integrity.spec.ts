@@ -53,8 +53,8 @@ describe('Security & Sync Deletion Integrity', () => {
         
         const delRes = await db.select().from(syncDeletions).where(eq(syncDeletions.entityId, habitToDelete.id));
         expect(delRes.length).toBe(1);
-        expect(delRes[0].ownerId).toBe(userA.id);
-        expect(delRes[0].entityType).toBe('habit');
+        expect(delRes[0]!.ownerId).toBe(userA.id);
+        expect(delRes[0]!.entityType).toBe('habit');
     });
   });
 
@@ -79,8 +79,8 @@ describe('Security & Sync Deletion Integrity', () => {
         
         const delRes = await db.select().from(syncDeletions).where(eq(syncDeletions.entityId, bucketToDelete.id));
         expect(delRes.length).toBe(1);
-        expect(delRes[0].ownerId).toBe(userA.id);
-        expect(delRes[0].entityType).toBe('bucket');
+        expect(delRes[0]!.ownerId).toBe(userA.id);
+        expect(delRes[0]!.entityType).toBe('bucket');
     });
   });
 
@@ -96,7 +96,7 @@ describe('Security & Sync Deletion Integrity', () => {
       expect(error?.statusCode).toBe(403);
       
       const bRes = await db.select().from(buckets).where(eq(buckets.id, bucketA.id));
-      expect(bRes[0].title).toBe('User A Bucket');
+      expect(bRes[0]!.title).toBe('User A Bucket');
     });
   });
 
@@ -113,7 +113,7 @@ describe('Security & Sync Deletion Integrity', () => {
       ));
       
       expect(delRes.length).toBe(1);
-      expect(delRes[0].ownerId).toBe(userA.id);
+      expect(delRes[0]!.ownerId).toBe(userA.id);
     });
   });
 });
