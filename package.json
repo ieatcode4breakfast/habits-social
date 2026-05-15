@@ -37,6 +37,7 @@
     "@types/node": "^25.6.0",
     "@vite-pwa/nuxt": "^1.1.1",
     "@vitest/ui": "^4.1.5",
+    "@vue/language-core": "^3.2.9",
     "@vue/test-utils": "^2.4.10",
     "drizzle-kit": "^0.31.10",
     "drizzle-orm": "^0.45.2",
