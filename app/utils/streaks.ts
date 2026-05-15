@@ -2,7 +2,7 @@ import { parseISO, startOfDay, differenceInDays } from 'date-fns';
 import { db } from './db';
 import type { LocalHabit, LocalBucket } from './db';
 
-import { calculateStreakFromLogs } from '~~/utils/habits';
+import { calculateStreakFromLogs } from '../../utils/habits';
 
 
 // Helper to port logic

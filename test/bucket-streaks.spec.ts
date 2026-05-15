@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import 'fake-indexeddb/auto';
-import { db } from '~/utils/db';
-import { recalculateLocalBucketStreak } from '~/utils/streaks';
+import { db } from '../app/utils/db';
+import { recalculateLocalBucketStreak } from '../app/utils/streaks';
 
 const OWNER_ID = 'test-user-id';
 const BUCKET_ID = 'bucket-1';

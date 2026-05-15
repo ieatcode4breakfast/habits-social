@@ -1,5 +1,5 @@
 import Dexie, { type Table } from 'dexie';
-import type { Habit, HabitLog, Bucket, BucketLog } from '~/composables/useHabitsApi';
+import type { Habit, HabitLog, Bucket, BucketLog } from '../composables/useHabitsApi';
 
 // Extend the types to include local sync metadata
 export interface LocalHabit extends Habit {
