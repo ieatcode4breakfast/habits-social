@@ -83,17 +83,7 @@ export const SocialService = {
     return friendship;
   },
 
-  async removeFriendship(db: any, userId: string, id: string, event: any) {
-    const friendshipsRes = await db.select()
-      .from(friendshipsTable)
-      .where(eq(friendshipsTable.id, id));
-    
-    if (friendshipsRes.length === 0) return false;
-
-    const friendship = friendshipsRes[0];
-    const u1 = friendship.initiatorId;
-    const u2 = friendship.receiverId;
-
+  async cleanupFriendshipData(db: any, u1: string, u2: string) {
     // Cascade 'removed' status for cross-owned bucket habits
     const affected = await db.execute(sql`
       UPDATE bucket_habits bh
@@ -129,6 +119,20 @@ export const SocialService = {
     await db.update(habitLogs)
       .set({ sharedWith: sql`array_remove(shared_with, ${u1})` })
       .where(eq(habitLogs.ownerId, u2));
+  },
+
+  async removeFriendship(db: any, userId: string, id: string, event: any) {
+    const friendshipsRes = await db.select()
+      .from(friendshipsTable)
+      .where(eq(friendshipsTable.id, id));
+    
+    if (friendshipsRes.length === 0) return false;
+
+    const friendship = friendshipsRes[0];
+    const u1 = friendship.initiatorId;
+    const u2 = friendship.receiverId;
+
+    await this.cleanupFriendshipData(db, u1, u2);
 
     await db.delete(friendshipsTable).where(eq(friendshipsTable.id, id));
 
