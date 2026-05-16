@@ -15,16 +15,12 @@ export const BucketService = {
           ownerId: userId,
           date: data.date,
           status: data.status,
-          streakCount: data.streakCount ?? 0,
-          brokenStreakCount: data.brokenStreakCount ?? 0,
           updatedAt: new Date()
         })
         .onConflictDoUpdate({
           target: bucketLogs.id,
           set: {
             status: data.status,
-            streakCount: data.streakCount ?? 0,
-            brokenStreakCount: data.brokenStreakCount ?? 0,
             updatedAt: new Date()
           },
           where: eq(bucketLogs.ownerId, userId)

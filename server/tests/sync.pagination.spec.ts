@@ -1,5 +1,5 @@
 import './setup';
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { SyncService } from '../services/sync.service';
 import { 
   createTestUser, 
@@ -16,6 +16,16 @@ describe('Sync V2: Pagination & Integrity', () => {
   beforeEach(async () => {
     testUser = await createTestUser(`sync_pagination_${Date.now()}`, `pagination_${Date.now()}@example.com`);
   });
+
+  afterEach(async () => {
+    if (testUser?.id) {
+      const { eq } = await import('drizzle-orm');
+      const { users } = await import('../db/schema');
+      await db.delete(habitsTable).where(eq(habitsTable.ownerId, testUser.id));
+      await db.delete(users).where(eq(users.id, testUser.id));
+    }
+  });
+
 
   describe('Topological Suppression', () => {
     it('should NOT return habit logs if parent habits have more pages pending', async () => {

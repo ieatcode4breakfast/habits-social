@@ -1,5 +1,5 @@
 import './setup';
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { SyncService } from '../services/sync.service';
 import { 
   createTestUser, 
@@ -8,8 +8,8 @@ import {
   createTestDeletion,
   db 
 } from './test.utils';
-import { sql, inArray } from 'drizzle-orm';
-import { habits as habitsTable } from '../db/schema';
+import { sql, inArray, eq } from 'drizzle-orm';
+import { habits as habitsTable, users } from '../db/schema';
 
 describe('Sync V2: Paginated Sync', () => {
   let testUser: any;
@@ -17,6 +17,14 @@ describe('Sync V2: Paginated Sync', () => {
   beforeEach(async () => {
     testUser = await createTestUser(`sync_v2_${Date.now()}`, `v2_${Date.now()}@example.com`);
   });
+
+  afterEach(async () => {
+    if (testUser?.id) {
+      await db.delete(habitsTable).where(eq(habitsTable.ownerId, testUser.id));
+      await db.delete(users).where(eq(users.id, testUser.id));
+    }
+  });
+
 
   describe('Pagination & Cursors', () => {
     it('should paginate habits correctly and return a dictionary cursor', { timeout: 30000 }, async () => {

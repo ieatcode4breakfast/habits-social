@@ -15,5 +15,5 @@ export default defineEventHandler(async (event) => {
 
   const query = validation.data;
 
-  return await SyncService.getDeltas(db, userId, query);
+  return await SyncService.getPaginatedDeltas(db, userId, query);
 });

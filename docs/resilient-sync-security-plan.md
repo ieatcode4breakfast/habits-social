@@ -17,7 +17,25 @@
   - `habitSchema` `sharedWith` array limit.
 - **Verified** that all 61 test files and 212 tests pass successfully.
 
+### Phase 2: Payload Minimization in One-by-One Sync
+- **Stripped derived streak fields** from client payloads in `useHabitsApi.ts` to reduce bandwidth.
+- **Updated server Zod schemas** in `validation.ts` to omit derived fields on input.
+- **Removed streak mapping** in `habit.service.ts` and `bucket.service.ts` to prevent overwriting server calculations.
+- **Added tests** in `useHabitsApi.payload.spec.ts` and `validation.schema.spec.ts`.
+
+### Phase 2.1: Habit Limit Enforcement
+- **Added a strict limit of 30 habits** per user in `HabitService.createHabit` to prevent DB bloat.
+- **Created test file** `habits.limit.spec.ts` to verify the limit (TDD approach).
+
+### Phase 3: Improved Limit Enforcement & Toasts
+- **Refactored limit checks** in `habit.service.ts` and `server/api/buckets/index.ts` to lock the parent user record (`FOR UPDATE`) to serialize operations and strictly enforce quotas.
+- **Allowed updates** to existing habits and buckets even when the user is at the limit (30 habits / 50 buckets).
+- **Added structured error codes** (`HABIT_LIMIT_REACHED` and `BUCKET_LIMIT_REACHED`) in backend responses.
+- **Implemented specific toasts** in the frontend (`useHabitsApi.ts`) to inform users when sync fails due to limits.
+- **Added unit tests** in `buckets.limit.spec.ts` and updated `useHabitsApi.payload.spec.ts` to verify these behaviors.
+
 ---
+
 
 
 

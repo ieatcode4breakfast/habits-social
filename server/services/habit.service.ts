@@ -1,5 +1,5 @@
 import { eq, and, or, sql, inArray } from 'drizzle-orm';
-import { habitLogs, habits as habitsTable, bucketHabits, shareEvents, syncDeletions, friendships } from '~~/server/db/schema';
+import { habitLogs, habits as habitsTable, bucketHabits, shareEvents, syncDeletions, friendships, users } from '~~/server/db/schema';
 import { recalculateHabitStreak } from '~~/server/utils/streaks';
 import { syncBucketLogsForHabit, reevaluateMultipleBuckets } from '~~/server/utils/buckets';
 import { markBucketHabitsRemoved } from '~~/server/utils/shared-buckets';
@@ -19,8 +19,6 @@ export const HabitService = {
             date: data.date,
             status: data.status,
             sharedWith: data.sharedWith || [],
-            streakCount: data.streakCount ?? 0,
-            brokenStreakCount: data.brokenStreakCount ?? 0,
             updatedAt: new Date()
           })
           .onConflictDoUpdate({
@@ -28,8 +26,6 @@ export const HabitService = {
             set: {
               status: data.status,
               sharedWith: data.sharedWith || [],
-              streakCount: data.streakCount ?? 0,
-              brokenStreakCount: data.brokenStreakCount ?? 0,
               updatedAt: new Date()
             },
             where: eq(habitLogs.ownerId, userId)
@@ -76,6 +72,24 @@ export const HabitService = {
     const habitId = data.id || crypto.randomUUID();
 
     const result = await db.transaction(async (tx: any) => {
+      // Lock parent user record to prevent phantom reads
+      await tx.select({ id: users.id }).from(users).where(eq(users.id, userId)).for('update');
+
+      // Fetch existing habits to check existence and count
+      const userHabits = await tx.select({ id: habitsTable.id })
+        .from(habitsTable)
+        .where(eq(habitsTable.ownerId, userId));
+      
+      const exists = userHabits.some((h: any) => h.id === habitId);
+      
+      if (!exists && userHabits.length >= 30) {
+        throw createError({ 
+          statusCode: 400, 
+          statusMessage: 'Habit limit of 30 reached',
+          data: { code: 'HABIT_LIMIT_REACHED' } 
+        });
+      }
+
       // Friendship Guard: Sanitize sharedWith list
       let sanitizedSharedWith = data.sharedWith || [];
       if (sanitizedSharedWith.length > 0) {

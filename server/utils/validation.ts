@@ -75,7 +75,7 @@ export const habitSchema = createInsertSchema(schema.habits, {
   color: zColor.optional().default('#6366f1'),
   sharedWith: zStandardArray(zId).optional().default([]),
   sortOrder: z.number().int().optional().default(0)
-}).omit({ ownerId: true, createdAt: true, updatedAt: true });
+}).omit({ ownerId: true, createdAt: true, updatedAt: true, currentStreak: true, longestStreak: true, streakAnchorDate: true });
 
 
 export const habitUpdateSchema = habitSchema.partial();
@@ -85,10 +85,8 @@ export const habitLogSchema = createInsertSchema(schema.habitLogs, {
   date: zDateString,
 
   status: z.enum(['completed', 'skipped', 'failed', 'cleared', 'vacation']),
-  sharedWith: zStandardArray(zId).optional().default([]),
-  streakCount: z.number().int().min(0).optional().default(0),
-  brokenStreakCount: z.number().int().min(0).optional().default(0)
-}).omit({ ownerId: true, updatedAt: true });
+  sharedWith: zStandardArray(zId).optional().default([])
+}).omit({ ownerId: true, updatedAt: true, streakCount: true, brokenStreakCount: true });
 
 
 export const bucketSchema = createInsertSchema(schema.buckets, {
@@ -99,7 +97,7 @@ export const bucketSchema = createInsertSchema(schema.buckets, {
   sortOrder: z.number().int().optional().default(0)
 }).extend({
   habitIds: zStandardArray(zId).optional()
-}).omit({ ownerId: true, createdAt: true, updatedAt: true });
+}).omit({ ownerId: true, createdAt: true, updatedAt: true, currentStreak: true, longestStreak: true, streakAnchorDate: true });
 
 
 
@@ -110,10 +108,8 @@ export const bucketLogSchema = createInsertSchema(schema.bucketLogs, {
   id: z.string().optional(),
   date: zDateString,
 
-  status: z.enum(['completed', 'skipped', 'failed', 'cleared', 'vacation']),
-  streakCount: z.number().int().min(0).optional().default(0),
-  brokenStreakCount: z.number().int().min(0).optional().default(0)
-}).omit({ ownerId: true, updatedAt: true });
+  status: z.enum(['completed', 'skipped', 'failed', 'cleared', 'vacation'])
+}).omit({ ownerId: true, updatedAt: true, streakCount: true, brokenStreakCount: true });
 
 
 
@@ -144,14 +140,17 @@ export const bucketReorderSchema = z.object({
 
 export const syncQuerySchema = z.object({
   lastSynced: z.coerce.number().min(0).default(0),
-  startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
-  endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional()
-});
-
-export const syncV2QuerySchema = z.object({
-  lastSynced: z.coerce.number().min(0).default(0),
   limit: z.coerce.number().int().min(0).max(5000).default(50),
-  cursors: z.record(z.string(), z.string()).optional()
+  cursors: z.preprocess((val) => {
+    if (typeof val === 'string') {
+      try {
+        return JSON.parse(val);
+      } catch {
+        return val;
+      }
+    }
+    return val;
+  }, z.record(z.string(), z.string())).optional()
 });
 
 

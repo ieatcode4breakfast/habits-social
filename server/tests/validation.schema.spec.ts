@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { registerSchema, updateProfileSchema, loginSchema, habitSchema } from '../utils/validation';
+import { registerSchema, updateProfileSchema, loginSchema, habitSchema, habitLogSchema, bucketSchema, bucketLogSchema } from '../utils/validation';
 
 
 describe('User Validation Schemas', () => {
@@ -104,5 +104,64 @@ describe('User Validation Schemas', () => {
       expect(result.success).toBe(false);
     });
   });
-});
 
+  describe('habitSchema - Payload Minimization', () => {
+    it('should strip derived fields', () => {
+      const data = {
+        title: 'Habit',
+        currentStreak: 5,
+        longestStreak: 10,
+        streakAnchorDate: '2026-01-01'
+      };
+      const result: any = habitSchema.parse(data);
+      expect(result.currentStreak).toBeUndefined();
+      expect(result.longestStreak).toBeUndefined();
+      expect(result.streakAnchorDate).toBeUndefined();
+    });
+  });
+
+  describe('habitLogSchema - Payload Minimization', () => {
+    it('should strip derived fields', () => {
+      const data = {
+        habitId: '00000000-0000-0000-0000-000000000000',
+        date: '2026-01-01',
+        status: 'completed',
+        streakCount: 5,
+        brokenStreakCount: 2
+      };
+      const result: any = habitLogSchema.parse(data);
+      expect(result.streakCount).toBeUndefined();
+      expect(result.brokenStreakCount).toBeUndefined();
+    });
+  });
+
+  describe('bucketSchema - Payload Minimization', () => {
+    it('should strip derived fields', () => {
+      const data = {
+        title: 'Bucket',
+        currentStreak: 5,
+        longestStreak: 10,
+        streakAnchorDate: '2026-01-01'
+      };
+      const result: any = bucketSchema.parse(data);
+      expect(result.currentStreak).toBeUndefined();
+      expect(result.longestStreak).toBeUndefined();
+      expect(result.streakAnchorDate).toBeUndefined();
+    });
+  });
+
+  describe('bucketLogSchema - Payload Minimization', () => {
+    it('should strip derived fields', () => {
+      const data = {
+        bucketId: '00000000-0000-0000-0000-000000000000',
+        date: '2026-01-01',
+        status: 'completed',
+        streakCount: 5,
+        brokenStreakCount: 2
+      };
+      const result: any = bucketLogSchema.parse(data);
+      expect(result.streakCount).toBeUndefined();
+      expect(result.brokenStreakCount).toBeUndefined();
+    });
+  });
+});

@@ -469,13 +469,21 @@ export const useHabitsApi = () => {
     for (const h of unsyncedHabits) {
       try {
         const isNew = (h as any).synced === 0;
-        const res = isNew ? await client.postHabit(h) : await client.putHabit(h.id, h);
+        const { currentStreak, longestStreak, streakAnchorDate, ...habitPayload } = h;
+        const res = isNew ? await client.postHabit(habitPayload) : await client.putHabit(h.id, habitPayload);
         await db.habits.update(h.id, { synced: 1, id: res.data.id, userDate: res.data.userDate });
       } catch (e: any) {
         if (isConflictError(e)) { await db.habits.update(h.id, { synced: 1 }); continue; }
         const status = e.statusCode || e.response?.status;
         if (status === 404) { await store.deleteHabit(h.id); await store.removeHabitFromBuckets(h.id); }
-        else if (status >= 400 && status < 500 && status !== 429) { await db.habits.update(h.id, { synced: 1 }); showToast("A habit update could not be saved.", "failed"); }
+        else if (status >= 400 && status < 500 && status !== 429) { 
+          await db.habits.update(h.id, { synced: 1 }); 
+          if (e.data?.code === 'HABIT_LIMIT_REACHED') {
+            showToast("Habit limit of 30 reached on the server. Some habits may not sync.", "failed");
+          } else {
+            showToast("A habit update could not be saved.", "failed"); 
+          }
+        }
         else throw e;
       }
     }
@@ -483,7 +491,8 @@ export const useHabitsApi = () => {
     const unsyncedLogs = await db.habitLogs.where('synced').equals(0).filter(l => l.ownerId === currentUserId).toArray();
     for (const l of unsyncedLogs) {
       try {
-        await client.postHabitLog(l);
+        const { streakCount, brokenStreakCount, ...logPayload } = l;
+        await client.postHabitLog(logPayload);
         await db.habitLogs.update(l.id, { synced: 1 });
       } catch (e: any) {
         if (isConflictError(e)) { await db.habitLogs.update(l.id, { synced: 1 }); continue; }
@@ -497,13 +506,21 @@ export const useHabitsApi = () => {
     for (const b of unsyncedBuckets) {
       try {
         const isNew = (b as any).synced === 0;
-        const res = isNew ? await client.postBucket(b) : await client.putBucket(b.id, b);
+        const { currentStreak, longestStreak, streakAnchorDate, ...bucketPayload } = b;
+        const res = isNew ? await client.postBucket(bucketPayload) : await client.putBucket(b.id, bucketPayload);
         await db.buckets.update(b.id, { synced: 1, id: res.data.id });
       } catch (e: any) {
         if (isConflictError(e)) { await db.buckets.update(b.id, { synced: 1 }); continue; }
         const status = e.statusCode || e.response?.status;
         if (status === 404) { await db.buckets.delete(b.id); }
-        else if (status >= 400 && status < 500 && status !== 429) { await db.buckets.update(b.id, { synced: 1 }); showToast("A bucket update could not be saved.", "failed"); }
+        else if (status >= 400 && status < 500 && status !== 429) { 
+          await db.buckets.update(b.id, { synced: 1 }); 
+          if (e.data?.code === 'BUCKET_LIMIT_REACHED') {
+            showToast("Bucket limit of 50 reached on the server. Some buckets may not sync.", "failed");
+          } else {
+            showToast("A bucket update could not be saved.", "failed"); 
+          }
+        }
         else throw e;
       }
     }
@@ -511,7 +528,8 @@ export const useHabitsApi = () => {
     const unsyncedBucketLogs = await db.bucketLogs.where('synced').equals(0).filter(bl => bl.ownerId === currentUserId).toArray();
     for (const bl of unsyncedBucketLogs) {
       try {
-        await client.postBucketLog(bl);
+        const { streakCount, brokenStreakCount, ...logPayload } = bl;
+        await client.postBucketLog(logPayload);
         await db.bucketLogs.update(bl.id, { synced: 1 });
       } catch (e: any) {
         if (isConflictError(e)) { await db.bucketLogs.update(bl.id, { synced: 1 }); continue; }

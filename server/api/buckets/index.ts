@@ -1,5 +1,5 @@
 import { eq, and, or, gte, asc, desc, sql, inArray } from 'drizzle-orm';
-import { buckets as bucketsTable, bucketHabits, habits as habitsTable } from '~~/server/db/schema';
+import { buckets as bucketsTable, bucketHabits, habits as habitsTable, users } from '~~/server/db/schema';
 import { useDB as _useDB } from '~~/server/utils/db';
 import { requireAuth as _requireAuth } from '~~/server/utils/auth';
 import { bucketSchema, throwZodError } from '~~/server/utils/validation';
@@ -60,43 +60,53 @@ export default defineEventHandler(async (event) => {
 
     const data = validation.data;
     
-    // Check bucket limit
-    const existingBuckets = await db.select({ count: sql<number>`count(*)` })
-      .from(bucketsTable)
-      .where(eq(bucketsTable.ownerId, userId));
-    
-    if (existingBuckets[0].count >= 50) {
-      throw createError({ statusCode: 400, statusMessage: 'Bucket limit of 50 reached' });
-    }
-
     const nextSortOrder = data.sortOrder !== undefined ? data.sortOrder : 0;
-
     const bucketId = data.id || crypto.randomUUID();
 
     try {
-      const result = await db.insert(bucketsTable)
-        .values({
-          id: bucketId,
-          ownerId: userId,
-          title: data.title,
-          description: data.description || '',
-          color: data.color || '#6366f1',
-          sortOrder: nextSortOrder,
-          createdAt: new Date(),
-          updatedAt: new Date()
-        })
-        .onConflictDoUpdate({
-          target: bucketsTable.id,
-          set: {
+      const result = await db.transaction(async (tx: any) => {
+        // Lock parent user record to prevent phantom reads
+        await tx.select({ id: users.id }).from(users).where(eq(users.id, userId)).for('update');
+
+        // Fetch existing buckets to check existence and count
+        const userBuckets = await tx.select({ id: bucketsTable.id })
+          .from(bucketsTable)
+          .where(eq(bucketsTable.ownerId, userId));
+        
+        const exists = userBuckets.some((b: any) => b.id === bucketId);
+        
+        if (!exists && userBuckets.length >= 50) {
+          throw createError({ 
+            statusCode: 400, 
+            statusMessage: 'Bucket limit of 50 reached',
+            data: { code: 'BUCKET_LIMIT_REACHED' } 
+          });
+        }
+
+        return await tx.insert(bucketsTable)
+          .values({
+            id: bucketId,
+            ownerId: userId,
             title: data.title,
             description: data.description || '',
             color: data.color || '#6366f1',
             sortOrder: nextSortOrder,
+            createdAt: new Date(),
             updatedAt: new Date()
-          },
-          where: eq(bucketsTable.ownerId, userId)
-        })
-        .returning();
+          })
+          .onConflictDoUpdate({
+            target: bucketsTable.id,
+            set: {
+              title: data.title,
+              description: data.description || '',
+              color: data.color || '#6366f1',
+              sortOrder: nextSortOrder,
+              updatedAt: new Date()
+            },
+            where: eq(bucketsTable.ownerId, userId)
+          })
+          .returning();
+      });
 
       const newBucket = result[0];
       if (!newBucket) {

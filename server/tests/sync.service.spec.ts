@@ -1,5 +1,5 @@
 import './setup';
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { SyncService } from '../services/sync.service';
 import { createTestUser, createTestHabit, createTestBucket, deleteTestUser, db } from './test.utils';
 import * as schema from '../db/schema';
@@ -11,6 +11,17 @@ describe('SyncService', () => {
   beforeEach(async () => {
     testUser = await createTestUser(`sync_user_${Date.now()}`, `sync_${Date.now()}@example.com`);
   });
+
+  afterEach(async () => {
+    if (testUser?.id) {
+      const { eq } = await import('drizzle-orm');
+      await db.delete(schema.bucketHabits).where(eq(schema.bucketHabits.addedBy, testUser.id));
+      await db.delete(schema.buckets).where(eq(schema.buckets.ownerId, testUser.id));
+      await db.delete(schema.habits).where(eq(schema.habits.ownerId, testUser.id));
+      await db.delete(schema.users).where(eq(schema.users.id, testUser.id));
+    }
+  });
+
 
   it('should return empty deltas for a new user with lastSynced=0', async () => {
     const res = await SyncService.getDeltas(db, testUser.id, { lastSynced: 0 });

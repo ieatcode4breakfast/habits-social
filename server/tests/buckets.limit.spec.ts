@@ -40,4 +40,24 @@ describe('POST /api/buckets - Limit Enforcement', () => {
     const event51 = createMockEvent(testUser.id, { title: 'Bucket 51' }, {}, {}, {}, 'POST');
     await expect(handler(event51)).rejects.toThrow(/Bucket limit of 50 reached/i);
   });
+
+  it('should allow updating an existing bucket when at the limit of 50', async () => {
+    const existing = await db.select()
+      .from(bucketsTable)
+      .where(eq(bucketsTable.ownerId, testUser.id))
+      .limit(1);
+    
+    expect(existing.length).toBe(1);
+    const bucketToUpdate = existing[0]!;
+
+
+    const eventUpdate = createMockEvent(testUser.id, { 
+      id: bucketToUpdate.id, 
+      title: 'Updated Bucket Title' 
+    }, {}, {}, {}, 'POST');
+    
+    const resUpdate = await handler(eventUpdate);
+    expect(resUpdate.data.title).toBe('Updated Bucket Title');
+  });
 });
+
