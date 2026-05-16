@@ -40,3 +40,14 @@ describe('PUT /api/friendships/[id]', () => {
   });
 });
 
+describe('POST /api/friendships', () => {
+  it('should reject creating a friendship with yourself', async () => {
+    const createHandler = (await import('../api/friendships/index')).default;
+    const userC = await createTestUser(`friend_self_${Date.now()}`, `fs_${Date.now()}@ex.com`);
+    const event = createMockEvent(userC.id, { targetUserId: userC.id }, {}, {}, {}, 'POST');
+    
+    await expect(createHandler(event)).rejects.toThrow(/You cannot friend yourself/i);
+    await deleteTestUser(userC.id);
+  });
+});
+

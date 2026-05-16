@@ -6,6 +6,10 @@ import { usePusher } from '~~/server/utils/pusher';
 
 export const SocialService = {
   async createFriendship(db: any, initiatorId: string, targetUserId: string, event: any) {
+    if (initiatorId === targetUserId) {
+      throw createError({ statusCode: 400, statusMessage: 'You cannot friend yourself' });
+    }
+
     const result = await db.insert(friendshipsTable)
       .values({
         id: crypto.randomUUID(),

@@ -40,14 +40,14 @@ export const insertUserSchema = createInsertSchema(schema.users, {
   username: z.string().min(3).max(20),
   email: z.string().email(),
   passwordHash: z.string().min(8).max(72),
-  photoUrl: z.string().url().or(z.literal('')).nullable().optional()
+  photoUrl: z.string().url().max(2048).or(z.literal('')).nullable().optional()
 });
 
 export const registerSchema = z.object({
   username: z.string().min(3).max(20),
   email: z.string().email(),
   password: zPassword,
-  photoUrl: z.string().url().or(z.literal('')).nullable().optional()
+  photoUrl: z.string().url().max(2048).or(z.literal('')).nullable().optional()
 });
 
 export const loginSchema = z.object({
@@ -60,7 +60,7 @@ export const updateProfileSchema = z.object({
   username: z.string().min(3).max(20).optional(),
   email: z.string().email().optional(),
   password: z.string().min(8).max(72).optional(),
-  photoUrl: z.string().url().or(z.literal('')).nullable().optional()
+  photoUrl: z.string().url().max(2048).or(z.literal('')).nullable().optional()
 }).refine(data => Object.keys(data).length > 0, {
   message: "At least one field must be provided"
 });
@@ -126,7 +126,7 @@ export const favoriteSchema = z.object({
 export const shareHabitsSchema = z.object({
   targetUserId: zId,
   habitIds: zStandardArray(zId),
-  userDate: z.string().optional()
+  userDate: zDateString.optional()
 });
 
 export const habitReorderSchema = z.object({
@@ -143,6 +143,9 @@ export const syncQuerySchema = z.object({
   limit: z.coerce.number().int().min(0).max(5000).default(50),
   cursors: z.preprocess((val) => {
     if (typeof val === 'string') {
+      if (val.length > 2048) {
+        throw new Error('Payload too large');
+      }
       try {
         return JSON.parse(val);
       } catch {
@@ -150,7 +153,7 @@ export const syncQuerySchema = z.object({
       }
     }
     return val;
-  }, z.record(z.string(), z.string())).optional()
+  }, z.record(z.string().max(100), z.string().max(100))).refine(val => Object.keys(val).length <= 10, { message: "Too many cursor entries" }).optional()
 });
 
 
