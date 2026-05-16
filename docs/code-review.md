@@ -32,18 +32,23 @@
 
 ## 📝 NOTES
 
-### 1. Habit-Level Privacy Policy (By Design)
+### 1. Payload Size Limits (By Design)
+It is a deliberate architectural decision to omit application-layer payload size limits (e.g., Zod `.max()` on massive strings or custom stream wrappers).
+- Adding complex application-layer stream parsing to counteract memory exhaustion (OOM) introduces unnecessary abstraction overhead for a hobby project.
+- If the application scales and requires robust DoS protection, we will solve it at the infrastructure layer by upgrading the Cloudflare WAF plan (Business/Enterprise) to utilize native `http.request.body.size` checks or regex-based header filtering.
+
+### 2. Habit-Level Privacy Policy (By Design)
 It is a core architectural decision that **Sharing a Habit = Sharing all its Logs**. 
 - The `shared_with` column on `habit_logs` is deprecated and intentionally ignored by the API layer.
 - Visibility is controlled exclusively by the `habits.shared_with` array.
 - **DO NOT FLAG** "Missing hl.shared_with checks" in future audits; authorization is intentionally centralized at the parent object for data integrity and simplicity.
 
-### 2. Local-First Timestamp Integrity (By Design)
+### 3. Local-First Timestamp Integrity (By Design)
 The frontend manages its own `updatedAt` timestamps locally to maintain optimistic UI state and local-first reconciliation logic.
 - **DO NOT SUGGEST** changing how the client handles these timestamps or replacing them with server-assigned values during local operations.
 - The server's use of `CLOCK_TIMESTAMP()` is strictly for backend-side sync anchors and database reconciliation.
 
-### 3. Service-Layer Ownership Checks (By Design for Security)
+### 4. Service-Layer Ownership Checks (By Design for Security)
 The ownership checks in `HabitService.logHabit` and `BucketService.logBucket` (specifically the `where` clause in `onConflictDoUpdate`) are **not redundant**.
 - The API layer only validates that the user owns the `habitId` or `bucketId`.
 - Since the schemas allow client-provided log `id`s, an attacker could target an existing log ID belonging to another user.

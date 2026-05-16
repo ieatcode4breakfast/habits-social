@@ -1,4 +1,5 @@
 import { eq, and, or, sql, inArray, desc } from 'drizzle-orm';
+import { format } from 'date-fns';
 import { friendships as friendshipsTable, habitLogs, habits as habitsTable, users, shareEvents } from '~~/server/db/schema';
 import { useDB as _useDB } from '~~/server/utils/db';
 import { requireAuth as _requireAuth } from '~~/server/utils/auth';
@@ -36,6 +37,8 @@ export default defineEventHandler(async (event) => {
     ? sql`AND (sort_date, sort_timestamp, id) < (${cursorDate}, ${cursorTimestamp}::timestamptz, ${cursorId})`
     : sql``;
 
+  const todayString = format(new Date(), 'yyyy-MM-dd');
+
   const engineQuery = sql`
     WITH friend_list AS (
       SELECT unnest(ARRAY[${sql.join(friendIds.map(id => sql`${id}::uuid`), sql`, `)}]) as friend_id
@@ -66,6 +69,17 @@ export default defineEventHandler(async (event) => {
       WHERE hl.owner_id = f.friend_id
         AND (${userId}::text = ANY(h.shared_with) OR hl.owner_id = ${userId}::uuid)
         ${cursorCondition}
+        AND (
+          hl.date >= ${todayString}
+          OR hl.broken_streak_count > 1
+          OR (
+            hl.streak_count > 1 AND (
+              hl.streak_count IN (2, 3, 4, 5, 7, 14, 21, 30, 60, 90, 100, 180, 300)
+              OR hl.streak_count % 365 = 0
+              OR (hl.streak_count > 365 AND MOD(hl.streak_count, 365) IN (5, 7, 14, 21, 30, 60, 90, 100, 180, 300))
+            )
+          )
+        )
       
       UNION ALL
 
