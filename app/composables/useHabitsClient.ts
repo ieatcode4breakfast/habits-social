@@ -51,9 +51,13 @@ export const useHabitsClient = () => {
     return await $fetch<SyncResponse>('/api/sync', { query: params });
   };
 
+  const postBulkSync = async (payload: { operations: any[] }) => {
+    return await $fetch<{ success: string[], failed: { id: string, code: string }[] }>('/api/sync/bulk', { method: 'POST', body: payload });
+  };
+
   return {
     fetchHabits, postHabit, putHabit, deleteHabit, postReorderHabits,
     postHabitLog, postBucket, putBucket, deleteBucket, postReorderBuckets,
-    postBucketLog, fetchSync
+    postBucketLog, fetchSync, postBulkSync
   };
 };

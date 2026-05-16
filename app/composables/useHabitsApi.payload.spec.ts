@@ -28,6 +28,7 @@ const mockClient = {
   deleteBucket: vi.fn(),
   postReorderBuckets: vi.fn(),
   postBucketLog: vi.fn(),
+  postBulkSync: vi.fn().mockResolvedValue({ success: [], failed: [] }),
 };
 
 const mockStore = {
@@ -137,6 +138,12 @@ describe('useHabitsApi - Payload Minimization', () => {
     // Reset defaults for mocks that return chainable objects
     mockCollection.toArray.mockResolvedValue([]);
     mockCollection.filter.mockReturnValue(mockCollection);
+    
+    // Reset where mocks to prevent state leak between tests
+    (db.habits.where as any).mockReturnValue(mockWhere);
+    (db.buckets.where as any).mockReturnValue(mockWhere);
+    (db.habitLogs.where as any).mockReturnValue(mockWhere);
+    (db.bucketLogs.where as any).mockReturnValue(mockWhere);
   });
 
   it('sync() strips derived fields from habits before pushing', async () => {
