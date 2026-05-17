@@ -24,6 +24,20 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      # 1. Run Unit/Integration Tests (Requires Neon Test DB)
+      - name: Run unit and integration tests
+        run: npm test
+        env:
+          DATABASE_URL: ${{ secrets.TEST_DATABASE_URL }}
+
+      # 2. Install Playwright for E2E
+      - name: Install Playwright Browsers
+        run: npx playwright install --with-deps
+
+      # 3. Run E2E Tests (Validates Security Headers)
+      - name: Run E2E tests
+        run: npm run test:e2e
+
       - name: Build Nuxt app
         run: npm run build
 
