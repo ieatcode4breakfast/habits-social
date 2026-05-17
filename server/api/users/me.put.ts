@@ -76,7 +76,15 @@ export default defineEventHandler(async (event) => {
       updatedAt: new Date()
     })
     .where(eq(users.id, userId))
-    .returning();
+    .returning({
+      id: users.id,
+      email: users.email,
+      username: users.username,
+      photoUrl: users.photoUrl,
+      emailVerifiedAt: users.emailVerifiedAt,
+      createdAt: users.createdAt,
+      updatedAt: users.updatedAt
+    });
 
   return { data: result[0] };
 });

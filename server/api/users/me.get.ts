@@ -10,7 +10,15 @@ export default defineEventHandler(async (event) => {
   const userId = await requireAuth(event);
   const db = useDB(event);
 
-  const results = await db.select()
+  const results = await db.select({
+    id: users.id,
+    email: users.email,
+    username: users.username,
+    photoUrl: users.photoUrl,
+    emailVerifiedAt: users.emailVerifiedAt,
+    createdAt: users.createdAt,
+    updatedAt: users.updatedAt
+  })
     .from(users)
     .where(eq(users.id, userId));
   

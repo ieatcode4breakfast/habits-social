@@ -29,6 +29,7 @@ describe('GET /api/users/me', () => {
     expect(response.data!.email).toBe(testUser.email);
     expect(response.data!).toHaveProperty('photoUrl');
     expect(response.data!).toHaveProperty('createdAt');
+    expect(response.data!).not.toHaveProperty('passwordHash');
   });
 
   it('should throw 401 if unauthorized', async () => {

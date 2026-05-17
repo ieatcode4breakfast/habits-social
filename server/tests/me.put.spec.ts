@@ -25,6 +25,7 @@ describe('PUT /api/users/me', () => {
 
     const response = (await handler(event)) as any;
     expect(response.data!.username).toBe(newUsername);
+    expect(response.data!).not.toHaveProperty('passwordHash');
     testUser.username = newUsername; // Update local ref for subsequent tests
   });
 
