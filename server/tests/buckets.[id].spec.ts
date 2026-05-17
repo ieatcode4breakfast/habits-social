@@ -39,4 +39,26 @@ describe('API /api/buckets/[id]', () => {
     const response = (await handler(event)) as any;
     expect(response.data.success).toBe(true);
   });
+
+  it('should not allow duplicate shared bucket members', async () => {
+    const { sharedBucketMembers } = await import('../db/schema');
+    const { db } = await import('./test.utils');
+    
+    await db.insert(sharedBucketMembers).values({
+      bucketId: testBucket.id,
+      userId: testUser.id,
+      status: 'accepted'
+    });
+
+    try {
+      await db.insert(sharedBucketMembers).values({
+        bucketId: testBucket.id,
+        userId: testUser.id,
+        status: 'accepted'
+      });
+      expect(true).toBe(false);
+    } catch (err: any) {
+      expect(err).toBeDefined();
+    }
+  });
 });

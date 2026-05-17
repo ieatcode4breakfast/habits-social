@@ -5,21 +5,9 @@
 ## 🔴 CRITICAL ISSUES (Must fix before deployment)
 *Security breaches, data leaks, authorization bypasses, and production-breaking defects.*
 
-### 3. Stack Trace and Error Message Leaked to Client
-- **Location:** `server/api/social/feed.get.ts:149-153`
-- **Issue:** The catch block returns `err.message` and `err.stack` in the `data` field of the error response. This exposes internal file paths, query structure, library versions, and potentially database schema info to any user who triggers an error.
-- **Fix:** Remove the `data` field entirely:
-  ```ts
-  // feed.get.ts — replace lines 149-153
-  throw createError({
-    statusCode: 500,
-    statusMessage: 'Internal Server Error'
-  });
-  ```
-
-### 4. `sharedBucketMembers` Table Has No Primary Key or Unique Constraint
+### 4. `sharedBucketMembers` Table Has No Primary Key or Unique Constraint - DEFERRED
 - **Location:** `server/db/schema.ts:89-95`
-- **Issue:** The table defines `bucketId` + `userId` but has no composite primary key, no unique index, and zero indexes. Concurrent requests can insert duplicate `(bucketId, userId)` rows. Every query filtering by this pair can return multiple rows, causing unpredictable behavior in all shared-bucket logic.
+- **Issue:** The table defines `bucketId` + `userId` but has no composite primary key, no unique index, and zero indexes.Concurrent requests can insert duplicate `(bucketId, userId)` rows. Every query filtering by this pair can return multiple rows, causing unpredictable behavior in all shared-bucket logic.
 - **Fix:** Add a composite primary key (identical pattern to `bucketHabits`):
   ```ts
   // schema.ts — replace lines 89-95

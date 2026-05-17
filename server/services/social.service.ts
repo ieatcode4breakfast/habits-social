@@ -10,16 +10,24 @@ export const SocialService = {
       throw createError({ statusCode: 400, statusMessage: 'You cannot friend yourself' });
     }
 
-    const result = await db.insert(friendshipsTable)
-      .values({
-        id: crypto.randomUUID(),
-        initiatorId,
-        receiverId: targetUserId,
-        status: 'pending',
-        createdAt: new Date(),
-        updatedAt: new Date()
-      })
-      .returning();
+    let result;
+    try {
+      result = await db.insert(friendshipsTable)
+        .values({
+          id: crypto.randomUUID(),
+          initiatorId,
+          receiverId: targetUserId,
+          status: 'pending',
+          createdAt: new Date(),
+          updatedAt: new Date()
+        })
+        .returning();
+    } catch (err: any) {
+      if (err.code === '23505') {
+        throw createError({ statusCode: 409, statusMessage: 'Friendship already exists' });
+      }
+      throw err;
+    }
 
     const friendship = result[0];
     if (friendship) {

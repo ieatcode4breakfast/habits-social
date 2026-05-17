@@ -48,6 +48,36 @@ describe('POST /api/friendships', () => {
     await expect(createHandler(event)).rejects.toThrow(/You cannot friend yourself/i);
     await deleteTestUser(userC.id);
   });
+
+  it('should reject duplicate friendships (same direction)', async () => {
+    const createHandler = (await import('../api/friendships/index')).default;
+    const userX = await createTestUser(`friend_x_${Date.now()}`, `fx_${Date.now()}@ex.com`);
+    const userY = await createTestUser(`friend_y_${Date.now()}`, `fy_${Date.now()}@ex.com`);
+    
+    const event1 = createMockEvent(userX.id, { targetUserId: userY.id }, {}, {}, {}, 'POST');
+    await createHandler(event1);
+
+    const event2 = createMockEvent(userX.id, { targetUserId: userY.id }, {}, {}, {}, 'POST');
+    await expect(createHandler(event2)).rejects.toThrow(/Friendship already exists/i);
+    
+    await deleteTestUser(userX.id);
+    await deleteTestUser(userY.id);
+  });
+
+  it('should reject duplicate friendships (inverse direction)', async () => {
+    const createHandler = (await import('../api/friendships/index')).default;
+    const userX = await createTestUser(`friend_x_${Date.now()}`, `fx_${Date.now()}@ex.com`);
+    const userY = await createTestUser(`friend_y_${Date.now()}`, `fy_${Date.now()}@ex.com`);
+    
+    const event1 = createMockEvent(userX.id, { targetUserId: userY.id }, {}, {}, {}, 'POST');
+    await createHandler(event1);
+
+    const event2 = createMockEvent(userY.id, { targetUserId: userX.id }, {}, {}, {}, 'POST');
+    await expect(createHandler(event2)).rejects.toThrow(/Friendship already exists/i);
+    
+    await deleteTestUser(userX.id);
+    await deleteTestUser(userY.id);
+  });
 });
 
 describe('DELETE /api/friendships/[id]', () => {

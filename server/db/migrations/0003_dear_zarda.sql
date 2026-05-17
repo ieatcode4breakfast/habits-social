@@ -1,0 +1,3 @@
+ALTER TABLE "sync_deletions" ALTER COLUMN "entity_id" SET DATA TYPE text;--> statement-breakpoint
+ALTER TABLE "shared_bucket_members" ADD CONSTRAINT "shared_bucket_members_bucket_id_user_id_pk" PRIMARY KEY("bucket_id","user_id");--> statement-breakpoint
+CREATE UNIQUE INDEX "friendships_user_pair_idx" ON "friendships" USING btree (LEAST("initiator_id", "receiver_id"),GREATEST("initiator_id", "receiver_id"));

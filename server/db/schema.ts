@@ -92,6 +92,10 @@ export const sharedBucketMembers = pgTable('shared_bucket_members', {
   status: text('status').notNull(),
   createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' }).defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true, mode: 'date' }).defaultNow(),
+}, (table) => {
+  return {
+    pk: primaryKey({ columns: [table.bucketId, table.userId] }),
+  };
 });
 
 export const bucketLogs = pgTable('bucket_logs', {
@@ -131,6 +135,13 @@ export const friendships = pgTable('friendships', {
   receiverFavorite: boolean('receiver_favorite').default(false),
   createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' }).defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true, mode: 'date' }).defaultNow(),
+}, (table) => {
+  return {
+    friendshipsUserPairIdx: uniqueIndex('friendships_user_pair_idx').on(
+      sql`LEAST(${table.initiatorId}, ${table.receiverId})`,
+      sql`GREATEST(${table.initiatorId}, ${table.receiverId})`
+    ),
+  };
 });
 
 export const syncDeletions = pgTable('sync_deletions', {
