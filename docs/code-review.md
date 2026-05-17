@@ -5,7 +5,7 @@
 ## 🔴 CRITICAL ISSUES (Must fix before deployment)
 *Security breaches, data leaks, authorization bypasses, and production-breaking defects.*
 
-### 6. Pusher Channels Are Unauthenticated (Public) — Eavesdropping and Injection
+### 1. Pusher Channels Are Unauthenticated (Public) — Eavesdropping and Injection
 - **Location:** `app/composables/useRealtime.ts:19,45,65,89`
 - **Issue:** All channels use the pattern `user-{userId}-social`, `user-{userId}-habits`, `user-{userId}-buckets`. These are public Pusher channels (no `private-` prefix). Any client who knows a user's UUID can subscribe and receive all real-time events (friend requests, habit sync, bucket updates). UUIDs are exposed in API responses, so they are not secret. Additionally, `useSocial.ts:97-142` directly mutates app state from Pusher payloads with no validation — an attacker can publish arbitrary data to a user's channel and manipulate their UI.
 - **Fix (multi-step):**
@@ -14,16 +14,7 @@
   3. Configure the Pusher client to use the auth endpoint.
   4. Validate incoming event payloads against expected shapes before mutating state.
 
-### 7. Nuxt Devtools Enabled Unconditionally in Production
-- **Location:** `nuxt.config.ts:6`
-- **Issue:** `devtools: { enabled: true }` is not gated behind any environment check. In production this exposes the internal component tree, reactive state, route structure, and Pinia stores.
-- **Fix:**
-  ```ts
-  // nuxt.config.ts — replace line 6
-  devtools: { enabled: process.env.NODE_ENV !== 'production' },
-  ```
-
-### 8. No Security Headers Configured for Production
+### 2. No Security Headers Configured for Production
 - **Location:** `nuxt.config.ts:79-87`
 - **Issue:** `routeRules` only set `Cache-Control` and `Vary`. There are zero security headers: no CSP, no HSTS, no `X-Content-Type-Options`, no `X-Frame-Options`, no `Referrer-Policy`. The app is exposed to XSS, clickjacking, MIME sniffing, and downgrade attacks.
 - **Fix:** Add security headers to the catch-all route rule:
@@ -44,17 +35,7 @@
   ```
   The CSP will need tuning for actual asset sources (CDNs, etc.) — test thoroughly after adding.
 
-### 9. CI Pipeline Has No Test Step — Code Deploys Without Validation
-- **Location:** `.github/workflows/deploy.yml:27-28`
-- **Issue:** The pipeline runs `npm ci` -> `npm run build` -> `wrangler deploy`. There is no `npm test` step. Any commit to `main` deploys directly to production without running a single test, despite having Vitest configured.
-- **Fix:** Insert a test step between install and build:
-  ```yaml
-  # deploy.yml — insert after "Install dependencies" step (after line 25)
-  - name: Run tests
-    run: npm test
-  ```
-
-### 10. `cleanupFriendshipData` Runs 5 Mutations Without a Transaction
+### 3. `cleanupFriendshipData` Runs 5 Mutations Without a Transaction
 - **Location:** `server/services/social.service.ts:90-126`, called from `removeFriendship` at line 139
 - **Issue:** This method performs 1 raw SQL UPDATE + 4 Drizzle updates sequentially but not inside a transaction. If any intermediate query fails, data is left in a partially cleaned state (some sharing flags removed, others not). The `removeFriendship` path (line 139-141) also calls cleanup then delete non-atomically — a crash between them leaves orphaned data with no friendship record to reference. (Note: the `UserService.deleteUser` path is safe because it passes a transaction handle.)
 - **Fix:** Wrap the `removeFriendship` logic in a transaction:
@@ -71,17 +52,7 @@
 ## 🟡 WARNINGS (Highly recommended to address)
 *UX failures, data integrity issues, scalability issues, and technical debt.*
 
-### 1. Broken Shared Bucket Sync - DEFERRED
-- **Location:** `server/services/sync.service.ts`
-- **Issue:** The sync engine doesn't fetch metadata for habits owned by friends, even if they are in a shared bucket.
-- **Fix:** Expand sync queries to include habits where the user is an accepted bucket member.
-
-### 2. Missing API for Accepting Shared Habits - DEFERRED
-- **Location:** `server/services/bucket.service.ts`
-- **Issue:** No endpoint exists for a user to accept a friend's habit invitation into their bucket.
-- **Fix:** Create a member status update endpoint.
-
-### 3. No Current Password Required to Change Password
+### 4. No Current Password Required to Change Password
 - **Location:** `server/api/users/me.put.ts:23,62-64`
 - **Issue:** The `password` field in the update body is hashed and saved with no verification of the current password. An attacker with a stolen session token (valid for 7 days with no revocation mechanism) can silently change the victim's password, permanently locking them out.
 - **Fix:** Add a `currentPassword` field to `updateProfileSchema` (required when `password` is provided), fetch the existing hash, and `compare()` before allowing the change:
@@ -100,14 +71,6 @@
   ```
   Update `updateProfileSchema` in `validation.ts` to add `currentPassword: z.string().min(1).optional()`.
 
-### 4. Habits Shared with `pending` (Non-Accepted) Friendships
-- **Location:** `server/services/habit.service.ts:99`, `server/api/social/share-habits.post.ts:28`
-- **Issue:** The friendship guard query filters by `inArray(friendships.status, ['accepted', 'pending'])`. This allows sharing habit data with someone who has a pending friend request — the recipient hasn't consented to the relationship.
-- **Fix:** Change both locations to only allow `'accepted'`:
-  ```ts
-  eq(friendships.status, 'accepted')
-  ```
-
 ### 5. `friend-data.get.ts` Fetches ALL Friend Logs, Filters in JavaScript
 - **Location:** `server/api/social/friend-data.get.ts:45-51,65-80`
 - **Issue:** Lines 65-68 fetch **all** habit logs for a friend from the database. The shared-habit filter (line 80) only runs in JavaScript after the full result set is loaded. Unshared log data crosses the DB boundary into memory. Additionally, `db.select()` on line 45 returns all habit columns including `sharedWith`, exposing other users' IDs.
@@ -115,7 +78,7 @@
   ```ts
   // Replace lines 45-51 (habits query) with column projection:
   const habitIds = habits.map((h: any) => h.id);
-
+ 
   // Replace lines 65-80 (logs query) with DB-level filter:
   const logsConditions = [
     eq(habitLogs.ownerId, fId),
@@ -175,7 +138,7 @@
   pusher.trigger(...).catch(() => {});
   ```
 
-### 12. `friendships/index.ts` GET Returns Full Friendship Records
+### 12. friendships/index.ts GET Returns Full Friendship Records
 - **Location:** `server/api/friendships/index.ts:18-39`
 - **Issue:** `db.select().from(friendshipsTable)` returns all columns (both user IDs, timestamps, internal status, favorites). Exposes internal structure of every friendship to the client.
 - **Fix:** Add column projection to return only what the client needs:
@@ -234,30 +197,31 @@
   newPasswordHash = await hash(password, BCRYPT_COST_FACTOR);
   ```
 
+### 18. Broken Shared Bucket Sync - DEFERRED
+- **Location:** `server/services/sync.service.ts`
+- **Issue:** The sync engine doesn't fetch metadata for habits owned by friends, even if they are in a shared bucket.
+- **Fix:** Expand sync queries to include habits where the user is an accepted bucket member.
+
+### 19. Missing API for Accepting Shared Habits - DEFERRED
+- **Location:** `server/services/bucket.service.ts`
+- **Issue:** No endpoint exists for a user to accept a friend's habit invitation into their bucket.
+- **Fix:** Create a member status update endpoint.
+
 ---
 
 ## 🔵 NITPICKS & BEST PRACTICES
 
-### 1. SQL Performance (LATERAL join) - DEFERRED
-- **Location:** `server/api/social/feed.get.ts`
-- **Note:** Fine for small groups, but will bottleneck at scale.
-
-### 2. Magic Strings for Defaults - DEFERRED
-- **Location:** `server/utils/validation.ts`
-- **Note:** Hardcoded hex colors and limits.
-- **Fix:** Extract to a shared `constants.ts`.
-
-### 3. `zDateString` Doesn't Validate Real Dates
+### 20. `zDateString` Doesn't Validate Real Dates
 - **Location:** `server/utils/schemaPrimitives.ts:7`
 - **Issue:** `/^\d{4}-\d{2}-\d{2}$/` accepts `"2024-13-45"`.
 - **Fix:** Add a refinement: `.refine(val => !isNaN(Date.parse(val)), { message: 'Invalid date' })`.
 
-### 4. `DUMMY_HASH` Is Exported Publicly
+### 21. `DUMMY_HASH` Is Exported Publicly
 - **Location:** `server/utils/auth.ts:5`
 - **Issue:** Used for constant-time comparison on non-existent users (good practice), but `export` makes it importable elsewhere and visible in the module graph.
 - **Fix:** Change to `const DUMMY_HASH = ...` (remove `export`). Ensure it's only used within `auth.ts`.
 
-### 5. Missing Indexes on Heavily Queried Columns
+### 22. Missing Indexes on Heavily Queried Columns
 - **Location:** `server/db/schema.ts`
 - **Note:** These are fine for low user counts but will cause sequential scans at scale:
   - `habitLogs` — needs index on `(habitId)` or `(habitId, date)` (11+ query sites filter by `habitId`)
@@ -265,61 +229,76 @@
   - `shareEvents` — needs index on `recipientId`
   - `sharedBucketMembers` — needs indexes on `bucketId` and `userId` (39+ references)
 
-### 6. `status` Columns Are Untyped `text` — No DB-Level Constraint
+### 23. status Columns Are Untyped `text` — No DB-Level Constraint
 - **Location:** `friendships.status`, `habitLogs.status`, `bucketLogs.status`, `sharedBucketMembers.status`, `bucketHabits.approvalStatus`
 - **Note:** Any arbitrary string can be persisted. Consider Postgres enums or CHECK constraints for data integrity.
 
-### 7. API Route Handlers Lack HTTP Method Guards
+### 24. API Route Handlers Lack HTTP Method Guards
 - **Location:** `bucketlogs/index.ts`, `buckets/index.ts`, `habits/index.ts`, `habitlogs/index.ts`, `friendships/index.ts`
 - **Note:** Unsupported methods (PATCH, OPTIONS, etc.) silently return `undefined` / `200 OK`. Should return 405 Method Not Allowed.
 
-### 8. `SESSION_MAX_AGE_SECONDS` and `SESSION_EXPIRATION_JWT` Are Semantically Duplicated
+### 25. SESSION_MAX_AGE_SECONDS and SESSION_EXPIRATION_JWT Are Semantically Duplicated
 - **Location:** `server/utils/auth.ts:8-9`
 - **Note:** Two constants represent 7 days in different formats. If one changes without the other, cookie and JWT lifetimes diverge. Derive one from the other.
 
-### 9. CI Uses `wrangler@latest` — Unpinned Dependency
+### 26. CI Uses wrangler@latest — Unpinned Dependency
 - **Location:** `.github/workflows/deploy.yml:33`
 - **Note:** A breaking Wrangler release could silently break deployments. Pin to a specific version.
 
-### 10. `habitLogSchema.id` Uses `z.string()` While All Other IDs Use `z.string().uuid()`
+### 27. habitLogSchema.id Uses z.string() While All Other IDs Use z.string().uuid()
 - **Location:** `server/utils/validation.ts:84`
 - **Note:** Log IDs accept any arbitrary string from the client, while other IDs enforce UUID format. This is presumably intentional (composite IDs like `{habitId}_{date}`), but worth noting.
 
-### 11. `SocialNarratorService` Throws on Malformed Date From DB
+### 28. SocialNarratorService Throws on Malformed Date From DB
 - **Location:** `server/services/social-narrator.service.ts:49,128,148`
 - **Note:** `format(parseISO(log.date), 'MMM d')` throws `RangeError` on malformed dates. A single corrupt row crashes the entire feed. Wrap in try-catch.
 
-### 12. `viewport` Disables User Zoom — Accessibility Violation
+### 29. viewport Disables User Zoom — Accessibility Violation
 - **Location:** `nuxt.config.ts:62`
 - **Note:** `maximum-scale=1, user-scalable=0` prevents zooming, violating WCAG 1.4.4. Remove these restrictions.
 
-### 13. Dexie IndexedDB Shared Across All Users on Same Browser
+### 30. Dexie IndexedDB Shared Across All Users on Same Browser
 - **Location:** `app/utils/db.ts:34`
 - **Note:** Database name `HabitsSocialDB` is hardcoded. On logout, IndexedDB is not wiped. User A's data remains accessible via dev tools after User B logs in. Consider wiping on logout or namespacing per user.
+
+### 31. SQL Performance (LATERAL join) - DEFERRED
+- **Location:** `server/api/social/feed.get.ts`
+- **Note:** Fine for small groups, but will bottleneck at scale.
+
+### 32. Magic Strings for Defaults - DEFERRED
+- **Location:** `server/utils/validation.ts`
+- **Note:** Hardcoded hex colors and limits.
+- **Fix:** Extract to a shared `constants.ts`.
 
 ---
 
 ## 📝 NOTES
 
-### 1. Payload Size Limits (By Design)
-It is a deliberate architectural decision to omit application-layer payload size limits (e.g., Zod `.max()` on massive strings or custom stream wrappers).
+### Payload Size Limits (By Design)
+It is a deliberate architectural decision to omit application-layer payload size capping (such as custom stream wrappers to counteract memory exhaustion from massive bodies).
 - Adding complex application-layer stream parsing to counteract memory exhaustion (OOM) introduces unnecessary abstraction overhead for a hobby project.
 - If the application scales and requires robust DoS protection, we will solve it at the infrastructure layer by upgrading the Cloudflare WAF plan (Business/Enterprise) to utilize native `http.request.body.size` checks or regex-based header filtering.
 
-### 2. Habit-Level Privacy Policy (By Design)
+### Habit-Level Privacy Policy (By Design)
 It is a core architectural decision that **Sharing a Habit = Sharing all its Logs**. 
 - The `shared_with` column on `habit_logs` is deprecated and intentionally ignored by the API layer.
 - Visibility is controlled exclusively by the `habits.shared_with` array.
 - **DO NOT FLAG** "Missing hl.shared_with checks" in future audits; authorization is intentionally centralized at the parent object for data integrity and simplicity.
 
-### 3. Local-First Timestamp Integrity (By Design)
+### Local-First Timestamp Integrity (By Design)
 The frontend manages its own `updatedAt` timestamps locally to maintain optimistic UI state and local-first reconciliation logic.
 - **DO NOT SUGGEST** changing how the client handles these timestamps or replacing them with server-assigned values during local operations.
 - The server's use of `CLOCK_TIMESTAMP()` is strictly for backend-side sync anchors and database reconciliation.
 
-### 4. Service-Layer Ownership Checks (By Design for Security)
+### Service-Layer Ownership Checks (By Design for Security)
 The ownership checks in `HabitService.logHabit` and `BucketService.logBucket` (specifically the `where` clause in `onConflictDoUpdate`) are **not redundant**.
 - The API layer only validates that the user owns the `habitId` or `bucketId`.
 - Since the schemas allow client-provided log `id`s, an attacker could target an existing log ID belonging to another user.
 - The service-layer check `where: eq(ownerId, userId)` provides critical defense-in-depth, ensuring that a user can never overwrite a log they do not own, even if they guess the ID.
 - **DO NOT REMOVE** these checks as they are essential for zero-trust fail-safes against ID collision/hijacking attacks.
+
+### CI Pipeline Test Step (Skipped Due to Timeouts)
+The proposal to add a test step to the CI pipeline was skipped. Adding the test step caused the pipeline to hang due to test timeouts, despite the tests passing successfully during local development. Further investigation is required before this can be implemented.
+
+### Habit Sharing with Pending Friendships (By Design)
+It is a deliberate design decision to allow sharing habit data with users in `pending` friendship status. The friendship guard query intentionally filters by `['accepted', 'pending']` to support this behavior.
