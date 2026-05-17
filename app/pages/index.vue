@@ -7,8 +7,9 @@
         <UserAvatar 
           v-if="user"
           :src="user.photoUrl" 
-          container-class="w-10 h-10 bg-zinc-925 rounded-xl shadow-sm"
+          container-class="w-10 h-10 bg-zinc-925 rounded-xl shadow-sm cursor-pointer hover:opacity-80 transition-opacity"
           icon-class="w-6 h-6 text-zinc-600"
+          @click="openProfileModal"
         />
         <div>
           <h1 class="text-base font-bold tracking-tight text-white mb-1">My habits</h1>
@@ -193,6 +194,16 @@ const api = useHabitsApi();
 const { user } = useAuth();
 const { lastSyncTime } = api;
 const { friends: rawFriends, refresh: refreshSocial, init: initSocial, cleanup: cleanupSocial } = useSocial();
+const showProfileModal = useState('showProfileModal', () => false);
+const { isOnline } = useNetwork();
+
+const openProfileModal = () => {
+  if (!isOnline.value) {
+    showToast('You are offline. Profile changes require a connection.', 'failed');
+    return;
+  }
+  showProfileModal.value = true;
+};
 
 const friends = computed(() => {
   const list = [...(rawFriends.value || [])];

@@ -104,7 +104,7 @@ const router = useRouter();
 const route = useRoute();
 
 // Profile Modal State
-const showProfileModal = ref(false);
+const showProfileModal = useState('showProfileModal', () => false);
 
 const handleEditProfile = () => {
   if (!isOnline.value) {
