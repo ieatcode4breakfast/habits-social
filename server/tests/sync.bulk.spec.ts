@@ -3,7 +3,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 // @ts-ignore - File may not exist yet
 import syncBulk from '../api/sync/bulk.post';
 import { createMockEvent, createTestUser, createTestHabit, db } from './test.utils';
-import { habits as habitsTable } from '../db/schema';
+import { habits as habitsTable, buckets as bucketsTable, bucketHabits } from '../db/schema';
 import { eq } from 'drizzle-orm';
 
 describe('API: POST /api/sync/bulk', () => {
@@ -101,5 +101,110 @@ describe('API: POST /api/sync/bulk', () => {
 
     expect(response.success.length).toBe(1);
     expect(response.failed.length).toBe(0);
+  });
+
+  it('should successfully process valid bucket operations with habits', async () => {
+    const habit = await createTestHabit(testUser.id, 'Test Habit');
+    const bucketId = crypto.randomUUID();
+    const operations = [
+      {
+        type: 'bucket',
+        data: { id: bucketId, title: 'Bulk Bucket', habitIds: [habit.id] }
+      }
+    ];
+
+    const event = createMockEvent(testUser.id, { operations }, {}, {}, {}, 'POST');
+    const response = await syncBulk(event);
+
+    expect(response.success.length).toBe(1);
+    expect(response.success[0]).toBe(bucketId);
+
+    const bucketInDb = await db.select().from(bucketsTable).where(eq(bucketsTable.id, bucketId));
+    expect(bucketInDb.length).toBe(1);
+
+    const habitsInBucket = await db.select().from(bucketHabits).where(eq(bucketHabits.bucketId, bucketId));
+    expect(habitsInBucket.length).toBe(1);
+    expect(habitsInBucket[0].habitId).toBe(habit.id);
+  });
+
+  it('should ignore invalid habit IDs without crashing', async () => {
+    const bucketId = crypto.randomUUID();
+    const invalidHabitId = crypto.randomUUID();
+    const operations = [
+      {
+        type: 'bucket',
+        data: { id: bucketId, title: 'Bulk Bucket Invalid Habit', habitIds: [invalidHabitId] }
+      }
+    ];
+
+    const event = createMockEvent(testUser.id, { operations }, {}, {}, {}, 'POST');
+    const response = await syncBulk(event);
+
+    expect(response.success.length).toBe(1);
+    expect(response.success[0]).toBe(bucketId);
+
+    const bucketInDb = await db.select().from(bucketsTable).where(eq(bucketsTable.id, bucketId));
+    expect(bucketInDb.length).toBe(1);
+
+    const habitsInBucket = await db.select().from(bucketHabits).where(eq(bucketHabits.bucketId, bucketId));
+    expect(habitsInBucket.length).toBe(0);
+  });
+
+  it('should preserve foreign habits and handle sharing state', async () => {
+    const { createFriendship, shareHabitWithUser } = await import('./test.utils');
+    await createFriendship(testUser.id, otherUser.id, 'accepted');
+    const foreignHabit = await createTestHabit(otherUser.id, 'Foreign Habit');
+    await shareHabitWithUser(foreignHabit.id, testUser.id);
+
+    const bucketId = crypto.randomUUID();
+    const operations = [
+      {
+        type: 'bucket',
+        data: { id: bucketId, title: 'Shared Bucket', habitIds: [foreignHabit.id] }
+      }
+    ];
+
+    const event = createMockEvent(testUser.id, { operations }, {}, {}, {}, 'POST');
+    const response = await syncBulk(event);
+
+    expect(response.success.length).toBe(1);
+
+    const habitsInBucket = await db.select().from(bucketHabits).where(eq(bucketHabits.bucketId, bucketId));
+    expect(habitsInBucket.length).toBe(1);
+    expect(habitsInBucket[0].habitId).toBe(foreignHabit.id);
+    expect(habitsInBucket[0].approvalStatus).toBe('pending');
+  });
+
+  it('should preserve approvalStatus for foreign habits if already accepted', async () => {
+    const { createFriendship, shareHabitWithUser } = await import('./test.utils');
+    await createFriendship(testUser.id, otherUser.id, 'accepted');
+    const foreignHabit = await createTestHabit(otherUser.id, 'Foreign Habit');
+    await shareHabitWithUser(foreignHabit.id, testUser.id);
+    
+    const bucketId = crypto.randomUUID();
+    
+    await db.insert(bucketsTable).values({ id: bucketId, ownerId: testUser.id, title: 'Old Title' });
+    await db.insert(bucketHabits).values({
+      bucketId,
+      habitId: foreignHabit.id,
+      addedBy: otherUser.id,
+      approvalStatus: 'accepted'
+    });
+
+    const operations = [
+      {
+        type: 'bucket',
+        data: { id: bucketId, title: 'New Title', habitIds: [foreignHabit.id] }
+      }
+    ];
+
+    const event = createMockEvent(testUser.id, { operations }, {}, {}, {}, 'POST');
+    const response = await syncBulk(event);
+
+    expect(response.success.length).toBe(1);
+
+    const habitsInBucket = await db.select().from(bucketHabits).where(eq(bucketHabits.bucketId, bucketId));
+    expect(habitsInBucket.length).toBe(1);
+    expect(habitsInBucket[0].approvalStatus).toBe('accepted');
   });
 });

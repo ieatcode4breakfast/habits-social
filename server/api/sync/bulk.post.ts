@@ -5,6 +5,7 @@ import { z } from 'zod';
 import { habitSchema, bucketSchema, habitLogSchema, bucketLogSchema, throwZodError } from '~~/server/utils/validation';
 import * as schema from '~~/server/db/schema';
 import { eq, and, sql, inArray } from 'drizzle-orm';
+import { BucketService } from '~~/server/services/bucket.service';
 
 const bulkSyncSchema = z.object({
   operations: z.array(z.object({ type: z.string(), data: z.any() })).max(100)
@@ -140,7 +141,12 @@ export default defineEventHandler(async (event) => {
 
   // Buckets
   if (validBuckets.length > 0) {
-    const bucketsToInsert = validBuckets.map(b => ({ ...b, ownerId: userId, updatedAt: new Date() }));
+    const bucketsToInsert = validBuckets.map(({ habitIds, ...b }) => ({
+      ...b,
+      ownerId: userId,
+      updatedAt: new Date()
+    }));
+
     const result = await db.insert(schema.buckets)
       .values(bucketsToInsert)
       .onConflictDoUpdate({
@@ -150,7 +156,6 @@ export default defineEventHandler(async (event) => {
           description: sql`excluded.description`,
           color: sql`excluded.color`,
           sortOrder: sql`excluded.sort_order`,
-          habitIds: sql`excluded.habit_ids`,
           updatedAt: new Date()
         },
         where: eq(schema.buckets.ownerId, userId)
@@ -159,8 +164,23 @@ export default defineEventHandler(async (event) => {
 
     const returnedIds = new Set(result.map((r: { id: string }) => r.id));
     for (const b of validBuckets) {
-      if (returnedIds.has(b.id)) success.push(b.id);
-      else failed.push({ id: b.id, code: 'UNAUTHORIZED' });
+      if (returnedIds.has(b.id)) {
+        success.push(b.id);
+
+        // Conditional Delegation: Only call updateBucket if habitIds is provided
+        if (b.habitIds !== undefined) {
+          try {
+            const [fetchedBucket] = await db.select().from(schema.buckets).where(eq(schema.buckets.id, b.id));
+            if (fetchedBucket) {
+              await BucketService.updateBucket(db, userId, b.id, { habitIds: b.habitIds }, fetchedBucket, event);
+            }
+          } catch (error) {
+            console.error(`[Bulk Sync] Failed to update habits for bucket ${b.id}:`, error);
+          }
+        }
+      } else {
+        failed.push({ id: b.id, code: 'UNAUTHORIZED' });
+      }
     }
   }
 
