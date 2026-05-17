@@ -56,7 +56,7 @@
 
           <!-- Scrollable Content -->
           <div class="flex-1 overflow-y-auto p-4 sm:p-8 sm:py-6">
-            <div class="space-y-6">
+            <form id="bucketForm" @submit.prevent="handleSave" class="space-y-6">
               <div class="space-y-2">
                 <label class="text-xs font-bold uppercase tracking-widest text-zinc-500">Name</label>
                 <input
@@ -172,14 +172,15 @@
                   </label>
                 </div>
               </div>
-            </div>
+            </form>
           </div>
 
           <!-- Footer -->
           <div class="px-8 py-4 border-t border-zinc-800 bg-zinc-925/80 backdrop-blur-md flex gap-3">
             <button @click="$emit('update:modelValue', false)" class="flex-1 px-5 py-3 text-zinc-400 hover:text-zinc-200 font-semibold rounded-xl transition-all cursor-pointer">Cancel</button>
             <button 
-              @click="handleSave" 
+              type="submit"
+              form="bucketForm" 
               :disabled="saving"
               class="flex-1 px-5 py-3 bg-white hover:bg-zinc-200 text-black font-semibold rounded-xl transition-all shadow-lg shadow-white/5 flex items-center justify-center gap-2 cursor-pointer"
             >
@@ -256,8 +257,8 @@ const toggleSelectAll = () => {
 
 const handleSave = () => {
   emit('save', {
-    title: title.value,
-    description: description.value,
+    title: title.value.trim(),
+    description: description.value.trim(),
     habitIds: selectedHabitIds.value
   });
 };
