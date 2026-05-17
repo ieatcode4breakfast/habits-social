@@ -1,5 +1,6 @@
 import './setup';
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { format } from 'date-fns';
 import { createTestUser, deleteTestUser, createMockEvent, createTestHabit, deleteTestHabit, createFriendship, deleteFriendship } from './test.utils';
 
 describe('GET /api/social/feed', () => {
@@ -35,7 +36,7 @@ describe('GET /api/social/feed', () => {
 
   it('should return logs from an accepted friend', async () => {
     // User A logs a habit
-    const dateStr = new Date().toISOString().split('T')[0];
+    const dateStr = format(new Date(), 'yyyy-MM-dd');
     const logEvent = createMockEvent(userA.id, {
       id: `test_flog_${Date.now()}`,
       habitId: habitA.id,
@@ -58,5 +59,17 @@ describe('GET /api/social/feed', () => {
     );
     expect(foundLog).toBeDefined();
     expect(foundLog.user.id).toBe(userA.id);
+  });
+
+  it('should handle pagination cursors without database errors', async () => {
+    const feedEvent = createMockEvent(userB.id, {}, {}, {}, {
+      cursorDate: '2026-05-17',
+      cursorTimestamp: '2026-05-17T00:02:01.999908+00:00',
+      cursorId: 'mock-id'
+    }, 'GET');
+    const response = (await handler(feedEvent)) as any;
+
+    expect(response.data).toBeDefined();
+    expect(Array.isArray(response.data)).toBe(true);
   });
 });

@@ -33,8 +33,16 @@ export default defineEventHandler(async (event) => {
   // 2. Stage 1: The Final Engine
   // We use a LATERAL join to fetch records per friend and union them.
   // This allows the index to be used effectively for each friend in the list.
-  const cursorCondition = cursorDate && cursorTimestamp && cursorId 
-    ? sql`AND (sort_date, sort_timestamp, id) < (${cursorDate}, ${cursorTimestamp}::timestamptz, ${cursorId})`
+  const cursorLog = cursorDate && cursorTimestamp && cursorId 
+    ? sql`AND (hl.date, hl.updated_at, hl.id::text) < (${cursorDate}, ${cursorTimestamp}::timestamptz, ${cursorId})`
+    : sql``;
+
+  const cursorHabit = cursorDate && cursorTimestamp && cursorId 
+    ? sql`AND (h.user_date, h.created_at, h.id::text) < (${cursorDate}, ${cursorTimestamp}::timestamptz, ${cursorId})`
+    : sql``;
+
+  const cursorShare = cursorDate && cursorTimestamp && cursorId 
+    ? sql`AND (se.user_date, se.created_at, se.id::text) < (${cursorDate}, ${cursorTimestamp}::timestamptz, ${cursorId})`
     : sql``;
 
   const todayString = format(new Date(), 'yyyy-MM-dd');
@@ -68,7 +76,7 @@ export default defineEventHandler(async (event) => {
       JOIN ${habitsTable} h ON hl.habit_id = h.id
       WHERE hl.owner_id = f.friend_id
         AND (${userId}::text = ANY(h.shared_with) OR hl.owner_id = ${userId}::uuid)
-        ${cursorCondition}
+        ${cursorLog}
         AND (
           hl.date >= ${todayString}
           OR hl.broken_streak_count > 1
@@ -101,7 +109,7 @@ export default defineEventHandler(async (event) => {
       WHERE h.owner_id = f.friend_id
         AND h.user_date IS NOT NULL
         AND (${userId}::text = ANY(h.shared_with) OR h.owner_id = ${userId}::uuid)
-        ${cursorCondition}
+        ${cursorHabit}
 
       UNION ALL
 
@@ -123,7 +131,7 @@ export default defineEventHandler(async (event) => {
       FROM ${shareEvents} se
       WHERE se.owner_id = f.friend_id
         AND (se.recipient_id = ${userId}::uuid OR se.owner_id = ${userId}::uuid)
-        ${cursorCondition}
+        ${cursorShare}
 
       ORDER BY sort_date DESC, sort_timestamp DESC, id DESC
       LIMIT ${limit + 1}
@@ -133,7 +141,17 @@ export default defineEventHandler(async (event) => {
     LIMIT ${limit + 1}
   `;
 
-  const rawResults = await db.execute(engineQuery);
+  let rawResults;
+  try {
+    rawResults = await db.execute(engineQuery);
+  } catch (err: any) {
+    console.error('[Feed Error] Failed to execute engine query:', err);
+    throw createError({
+      statusCode: 500,
+      statusMessage: 'Internal Server Error',
+      data: { message: err.message, stack: err.stack }
+    });
+  }
   const rows = rawResults.rows as any[];
 
   // 3. Stage 2: Protected Look-Ahead for Share Events
