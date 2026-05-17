@@ -93,6 +93,14 @@
             </div>
           </div>
         </div>
+        
+        <!-- Sentinel for infinite scroll -->
+        <div ref="loadMoreSentinel" class="h-4 w-full"></div>
+        
+        <!-- Loading indicator for load more -->
+        <div v-if="loadingMore" class="flex justify-center p-4">
+          <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-white"></div>
+        </div>
       </div>
     </template>
   </div>
@@ -421,25 +429,55 @@ const isFaded = (habit: any) => isStreakFaded(habit);
 const feed = ref<any[]>([]);
 const feedLoading = ref(false);
 const didDeactivate = ref(false);
+const nextCursor = ref<any>(null);
+const hasMore = ref(true);
+const loadingMore = ref(false);
+const loadMoreSentinel = ref<HTMLElement | null>(null);
 
-const loadFeed = async () => {
+const loadFeed = async (isLoadMore = false) => {
   if (activeTab.value !== 'activity') return;
+  if (isLoadMore && (!hasMore.value || loadingMore.value)) return;
   
-  // Only show the spinner if we have no data
-  const isInitialLoad = !feed.value || feed.value.length === 0;
+  const isInitialLoad = !isLoadMore && (!feed.value || feed.value.length === 0);
   if (isInitialLoad) {
     feedLoading.value = true;
   }
+  if (isLoadMore) {
+    loadingMore.value = true;
+  }
   
   try {
-    const { data } = await $fetch<{ data: any[] }>('/api/social/feed');
-    feed.value = data;
+    const query: any = {};
+    if (isLoadMore && nextCursor.value) {
+      query.cursorDate = nextCursor.value.date;
+      query.cursorTimestamp = nextCursor.value.timestamp;
+      query.cursorId = nextCursor.value.id;
+    }
+    
+    const response = await $fetch<{ data: any[], nextCursor: any }>('/api/social/feed', { query });
+    
+    if (isLoadMore) {
+      feed.value = [...feed.value, ...response.data];
+    } else {
+      feed.value = response.data;
+    }
+    
+    nextCursor.value = response.nextCursor;
+    hasMore.value = !!response.nextCursor;
   } catch (err) {
     console.error('Error fetching feed:', err);
   } finally {
     feedLoading.value = false;
+    loadingMore.value = false;
   }
 };
+
+useIntersectionObserver(loadMoreSentinel, (entries) => {
+  const isIntersecting = entries[0]?.isIntersecting;
+  if (isIntersecting && hasMore.value && !loadingMore.value && !feedLoading.value) {
+    loadFeed(true);
+  }
+});
 
 const handleMessageClick = (event: MouseEvent) => {
   const target = event.target as HTMLElement;
