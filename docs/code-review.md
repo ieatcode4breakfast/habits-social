@@ -5,36 +5,6 @@
 ## 🔴 CRITICAL ISSUES (Must fix before deployment)
 *Security breaches, data leaks, authorization bypasses, and production-breaking defects.*
 
-### 4. `sharedBucketMembers` Table Has No Primary Key or Unique Constraint - DEFERRED
-- **Location:** `server/db/schema.ts:89-95`
-- **Issue:** The table defines `bucketId` + `userId` but has no composite primary key, no unique index, and zero indexes.Concurrent requests can insert duplicate `(bucketId, userId)` rows. Every query filtering by this pair can return multiple rows, causing unpredictable behavior in all shared-bucket logic.
-- **Fix:** Add a composite primary key (identical pattern to `bucketHabits`):
-  ```ts
-  // schema.ts — replace lines 89-95
-  export const sharedBucketMembers = pgTable('shared_bucket_members', {
-    bucketId: uuid('bucket_id').notNull().references(() => buckets.id, { onDelete: 'cascade' }),
-    userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
-    status: text('status').notNull(),
-    createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' }).defaultNow(),
-    updatedAt: timestamp('updated_at', { withTimezone: true, mode: 'date' }).defaultNow(),
-  }, (table) => {
-    return {
-      pk: primaryKey({ columns: [table.bucketId, table.userId] }),
-    };
-  });
-  ```
-  Then generate and apply a migration via `drizzle-kit generate` / `drizzle-kit push`.
-
-### 5. `friendships` Table Has No Unique Constraint on User Pair
-- **Location:** `server/db/schema.ts:125-134`
-- **Issue:** No unique constraint on `(initiatorId, receiverId)` or its inverse. The API-level check at `friendships/index.ts:62-71` is a TOCTOU race — two concurrent POSTs between the same pair both pass the check and both insert.
-- **Fix:** Add a canonical unique index via a raw SQL migration (Drizzle doesn't natively support expression indexes with `LEAST`/`GREATEST`):
-  ```sql
-  CREATE UNIQUE INDEX friendships_user_pair_idx
-    ON friendships (LEAST(initiator_id, receiver_id), GREATEST(initiator_id, receiver_id));
-  ```
-  Then handle the potential unique violation in `SocialService.createFriendship` with a try-catch that returns a 409.
-
 ### 6. Pusher Channels Are Unauthenticated (Public) — Eavesdropping and Injection
 - **Location:** `app/composables/useRealtime.ts:19,45,65,89`
 - **Issue:** All channels use the pattern `user-{userId}-social`, `user-{userId}-habits`, `user-{userId}-buckets`. These are public Pusher channels (no `private-` prefix). Any client who knows a user's UUID can subscribe and receive all real-time events (friend requests, habit sync, bucket updates). UUIDs are exposed in API responses, so they are not secret. Additionally, `useSocial.ts:97-142` directly mutates app state from Pusher payloads with no validation — an attacker can publish arbitrary data to a user's channel and manipulate their UI.
