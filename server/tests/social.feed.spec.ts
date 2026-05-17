@@ -72,4 +72,25 @@ describe('GET /api/social/feed', () => {
     expect(response.data).toBeDefined();
     expect(Array.isArray(response.data)).toBe(true);
   });
+
+  it('should not leak stack trace on database error', async () => {
+    const invalidEvent = createMockEvent(userB.id, {}, {}, {}, {
+      cursorDate: '2026-05-17',
+      cursorTimestamp: 'invalid-timestamp', // Triggers DB cast error
+      cursorId: 'mock-id'
+    }, 'GET');
+
+    try {
+      await handler(invalidEvent);
+      // If it didn't throw, fail the test
+      expect(true).toBe(false);
+    } catch (err: any) {
+      expect(err.statusCode).toBe(500);
+      // Verify that the error does not leak internal details
+      if (err.data) {
+        expect(err.data.stack).toBeUndefined();
+        expect(err.data.message).toBeUndefined();
+      }
+    }
+  });
 });

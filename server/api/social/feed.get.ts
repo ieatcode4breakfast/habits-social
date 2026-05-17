@@ -148,8 +148,7 @@ export default defineEventHandler(async (event) => {
     console.error('[Feed Error] Failed to execute engine query:', err);
     throw createError({
       statusCode: 500,
-      statusMessage: 'Internal Server Error',
-      data: { message: err.message, stack: err.stack }
+      statusMessage: 'Internal Server Error'
     });
   }
   const rows = rawResults.rows as any[];

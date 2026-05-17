@@ -133,12 +133,20 @@ export const SocialService = {
     if (friendshipsRes.length === 0) return false;
 
     const friendship = friendshipsRes[0];
+    
+    // Authorization Check
+    if (friendship.initiatorId !== userId && friendship.receiverId !== userId) {
+      throw createError({ statusCode: 403, statusMessage: 'Forbidden' });
+    }
+
     const u1 = friendship.initiatorId;
     const u2 = friendship.receiverId;
 
-    await this.cleanupFriendshipData(db, u1, u2);
-
-    await db.delete(friendshipsTable).where(eq(friendshipsTable.id, id));
+    // Use transaction for atomic cleanup and deletion
+    await db.transaction(async (tx: any) => {
+      await this.cleanupFriendshipData(tx, u1, u2);
+      await tx.delete(friendshipsTable).where(eq(friendshipsTable.id, id));
+    });
 
     const pusher = usePusher(event);
     if (pusher) {
