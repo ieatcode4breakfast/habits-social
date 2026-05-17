@@ -153,7 +153,7 @@ export const syncQuerySchema = z.object({
       }
     }
     return val;
-  }, z.record(z.string().max(100), z.string().max(100))).refine(val => Object.keys(val).length <= 10, { message: "Too many cursor entries" }).optional()
+  }, z.record(z.string().max(100), z.string().max(255))).refine(val => Object.keys(val).length <= 10, { message: "Too many cursor entries" }).optional()
 });
 
 

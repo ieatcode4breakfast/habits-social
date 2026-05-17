@@ -44,7 +44,7 @@ describe('validation schemas boundaries', () => {
 
     it('should reject cursors with long values', () => {
       const result = syncQuerySchema.safeParse({
-        cursors: JSON.stringify({ key: 'A'.repeat(101) })
+        cursors: JSON.stringify({ key: 'A'.repeat(256) })
       });
       expect(result.success).toBe(false);
     });

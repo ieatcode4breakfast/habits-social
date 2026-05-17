@@ -98,8 +98,8 @@
         <div ref="loadMoreSentinel" class="h-4 w-full"></div>
         
         <!-- Loading indicator for load more -->
-        <div v-if="loadingMore" class="flex justify-center p-4">
-          <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-white"></div>
+        <div v-if="hasMore" class="flex justify-center p-4 h-14">
+          <div v-if="loadingMore" class="animate-spin rounded-full h-6 w-6 border-b-2 border-white"></div>
         </div>
       </div>
     </template>
