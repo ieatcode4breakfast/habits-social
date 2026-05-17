@@ -105,7 +105,7 @@ export const useHabitsStore = () => {
     
     // If no habits in bucket, we shouldn't have logs for it.
     if (habitsInBucket.length === 0) {
-      await db.bucketLogs.delete(`${bucket.id}_${date}`);
+      await db.bucketLogs.delete(`${bucket.id}_${date}_${getOwnerId()}`);
       return false;
     }
 
@@ -116,7 +116,7 @@ export const useHabitsStore = () => {
 
     // Exact Logic: If there is no activity across ANY remaining habit, the bucket log must be destroyed.
     if (logs.length === 0) {
-      await db.bucketLogs.delete(`${bucket.id}_${date}`);
+      await db.bucketLogs.delete(`${bucket.id}_${date}_${getOwnerId()}`);
       return true; // True because we might still need to recalculate streak if a log existed
     }
 
@@ -132,7 +132,7 @@ export const useHabitsStore = () => {
     else if (statuses.includes('skipped')) finalStatus = 'skipped';
 
     await db.bucketLogs.put({
-      id: `${bucket.id}_${date}`,
+      id: `${bucket.id}_${date}_${getOwnerId()}`,
       bucketId: bucket.id,
       ownerId: getOwnerId(),
       date: date,

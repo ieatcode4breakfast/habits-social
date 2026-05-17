@@ -124,7 +124,7 @@ describe('API: POST /api/sync/bulk', () => {
 
     const habitsInBucket = await db.select().from(bucketHabits).where(eq(bucketHabits.bucketId, bucketId));
     expect(habitsInBucket.length).toBe(1);
-    expect(habitsInBucket[0].habitId).toBe(habit.id);
+    expect(habitsInBucket[0]!.habitId).toBe(habit.id);
   });
 
   it('should ignore invalid habit IDs without crashing', async () => {
@@ -171,8 +171,8 @@ describe('API: POST /api/sync/bulk', () => {
 
     const habitsInBucket = await db.select().from(bucketHabits).where(eq(bucketHabits.bucketId, bucketId));
     expect(habitsInBucket.length).toBe(1);
-    expect(habitsInBucket[0].habitId).toBe(foreignHabit.id);
-    expect(habitsInBucket[0].approvalStatus).toBe('pending');
+    expect(habitsInBucket[0]!.habitId).toBe(foreignHabit.id);
+    expect(habitsInBucket[0]!.approvalStatus).toBe('pending');
   });
 
   it('should preserve approvalStatus for foreign habits if already accepted', async () => {
@@ -205,6 +205,6 @@ describe('API: POST /api/sync/bulk', () => {
 
     const habitsInBucket = await db.select().from(bucketHabits).where(eq(bucketHabits.bucketId, bucketId));
     expect(habitsInBucket.length).toBe(1);
-    expect(habitsInBucket[0].approvalStatus).toBe('accepted');
+    expect(habitsInBucket[0]!.approvalStatus).toBe('accepted');
   });
 });

@@ -56,7 +56,7 @@ describe('useHabitsStore', () => {
 
     // Create initial bucket log
     await db.bucketLogs.add({
-      id: 'bucket-1_2023-01-01',
+      id: 'bucket-1_2023-01-01_test-user-id',
       bucketId: 'bucket-1',
       ownerId: 'test-user-id',
       date,
@@ -73,7 +73,7 @@ describe('useHabitsStore', () => {
     expect(bucket?.habitIds).toEqual(['habit-2']);
     
     // Status should promote from 'cleared' to 'completed'
-    const bucketLog = await db.bucketLogs.get('bucket-1_2023-01-01');
+    const bucketLog = await db.bucketLogs.get('bucket-1_2023-01-01_test-user-id');
     expect(bucketLog?.status).toBe('completed');
     
     // Deep Assertion: Verify streakCount stamping on the log
@@ -96,7 +96,7 @@ describe('useHabitsStore', () => {
     } as any);
 
     await db.bucketLogs.add({
-      id: 'b-empty_2023-01-01',
+      id: 'b-empty_2023-01-01_test-user-id',
       bucketId: 'b-empty',
       ownerId: 'test-user-id',
       date: '2023-01-01',
@@ -111,7 +111,7 @@ describe('useHabitsStore', () => {
     expect(bucket?.habitIds).toEqual([]);
     expect(bucket?.currentStreak).toBe(0);
     
-    const log = await db.bucketLogs.get('b-empty_2023-01-01');
+    const log = await db.bucketLogs.get('b-empty_2023-01-01_test-user-id');
     expect(log).toBeUndefined();
   });
 
@@ -141,7 +141,7 @@ describe('useHabitsStore', () => {
 
     // Bucket log exists because Habit A was completed (but Habit B missing -> cleared)
     await db.bucketLogs.add({
-      id: 'b-purge_2023-01-01',
+      id: 'b-purge_2023-01-01_test-user-id',
       bucketId: 'b-purge',
       ownerId: 'test-user-id',
       date,
@@ -154,7 +154,7 @@ describe('useHabitsStore', () => {
     await store.removeHabitFromBuckets('habit-a');
 
     // Assertion: The bucket log should be DELETED because remaining Habit B has no activity
-    const bucketLog = await db.bucketLogs.get('b-purge_2023-01-01');
+    const bucketLog = await db.bucketLogs.get('b-purge_2023-01-01_test-user-id');
     expect(bucketLog).toBeUndefined();
   });
 
@@ -191,7 +191,7 @@ describe('useHabitsStore', () => {
     // This should NOT result in 'cleared' because 'h-pending' is ignored
     await store.syncLocalBucketLogs('h-accepted', date);
 
-    const bucketLog = await db.bucketLogs.get(`b1_${date}`);
+    const bucketLog = await db.bucketLogs.get(`b1_${date}_test-user-id`);
     expect(bucketLog).toBeDefined();
     expect(bucketLog?.status).toBe('completed');
 
@@ -204,7 +204,40 @@ describe('useHabitsStore', () => {
     });
 
     await store.syncLocalBucketLogs('h-accepted', date);
-    const updatedLog = await db.bucketLogs.get(`b1_${date}`);
+    const updatedLog = await db.bucketLogs.get(`b1_${date}_test-user-id`);
     expect(updatedLog?.status).toBe('cleared'); // Should be cleared now because h-pending is missing a log
+  });
+
+  it('syncLocalBucketLogs generates ID with ownerId suffix', async () => {
+    const store = useHabitsStore();
+    const date = '2023-01-01';
+    
+    await db.buckets.add({
+      id: 'b-id-test',
+      ownerId: 'test-user-id',
+      habitIds: ['h-1'],
+      synced: 1,
+      updatedAt: Date.now()
+    } as any);
+
+    await db.habitLogs.add({
+      id: 'l-1',
+      habitId: 'h-1',
+      ownerId: 'test-user-id',
+      date,
+      status: 'completed',
+      sharedWith: [],
+      synced: 1,
+      updatedAt: Date.now()
+    });
+
+    await store.syncLocalBucketLogs('h-1', date);
+
+    const bucketLog = await db.bucketLogs.get(`b-id-test_${date}_test-user-id`);
+    expect(bucketLog).toBeDefined();
+    expect(bucketLog?.status).toBe('completed');
+
+    const oldFormatLog = await db.bucketLogs.get(`b-id-test_${date}`);
+    expect(oldFormatLog).toBeUndefined();
   });
 });
