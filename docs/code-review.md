@@ -5,15 +5,6 @@
 ## 🔴 CRITICAL ISSUES (Must fix before deployment)
 *Security breaches, data leaks, authorization bypasses, and production-breaking defects.*
 
-### 1. Pusher Channels Are Unauthenticated (Public) — Eavesdropping and Injection
-- **Location:** `app/composables/useRealtime.ts:19,45,65,89`
-- **Issue:** All channels use the pattern `user-{userId}-social`, `user-{userId}-habits`, `user-{userId}-buckets`. These are public Pusher channels (no `private-` prefix). Any client who knows a user's UUID can subscribe and receive all real-time events (friend requests, habit sync, bucket updates). UUIDs are exposed in API responses, so they are not secret. Additionally, `useSocial.ts:97-142` directly mutates app state from Pusher payloads with no validation — an attacker can publish arbitrary data to a user's channel and manipulate their UI.
-- **Fix (multi-step):**
-  1. Rename all channels to use `private-` prefix: `private-user-{userId}-social`, etc.
-  2. Create a server-side Pusher auth endpoint (e.g., `server/api/pusher/auth.post.ts`) that verifies the requesting user owns the channel they're subscribing to.
-  3. Configure the Pusher client to use the auth endpoint.
-  4. Validate incoming event payloads against expected shapes before mutating state.
-
 ### 2. No Security Headers Configured for Production
 - **Location:** `nuxt.config.ts:79-87`
 - **Issue:** `routeRules` only set `Cache-Control` and `Vary`. There are zero security headers: no CSP, no HSTS, no `X-Content-Type-Options`, no `X-Frame-Options`, no `Referrer-Policy`. The app is exposed to XSS, clickjacking, MIME sniffing, and downgrade attacks.
@@ -130,13 +121,9 @@
   export const zColor = z.string().regex(/^#[0-9a-fA-F]{3,8}$/)
   ```
 
-### 11. Pusher Calls Are Fire-and-Forget Without `.catch()`
-- **Location:** Throughout all services (`bucket.service.ts:36`, `habit.service.ts:47`, `social.service.ts:38,77,81,145,146`, etc.)
-- **Issue:** Every `pusher.trigger(...)` is not awaited and has no `.catch()`. Rejected promises become unhandled promise rejections that can crash the process or log confusing errors.
-- **Fix:** Append `.catch(() => {})` to every `pusher.trigger()` call:
-  ```ts
-  pusher.trigger(...).catch(() => {});
-  ```
+### 11. [RESOLVED] Pusher Calls Are Fire-and-Forget Without `.catch()`
+- **Issue:** Every `pusher.trigger(...)` was not awaited and had no `.catch()`.
+- **Resolution:** Resolved by removing Pusher entirely from the codebase.
 
 ### 12. friendships/index.ts GET Returns Full Friendship Records
 - **Location:** `server/api/friendships/index.ts:18-39`

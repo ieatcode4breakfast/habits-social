@@ -537,18 +537,8 @@ const handleFriendMonthChanged = async (newDate: Date) => {
 const modalContent = ref<HTMLElement | null>(null);
 const shareModalContent = ref<HTMLElement | null>(null);
 
-const { subscribeToFriendHabits } = useRealtime();
-let unsubscribeHabits = () => {};
-
 onMounted(() => {
   load();
-  unsubscribeHabits = subscribeToFriendHabits(friendId, () => {
-    load();
-  });
-});
-
-onUnmounted(() => {
-  unsubscribeHabits();
 });
 // ─────────────────────────────────────────────────────────────────────────────
 

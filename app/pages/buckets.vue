@@ -598,10 +598,6 @@ useModalHistory(isAnyModalOpen, () => {
   showDeleteModal.value = false;
 });
 
-const { subscribeToFriendHabits, subscribeToUserBuckets } = useRealtime();
-let unsubscribeOwnBuckets = () => {};
-let unsubscribeOwnHabits = () => {};
-
 onMounted(() => {
   load();
   api.sync();
@@ -610,30 +606,6 @@ onMounted(() => {
 watch(lastSyncTime, () => {
   console.log('[Buckets] Background sync detected, refreshing data...');
   load(true);
-});
-
-watch(() => user.value?.id, (newId) => {
-  unsubscribeOwnBuckets();
-  unsubscribeOwnHabits();
-  if (newId) {
-    const idStr = String(newId);
-    
-    // Listen to bucket-specific events (CRUD on buckets)
-    unsubscribeOwnBuckets = subscribeToUserBuckets(idStr, () => {
-      api.sync();
-    });
-
-    // Listen to habit events (logging a habit affects bucket progress/streaks)
-    unsubscribeOwnHabits = subscribeToFriendHabits(idStr, () => {
-      api.sync();
-    });
-
-  }
-}, { immediate: true });
-
-onUnmounted(() => {
-  unsubscribeOwnBuckets();
-  unsubscribeOwnHabits();
 });
 
 </script>

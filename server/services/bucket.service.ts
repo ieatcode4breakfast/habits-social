@@ -1,7 +1,6 @@
 import { eq, and, or, sql, inArray, notInArray, ne } from 'drizzle-orm';
 import { buckets as bucketsTable, bucketHabits, habits as habitsTable, friendships, sharedBucketMembers, syncDeletions, bucketLogs } from '~~/server/db/schema';
 import { reevaluateMultipleBuckets } from '~~/server/utils/buckets';
-import { usePusher } from '~~/server/utils/pusher';
 
 export const BucketService = {
   async logBucket(db: any, userId: string, data: any, event: any) {
@@ -29,11 +28,6 @@ export const BucketService = {
 
       if (!result[0]) {
         throw createError({ statusCode: 409, statusMessage: 'Conflict: Bucket log already exists or ownership mismatch' });
-      }
-
-      const pusher = usePusher(event);
-      if (pusher) {
-        pusher.trigger(`user-${userId}-buckets`, 'sync-settled', { timestamp: Date.now() });
       }
 
       return result[0];
@@ -237,11 +231,6 @@ export const BucketService = {
       return { ...updatedBucket, habitIds: habitsResult.map((h: any) => h.habitId) };
     });
 
-    const pusher = usePusher(event);
-    if (pusher) {
-      pusher.trigger(`user-${userId}-buckets`, 'bucket-updated', { bucketId: id });
-    }
-
     return resultData;
   },
 
@@ -274,10 +263,5 @@ export const BucketService = {
           createdAt: new Date()
         });
     });
-
-    const pusher = usePusher(event);
-    if (pusher) {
-      pusher.trigger(`user-${userId}-buckets`, 'bucket-deleted', { bucketId: id });
-    }
   }
 };

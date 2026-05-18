@@ -45,4 +45,4 @@ To prevent the UI from "flickering" or reverting during a sync, the client prior
 A habit log update is a **Root Action** that triggers several automatic calculations on the server:
 1.  **Streak Calculation:** The server recalculates the current and longest streaks for the habit.
 2.  **Bucket Evaluation:** The server identifies all Buckets containing that habit and recalculates the status and streaks for those buckets on the affected date.
-3.  **Real-time Notification:** Once all calculations are settled, a Pusher event is emitted to other active sessions to trigger a background delta-sync.
+

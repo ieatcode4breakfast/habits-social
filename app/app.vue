@@ -39,11 +39,11 @@ import { Check as CheckIcon, X as XIcon, Minus as MinusIcon } from 'lucide-vue-n
 const { isVisible, message, type } = useToast();
 const { sync } = useHabitsApi();
 const { user } = useAuth();
-const { subscribeToUserSync } = useRealtime();
-let unsubscribeSync: () => void = () => {};
 
 const { isOnline } = useNetwork();
 const { showToast } = useToast();
+
+useFocusRefetch(sync);
 
 onMounted(() => {
   // Social state is now initialized globally in default.vue layout or via watch effects
@@ -59,24 +59,11 @@ watch(isOnline, (online) => {
   }
 });
 
-onUnmounted(() => {
-  unsubscribeSync();
-});
-
-// Initial sync and real-time subscription
+// Initial sync
 watch(() => user.value?.id, (newId) => {
   if (newId && import.meta.client) {
     console.log('[Sync] User session active, starting hydration...');
     sync();
-
-    unsubscribeSync();
-    unsubscribeSync = subscribeToUserSync(newId, (eventName) => {
-      if (eventName === 'sync-settled') {
-        sync();
-      }
-    });
-  } else {
-    unsubscribeSync();
   }
 }, { immediate: true });
 

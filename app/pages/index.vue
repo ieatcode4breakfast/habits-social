@@ -518,13 +518,6 @@ useModalHistory(isAnyModalOpen, () => {
   showReorderModal.value = false;
 });
 
-
-
-
-const { subscribeToFriendHabits, subscribeToUserBuckets } = useRealtime();
-let unsubscribeOwnHabits = () => {};
-let unsubscribeOwnBuckets = () => {};
-
 // Social integration is now handled by useSocial
 
 onMounted(() => {
@@ -537,74 +530,4 @@ watch(lastSyncTime, () => {
   console.log('[Dashboard] Background sync detected, refreshing data...');
   load(true);
 });
-
-watch(() => user.value?.id, (newId) => {
-  unsubscribeOwnHabits();
-  if (newId) {
-
-    unsubscribeOwnHabits = subscribeToFriendHabits(String(newId), (eventName: string, data: any) => {
-
-      
-      if (eventName === 'habit-updated' && data?.log && data?.habit) {
-        // Update specific log
-        const logIdx = logs.value.findIndex(l => 
-          l.id === data.log.id || 
-          (l.habitId === data.log.habitId && l.date === data.log.date)
-        );
-        if (logIdx >= 0) logs.value[logIdx] = data.log;
-        else logs.value.push(data.log);
-
-        // Update specific habit (for streaks)
-        const habitIdx = habits.value.findIndex(h => h.id === data.habit.id);
-        if (habitIdx >= 0) {
-          habits.value[habitIdx] = data.habit;
-        } else {
-          // New habit from another session, need to sync Dexie
-          api.sync();
-        }
-
-      } else if (eventName === 'habit-deleted') {
-        const hid = data?.habitId;
-        if (hid && data?.date) {
-          // Specific log was deleted
-          logs.value = logs.value.filter(l => !(l.habitId === hid && l.date === data.date));
-          if (data.habit) {
-            const habitIdx = habits.value.findIndex(h => h.id === data.habit.id);
-            if (habitIdx >= 0) habits.value[habitIdx] = data.habit;
-          }
-          // Note: Specific log deletions are currently handled as 'cleared' status in logs,
-          // so standard sync will pick them up.
-        } else if (hid) {
-          // Entire habit was deleted
-          habits.value = habits.value.filter(h => h.id !== hid);
-          logs.value = logs.value.filter(l => l.habitId !== hid);
-          // Trigger sync to purge from Dexie
-          api.sync();
-        } else {
-          api.sync();
-        }
-      } else {
-        // Generic fallback for reorder or other updates
-        api.sync();
-      }
-    });
-
-    unsubscribeOwnBuckets = subscribeToUserBuckets(String(newId), (eventName: string, data: any) => {
-      if (eventName === 'bucket-deleted') {
-        api.sync();
-      } else {
-        api.sync();
-      }
-    });
-  }
-}, { immediate: true });
-
-onUnmounted(() => {
-  // cleanupSocial(); // Now a no-op singleton cleanup handled by logout
-  unsubscribeOwnHabits();
-  unsubscribeOwnBuckets();
-});
-// ─────────────────────────────────────────────────────────────────────────────
-
-// ─────────────────────────────────────────────────────────────────────────────
 </script>

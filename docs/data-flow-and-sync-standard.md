@@ -37,18 +37,7 @@ The server must strictly avoid **Procedural Processing** (the "Loop-and-Query" a
 *   **Server Calculation:** Upon receiving the sync request, the server executes its own logic to process the root action and calculates derived data (like bucket streaks) to store in Neon. This ensures the database has fully calculated state ready for fast queries, feeds, and analytics.
 *   **Initiating Client Trust:** The client that initiated the push trusts its own local calculations and generally *ignores* the server's calculated response to avoid redundant database writes or UI jitter. It only relies on the server's response if it needs conflict resolution.
 
-## 3. Real-time Synchronization across Sessions (Pusher)
-To maintain consistency across multiple devices and sessions, the application uses real-time push events.
-
-### Post-Settlement Broadcasting
-*   The server MUST NOT fire push events during intermediate steps or partial updates.
-*   Push events (via Pusher) should only be triggered *after* the entire sync operation has settled down in the Neon database (i.e., after the root action and all cascading entity updates are successfully committed).
-*   This prevents race conditions where a secondary device receives a push event and pulls incomplete data before the server has finished calculating secondary effects (like bucket streaks).
-
-### Actionable Pushes
-*   When a secondary session/device receives a push event, it treats it as a signal to perform a background pull synchronization, bringing its local Dexie database up to date with the server's authoritative state.
-
-## 4. Optimized Data Retrieval (Pull Sync)
+## 3. Optimized Data Retrieval (Pull Sync)
 To preserve bandwidth and ensure fast local database settlement, pull operations must be heavily optimized.
 
 *   **Absolute Minimum Data:** The client must never perform full data wipes or blind bulk fetches. A pull request should only request the absolute minimum data required to reconcile the local state.
@@ -56,13 +45,11 @@ To preserve bandwidth and ensure fast local database settlement, pull operations
 *   **Pulling Pre-Calculated State:** Secondary devices (or the same user pulling after being offline) *will* pull the server's pre-calculated derived data (e.g., the updated bucket streaks). This prevents every client from having to redundantly calculate state from raw events, saving CPU and ensuring strict consistency across devices.
 *   **Targeted Re-calculation:** When the client receives the delta, it merges the changes into Dexie and only triggers re-calculations (e.g., UI refreshes) for the specific entities affected by the delta.
 
-## 5. End-to-End Data Flow Sequence
+## 4. End-to-End Data Flow Sequence
 To summarize the standard, the lifecycle of a single user action follows this sequence:
 
 1. **User Interaction:** The user performs an action (e.g., logging a habit completion).
 2. **Local Settlement:** The local database instantly records the root action and calculates any immediate cascading effects (e.g., updating a related bucket's local progress). The UI updates immediately without waiting for a network response.
 3. **Background Push:** The client silently queues and sends the root action to the server in the background.
 4. **Server Validation & Storage:** The server receives the action, validates it, and performs its own authoritative cascading calculations. The finalized state is stored in the primary remote database.
-5. **Real-time Broadcast:** Only *after* the primary remote database is completely settled, the server emits a real-time event to any other active sessions belonging to the user.
-6. **Actionable Pull:** Secondary sessions receive the broadcast and initiate a targeted delta-pull request to fetch only the freshly changed records.
-7. **Reconciliation:** Secondary sessions merge the new delta into their local database and selectively trigger UI updates.
+5. **Reconciliation:** Secondary sessions merge new data into their local database when they perform a pull sync (e.g., on manual refresh or page reload).

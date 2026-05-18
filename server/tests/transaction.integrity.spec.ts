@@ -90,7 +90,7 @@ describe('Transactional Integrity', () => {
     const bucketId = bucket[0]!.id;
 
     // We can't spy on a raw DB insert easily, but we can spy on a utility or mock the DB
-    // However, deleteBucket doesn't call any utilities before the final Pusher call.
+    // However, deleteBucket doesn't call any utilities before.
     // Wait, deleteBucket in bucket.service.ts doesn't call any utilities.
     // It does: delete members, delete habits, delete bucket, insert syncDeletions.
     

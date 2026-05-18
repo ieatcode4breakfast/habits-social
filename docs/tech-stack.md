@@ -25,7 +25,7 @@ This document outlines the current technical architecture and dependencies for t
 
 ## 4. Capabilities & Services
 - **PWA**: [@vite-pwa/nuxt](https://vite-pwa-org.netlify.app/frameworks/nuxt) (Offline support and service workers)
-- **Real-time Updates**: [Pusher](https://pusher.com/) (Server-side `pusher`, Client-side `pusher-js`)
+
 - **Date Management**: [date-fns](https://date-fns.org/)
 - **Authentication**: 
   - `jose` (JWT handling)

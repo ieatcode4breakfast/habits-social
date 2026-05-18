@@ -2,7 +2,6 @@ import { eq, and, or, sql } from 'drizzle-orm';
 import { friendships as friendshipsTable, habits, habitLogs, users } from '~~/server/db/schema';
 import { extractRows } from '~~/server/utils/db';
 import { reevaluateMultipleBuckets } from '~~/server/utils/buckets';
-import { usePusher } from '~~/server/utils/pusher';
 
 export const SocialService = {
   async createFriendship(db: any, initiatorId: string, targetUserId: string, event: any) {
@@ -30,25 +29,6 @@ export const SocialService = {
     }
 
     const friendship = result[0];
-    if (friendship) {
-      const pusher = usePusher(event);
-      if (pusher) {
-        // Fetch initiator profile for the receiver
-        const initiatorProfile = await db.select({
-          id: users.id,
-          username: users.username,
-          photoUrl: users.photoUrl
-        })
-        .from(users)
-        .where(eq(users.id, initiatorId))
-        .then((res: any[]) => res[0]);
-
-        pusher.trigger(`user-${targetUserId}-social`, 'friend-request-received', {
-          ...friendship,
-          profile: initiatorProfile
-        });
-      }
-    }
     return friendship;
   },
 
@@ -59,39 +39,6 @@ export const SocialService = {
       .returning();
 
     const friendship = result[0];
-    if (friendship) {
-      const pusher = usePusher(event);
-      if (pusher) {
-        // Fetch receiver profile for the initiator
-        const receiverProfile = await db.select({
-          id: users.id,
-          username: users.username,
-          photoUrl: users.photoUrl
-        })
-        .from(users)
-        .where(eq(users.id, friendship.receiverId))
-        .then((res: any[]) => res[0]);
-
-        // Fetch initiator profile for the receiver
-        const initiatorProfile = await db.select({
-          id: users.id,
-          username: users.username,
-          photoUrl: users.photoUrl
-        })
-        .from(users)
-        .where(eq(users.id, friendship.initiatorId))
-        .then((res: any[]) => res[0]);
-
-        pusher.trigger(`user-${friendship.initiatorId}-social`, 'friend-request-accepted', {
-          ...friendship,
-          profile: receiverProfile
-        });
-        pusher.trigger(`user-${friendship.receiverId}-social`, 'friend-request-accepted', {
-          ...friendship,
-          profile: initiatorProfile
-        });
-      }
-    }
     return friendship;
   },
 
@@ -155,12 +102,6 @@ export const SocialService = {
       await this.cleanupFriendshipData(tx, u1, u2);
       await tx.delete(friendshipsTable).where(eq(friendshipsTable.id, id));
     });
-
-    const pusher = usePusher(event);
-    if (pusher) {
-      pusher.trigger(`user-${u1}-social`, 'friendship-removed', { id });
-      pusher.trigger(`user-${u2}-social`, 'friendship-removed', { id });
-    }
 
     return true;
   }

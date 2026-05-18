@@ -87,7 +87,7 @@ export default defineNuxtConfig({
           'X-Frame-Options': 'DENY',
           'Referrer-Policy': 'strict-origin-when-cross-origin',
           'Permissions-Policy': 'camera=(), microphone=(), geolocation=()',
-          'Content-Security-Policy': "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://api.dicebear.com; connect-src 'self' wss://*.pusher.com https://*.pusher.com; font-src 'self';"
+          'Content-Security-Policy': "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://api.dicebear.com; connect-src 'self'; font-src 'self';"
         } 
       }
     },
@@ -101,11 +101,7 @@ export default defineNuxtConfig({
   runtimeConfig: {
     databaseUrl: process.env.DATABASE_URL,
     jwtSecret: process.env.JWT_SECRET,
-    pusherAppId: process.env.PUSHER_APP_ID,
-    pusherSecret: process.env.PUSHER_SECRET,
     public: {
-      pusherKey: process.env.PUSHER_KEY,
-      pusherCluster: process.env.PUSHER_CLUSTER,
     }
   },
 

@@ -1,5 +1,4 @@
 import { ref, computed, watch } from 'vue';
-import { useRealtime } from './useRealtime';
 
 export interface UserProfile { 
   id: string; 
@@ -18,14 +17,11 @@ export interface Friendship {
   receiverFavorite?: boolean;
 }
 
-// Module-level state to ensure singleton behavior for the subscription
-let globalUnsubscribe: (() => void) | null = null;
-let globalStopWatch: (() => void) | null = null;
+// Module-level state
 let isInitialized = false;
 
 export const useSocial = () => {
   const { user } = useAuth();
-  const { subscribeToSocials } = useRealtime();
 
   // Global state using Nuxt's useState (shared across all instances)
   const friendships = useState<Friendship[]>('social-friendships', () => []);
@@ -88,60 +84,6 @@ export const useSocial = () => {
     
     // Initial fetch
     refresh();
-
-    // Setup singleton watcher and subscription
-    if (globalStopWatch) globalStopWatch();
-    globalStopWatch = watch(() => user.value?.id, (newId) => {
-      if (newId && !globalUnsubscribe) {
-
-        globalUnsubscribe = subscribeToSocials((eventName, data) => {
-
-          
-          // Optimistic update for friendships and profiles
-          if (eventName === 'friend-request-accepted' || eventName === 'friend-request-received') {
-            const friendshipWithParticipants = {
-              ...data,
-              participants: [String(data.initiatorId), String(data.receiverId)]
-            };
-
-            const index = friendships.value.findIndex(f => f.id === data.id);
-            if (index !== -1) {
-              friendships.value[index] = { ...friendships.value[index], ...friendshipWithParticipants };
-            } else {
-              friendships.value.push(friendshipWithParticipants);
-            }
-
-            // Update profiles if included in payload
-            if (data.profile) {
-              const pIndex = profiles.value.findIndex(p => String(p.id) === String(data.profile.id));
-              if (pIndex === -1) {
-                profiles.value.push(data.profile);
-              } else {
-                profiles.value[pIndex] = data.profile;
-              }
-            }
-
-            // Manually update pendingCount locally
-            const myId = String(user.value?.id);
-            pendingCount.value = friendships.value.filter(
-              f => f.status === 'pending' && String(f.receiverId) === myId
-            ).length;
-
-          } else if (eventName === 'friendship-removed') {
-            friendships.value = friendships.value.filter(f => f.id !== data.id);
-            
-            // Also update pendingCount in case a pending request was removed
-            const myId = String(user.value?.id);
-            pendingCount.value = friendships.value.filter(
-              f => f.status === 'pending' && String(f.receiverId) === myId
-            ).length;
-          }
-
-          // Optimization: Trust the payload and avoid redundant network round-trip
-          // refresh(true); 
-        });
-      }
-    }, { immediate: true });
   };
 
   // We expose a cleanup but typically we want to keep it alive 
@@ -153,14 +95,6 @@ export const useSocial = () => {
   };
 
   const logoutCleanup = () => {
-    if (globalStopWatch) {
-      globalStopWatch();
-      globalStopWatch = null;
-    }
-    if (globalUnsubscribe) {
-      globalUnsubscribe();
-      globalUnsubscribe = null;
-    }
     isInitialized = false;
     friendships.value = [];
     profiles.value = [];

@@ -3,7 +3,6 @@ import { habitLogs, habits as habitsTable, bucketHabits, shareEvents, syncDeleti
 import { recalculateHabitStreak } from '~~/server/utils/streaks';
 import { syncBucketLogsForHabit, reevaluateMultipleBuckets } from '~~/server/utils/buckets';
 import { markBucketHabitsRemoved } from '~~/server/utils/shared-buckets';
-import { usePusher } from '~~/server/utils/pusher';
 
 export const HabitService = {
   async logHabit(db: any, userId: string, data: any, event: any) {
@@ -41,11 +40,6 @@ export const HabitService = {
 
         return insertRes[0];
       });
-
-      const pusher = usePusher(event);
-      if (pusher) {
-        pusher.trigger(`user-${userId}-habits`, 'sync-settled', { timestamp: Date.now() });
-      }
 
       return result;
     } catch (e: any) {
@@ -149,11 +143,6 @@ export const HabitService = {
       throw createError({ statusCode: 409, statusMessage: 'Conflict: Habit already exists or ownership mismatch' });
     }
 
-    const pusher = usePusher(event);
-    if (pusher) {
-      pusher.trigger(`user-${userId}-habits`, 'sync-settled', { timestamp: Date.now() });
-    }
-
     return result;
   },
 
@@ -181,11 +170,6 @@ export const HabitService = {
       await recalculateHabitStreak(tx, habitId, userId, dateStr);
       await syncBucketLogsForHabit(tx, habitId, userId, dateStr);
     });
-
-    const pusher = usePusher(event);
-    if (pusher) {
-      pusher.trigger(`user-${userId}-habits`, 'sync-settled', { timestamp: Date.now() });
-    }
   },
 
   async updateHabit(db: any, userId: string, id: string, data: any, habit: any, event: any) {
@@ -269,11 +253,6 @@ export const HabitService = {
       return updated;
     });
 
-    const pusher = usePusher(event);
-    if (pusher) {
-      pusher.trigger(`user-${userId}-habits`, 'habit-updated', { habitId: id });
-    }
-
     return updatedHabit;
   },
 
@@ -313,10 +292,5 @@ export const HabitService = {
 
       await reevaluateMultipleBuckets(tx, bucketIds.map((id: string) => ({ bucketId: id, ownerId: userId })));
     });
-
-    const pusher = usePusher(event);
-    if (pusher) {
-      pusher.trigger(`user-${userId}-habits`, 'habit-deleted', { habitId: id });
-    }
   }
 };
