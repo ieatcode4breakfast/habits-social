@@ -66,7 +66,7 @@
     </div>
 
     <!-- Habit List (Single Card) -->
-    <div v-motion-fade :style="pullStyle" class="bg-zinc-925/80 backdrop-blur-md sm:rounded-b-2xl rounded-none shadow-2xl border-b border-x-0 sm:border-x sm:border-b border-zinc-800/80 divide-y divide-zinc-800/80 relative will-change-transform">
+    <div v-motion-fade :style="pullStyle" class="backdrop-blur-md sm:rounded-b-2xl rounded-none border-b border-x-0 sm:border-x sm:border-b divide-y divide-zinc-800/80 relative will-change-transform transition-colors duration-300" :class="loading ? 'bg-transparent border-transparent shadow-none' : 'bg-zinc-925/80 border-zinc-800/80 shadow-2xl'">
 
       <div v-if="loading" class="flex justify-center p-12">
         <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
