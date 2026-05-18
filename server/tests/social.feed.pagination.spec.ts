@@ -85,7 +85,7 @@ describe('Social Feed Pagination & Engine Hardening', () => {
   });
 
   it('Test 5: Post-Query Grouping Pagination - Should return nextCursor when raw rows > limit', async () => {
-    const myId = userA.id;
+    const myId = userA.id!;
     const today = new Date();
     
     // Insert 21 raw events for 21 consecutive days starting from today to pass the date filter
@@ -93,10 +93,10 @@ describe('Social Feed Pagination & Engine Hardening', () => {
       const date = new Date(today);
       date.setDate(today.getDate() + i);
       const dateStr = date.toISOString().split('T')[0];
-      await createTestHabitLog(myId, habitShared.id, dateStr, 'completed');
+      await createTestHabitLog(myId as string, habitShared.id as string, dateStr as string, 'completed');
     }
 
-    const event = createMockEvent(userA.id, {}, {}, {}, { limit: '20' }, 'GET');
+    const event = createMockEvent(userA.id!, {}, {}, {}, { limit: '20' }, 'GET');
     const response = (await handler(event)) as any;
 
     expect(response.nextCursor).toBeDefined();
