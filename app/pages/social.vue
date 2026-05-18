@@ -328,6 +328,8 @@ import { Search, UserPlus, UserMinus, Check, X as XIcon, User, Trash2, ChevronDo
 import { format, parseISO, isToday, addDays, startOfMonth, endOfMonth, eachDayOfInterval, subDays, isAfter, startOfDay, subMonths, addMonths } from 'date-fns';
 import { useSocial } from '../composables/useSocial';
 import { useToast } from '../composables/useToast';
+import { shouldRefreshFeed } from '~/utils/feed';
+import { onBeforeRouteLeave } from 'vue-router';
 
 definePageMeta({ middleware: 'auth' });
 
@@ -337,7 +339,7 @@ const route = useRoute();
 
 const { pullDistance, isPulling, isRefreshing } = usePullToRefresh(async () => {
   if (activeTab.value === 'activity') {
-    await loadFeed();
+    await loadFeed({ force: true });
   } else {
     await loadFriendships(false);
   }
@@ -459,11 +461,22 @@ const hasMore = ref(true);
 const loadingMore = ref(false);
 const loadMoreSentinel = ref<HTMLElement | null>(null);
 
-const loadFeed = async (isLoadMore = false) => {
+const lastFeedFetchTime = ref(0);
+const FEED_STALE_THRESHOLD_MS = 10 * 60 * 1000; // 10 minutes
+
+const loadFeed = async ({ isLoadMore = false, force = false } = {}) => {
   if (activeTab.value !== 'activity') return;
   if (isLoadMore && (!hasMore.value || loadingMore.value)) return;
   
   if (!isLoadMore) {
+    const shouldRefresh = shouldRefreshFeed(
+      lastFeedFetchTime.value,
+      feed.value.length,
+      force,
+      FEED_STALE_THRESHOLD_MS
+    );
+    if (!shouldRefresh) return;
+    
     feedLoading.value = true;
   }
   if (isLoadMore) {
@@ -487,6 +500,7 @@ const loadFeed = async (isLoadMore = false) => {
       feed.value = [...feed.value, ...response.data];
     } else {
       feed.value = response.data;
+      lastFeedFetchTime.value = Date.now();
     }
     
     nextCursor.value = response.nextCursor;
@@ -502,7 +516,7 @@ const loadFeed = async (isLoadMore = false) => {
 useIntersectionObserver(loadMoreSentinel, (entries) => {
   const isIntersecting = entries[0]?.isIntersecting;
   if (isIntersecting && hasMore.value && !loadingMore.value && !feedLoading.value) {
-    loadFeed(true);
+    loadFeed({ isLoadMore: true });
   }
 });
 
@@ -726,29 +740,40 @@ onActivated(async () => {
     didDeactivate.value = false;
   }
 
+
+
   // 2. Conditional Refresh
   // We refresh if we're coming from anywhere EXCEPT a friend's profile (to preserve state on back-nav)
   const isFromProfile = lastPath.value.includes('/friends/');
   
   if (!isFromProfile) {
-    await loadFriendships();
-    if (activeTab.value === 'activity') {
-      loadFeed();
-    }
+    const shouldRefresh = shouldRefreshFeed(
+      lastFeedFetchTime.value,
+      feed.value.length,
+      false,
+      FEED_STALE_THRESHOLD_MS
+    );
     
-    // Also update the stable favorites snapshot for friends list sorting
-    const myId = String(user.value?.id);
-    const favs = friendships.value
-      .filter((f: any) => f.status === 'accepted' && (String(f.initiatorId) === myId ? f.initiatorFavorite : f.receiverFavorite))
-      .map((f: any) => f.id);
-    favoritedAtStart.value = new Set(favs);
+    if (shouldRefresh) {
+      await loadFriendships();
+      if (activeTab.value === 'activity') {
+        loadFeed();
+      }
+      
+      // Also update the stable favorites snapshot for friends list sorting
+      const myId = String(user.value?.id);
+      const favs = friendships.value
+        .filter((f: any) => f.status === 'accepted' && (String(f.initiatorId) === myId ? f.initiatorFavorite : f.receiverFavorite))
+        .map((f: any) => f.id);
+      favoritedAtStart.value = new Set(favs);
+    }
   }
 });
 
 // Preserve scroll position across KeepAlive navigation (fallback for router savedPosition)
 const savedScrollY = ref(0);
 
-onDeactivated(() => {
+onBeforeRouteLeave((to, from) => {
   savedScrollY.value = window.scrollY;
   didDeactivate.value = true;
 });
