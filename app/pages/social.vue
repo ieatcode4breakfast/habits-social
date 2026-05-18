@@ -26,6 +26,7 @@
       </div>
     </div>
 
+    <div :style="pullStyle" class="will-change-transform">
     <div v-if="activeTab === 'activity'" v-motion-fade class="space-y-6">
       <div v-if="feedLoading" class="flex justify-center p-12">
         <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
@@ -261,6 +262,7 @@
     </div>
   </template>
 </div>
+</div>
 
     <!-- Unfriend Confirmation Modal -->
     <Teleport to="body">
@@ -333,12 +335,20 @@ const { user } = useAuth();
 const { showToast } = useToast();
 const route = useRoute();
 
-usePullToRefresh(async () => {
+const { pullDistance, isPulling, isRefreshing } = usePullToRefresh(async () => {
   if (activeTab.value === 'activity') {
     await loadFeed();
   } else {
     await loadFriendships(false);
   }
+});
+
+const pullStyle = computed(() => {
+  const useTransition = !isPulling.value && !isLoading.value && !isRefreshing.value;
+  return {
+    transform: 'translateY(var(--pull-distance, 0px))',
+    transition: useTransition ? 'transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)' : 'none'
+  };
 });
 
 const lastPath = useState('social_prev_path', () => '');

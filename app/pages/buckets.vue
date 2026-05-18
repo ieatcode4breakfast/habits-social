@@ -102,7 +102,7 @@
     />
 
     <!-- Bucket List -->
-    <div v-motion-fade class="bg-zinc-925/80 backdrop-blur-md sm:rounded-b-2xl rounded-none shadow-2xl border-b border-x-0 sm:border-x sm:border-b border-zinc-800/80 divide-y divide-zinc-800/80 relative">
+    <div v-motion-fade :style="pullStyle" class="bg-zinc-925/80 backdrop-blur-md sm:rounded-b-2xl rounded-none shadow-2xl border-b border-x-0 sm:border-x sm:border-b border-zinc-800/80 divide-y divide-zinc-800/80 relative will-change-transform">
 
       <div v-if="loading" class="flex justify-center p-12">
         <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
@@ -295,8 +295,16 @@ const { friends } = useSocial();
 const { lastSyncTime } = api;
 const { showToast } = useToast();
 
-usePullToRefresh(async () => {
+const { pullDistance, isPulling, isRefreshing } = usePullToRefresh(async () => {
   await load();
+});
+
+const pullStyle = computed(() => {
+  const useTransition = !isPulling.value && !loading.value && !isRefreshing.value;
+  return {
+    transform: 'translateY(var(--pull-distance, 0px))',
+    transition: useTransition ? 'transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)' : 'none'
+  };
 });
 
 useSeoMeta({
