@@ -295,6 +295,10 @@ const { friends } = useSocial();
 const { lastSyncTime } = api;
 const { showToast } = useToast();
 
+usePullToRefresh(async () => {
+  await load();
+});
+
 useSeoMeta({
   title: 'Buckets - HabitsSocial',
   description: 'Organize your habits into custom buckets on HabitsSocial.',
@@ -475,7 +479,8 @@ const load = async (silent = false) => {
       api.getBuckets(), 
       api.getLogs(startDate, endDate),
       api.getBucketLogs(startDate, endDate),
-      api.getHabits()
+      api.getHabits(),
+      new Promise(resolve => setTimeout(resolve, 500))
     ]);
     buckets.value = b;
     habitLogs.value = l;

@@ -69,7 +69,8 @@ watch(() => user.value?.id, (newId) => {
 
 
 useHead({
-  htmlAttrs: { class: 'dark' },
+  htmlAttrs: { class: 'dark', style: 'overscroll-behavior-y: none' },
+  bodyAttrs: { style: 'overscroll-behavior-y: none' },
   title: 'Habits Social',
   meta: [
     { name: 'description', content: 'A social habit tracking app.' },

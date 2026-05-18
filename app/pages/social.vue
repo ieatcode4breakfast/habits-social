@@ -27,7 +27,7 @@
     </div>
 
     <div v-if="activeTab === 'activity'" v-motion-fade class="space-y-6">
-      <div v-if="feedLoading && (!feed || feed.length === 0)" class="flex justify-center p-12">
+      <div v-if="feedLoading" class="flex justify-center p-12">
         <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
       </div>
 
@@ -332,6 +332,15 @@ definePageMeta({ middleware: 'auth' });
 const { user } = useAuth();
 const { showToast } = useToast();
 const route = useRoute();
+
+usePullToRefresh(async () => {
+  if (activeTab.value === 'activity') {
+    await loadFeed();
+  } else {
+    await loadFriendships(false);
+  }
+});
+
 const lastPath = useState('social_prev_path', () => '');
 const router = useRouter();
 
@@ -444,8 +453,7 @@ const loadFeed = async (isLoadMore = false) => {
   if (activeTab.value !== 'activity') return;
   if (isLoadMore && (!hasMore.value || loadingMore.value)) return;
   
-  const isInitialLoad = !isLoadMore && (!feed.value || feed.value.length === 0);
-  if (isInitialLoad) {
+  if (!isLoadMore) {
     feedLoading.value = true;
   }
   if (isLoadMore) {
@@ -460,7 +468,10 @@ const loadFeed = async (isLoadMore = false) => {
       query.cursorId = nextCursor.value.id;
     }
     
-    const response = await $fetch<{ data: any[], nextCursor: any }>('/api/social/feed', { query });
+    const [response] = await Promise.all([
+      $fetch<{ data: any[], nextCursor: any }>('/api/social/feed', { query }),
+      new Promise(resolve => setTimeout(resolve, 500))
+    ]);
     
     if (isLoadMore) {
       feed.value = [...feed.value, ...response.data];
@@ -679,7 +690,10 @@ const modalContent = ref<HTMLElement | null>(null);
 const habitModalContent = ref<HTMLElement | null>(null);
 
 const loadFriendships = async (silent = true) => {
-  await refreshSocial(silent);
+  await Promise.all([
+    refreshSocial(silent),
+    new Promise(resolve => setTimeout(resolve, 500))
+  ]);
 };
 
 onMounted(() => {

@@ -193,6 +193,11 @@ import { useSocial } from '../composables/useSocial';
 const api = useHabitsApi();
 const { user } = useAuth();
 const { lastSyncTime } = api;
+
+usePullToRefresh(async () => {
+  await load();
+});
+
 const { friends: rawFriends, refresh: refreshSocial, init: initSocial, cleanup: cleanupSocial } = useSocial();
 const showProfileModal = useState('showProfileModal', () => false);
 const { isOnline } = useNetwork();
@@ -334,7 +339,8 @@ const load = async (silent = false) => {
     const [h, l] = await Promise.all([
       api.getHabits(), 
       api.getLogs(startDate, endDate),
-      refreshSocial()
+      refreshSocial(),
+      new Promise(resolve => setTimeout(resolve, 500))
     ]);
     habits.value = h;
     logs.value = l;
