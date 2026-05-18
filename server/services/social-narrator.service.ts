@@ -1,4 +1,4 @@
-import { format, parseISO } from 'date-fns';
+import { format, parseISO, subDays } from 'date-fns';
 
 export interface NarratorUser {
   id: string;
@@ -20,6 +20,14 @@ export interface FeedItem {
   message: string;
   date: string;
   timestamp: Date;
+  weeklyStatus?: { date: string, status: string | undefined }[];
+  streakCount?: number;
+}
+
+export interface HabitLogSummary {
+  habitId: string;
+  date: string;
+  status: string;
 }
 
 export class SocialNarratorService {
@@ -118,7 +126,8 @@ export class SocialNarratorService {
         },
         message,
         date: log.date,
-        timestamp: log.updatedAt
+        timestamp: log.updatedAt,
+        streakCount: log.streakCount
       };
     }
     return null;
@@ -179,5 +188,47 @@ export class SocialNarratorService {
       date: se.date,
       timestamp: se.updatedAt
     };
+  }
+  static enrichWithWeeklyLogs(feedItems: FeedItem[], logs: HabitLogSummary[]): FeedItem[] {
+    const logsMap = new Map<string, Map<string, string>>();
+    
+    logs.forEach(log => {
+      if (!logsMap.has(log.habitId)) {
+        logsMap.set(log.habitId, new Map<string, string>());
+      }
+      logsMap.get(log.habitId)!.set(log.date, log.status);
+    });
+
+
+
+    const logTypes = [
+      'INITIAL_COMPLETION', 'STREAK_STARTED', 'STREAK_CONTINUED', 
+      'STREAK_MILESTONE', 'POST_YEAR_MILESTONE', 'POST_YEAR_EXTENSION', 
+      'STREAK_EXTENSION',
+      'INITIAL_SKIP', 'STREAK_MAINTAINED',
+      'INITIAL_FAILURE', 'STREAK_BROKEN',
+      'INITIAL_VACATION', 'STREAK_MAINTAINED_VACATION'
+    ];
+
+    return feedItems.map(item => {
+      if (item.habit?.id && logTypes.includes(item.type)) {
+        const habitId = item.habit.id;
+        const itemDate = parseISO(item.date);
+        const weeklyStatus: { date: string, status: string | undefined }[] = [];
+        
+        for (let i = 6; i >= 0; i--) {
+          const day = subDays(itemDate, i);
+          const dateStr = format(day, 'yyyy-MM-dd');
+          const status = logsMap.get(habitId)?.get(dateStr);
+          weeklyStatus.push({ date: dateStr, status });
+        }
+        
+        return { 
+          ...item, 
+          weeklyStatus
+        };
+      }
+      return item;
+    });
   }
 }

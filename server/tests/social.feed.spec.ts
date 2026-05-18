@@ -59,6 +59,12 @@ describe('GET /api/social/feed', () => {
     );
     expect(foundLog).toBeDefined();
     expect(foundLog.user.id).toBe(userA.id);
+    
+    // Data Contract Validation for 7-day visualizer
+    expect(foundLog.weeklyStatus).toBeDefined();
+    expect(Array.isArray(foundLog.weeklyStatus)).toBe(true);
+    expect(foundLog.weeklyStatus.length).toBe(7);
+    expect(foundLog.weeklyStatus[6].date).toBe(dateStr);
   });
 
   it('should handle pagination cursors without database errors', async () => {

@@ -203,4 +203,33 @@ describe('GET /api/social/feed - Filtering', () => {
     // Cleanup
     await db.delete(shareEvents).where(eq(shareEvents.id, shareId));
   });
+
+  it('Test 8: Unshared habits do not leak weekly logs', async () => {
+    const today = formatISO(new Date(), { representation: 'date' });
+    const logId = `t8_${Date.now()}`;
+    
+    // Create a new habit for userA that is NOT shared with userB
+    const privateHabit = await createTestHabit(userA.id, 'Private Habit');
+    
+    await db.insert(habitLogs).values({
+      id: logId,
+      habitId: privateHabit.id,
+      ownerId: userA.id,
+      date: today,
+      status: 'completed',
+      streakCount: 1,
+      updatedAt: new Date()
+    });
+
+    const event = createMockEvent(userB.id, {}, {}, {}, {}, 'GET');
+    const response = (await handler(event)) as any;
+
+    // Verify that the log does NOT appear in userB's feed
+    const found = response.data.find((item: any) => item.habit?.id === privateHabit.id);
+    expect(found).toBeUndefined();
+    
+    // Cleanup
+    await db.delete(habitLogs).where(eq(habitLogs.id, logId));
+    await deleteTestHabit(privateHabit.id);
+  });
 });

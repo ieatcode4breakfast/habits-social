@@ -302,3 +302,8 @@ The proposal to add a test step to the CI pipeline was skipped. Adding the test 
 
 ### Habit Sharing with Pending Friendships (By Design)
 It is a deliberate design decision to allow sharing habit data with users in `pending` friendship status. The friendship guard query intentionally filters by `['accepted', 'pending']` to support this behavior.
+
+### Feed Look-Ahead Query Optimization (By Design)
+It is a deliberate decision to stick with the current precise `OR` conditions for the weekly logs look-ahead in `server/api/social/feed.get.ts` to protect Node.js memory from loading large date ranges, despite the O(N) query expansion.
+- **DO NOT FLAG** this query pattern in future audits unless database CPU usage becomes a proven bottleneck.
+

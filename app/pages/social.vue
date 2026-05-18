@@ -53,41 +53,47 @@
               v-for="(item, itemIndex) in group" 
               :key="item.id"
               @click="item.habit?.id ? openHabitDetails(item.habit.id) : (String(item.user.id) !== String(user?.id) ? navigateTo(`/friends/${item.user.id}?from=${activeTab}`) : null)"
-              class="group bg-zinc-925/50 hover:bg-zinc-900/80 border-b border-zinc-800/50 last:border-b-0 sm:border-x sm:border-b sm:border-zinc-800/50 p-4 transition-all duration-300 cursor-pointer flex items-center gap-4 shadow-sm"
+              class="group bg-zinc-925/50 hover:bg-zinc-900/80 border-b border-zinc-800/50 last:border-b-0 sm:border-x sm:border-b sm:border-zinc-800/50 p-4 transition-all duration-300 cursor-pointer flex flex-col gap-3 shadow-sm"
               :class="[
                 itemIndex === 0 ? 'sm:rounded-t-2xl sm:border-t' : '',
                 itemIndex === group.length - 1 ? 'sm:rounded-b-2xl' : ''
               ]"
             >
-              <!-- Avatar -->
-              <UserAvatar 
-                @click="String(item.user.id) !== String(user?.id) ? ($event.stopPropagation(), navigateTo(`/friends/${item.user.id}?from=${activeTab}`)) : null"
-                :src="item.user.photoUrl" 
-                container-class="w-10 h-10 bg-zinc-950 border border-zinc-800 transition-transform cursor-pointer"
-                :class="{ 'active:scale-95': String(item.user.id) !== String(user?.id) }"
-                icon-class="w-5 h-5 text-zinc-700"
-              />
+              <!-- Row 1: Header (Avatar + Message) -->
+              <div class="flex items-center gap-4 w-full">
+                <!-- Avatar -->
+                <UserAvatar 
+                  @click="String(item.user.id) !== String(user?.id) ? ($event.stopPropagation(), navigateTo(`/friends/${item.user.id}?from=${activeTab}`)) : null"
+                  :src="item.user.photoUrl" 
+                  container-class="w-10 h-10 bg-zinc-950 border border-zinc-800 transition-transform cursor-pointer"
+                  :class="{ 'active:scale-95': String(item.user.id) !== String(user?.id) }"
+                  icon-class="w-5 h-5 text-zinc-700"
+                />
 
-              <!-- Content -->
-              <div class="flex-1 min-w-0">
-                <div class="text-sm leading-relaxed min-w-0 break-words">
-                  <span 
-                    @click="String(item.user.id) !== String(user?.id) ? ($event.stopPropagation(), navigateTo(`/friends/${item.user.id}?from=${activeTab}`)) : null"
-                    class="font-bold text-zinc-100 transition-colors cursor-pointer mr-1.5"
-                    :class="{ 'hover:text-zinc-400': String(item.user.id) !== String(user?.id) }"
-                  >
-                    {{ item.user.name }}
-                  </span>
-                  <span class="text-zinc-400" v-html="formatMessage(item.message)" @click="handleMessageClick">
-                  </span>
-                </div>
-                <div class="flex items-center gap-2 mt-1">
-
-                  <span class="text-[10px] font-bold uppercase tracking-wider text-zinc-500 truncate block">
-                    {{ item.habit.title }}
-                  </span>
+                <!-- Content -->
+                <div class="flex-1 min-w-0">
+                  <div class="text-sm leading-relaxed min-w-0 break-words">
+                    <span 
+                      @click="String(item.user.id) !== String(user?.id) ? ($event.stopPropagation(), navigateTo(`/friends/${item.user.id}?from=${activeTab}`)) : null"
+                      class="font-bold text-zinc-100 transition-colors cursor-pointer mr-1.5"
+                      :class="{ 'hover:text-zinc-400': String(item.user.id) !== String(user?.id) }"
+                    >
+                      {{ item.user.name }}
+                    </span>
+                    <span class="text-zinc-400" v-html="formatMessage(item.message)" @click="handleMessageClick">
+                    </span>
+                  </div>
                 </div>
               </div>
+
+              <!-- Row 2: Habit Visual (Title + Grid) -->
+              <!-- Row 2: Habit Visual (Title + Grid) -->
+              <HabitLogVisualizer 
+                v-if="item.weeklyStatus"
+                :title="item.habit.title"
+                :streakCount="item.streakCount"
+                :weeklyStatus="item.weeklyStatus"
+              />
 
 
             </div>
@@ -316,7 +322,7 @@
 
 <script setup lang="ts">
 defineOptions({ name: 'social' });
-import { Search, UserPlus, UserMinus, Check, X as XIcon, User, Trash2, ChevronDown, CheckSquare, Activity, Star, ChevronLeft, ChevronRight, Flame } from 'lucide-vue-next';
+import { Search, UserPlus, UserMinus, Check, X as XIcon, User, Trash2, ChevronDown, CheckSquare, Activity, Star, ChevronLeft, ChevronRight, Flame, Minus, Palmtree } from 'lucide-vue-next';
 import { format, parseISO, isToday, addDays, startOfMonth, endOfMonth, eachDayOfInterval, subDays, isAfter, startOfDay, subMonths, addMonths } from 'date-fns';
 import { useSocial } from '../composables/useSocial';
 import { useToast } from '../composables/useToast';
