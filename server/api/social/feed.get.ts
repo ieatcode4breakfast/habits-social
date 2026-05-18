@@ -310,18 +310,18 @@ export default defineEventHandler(async (event) => {
     return String(b.id).localeCompare(String(a.id));
   });
 
-  const hasNextPage = narratedFeed.length > limit;
+  const hasNextPage = rows.length > limit;
   const slicedData = narratedFeed.slice(0, limit);
   const data = SocialNarratorService.enrichWithWeeklyLogs(slicedData, habitLogsData);
   
   let nextCursor = null;
-  if (hasNextPage && data.length > 0) {
-    const lastItem = data[data.length - 1];
-    if (lastItem) {
+  if (hasNextPage) {
+    const lastRow = rows[limit];
+    if (lastRow) {
       nextCursor = {
-        date: lastItem.date,
-        timestamp: lastItem.timestamp,
-        id: lastItem.id
+        date: lastRow.sort_date,
+        timestamp: lastRow.sort_timestamp,
+        id: lastRow.id
       };
     }
   }
