@@ -1,6 +1,6 @@
 import './setup';
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import { createTestUser, deleteTestUser, createTestHabit, deleteTestHabit, createFriendship, deleteFriendship, createMockEvent } from './test.utils';
+import { createTestUser, deleteTestUser, createTestHabit, deleteTestHabit, createFriendship, deleteFriendship, createMockEvent, createTestHabitLog } from './test.utils';
 import { sql } from 'drizzle-orm';
 import { useDB } from '../utils/db';
 
@@ -82,5 +82,24 @@ describe('Social Feed Pagination & Engine Hardening', () => {
     
     expect(response.data).toBeDefined();
     expect(Array.isArray(response.data)).toBe(true);
+  });
+
+  it('Test 5: Post-Query Grouping Pagination - Should return nextCursor when raw rows > limit', async () => {
+    const myId = userA.id;
+    const today = new Date();
+    
+    // Insert 21 raw events for 21 consecutive days starting from today to pass the date filter
+    for (let i = 0; i < 21; i++) {
+      const date = new Date(today);
+      date.setDate(today.getDate() + i);
+      const dateStr = date.toISOString().split('T')[0];
+      await createTestHabitLog(myId, habitShared.id, dateStr, 'completed');
+    }
+
+    const event = createMockEvent(userA.id, {}, {}, {}, { limit: '20' }, 'GET');
+    const response = (await handler(event)) as any;
+
+    expect(response.nextCursor).toBeDefined();
+    expect(response.nextCursor).not.toBeNull();
   });
 });
