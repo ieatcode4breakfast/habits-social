@@ -14,6 +14,7 @@ export const usePullToRefresh = (
 
   const onTouchStart = (e: TouchEvent) => {
     if (window.scrollY > 0 || isRefreshing.value) return;
+    if (document.body.classList.contains('overflow-hidden')) return;
     const touch = e.touches[0];
     if (!touch) return;
     startY = touch.clientY;
@@ -22,6 +23,16 @@ export const usePullToRefresh = (
 
   const onTouchMove = (e: TouchEvent) => {
     if (!isPulling.value || isRefreshing.value) return;
+    if (document.body.classList.contains('overflow-hidden')) {
+      pullDistance.value = 0;
+      isPulling.value = false;
+      document.documentElement.style.setProperty('--pull-distance', '0px');
+      if (rafId) {
+        cancelAnimationFrame(rafId);
+        rafId = null;
+      }
+      return;
+    }
     const touch = e.touches[0];
     if (!touch) return;
 

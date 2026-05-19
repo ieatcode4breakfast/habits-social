@@ -1,5 +1,5 @@
-import { parseISO, startOfDay, differenceInDays } from 'date-fns';
-import { eq, ne, lt, gte, desc, asc, sql, and } from 'drizzle-orm';
+import { parseISO, startOfDay } from 'date-fns';
+import { eq, asc, sql, and } from 'drizzle-orm';
 import { habits, habitLogs } from '../db/schema';
 import { calculateStreakFromLogs } from '../../utils/habits';
 
@@ -8,6 +8,7 @@ export async function recalculateHabitStreak(db: any, habitId: string, userId: s
   if (!habitId || habitId.length < 36) return;
   // 1. Fetch habit info
   const habitRes = await db.select({
+    currentStreak: habits.currentStreak,
     longestStreak: habits.longestStreak,
     streakAnchorDate: habits.streakAnchorDate
   })
@@ -19,65 +20,18 @@ export async function recalculateHabitStreak(db: any, habitId: string, userId: s
 
   let runningStreak = 0;
   let lastDate: Date | null = null;
-  let queryStartDate = fromDate;
   let maxStreak = 0;
-  let baselineAnchor: string | null = habit.streakAnchorDate;
+  let baselineAnchor: string | null = null;
 
-  // 2. If incremental, find the starting point state from the log just before fromDate
-  if (fromDate) {
-    const prevLogRes = await db.select({
-      streakCount: habitLogs.streakCount,
-      date: habitLogs.date
-    })
-    .from(habitLogs)
-    .where(and(
-      eq(habitLogs.habitId, habitId),
-      eq(habitLogs.ownerId, userId),
-      lt(habitLogs.date, fromDate),
-      ne(habitLogs.status, 'cleared')
-    ))
-    .orderBy(desc(habitLogs.date))
-    .limit(1);
-
-    if (prevLogRes && prevLogRes.length > 0) {
-      const prevLog = prevLogRes[0];
-      runningStreak = prevLog.streakCount;
-      lastDate = startOfDay(parseISO(prevLog.date));
-      baselineAnchor = prevLog.date;
-    }
-
-    const maxRes = await db.select({
-      maxStreak: sql`MAX(${habitLogs.streakCount})`
-    })
-    .from(habitLogs)
-    .where(and(
-      eq(habitLogs.habitId, habitId),
-      eq(habitLogs.ownerId, userId),
-      lt(habitLogs.date, fromDate),
-      ne(habitLogs.status, 'cleared')
-    ));
-
-    maxStreak = Number(maxRes[0]?.maxStreak || 0);
-  }
-
-  // 3. Fetch logs from starting point onwards
-  const conditions = [
-    eq(habitLogs.habitId, habitId),
-    eq(habitLogs.ownerId, userId)
-  ];
-
-  if (queryStartDate) {
-    conditions.push(gte(habitLogs.date, queryStartDate));
-  }
-
+  // 2. Fetch all logs for this habit from the beginning of time
   const rawLogs = await db.select()
     .from(habitLogs)
-    .where(and(...conditions))
+    .where(and(eq(habitLogs.habitId, habitId), eq(habitLogs.ownerId, userId)))
     .orderBy(asc(habitLogs.date));
 
   if (!rawLogs || rawLogs.length === 0) {
-    // If we're doing a full rebuild and no logs, reset habit.
-    if (!fromDate) {
+    // Diff-check before updating parent habit
+    if (habit.currentStreak !== 0 || habit.streakAnchorDate !== null) {
       const result = await db.update(habits)
         .set({
           currentStreak: 0,
@@ -88,19 +42,10 @@ export async function recalculateHabitStreak(db: any, habitId: string, userId: s
         .returning();
       return result[0];
     }
-
-    const result = await db.update(habits)
-      .set({
-        currentStreak: runningStreak,
-        streakAnchorDate: baselineAnchor,
-        updatedAt: new Date()
-      })
-      .where(and(eq(habits.id, habitId), eq(habits.ownerId, userId)))
-      .returning();
-    return result[0];
+    return habit;
   }
 
-  // 4. Use shared logic for calculation
+  // 3. Use shared logic for calculation from the beginning of time
   let { currentStreak, longestStreak, streakAnchorDate, logUpdates } = calculateStreakFromLogs(
     rawLogs,
     runningStreak,
@@ -109,7 +54,7 @@ export async function recalculateHabitStreak(db: any, habitId: string, userId: s
     baselineAnchor
   );
 
-  // 5. Update habitlogs in batch
+  // 4. Update habitlogs in batch (only contains elements that actually changed in DB)
   if (logUpdates.length > 0) {
     const sqlValues = logUpdates.map(u => sql`(${u.id}::text, ${u.streakCount}::integer, ${u.brokenStreakCount}::integer)`);
     const valuesList = sql.join(sqlValues, sql`, `);
@@ -125,18 +70,25 @@ export async function recalculateHabitStreak(db: any, habitId: string, userId: s
     `);
   }
 
-  // 6. Final Habit Update: Set current and longest streak
-  const result = await db.update(habits)
-    .set({
-      currentStreak: currentStreak,
-      longestStreak: longestStreak,
-      streakAnchorDate: streakAnchorDate,
-      updatedAt: new Date()
-    })
-    .where(and(eq(habits.id, habitId), eq(habits.ownerId, userId)))
-    .returning();
+  // 5. Final Habit Update (Diff-checked to save database updates I/O)
+  if (
+    habit.currentStreak !== currentStreak ||
+    habit.longestStreak !== longestStreak ||
+    habit.streakAnchorDate !== streakAnchorDate
+  ) {
+    const result = await db.update(habits)
+      .set({
+        currentStreak: currentStreak,
+        longestStreak: longestStreak,
+        streakAnchorDate: streakAnchorDate,
+        updatedAt: new Date()
+      })
+      .where(and(eq(habits.id, habitId), eq(habits.ownerId, userId)))
+      .returning();
+    return result[0];
+  }
 
-  return result[0];
+  return habit;
 }
 
 

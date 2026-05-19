@@ -54,6 +54,7 @@ export const habitLogs = pgTable('habit_logs', {
   return {
     habitLogsOwnerUpdatedAtIdIdx: index('habit_logs_owner_updated_at_id_idx').on(table.ownerId, table.updatedAt, table.id),
     habitLogsFeedPaginationIdx: index('habit_logs_feed_pagination_idx').on(table.ownerId, table.date, table.updatedAt, table.id),
+    habitLogsHabitOwnerDateIdx: index('habit_logs_habit_owner_date_idx').on(table.habitId, table.ownerId, table.date),
   };
 });
 
@@ -110,6 +111,7 @@ export const bucketLogs = pgTable('bucket_logs', {
 }, (table) => {
   return {
     bucketLogsOwnerUpdatedAtIdIdx: index('bucket_logs_owner_updated_at_id_idx').on(table.ownerId, table.updatedAt, table.id),
+    bucketLogsBucketOwnerDateIdx: index('bucket_logs_bucket_owner_date_idx').on(table.bucketId, table.ownerId, table.date),
   };
 });
 

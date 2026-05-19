@@ -284,7 +284,7 @@ describe('API: POST /api/sync/bulk', () => {
       approvalStatus: 'accepted'
     });
 
-    const todayStr = new Date().toISOString().split('T')[0];
+    const todayStr = new Date().toISOString().split('T')[0] as string;
 
     const operations = [
       {
