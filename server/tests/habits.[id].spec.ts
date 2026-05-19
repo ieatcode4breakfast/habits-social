@@ -33,6 +33,22 @@ describe('API /api/habits/[id]', () => {
     expect(response.data.title).toBe('Updated Habit');
   });
 
+  it('should ignore userDate on update', async () => {
+    const originalUserDate = testHabit.userDate;
+    const differentUserDate = '2026-01-01';
+    
+    const event = createMockEvent(testUser.id, { 
+      title: 'Updated Habit Title', 
+      userDate: differentUserDate 
+    }, {}, { id: testHabit.id }, {}, 'PUT');
+    
+    const response = (await handler(event)) as any;
+    expect(response.data).toBeDefined();
+    
+    expect(response.data.userDate).not.toBe(differentUserDate);
+    expect(response.data.userDate).toBe(originalUserDate);
+  });
+
   it('should safely delete a habit', async () => {
     const newHabit = await createTestHabit(testUser.id, 'To Delete');
     const event = createMockEvent(testUser.id, {}, {}, { id: newHabit.id }, {}, 'DELETE');

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { registerSchema, updateProfileSchema, loginSchema, habitSchema, habitLogSchema, bucketSchema, bucketLogSchema } from '../utils/validation';
+import { registerSchema, updateProfileSchema, loginSchema, habitSchema, habitUpdateSchema, habitLogSchema, bucketSchema, bucketLogSchema } from '../utils/validation';
 
 
 describe('User Validation Schemas', () => {
@@ -117,6 +117,18 @@ describe('User Validation Schemas', () => {
       expect(result.currentStreak).toBeUndefined();
       expect(result.longestStreak).toBeUndefined();
       expect(result.streakAnchorDate).toBeUndefined();
+    });
+  });
+
+  describe('habitUpdateSchema - Payload Protection', () => {
+    it('should strip userDate if passed in the payload', () => {
+      const updatePayload = {
+        title: 'Updated Title',
+        userDate: '2026-01-01'
+      };
+      const parsedPayload: any = habitUpdateSchema.parse(updatePayload);
+      expect(parsedPayload.title).toBe('Updated Title');
+      expect(parsedPayload.userDate).toBeUndefined();
     });
   });
 

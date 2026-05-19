@@ -213,7 +213,6 @@ export const HabitService = {
           color: data.color ?? habit.color,
           sharedWith: sanitizedSharedWith ?? habit.sharedWith,
           sortOrder: data.sortOrder ?? habit.sortOrder,
-          userDate: data.userDate ?? habit.userDate,
           updatedAt: new Date()
         })
         .where(and(

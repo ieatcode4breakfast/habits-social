@@ -78,7 +78,7 @@ export const habitSchema = createInsertSchema(schema.habits, {
 }).omit({ ownerId: true, createdAt: true, updatedAt: true, currentStreak: true, longestStreak: true, streakAnchorDate: true });
 
 
-export const habitUpdateSchema = habitSchema.partial();
+export const habitUpdateSchema = habitSchema.omit({ userDate: true }).partial();
 
 export const habitLogSchema = createInsertSchema(schema.habitLogs, {
   id: z.string().optional(),
