@@ -39,9 +39,6 @@
               day.status === 'vacation' ? 'bg-amber-500 border-amber-500' :
               'bg-transparent border-dashed border-zinc-800',
               
-              // Glow effect for the last box using pseudo-element
-              index === 6 ? 'after:absolute after:-inset-[2px] after:rounded-lg after:shadow-[0_0_15px_rgba(255,255,255,0.4)]' : '',
-              
               // Normal shadows for boxes
               day.status === 'completed' ? 'shadow-md shadow-emerald-500/20' :
               day.status === 'failed' ? 'shadow-md shadow-rose-500/20' :
