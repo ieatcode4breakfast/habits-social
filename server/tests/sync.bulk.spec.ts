@@ -4,7 +4,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import syncBulk from '../api/sync/bulk.post';
 import { createMockEvent, createTestUser, createTestHabit, db } from './test.utils';
 import { habits as habitsTable, buckets as bucketsTable, bucketHabits } from '../db/schema';
-import { eq } from 'drizzle-orm';
+import { eq, and } from 'drizzle-orm';
 
 describe('API: POST /api/sync/bulk', () => {
   let testUser: any;
@@ -207,4 +207,117 @@ describe('API: POST /api/sync/bulk', () => {
     expect(habitsInBucket.length).toBe(1);
     expect(habitsInBucket[0]!.approvalStatus).toBe('accepted');
   });
+
+  it('should calculate streak_count correctly for completed logs processed via bulk sync', async () => {
+    // 1. Create a dynamic test habit under the current isolated testUser
+    const testHabit = await createTestHabit(testUser.id, 'Bulk Streak Habit');
+
+    const todayStr = new Date().toISOString().split('T')[0];
+    const yesterdayStr = new Date(Date.now() - 86400000).toISOString().split('T')[0];
+
+    const operations = [
+      {
+        type: 'log',
+        data: {
+          id: `${testHabit.id}_${yesterdayStr}`,
+          habitId: testHabit.id,
+          date: yesterdayStr,
+          status: 'completed',
+          sharedWith: []
+        }
+      },
+      {
+        type: 'log',
+        data: {
+          id: `${testHabit.id}_${todayStr}`,
+          habitId: testHabit.id,
+          date: todayStr,
+          status: 'completed',
+          sharedWith: []
+        }
+      }
+    ];
+
+    // 2. Build mock event and execute handler directly
+    const event = createMockEvent(testUser.id, { operations }, {}, {}, {}, 'POST');
+    const response = await syncBulk(event);
+
+    expect(response.success).toContain(`${testHabit.id}_${yesterdayStr}`);
+    expect(response.success).toContain(`${testHabit.id}_${todayStr}`);
+
+    // 3. Verify database state for dynamic log records
+    const { habitLogs } = await import('../db/schema');
+    const yesterdayLog = await db
+      .select()
+      .from(habitLogs)
+      .where(eq(habitLogs.id, `${testHabit.id}_${yesterdayStr}`))
+      .then((res: any) => res[0]);
+
+    const todayLog = await db
+      .select()
+      .from(habitLogs)
+      .where(eq(habitLogs.id, `${testHabit.id}_${todayStr}`))
+      .then((res: any) => res[0]);
+
+    expect(yesterdayLog).toBeDefined();
+    expect(yesterdayLog.streakCount).toBe(1);
+
+    expect(todayLog).toBeDefined();
+    expect(todayLog.streakCount).toBe(2);
+  });
+
+  it('should automatically update affected bucket status and recalculate bucket streaks during bulk sync', async () => {
+    // 1. Create dynamic test habit and link to a new test bucket
+    const testHabit = await createTestHabit(testUser.id, 'Bucket Checklist Habit');
+    const bucketId = crypto.randomUUID();
+
+    await db.insert(bucketsTable).values({ 
+      id: bucketId, 
+      ownerId: testUser.id, 
+      title: 'Daily Checklist' 
+    });
+
+    await db.insert(bucketHabits).values({
+      bucketId,
+      habitId: testHabit.id,
+      addedBy: testUser.id,
+      approvalStatus: 'accepted'
+    });
+
+    const todayStr = new Date().toISOString().split('T')[0];
+
+    const operations = [
+      {
+        type: 'log',
+        data: {
+          id: `${testHabit.id}_${todayStr}`,
+          habitId: testHabit.id,
+          date: todayStr,
+          status: 'completed',
+          sharedWith: []
+        }
+      }
+    ];
+
+    // 2. Process mock event
+    const event = createMockEvent(testUser.id, { operations }, {}, {}, {}, 'POST');
+    await syncBulk(event);
+
+    // 3. Verify bucket logs are automatically created and status recalculated
+    const { bucketLogs } = await import('../db/schema');
+    const bucketLog = await db
+      .select()
+      .from(bucketLogs)
+      .where(
+        and(
+          eq(bucketLogs.bucketId, bucketId),
+          eq(bucketLogs.date, todayStr)
+        )
+      )
+      .then((res: any) => res[0]);
+
+    expect(bucketLog).toBeDefined();
+    expect(bucketLog.status).toBe('completed'); // Resolves to 'completed' as single habit in bucket is satisfied
+  });
 });
+

@@ -6,6 +6,8 @@ import { habitSchema, bucketSchema, habitLogSchema, bucketLogSchema, throwZodErr
 import * as schema from '~~/server/db/schema';
 import { eq, and, sql, inArray } from 'drizzle-orm';
 import { BucketService } from '~~/server/services/bucket.service';
+import { recalculateHabitStreak } from '~~/server/utils/streaks';
+import { syncBucketLogsForHabit, recalculateMultipleBucketStreaks } from '~~/server/utils/buckets';
 
 const bulkSyncSchema = z.object({
   operations: z.array(z.object({ type: z.string(), data: z.any() })).max(100)
@@ -203,24 +205,52 @@ export default defineEventHandler(async (event) => {
     }
 
     if (logsToInsert.length > 0) {
-      const result = await db.insert(schema.habitLogs)
-        .values(logsToInsert)
-        .onConflictDoUpdate({
-          target: schema.habitLogs.id,
-          set: {
-            status: sql`excluded.status`,
-            sharedWith: sql`excluded.shared_with`,
-            updatedAt: new Date()
-          },
-          where: eq(schema.habitLogs.ownerId, userId)
-        })
-        .returning({ id: schema.habitLogs.id });
+      await db.transaction(async (tx: any) => {
+        const result = await tx.insert(schema.habitLogs)
+          .values(logsToInsert)
+          .onConflictDoUpdate({
+            target: schema.habitLogs.id,
+            set: {
+              status: sql`excluded.status`,
+              sharedWith: sql`excluded.shared_with`,
+              updatedAt: new Date()
+            },
+            where: eq(schema.habitLogs.ownerId, userId)
+          })
+          .returning({ id: schema.habitLogs.id });
 
-      const returnedIds = new Set(result.map((r: { id: string }) => r.id));
-      for (const l of logsToInsert) {
-        if (returnedIds.has(l.id)) success.push(l.id);
-        else failed.push({ id: l.id, code: 'UNAUTHORIZED' });
-      }
+        const returnedIds = new Set(result.map((r: { id: string }) => r.id));
+        const successfullySyncedLogs: typeof logsToInsert = [];
+
+        for (const l of logsToInsert) {
+          if (returnedIds.has(l.id)) {
+            success.push(l.id);
+            successfullySyncedLogs.push(l);
+          } else {
+            failed.push({ id: l.id, code: 'UNAUTHORIZED' });
+          }
+        }
+
+        if (successfullySyncedLogs.length > 0) {
+          const habitDatesMap = new Map<string, string[]>();
+          for (const l of successfullySyncedLogs) {
+            if (!habitDatesMap.has(l.habitId)) {
+              habitDatesMap.set(l.habitId, []);
+            }
+            habitDatesMap.get(l.habitId)!.push(l.date);
+          }
+
+          for (const [habitId, dates] of habitDatesMap.entries()) {
+            dates.sort();
+            const earliestDate = dates[0];
+            await recalculateHabitStreak(tx, habitId, userId, earliestDate);
+          }
+
+          for (const l of successfullySyncedLogs) {
+            await syncBucketLogsForHabit(tx, l.habitId, userId, l.date);
+          }
+        }
+      });
     }
   }
 
@@ -243,23 +273,36 @@ export default defineEventHandler(async (event) => {
     }
 
     if (logsToInsert.length > 0) {
-      const result = await db.insert(schema.bucketLogs)
-        .values(logsToInsert)
-        .onConflictDoUpdate({
-          target: schema.bucketLogs.id,
-          set: {
-            status: sql`excluded.status`,
-            updatedAt: new Date()
-          },
-          where: eq(schema.bucketLogs.ownerId, userId)
-        })
-        .returning({ id: schema.bucketLogs.id });
+      await db.transaction(async (tx: any) => {
+        const result = await tx.insert(schema.bucketLogs)
+          .values(logsToInsert)
+          .onConflictDoUpdate({
+            target: schema.bucketLogs.id,
+            set: {
+              status: sql`excluded.status`,
+              updatedAt: new Date()
+            },
+            where: eq(schema.bucketLogs.ownerId, userId)
+          })
+          .returning({ id: schema.bucketLogs.id });
 
-      const returnedIds = new Set(result.map((r: { id: string }) => r.id));
-      for (const l of logsToInsert) {
-        if (returnedIds.has(l.id)) success.push(l.id);
-        else failed.push({ id: l.id, code: 'UNAUTHORIZED' });
-      }
+        const returnedIds = new Set(result.map((r: { id: string }) => r.id));
+        const successfullySyncedBucketLogs: typeof logsToInsert = [];
+
+        for (const l of logsToInsert) {
+          if (returnedIds.has(l.id)) {
+            success.push(l.id);
+            successfullySyncedBucketLogs.push(l);
+          } else {
+            failed.push({ id: l.id, code: 'UNAUTHORIZED' });
+          }
+        }
+
+        if (successfullySyncedBucketLogs.length > 0) {
+          const uniqueBucketIds = [...new Set(successfullySyncedBucketLogs.map(l => l.bucketId))];
+          await recalculateMultipleBucketStreaks(tx, uniqueBucketIds.map(id => ({ bucketId: id, ownerId: userId })));
+        }
+      });
     }
   }
 
