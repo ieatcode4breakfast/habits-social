@@ -8,8 +8,19 @@
       leave-from-class="opacity-100 scale-100 translate-y-0"
       leave-to-class="opacity-0 scale-95 -translate-y-2"
     >
-      <div v-if="habit && date && referenceEl" class="fixed inset-0 z-[190] touch-none" @click.stop="emit('close')">
-        <div class="fixed inset-0 bg-transparent touch-none" @click.stop="emit('close')"></div>
+      <div
+        v-if="habit && date && referenceEl"
+        class="fixed inset-0 z-[190] touch-none"
+        @click.stop="emit('close')"
+        @wheel.prevent
+        @touchmove.prevent
+      >
+        <div
+          class="fixed inset-0 bg-transparent touch-none"
+          @click.stop="emit('close')"
+          @wheel.prevent
+          @touchmove.prevent
+        ></div>
         <div 
           ref="floatingRef"
           class="fixed z-[200] bg-zinc-900/95 backdrop-blur-xl border border-zinc-800 rounded-2xl shadow-2xl p-1.5 flex flex-row gap-1.5"
@@ -44,8 +55,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue';
-import { useModalHistory } from '~/composables/useModalHistory';
+import { ref, computed } from 'vue';
 import { Check, X as XIcon, Minus, Trash2, Palmtree } from 'lucide-vue-next';
 import { useFloating, offset, flip, shift, arrow, autoUpdate } from '@floating-ui/vue';
 import { format, isSameWeek, isSameMonth } from 'date-fns';
@@ -164,9 +174,6 @@ const options = computed(() => {
 
   return opts;
 });
-
-const isMenuOpen = computed(() => !!props.habit && !!props.date);
-useModalHistory(isMenuOpen, () => emit('close'));
 
 const handleSelect = (status: string | null) => {
   // Pass all context back to the handler
