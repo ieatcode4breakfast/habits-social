@@ -201,35 +201,11 @@
               </div>
 
               <div v-if="friends.length > 0" class="space-y-3 mt-8">
-                <div class="flex items-center gap-2 pr-2">
-                  <label class="text-xs font-bold uppercase tracking-widest text-zinc-500">Share with</label>
-                  <button 
-                    @click="reachedConfirmViaDone = false; isEditingSharing ? (showSharingConfirmModal = true) : (isEditingSharing = true)"
-                    class="text-[10px] font-bold uppercase tracking-widest text-zinc-400 hover:text-white transition-colors flex items-center gap-1.5 cursor-pointer bg-zinc-925/50 px-2 py-0.5 rounded-md border border-zinc-800"
-                  >
-                    <template v-if="!isEditingSharing">
-                      <Edit2 class="w-3 h-3" /> Edit
-                    </template>
-                    <template v-else>
-                      <Save class="w-3 h-3" /> Confirm
-                    </template>
-                  </button>
-                  <div class="ml-auto">
-                    <button 
-                      v-if="isEditingSharing"
-                      @click="toggleSelectAll"
-                      title="Select/Unselect All"
-                      class="p-1 text-zinc-500 hover:text-white transition-colors cursor-pointer"
-                    >
-                      <CheckSquare class="w-4 h-4" />
-                    </button>
-                  </div>
-                </div>
+                <label class="text-xs font-bold uppercase tracking-widest text-zinc-500">Share with</label>
                 <div 
                   class="space-y-2 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar transition-all duration-300"
-                  :class="!isEditingSharing ? 'opacity-40 grayscale' : 'opacity-100'"
                 >
-                  <label v-for="friend in sortedFriendsForEdit" :key="friend.id" class="flex items-center justify-between p-3 bg-black border border-zinc-925 rounded-xl transition-colors" :class="isEditingSharing ? 'cursor-pointer hover:border-zinc-800' : 'cursor-default pointer-events-none'">
+                  <label v-for="friend in sortedFriendsForEdit" :key="friend.id" class="flex items-center justify-between p-3 bg-black border border-zinc-925 rounded-xl cursor-pointer hover:border-zinc-800 transition-colors">
                     <div class="flex items-center gap-3">
                       <UserAvatar 
                         :src="friend.photoUrl" 
@@ -320,58 +296,12 @@
     </Transition>
   </Teleport>
 
-  <!-- Sharing Confirmation Modal -->
-  <Teleport to="body">
-    <Transition
-      enter-active-class="transition duration-300 ease-out"
-      enter-from-class="opacity-0 scale-95"
-      enter-to-class="opacity-100 scale-100"
-      leave-active-class="transition duration-200 ease-in"
-      leave-from-class="opacity-100 scale-100"
-      leave-to-class="opacity-0 scale-95"
-    >
-    <div v-if="showSharingConfirmModal" class="fixed inset-0 z-[120] flex flex-col items-center justify-start overflow-y-auto p-4 sm:py-8">
-      <div class="fixed inset-0 bg-black/95 backdrop-blur-sm touch-none" @click="showSharingConfirmModal = false"></div>
-        <div class="relative my-auto w-full max-w-sm bg-zinc-925 border border-zinc-800 rounded-3xl shadow-2xl p-8 text-center">
-          <div class="w-16 h-16 bg-zinc-925 rounded-full flex items-center justify-center mx-auto mb-4">
-            <User class="w-8 h-8 text-zinc-400" />
-          </div>
-          <h2 class="text-xl font-bold text-white mb-2">Update Sharing?</h2>
-          <p class="text-zinc-500 mb-8 text-sm">
-            This will update who can see your progress for this habit.
-          </p>
-          <div class="flex gap-3 mt-2">
-            <button
-              @click="cancelSharingSave"
-              class="flex-1 px-5 py-3 bg-transparent hover:bg-zinc-925 text-zinc-400 hover:text-zinc-200 font-semibold rounded-xl transition-all cursor-pointer whitespace-nowrap"
-            >
-              Cancel
-            </button>
-            <button
-              @click="confirmSharingSave"
-              :disabled="isUpdatingHabit"
-              class="flex-1 px-5 py-3 bg-white hover:bg-zinc-200 text-black font-semibold rounded-xl transition-all shadow-lg shadow-white/5 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer whitespace-nowrap"
-            >
-              <template v-if="isUpdatingHabit">
-                <div class="w-4 h-4 border-2 border-black/20 border-t-black rounded-full animate-spin"></div>
-                Saving...
-              </template>
-              <template v-else>
-                Confirm
-              </template>
-            </button>
-          </div>
-        </div>
-      </div>
-    </Transition>
-  </Teleport>
-
   <!-- Global Log Menu (Replaced by event emit) -->
 </template>
 
 <script setup lang="ts">
 import { useModalHistory } from '~/composables/useModalHistory';
-import { Trash2, Check, X as XIcon, Minus, ChevronLeft, ChevronRight, User, ChevronUp, ChevronDown, Edit2, Save, CheckSquare, Flame, Palmtree } from 'lucide-vue-next';
+import { Trash2, Check, X as XIcon, Minus, ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Flame, Palmtree } from 'lucide-vue-next';
 import { format, subDays, startOfMonth, endOfMonth, eachDayOfInterval, addDays, isAfter, startOfDay, subMonths, addMonths, parseISO, isBefore, isSameDay, isSameWeek, isSameMonth } from 'date-fns';
 import type { Habit, HabitLog } from '~/composables/useHabitsApi';
 import { getStreakTheme, isStreakFaded as isFaded, autoExpandTextarea as autoExpand, isMarkable } from '~/utils/ui';
@@ -397,9 +327,6 @@ const editSharedWith = ref<string[]>([]);
 const editSharedWithWorking = ref<string[]>([]);
 
 const showDeleteModal = ref(false);
-const showSharingConfirmModal = ref(false);
-const isEditingSharing = ref(false);
-const reachedConfirmViaDone = ref(false);
 const {
   currentDate: currentCalendarDate,
   days: calendarDays,
@@ -410,18 +337,14 @@ const {
 const calendarLoading = ref(false);
 const isUpdatingHabit = ref(false);
 const isDeletingHabit = ref(false);
-const isInitializingEdit = ref(false);
-const isDirty = ref(false);
 const editDescriptionRef = ref<HTMLTextAreaElement | null>(null);
 
-const isInternalModalOpen = computed(() => showDeleteModal.value || showSharingConfirmModal.value);
+const isInternalModalOpen = computed(() => showDeleteModal.value);
 const isSelfOrInternalOpen = computed(() => props.modelValue || isInternalModalOpen.value);
 
 useModalHistory(isSelfOrInternalOpen, () => {
   if (showDeleteModal.value) {
     showDeleteModal.value = false;
-  } else if (showSharingConfirmModal.value) {
-    showSharingConfirmModal.value = false;
   } else {
     close();
   }
@@ -433,19 +356,15 @@ const close = () => emit('update:modelValue', false);
 watch(() => props.modelValue, (isOpen) => {
   if (isOpen && props.habit) {
     const newHabit = props.habit;
-    isInitializingEdit.value = true;
     editTitle.value = newHabit.title;
     editDescription.value = newHabit.description || '';
     editSkipsCount.value = newHabit.skipsCount ?? 2;
     editSkipsPeriod.value = newHabit.skipsPeriod as any || 'weekly';
     editSharedWith.value = [...(newHabit.sharedWith || [])];
     editSharedWithWorking.value = [...(newHabit.sharedWith || [])];
-    isEditingSharing.value = false;
     currentCalendarDate.value = new Date();
     
     nextTick(() => {
-      isInitializingEdit.value = false;
-      isDirty.value = false;
       if (editDescriptionRef.value) {
         autoExpand(editDescriptionRef.value);
       }
@@ -519,38 +438,10 @@ const sortedFriendsForEdit = computed(() => {
   });
 });
 
-const toggleSelectAll = () => {
-  if (editSharedWithWorking.value.length === props.friends.length) {
-    editSharedWithWorking.value = [];
-  } else {
-    editSharedWithWorking.value = props.friends.map(f => f.id);
-  }
-};
-
-const confirmSharingSave = async () => {
-  editSharedWith.value = [...editSharedWithWorking.value];
-  await updateHabit();
-  showSharingConfirmModal.value = false;
-  if (reachedConfirmViaDone.value) {
-    close();
-  }
-  isEditingSharing.value = false;
-};
-
-const cancelSharingSave = () => {
-  showSharingConfirmModal.value = false;
-  if (reachedConfirmViaDone.value) {
-    close();
-  }
-};
-
-
-
 const updateHabit = async () => {
   if (!props.habit || !editTitle.value.trim() || isUpdatingHabit.value) return;
   
   isUpdatingHabit.value = true;
-  isDirty.value = false;
   try {
     const updated = await api.updateHabit(props.habit.id, { 
       title: editTitle.value.trim(),
@@ -570,13 +461,9 @@ const updateHabit = async () => {
 };
 
 const handleDoneClick = async () => {
-  if (isEditingSharing.value) {
-    reachedConfirmViaDone.value = true;
-    showSharingConfirmModal.value = true;
-  } else {
-    await updateHabit();
-    close();
-  }
+  editSharedWith.value = [...editSharedWithWorking.value];
+  await updateHabit();
+  close();
 };
 
 const handleDelete = async () => {
