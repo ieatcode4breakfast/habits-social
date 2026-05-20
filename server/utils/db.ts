@@ -1,13 +1,15 @@
 import { Pool, neonConfig } from '@neondatabase/serverless';
 import { drizzle } from 'drizzle-orm/neon-serverless';
+import type { NeonDatabase } from 'drizzle-orm/neon-serverless';
 import { sql } from 'drizzle-orm';
 import * as schema from '../db/schema';
 import type { H3Event } from 'h3';
+import type { DBConnection } from '../types/db';
 
 let cachedPool: Pool | null = null;
-let cachedDb: any = null;
+let cachedDb: NeonDatabase<typeof schema> | null = null;
 
-export const useDB = (event?: H3Event) => {
+export const useDB = (event?: H3Event): NeonDatabase<typeof schema> => {
   // 1. Request-scoped cache (Highest priority for Cloudflare Workers I/O safety)
   if (event?.context?._db) return event.context._db;
 
@@ -75,7 +77,7 @@ export function extractRows<T>(result: any): T[] {
  * Gets the current server time from the database as a numeric timestamp (ms).
  * Accepts standard DB instance or transaction instance.
  */
-export async function getServerTime(db: any): Promise<number> {
+export async function getServerTime(db: DBConnection): Promise<number> {
   const result = await db.execute(sql`SELECT (EXTRACT(EPOCH FROM NOW()) * 1000)::bigint as now`);
   const rows = extractRows<{ now: string | number }>(result);
   if (!rows[0]) {

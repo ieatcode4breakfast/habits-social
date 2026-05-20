@@ -21,11 +21,13 @@ export const db = drizzle(pool, { schema });
 
 export const createTestUser = async (username: string, email: string): Promise<User> => {
   const passwordHash = await hash('password123', 10);
+  const [localPart, domain] = email.split('@');
+  const uniqueEmail = `${localPart || 'user'}_${crypto.randomUUID().slice(0, 8)}@${domain || 'example.com'}`;
   const result = await db.insert(users)
     .values({
       id: crypto.randomUUID(),
       username,
-      email,
+      email: uniqueEmail,
       passwordHash,
       createdAt: new Date(),
       updatedAt: new Date()

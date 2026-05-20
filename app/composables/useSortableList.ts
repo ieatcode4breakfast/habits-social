@@ -53,7 +53,7 @@ export function useSortableList<T extends SortableItem>(
     if (fromIdx !== -1 && toIdx !== -1) {
       const newList = [...items.value];
       const moved = newList.splice(fromIdx, 1)[0];
-      if (moved) {
+      if (moved !== undefined) {
         newList.splice(toIdx, 0, moved);
         items.value = newList;
         onReorder(newList.map(i => i.id));

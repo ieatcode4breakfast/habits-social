@@ -3,9 +3,10 @@ import { habitLogs, habits as habitsTable, bucketHabits, shareEvents, syncDeleti
 import { recalculateHabitStreak } from '~~/server/utils/streaks';
 import { syncBucketLogsForHabit, reevaluateMultipleBuckets } from '~~/server/utils/buckets';
 import { markBucketHabitsRemoved } from '~~/server/utils/shared-buckets';
+import type { DBConnection } from '../types/db';
 
 export const HabitService = {
-  async logHabit(db: any, userId: string, data: any, event: any) {
+  async logHabit(db: DBConnection, userId: string, data: any, event: any) {
     const logId = data.id || `${data.habitId}_${data.date}`;
 
     try {
@@ -50,7 +51,7 @@ export const HabitService = {
     }
   },
 
-  async createHabit(db: any, userId: string, data: any, event: any) {
+  async createHabit(db: DBConnection, userId: string, data: any, event: any) {
     const nextSortOrder = data.sortOrder !== undefined ? data.sortOrder : 0;
     
     let skipsCount = data.skipsCount ?? 2;
@@ -146,7 +147,7 @@ export const HabitService = {
     return result;
   },
 
-  async deleteHabitLog(db: any, userId: string, habitId: string, dateStr: string, event: any) {
+  async deleteHabitLog(db: DBConnection, userId: string, habitId: string, dateStr: string, event: any) {
     await db.transaction(async (tx: any) => {
       const deleted = await tx.delete(habitLogs)
         .where(and(
@@ -172,7 +173,7 @@ export const HabitService = {
     });
   },
 
-  async updateHabit(db: any, userId: string, id: string, data: any, habit: any, event: any) {
+  async updateHabit(db: DBConnection, userId: string, id: string, data: any, habit: any, event: any) {
     let skipsPeriod = data.skipsPeriod !== undefined ? data.skipsPeriod : habit.skipsPeriod;
     let skipsCount = data.skipsCount !== undefined ? data.skipsCount : habit.skipsCount;
     if (skipsPeriod === 'none') {
@@ -255,7 +256,7 @@ export const HabitService = {
     return updatedHabit;
   },
 
-  async deleteHabit(db: any, userId: string, id: string, event: any) {
+  async deleteHabit(db: DBConnection, userId: string, id: string, event: any) {
     await db.transaction(async (tx: any) => {
       // Fetch before delete to verify ownership and get true ownerId for sync attribution
       const records = await tx.select({ ownerId: habitsTable.ownerId })

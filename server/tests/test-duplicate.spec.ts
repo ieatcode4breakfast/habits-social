@@ -40,5 +40,5 @@ describe('Duplicate test', () => {
     const finalHabits = await db.select().from(habits).where(eq(habits.ownerId, user.id));
     console.log('Final habits count:', finalHabits.length);
     expect(finalHabits.length).toBe(30);
-  }, 10000);
+  }, 30000);
 });

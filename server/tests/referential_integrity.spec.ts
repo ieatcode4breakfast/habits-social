@@ -8,8 +8,8 @@ describe('Referential Integrity & Cascade Deletes', () => {
   let user: any;
 
   beforeEach(async () => {
-    // Cleanup existing users with this email if any
-    await db.delete(users).where(eq(users.email, 'integrity-test@example.com'));
+    // Cleanup existing users with this username if any
+    await db.delete(users).where(eq(users.username, 'integrity_test'));
     user = await createTestUser('integrity_test', 'integrity-test@example.com');
   });
 

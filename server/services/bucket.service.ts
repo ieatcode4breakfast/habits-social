@@ -1,9 +1,10 @@
 import { eq, and, or, sql, inArray, notInArray, ne } from 'drizzle-orm';
 import { buckets as bucketsTable, bucketHabits, habits as habitsTable, friendships, sharedBucketMembers, syncDeletions, bucketLogs } from '~~/server/db/schema';
 import { reevaluateMultipleBuckets } from '~~/server/utils/buckets';
+import type { DBConnection } from '../types/db';
 
 export const BucketService = {
-  async logBucket(db: any, userId: string, data: any, event: any) {
+  async logBucket(db: DBConnection, userId: string, data: any, event: any) {
     const logId = data.id || `${data.bucketId}_${data.date}`;
 
     try {
@@ -39,7 +40,7 @@ export const BucketService = {
     }
   },
 
-  async updateBucket(db: any, userId: string, id: string, data: any, bucket: any, event: any) {
+  async updateBucket(db: DBConnection, userId: string, id: string, data: any, bucket: any, event: any) {
     const resultData = await db.transaction(async (tx: any) => {
       const result = await tx.update(bucketsTable)
         .set({
@@ -234,7 +235,7 @@ export const BucketService = {
     return resultData;
   },
 
-  async deleteBucket(db: any, userId: string, id: string, event: any) {
+  async deleteBucket(db: DBConnection, userId: string, id: string, event: any) {
     await db.transaction(async (tx: any) => {
       // Fetch before delete to verify ownership and get true ownerId for sync attribution
       const records = await tx.select({ ownerId: bucketsTable.ownerId })

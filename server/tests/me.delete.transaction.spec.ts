@@ -60,5 +60,6 @@ describe('Atomic User Deletion (Transaction Test)', () => {
 
     // Cleanup
     await deleteTestUser(testUser.id);
+    vi.restoreAllMocks();
   });
 });

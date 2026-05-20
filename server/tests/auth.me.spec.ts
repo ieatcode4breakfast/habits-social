@@ -1,5 +1,5 @@
 import './setup';
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll, vi, beforeEach, afterEach } from 'vitest';
 import { createTestUser, deleteTestUser, createMockEvent } from './test.utils';
 
 describe('GET /api/auth/me - Session & Sliding Renewal', () => {
@@ -44,52 +44,64 @@ describe('GET /api/auth/me - Session & Sliding Renewal', () => {
   });
 
   // --- Sliding Session Renewal Tests ---
+  describe('Sliding Session Renewal', () => {
+    let dateSpy: any;
+    const fixedNow = 1779239308; // A fixed epoch timestamp
 
-  it('should NOT refresh the cookie when token is within the first 50% of its lifetime', async () => {
-    const now = Math.floor(Date.now() / 1000);
-    const event = createMockEvent(testUser.id);
-    // Token issued 1 day ago — well within the first half of a 7-day token
-    event.context.jwtPayload = {
-      userId: testUser.id,
-      iat: now - (60 * 60 * 24 * 1), // 1 day ago
-      exp: now + (60 * 60 * 24 * 6), // 6 days from now
-    };
+    beforeEach(() => {
+      dateSpy = vi.spyOn(Date, 'now').mockReturnValue(fixedNow * 1000);
+    });
 
-    await handler(event);
+    afterEach(() => {
+      dateSpy.mockRestore();
+    });
 
-    expect(event._cookieWasRefreshed).toBeUndefined();
-  });
+    it('should NOT refresh the cookie when token is within the first 50% of its lifetime', async () => {
+      const now = fixedNow;
+      const event = createMockEvent(testUser.id);
+      // Token issued 1 day ago — well within the first half of a 7-day token
+      event.context.jwtPayload = {
+        userId: testUser.id,
+        iat: now - (60 * 60 * 24 * 1), // 1 day ago
+        exp: now + (60 * 60 * 24 * 6), // 6 days from now
+      };
 
-  it('should refresh the cookie when token is past 50% of its lifetime', async () => {
-    const now = Math.floor(Date.now() / 1000);
-    const event = createMockEvent(testUser.id);
-    // Token issued 4 days ago — past the 3.5-day mark of a 7-day token
-    event.context.jwtPayload = {
-      userId: testUser.id,
-      iat: now - (60 * 60 * 24 * 4), // 4 days ago
-      exp: now + (60 * 60 * 24 * 3), // 3 days from now
-    };
+      await handler(event);
 
-    await handler(event);
+      expect(event._cookieWasRefreshed).toBeUndefined();
+    });
 
-    expect(event._cookieWasRefreshed).toBe(true);
-    expect(event._cookies.auth_token).toContain('mock-token-');
-  });
+    it('should refresh the cookie when token is past 50% of its lifetime', async () => {
+      const now = fixedNow;
+      const event = createMockEvent(testUser.id);
+      // Token issued 4 days ago — past the 3.5-day mark of a 7-day token
+      event.context.jwtPayload = {
+        userId: testUser.id,
+        iat: now - (60 * 60 * 24 * 4), // 4 days ago
+        exp: now + (60 * 60 * 24 * 3), // 3 days from now
+      };
 
-  it('should NOT refresh the cookie at exactly the 50% mark', async () => {
-    const now = Math.floor(Date.now() / 1000);
-    const totalLifetime = 60 * 60 * 24 * 7; // 7 days
-    const event = createMockEvent(testUser.id);
-    // Token issued exactly at the halfway point — elapsed === totalLifetime / 2
-    // The condition is elapsed > totalLifetime / 2, so exactly half should NOT trigger renewal
-    event.context.jwtPayload = {
-      userId: testUser.id,
-      iat: now - (totalLifetime / 2),
-      exp: now + (totalLifetime / 2),
-    };
+      await handler(event);
 
-    await handler(event);
+      expect(event._cookieWasRefreshed).toBe(true);
+      expect(event._cookies.auth_token).toContain('mock-token-');
+    });
 
-    expect(event._cookieWasRefreshed).toBeUndefined();
+    it('should NOT refresh the cookie at exactly the 50% mark', async () => {
+      const now = fixedNow;
+      const totalLifetime = 60 * 60 * 24 * 7; // 7 days
+      const event = createMockEvent(testUser.id);
+      // Token issued exactly at the halfway point — elapsed === totalLifetime / 2
+      // The condition is elapsed > totalLifetime / 2, so exactly half should NOT trigger renewal
+      event.context.jwtPayload = {
+        userId: testUser.id,
+        iat: now - (totalLifetime / 2),
+        exp: now + (totalLifetime / 2),
+      };
+
+      await handler(event);
+
+      expect(event._cookieWasRefreshed).toBeUndefined();
+    });
   });
 });

@@ -11,6 +11,7 @@ import {
 } from '~~/server/db/schema';
 import { getServerTime } from '~~/server/utils/db';
 import type { SyncParams, SyncResponse } from '~~/server/types/sync';
+import type { DBConnection } from '../types/db';
 
 const V1_SAFETY_THRESHOLD = 5000;
 
@@ -18,7 +19,7 @@ export const SyncService = {
   /**
    * Legacy V1 check to prevent memory exhaustion
    */
-  async checkV1PayloadSize(db: any, userId: string): Promise<boolean> {
+  async checkV1PayloadSize(db: DBConnection, userId: string): Promise<boolean> {
     const counts = await db.execute(sql`
       SELECT 
         (SELECT COUNT(*) FROM habits WHERE owner_id = ${userId}) +
@@ -30,7 +31,7 @@ export const SyncService = {
     return Number(counts.rows[0]?.total || 0) > V1_SAFETY_THRESHOLD;
   },
 
-  async getDeltas(db: any, userId: string, params: SyncParams): Promise<SyncResponse> {
+  async getDeltas(db: DBConnection, userId: string, params: SyncParams): Promise<SyncResponse> {
     // If it's a large account, trigger the safety gate
     const isTooLarge = await this.checkV1PayloadSize(db, userId);
     if (isTooLarge) {
@@ -88,11 +89,11 @@ export const SyncService = {
       // Parallel fetch to avoid Cartesian product and OOM
       return await Promise.all([
         tx.select().from(habitsTable)
-          .where(and(...habitsFilters))
+          .where(and(...habitsFilters)!)
           .orderBy(asc(habitsTable.sortOrder), desc(habitsTable.createdAt)),
 
         tx.select().from(bucketsTable)
-          .where(and(...bucketFilters))
+          .where(and(...bucketFilters)!)
           .orderBy(asc(bucketsTable.sortOrder), desc(bucketsTable.createdAt)),
 
         tx.select({
@@ -122,14 +123,14 @@ export const SyncService = {
         .where(inArray(sharedBucketMembers.bucketId, bucketIdsSubquery)),
 
         tx.select().from(habitLogs)
-          .where(and(...habitLogsFilters)),
+          .where(and(...habitLogsFilters)!),
 
         tx.select().from(bucketLogs)
-          .where(and(...bucketLogsFilters)),
+          .where(and(...bucketLogsFilters)!),
 
         tx.select({ entityId: syncDeletions.entityId, entityType: syncDeletions.entityType })
           .from(syncDeletions)
-          .where(and(...deletionsFilters))
+          .where(and(...deletionsFilters)!)
       ]);
     });
 
@@ -189,7 +190,7 @@ export const SyncService = {
     return Array.from(bucketMap.values());
   },
 
-  async getPaginatedDeltas(db: any, userId: string, params: SyncParams): Promise<SyncResponse> {
+  async getPaginatedDeltas(db: DBConnection, userId: string, params: SyncParams): Promise<SyncResponse> {
     const { lastSynced = 0, limit = 50, cursors = {} } = params;
     const serverTime = await getServerTime(db);
 
@@ -198,8 +199,11 @@ export const SyncService = {
       try {
         const decoded = Buffer.from(cursor, 'base64').toString('utf-8');
         if (!decoded.includes('|')) return 'INVALID';
-        const [ts, id] = decoded.split('|');
-        const date = new Date(ts as string);
+        const parts = decoded.split('|');
+        const ts = parts[0];
+        const id = parts[1];
+        if (!ts || !id) return 'INVALID';
+        const date = new Date(ts);
         if (isNaN(date.getTime())) return 'INVALID';
         return { ts: date, id };
       } catch {
