@@ -3,7 +3,7 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { createTestUser, deleteTestUser, createTestHabit, deleteTestHabit, createTestBucket, deleteTestBucket, createFriendship, shareHabitWithUser, User, Habit, Bucket, Friendship, db } from './test.utils';
 import { SocialService } from '../services/social.service';
 import { eq, and } from 'drizzle-orm';
-import { bucketHabits, habits, habitLogs } from '../db/schema';
+import { bucketHabits, friendships as friendshipsTable, habits, habitLogs } from '../db/schema';
 
 describe('SocialService - Stress Testing', () => {
   let userA: User;
@@ -65,6 +65,12 @@ describe('SocialService - Stress Testing', () => {
     const hRes = await db.select().from(habits).where(eq(habits.id, habitH.id));
     expect(hRes[0]?.sharedWith).not.toContain(userB.id);
 
-    // 3. Log-level cleanup is no longer performed (consolidated at Habit-level)
+    // 3. User B's ID is removed from log-level sharing too
+    const logRes = await db.select().from(habitLogs).where(eq(habitLogs.id, `${habitH.id}_2024-01-01`));
+    expect(logRes[0]?.sharedWith).not.toContain(userB.id);
+
+    // 4. Friendship row is deleted after cleanup succeeds
+    const friendshipRes = await db.select().from(friendshipsTable).where(eq(friendshipsTable.id, friendship.id));
+    expect(friendshipRes).toHaveLength(0);
   }, 60000);
 });

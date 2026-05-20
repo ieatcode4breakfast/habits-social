@@ -1,6 +1,8 @@
 import './setup';
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import { createTestUser, deleteTestUser, createMockEvent, createFriendship, deleteFriendship } from './test.utils';
+import { eq } from 'drizzle-orm';
+import { createTestUser, deleteTestUser, createMockEvent, createFriendship, deleteFriendship, db } from './test.utils';
+import { friendships as friendshipsTable } from '../db/schema';
 
 describe('PUT /api/friendships/[id]', () => {
   let handler: any;
@@ -107,12 +109,18 @@ describe('DELETE /api/friendships/[id]', () => {
   it('should reject deleting a friendship by a third party (unauthorized)', async () => {
     const event = createMockEvent(userC.id, {}, {}, { id: friendshipId }, {}, 'DELETE');
     await expect(handler(event)).rejects.toThrow(/Forbidden/i);
+
+    const rows = await db.select().from(friendshipsTable).where(eq(friendshipsTable.id, friendshipId));
+    expect(rows).toHaveLength(1);
   });
 
   it('should allow deleting a friendship by the initiator', async () => {
     const event = createMockEvent(userA.id, {}, {}, { id: friendshipId }, {}, 'DELETE');
     const response = await handler(event);
     expect(response.data.success).toBe(true);
+
+    const rows = await db.select().from(friendshipsTable).where(eq(friendshipsTable.id, friendshipId));
+    expect(rows).toHaveLength(0);
   });
 
   it('should allow deleting a friendship by the receiver', async () => {
@@ -122,5 +130,8 @@ describe('DELETE /api/friendships/[id]', () => {
     const event = createMockEvent(userB.id, {}, {}, { id: newFriendshipId }, {}, 'DELETE');
     const response = await handler(event);
     expect(response.data.success).toBe(true);
+
+    const rows = await db.select().from(friendshipsTable).where(eq(friendshipsTable.id, newFriendshipId));
+    expect(rows).toHaveLength(0);
   });
 });
