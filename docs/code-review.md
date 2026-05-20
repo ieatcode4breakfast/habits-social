@@ -5,39 +5,6 @@
 ## 🔴 CRITICAL ISSUES (Must fix before deployment)
 *Security breaches, data leaks, authorization bypasses, and production-breaking defects.*
 
-### 2. No Security Headers Configured for Production
-- **Location:** `nuxt.config.ts:79-87`
-- **Issue:** `routeRules` only set `Cache-Control` and `Vary`. There are zero security headers: no CSP, no HSTS, no `X-Content-Type-Options`, no `X-Frame-Options`, no `Referrer-Policy`. The app is exposed to XSS, clickjacking, MIME sniffing, and downgrade attacks.
-- **Fix:** Add security headers to the catch-all route rule:
-  ```ts
-  // nuxt.config.ts — replace the '/**' rule (lines 81-86)
-  '/**': {
-    headers: {
-      'Cache-Control': 'no-cache, no-store, must-revalidate',
-      'Vary': 'Cookie',
-      'Strict-Transport-Security': 'max-age=63072000; includeSubDomains; preload',
-      'X-Content-Type-Options': 'nosniff',
-      'X-Frame-Options': 'DENY',
-      'Referrer-Policy': 'strict-origin-when-cross-origin',
-      'Permissions-Policy': 'camera=(), microphone=(), geolocation=()',
-      'Content-Security-Policy': "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' wss://*.pusher.com https://*.pusher.com; font-src 'self';"
-    }
-  }
-  ```
-  The CSP will need tuning for actual asset sources (CDNs, etc.) — test thoroughly after adding.
-
-### 3. `cleanupFriendshipData` Runs 5 Mutations Without a Transaction
-- **Location:** `server/services/social.service.ts:90-126`, called from `removeFriendship` at line 139
-- **Issue:** This method performs 1 raw SQL UPDATE + 4 Drizzle updates sequentially but not inside a transaction. If any intermediate query fails, data is left in a partially cleaned state (some sharing flags removed, others not). The `removeFriendship` path (line 139-141) also calls cleanup then delete non-atomically — a crash between them leaves orphaned data with no friendship record to reference. (Note: the `UserService.deleteUser` path is safe because it passes a transaction handle.)
-- **Fix:** Wrap the `removeFriendship` logic in a transaction:
-  ```ts
-  // social.service.ts — replace lines 139-141 inside removeFriendship
-  await db.transaction(async (tx: any) => {
-    await this.cleanupFriendshipData(tx, u1, u2);
-    await tx.delete(friendshipsTable).where(eq(friendshipsTable.id, id));
-  });
-  ```
-
 ---
 
 ## 🟡 WARNINGS (Highly recommended to address)
