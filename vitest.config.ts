@@ -6,5 +6,8 @@ export default defineVitestConfig({
     environment: 'happy-dom',
     exclude: ['**/node_modules/**', '**/dist/**', '**/tests/e2e/**'],
     include: ['**/*.spec.ts'],
+    typecheck: {
+      enabled: true,
+    },
   }
 })

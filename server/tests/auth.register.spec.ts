@@ -37,12 +37,13 @@ describe('POST /api/auth/register', () => {
   });
 
   it('should reject duplicate username case-insensitively', async () => {
-    const originalUsername = `CaseUser_${Date.now() % 1000}`;
-    const testUser = await createTestUser(originalUsername, `case_${Date.now()}@ex.com`);
+    const uniqueSuffix = crypto.randomUUID().slice(0, 8);
+    const originalUsername = `CaseUser_${uniqueSuffix}`;
+    const testUser = await createTestUser(originalUsername, `case_${uniqueSuffix}@ex.com`);
     
     // Attempt to register with same username but different case
     const event = createMockEvent('', { 
-      email: `different_${Date.now()}@ex.com`, 
+      email: `different_${uniqueSuffix}@ex.com`, 
       password: 'password123', 
       username: originalUsername.toUpperCase() 
     });

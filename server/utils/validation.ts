@@ -137,6 +137,14 @@ export const bucketReorderSchema = z.object({
   ids: zStandardArray(zId).min(1).max(50)
 });
 
+export const chatMessageSchema = z.object({
+  body: z.string().min(1).max(1000).refine(s => s.trim().length > 0, { message: "Message cannot be empty or only whitespace" })
+}).strict();
+
+export const conversationIdSchema = zId;
+export const friendIdSchema = zId;
+export const messageIdSchema = zId;
+
 
 export const syncQuerySchema = z.object({
   lastSynced: z.coerce.number().min(0).default(0),

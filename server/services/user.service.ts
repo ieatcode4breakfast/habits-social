@@ -1,4 +1,6 @@
 import { eq, or, sql } from 'drizzle-orm';
+import type { H3Event } from 'h3';
+import type { DBConnection } from '../types/db';
 import { 
   users, 
   friendships, 
@@ -12,10 +14,11 @@ import {
   bucketHabits
 } from '~~/server/db/schema';
 import { SocialService } from './social.service';
+import { ChatService } from './chat.service';
 
 export const UserService = {
-  async deleteUser(db: any, userId: string, event: any) {
-    return await db.transaction(async (tx: any) => {
+  async deleteUser(db: DBConnection, userId: string, event: H3Event) {
+    return await db.transaction(async (tx) => {
       // 1. Get all friendships to clean up social data
       const userFriendships = await tx.select()
         .from(friendships)
@@ -28,7 +31,10 @@ export const UserService = {
         await SocialService.cleanupFriendshipData(tx, friendship.initiatorId, friendship.receiverId);
       }
 
-      // 2. Global scrub of sharing arrays in habits and logs
+      // 2. Chat Tombstoning
+      await ChatService.tombstoneUserMessages(tx, userId);
+
+      // 3. Global scrub of sharing arrays in habits and logs
       // This handles cases where habits were shared but maybe not in a bucket, 
       // or if there are residual IDs in other people's records.
       await tx.update(habits)

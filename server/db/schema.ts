@@ -157,3 +157,45 @@ export const syncDeletions = pgTable('sync_deletions', {
     syncDeletionsOwnerCreatedAtIdIdx: index('sync_deletions_owner_created_at_id_idx').on(table.ownerId, table.createdAt, table.id),
   };
 });
+
+export const chatConversations = pgTable('chat_conversations', {
+  id: uuid('id').primaryKey(),
+  user1Id: uuid('user1_id').references(() => users.id, { onDelete: 'set null' }),
+  user2Id: uuid('user2_id').references(() => users.id, { onDelete: 'set null' }),
+  lastMessageAt: timestamp('last_message_at', { withTimezone: true, mode: 'date' }).defaultNow(),
+  createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' }).defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true, mode: 'date' }).defaultNow(),
+}, (table) => {
+  return {
+    chatConversationsUserPairIdx: uniqueIndex('chat_conversations_user_pair_idx')
+      .on(
+        sql`LEAST(${table.user1Id}, ${table.user2Id})`,
+        sql`GREATEST(${table.user1Id}, ${table.user2Id})`
+      )
+      .where(sql`${table.user1Id} IS NOT NULL AND ${table.user2Id} IS NOT NULL`),
+    chatConversationsLastMessageAtIdx: index('chat_conversations_last_message_at_idx').on(table.lastMessageAt),
+  };
+});
+
+export const chatParticipants = pgTable('chat_participants', {
+  conversationId: uuid('conversation_id').notNull().references(() => chatConversations.id, { onDelete: 'cascade' }),
+  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  lastReadAt: timestamp('last_read_at', { withTimezone: true, mode: 'date' }).defaultNow(),
+}, (table) => {
+  return {
+    pk: primaryKey({ columns: [table.conversationId, table.userId] }),
+  };
+});
+
+export const chatMessages = pgTable('chat_messages', {
+  id: uuid('id').primaryKey(),
+  conversationId: uuid('conversation_id').notNull().references(() => chatConversations.id, { onDelete: 'cascade' }),
+  senderId: uuid('sender_id').references(() => users.id, { onDelete: 'set null' }),
+  body: text('body').notNull(),
+  deletedAt: timestamp('deleted_at', { withTimezone: true, mode: 'date' }),
+  createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' }).defaultNow(),
+}, (table) => {
+  return {
+    chatMessagesConversationIdCreatedAtIdx: index('chat_messages_conversation_id_created_at_idx').on(table.conversationId, table.createdAt),
+  };
+});

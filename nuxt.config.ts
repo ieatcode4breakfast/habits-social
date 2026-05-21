@@ -69,6 +69,9 @@ export default defineNuxtConfig({
     defaultLocale: 'en',
   },
   ssr: true,
+  typescript: {
+    strict: true
+  },
   nitro: {
     preset: 'cloudflare-module',
     ignore: [
@@ -95,6 +98,10 @@ export default defineNuxtConfig({
       authRateLimit: {
         driver: (process.env.NODE_ENV === 'production' || process.env.KV_BINDING) ? 'cloudflare-kv-binding' : 'memory',
         binding: 'AUTH_KV'
+      },
+      chatRateLimit: {
+        driver: (process.env.NODE_ENV === 'production' || process.env.KV_BINDING) ? 'cloudflare-kv-binding' : 'memory',
+        binding: 'CHAT_KV'
       }
     }
   },

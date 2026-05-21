@@ -1,0 +1,345 @@
+import { eq, and, or, desc, sql, isNull } from 'drizzle-orm';
+import type { DBConnection } from '../types/db';
+import * as schema from '../db/schema';
+import type { 
+  ConversationListItem, 
+  PaginatedMessages, 
+  ChatConversation, 
+  ChatMessage 
+} from '../types/chat';
+
+export class ChatService {
+  /**
+   * Gets or creates a conversation for a friend pair.
+   * Requires an accepted friendship.
+   */
+  static async getOrCreateConversationForFriend(db: DBConnection, userId: string, friendId: string): Promise<ChatConversation> {
+    if (userId === friendId) throw new Error('Self-chat not allowed');
+
+    // Find accepted friendship
+    const [friendship] = await db.select()
+      .from(schema.friendships)
+      .where(
+        and(
+          eq(schema.friendships.status, 'accepted'),
+          or(
+            and(eq(schema.friendships.initiatorId, userId), eq(schema.friendships.receiverId, friendId)),
+            and(eq(schema.friendships.initiatorId, friendId), eq(schema.friendships.receiverId, userId))
+          )
+        )
+      );
+
+    if (!friendship) throw new Error('Accepted friendship required');
+
+    // Find existing conversation using the unique user pair index
+    const [u1, u2] = userId < friendId ? [userId, friendId] : [friendId, userId];
+    let [conv] = await db.select()
+      .from(schema.chatConversations)
+      .where(
+        and(
+          eq(schema.chatConversations.user1Id, u1),
+          eq(schema.chatConversations.user2Id, u2)
+        )
+      );
+
+    if (!conv) {
+      // Create conversation and participants in a transaction
+      try {
+        const result = await db.transaction(async (tx) => {
+          const convId = crypto.randomUUID();
+          const now = new Date();
+          const [newConv] = await tx.insert(schema.chatConversations)
+            .values({
+              id: convId,
+              user1Id: u1,
+              user2Id: u2,
+              lastMessageAt: now,
+              createdAt: now,
+              updatedAt: now
+            })
+            .returning();
+
+          // Create participants with lastReadAt slightly in the past to ensure first messages are unread
+          const past = new Date(now.getTime() - 1000); 
+          await tx.insert(schema.chatParticipants)
+            .values([
+              { conversationId: convId, userId: u1, lastReadAt: past },
+              { conversationId: convId, userId: u2, lastReadAt: past }
+            ]);
+
+          return newConv;
+        });
+
+        if (!result) throw new Error('Failed to create conversation');
+        return result;
+      } catch (error: any) {
+        const msg = String(error?.message || '');
+        const code = String(error?.code || error?.cause?.code || '');
+        if (code === '23505' || msg.includes('unique constraint') || msg.includes('duplicate key value')) {
+          const [existingConv] = await db.select()
+            .from(schema.chatConversations)
+            .where(
+              and(
+                eq(schema.chatConversations.user1Id, u1),
+                eq(schema.chatConversations.user2Id, u2)
+              )
+            );
+          if (existingConv) return existingConv;
+        }
+        throw error;
+      }
+    }
+
+    return conv;
+  }
+
+  /**
+   * Verifies access to a conversation.
+   * - Full access (read/write) requires an accepted friendship.
+   * - Read-only access is allowed if the other participant has deleted their account.
+   * - Access is denied if the other participant exists but no accepted friendship exists.
+   */
+  static async verifyAccess(db: DBConnection, userId: string, conversationId: string, mode: 'read' | 'write' = 'read'): Promise<ChatConversation> {
+    const [conv] = await db.select()
+      .from(schema.chatConversations)
+      .where(eq(schema.chatConversations.id, conversationId));
+
+    if (!conv) throw new Error('Conversation not found');
+
+    if (conv.user1Id !== userId && conv.user2Id !== userId) {
+       throw new Error('Unauthorized access to conversation');
+    }
+
+    const otherParticipantId = conv.user1Id === userId ? conv.user2Id : conv.user1Id;
+
+    if (!otherParticipantId) {
+      // Other user deleted their account (null ID)
+      if (mode === 'write') throw new Error('Cannot send messages to a deleted user');
+      return conv; // Allow read access
+    }
+
+    // Check if other participant exists
+    const [otherUser] = await db.select()
+      .from(schema.users)
+      .where(eq(schema.users.id, otherParticipantId));
+
+    if (!otherUser) {
+      // Other user deleted their account (ID exists but user record gone - though schema uses set null so this is fallback)
+      if (mode === 'write') throw new Error('Cannot send messages to a deleted user');
+      return conv; // Allow read access
+    }
+
+    // Other user exists, check friendship
+    const [friendship] = await db.select()
+      .from(schema.friendships)
+      .where(
+        and(
+          eq(schema.friendships.status, 'accepted'),
+          or(
+            and(eq(schema.friendships.initiatorId, userId), eq(schema.friendships.receiverId, otherParticipantId)),
+            and(eq(schema.friendships.initiatorId, otherParticipantId), eq(schema.friendships.receiverId, userId))
+          )
+        )
+      );
+
+    if (!friendship) {
+      throw new Error('Active friendship required to access chat');
+    }
+
+    return conv;
+  }
+
+  /**
+   * Sends a message in a conversation.
+   * Updates lastMessageAt and enforces active friendship.
+   */
+  static async sendMessage(db: DBConnection, senderId: string, conversationId: string, body: string): Promise<ChatMessage> {
+    await this.verifyAccess(db, senderId, conversationId, 'write');
+
+    return await db.transaction(async (tx) => {
+      const now = new Date();
+      // Insert message
+      const [message] = await tx.insert(schema.chatMessages)
+        .values({
+          id: crypto.randomUUID(),
+          conversationId,
+          senderId,
+          body,
+          createdAt: now
+        })
+        .returning();
+
+      if (!message) throw new Error('Failed to send message');
+
+      // Update conversation lastMessageAt
+      await tx.update(schema.chatConversations)
+        .set({ lastMessageAt: now, updatedAt: now })
+        .where(eq(schema.chatConversations.id, conversationId));
+
+      // Update sender's lastReadAt
+      await tx.update(schema.chatParticipants)
+        .set({ lastReadAt: now })
+        .where(
+          and(
+            eq(schema.chatParticipants.conversationId, conversationId),
+            eq(schema.chatParticipants.userId, senderId)
+          )
+        );
+
+      return message;
+    });
+  }
+
+  /**
+   * Lists conversations for a user, sorted by recent activity.
+   * Includes unread counts per user.
+   * Uses a declarative Authorization Join to filter active/archived chats.
+   */
+  static async listConversations(db: DBConnection, userId: string): Promise<ConversationListItem[]> {
+    const f = schema.friendships;
+    const c = schema.chatConversations;
+    const p = schema.chatParticipants;
+    const m = schema.chatMessages;
+
+    return await db.select({
+      id: c.id,
+      lastMessageAt: c.lastMessageAt,
+      user1Id: c.user1Id,
+      user2Id: c.user2Id,
+      unreadCount: sql<number>`(
+        SELECT count(*)::int
+        FROM ${m}
+        WHERE ${m.conversationId} = ${c.id}
+          AND ${m.createdAt} > ${p.lastReadAt}
+          AND ${m.senderId} != ${userId}
+      )`
+    })
+      .from(c)
+      .innerJoin(p, eq(c.id, p.conversationId))
+      .leftJoin(f, and(
+        eq(sql`LEAST(${c.user1Id}, ${c.user2Id})`, sql`LEAST(${f.initiatorId}, ${f.receiverId})`),
+        eq(sql`GREATEST(${c.user1Id}, ${c.user2Id})`, sql`GREATEST(${f.initiatorId}, ${f.receiverId})`)
+      ))
+      .where(
+        and(
+          eq(p.userId, userId),
+          or(
+            eq(f.status, 'accepted'),
+            isNull(c.user1Id),
+            isNull(c.user2Id)
+          )
+        )
+      )
+      .orderBy(desc(c.lastMessageAt));
+  }
+
+  /**
+   * Marks a conversation as read for a specific user.
+   */
+  static async markAsRead(db: DBConnection, userId: string, conversationId: string): Promise<void> {
+    // Verify membership and friendship
+    await this.verifyAccess(db, userId, conversationId, 'read');
+
+    const result = await db.update(schema.chatParticipants)
+      .set({ lastReadAt: new Date() })
+      .where(
+        and(
+          eq(schema.chatParticipants.conversationId, conversationId),
+          eq(schema.chatParticipants.userId, userId)
+        )
+      );
+    
+    if (result.rowCount === 0) throw new Error('Failed to update read state');
+  }
+
+  /**
+   * Lists messages in a conversation with deterministic cursor pagination.
+   * Enforces active friendship.
+   */
+  static async listMessages(db: DBConnection, userId: string, conversationId: string, options: { limit?: number, cursor?: string } = {}): Promise<PaginatedMessages> {
+    await this.verifyAccess(db, userId, conversationId, 'read');
+    
+    const { limit = 50, cursor } = options;
+    const filters: any[] = [eq(schema.chatMessages.conversationId, conversationId)];
+
+    if (cursor) {
+      try {
+        const decoded = Buffer.from(cursor, 'base64').toString('utf-8');
+        const [cursorCreatedAt, cursorId] = decoded.split('|');
+        if (cursorCreatedAt && cursorId) {
+          const cursorDate = new Date(cursorCreatedAt);
+          if (!isNaN(cursorDate.getTime())) {
+            filters.push(
+              or(
+                sql`${schema.chatMessages.createdAt} < ${cursorDate}`,
+                and(
+                  eq(schema.chatMessages.createdAt, cursorDate),
+                  sql`${schema.chatMessages.id} < ${cursorId}`
+                )
+              ) as any
+            );
+          }
+        }
+      } catch (e) {
+        // Invalid cursor, ignore
+      }
+    }
+
+    const messages = await db.select()
+      .from(schema.chatMessages)
+      .where(and(...filters))
+      .orderBy(desc(schema.chatMessages.createdAt), desc(schema.chatMessages.id))
+      .limit(limit + 1);
+
+    const hasMore = messages.length > limit;
+    const resultMessages = hasMore ? messages.slice(0, limit) : messages;
+
+    let nextCursor: string | undefined;
+    if (hasMore && resultMessages.length > 0) {
+      const last = resultMessages[resultMessages.length - 1];
+      if (last && last.createdAt) {
+        nextCursor = Buffer.from(`${last.createdAt.toISOString()}|${last.id}`).toString('base64');
+      }
+    }
+
+    return {
+      messages: resultMessages,
+      hasMore,
+      cursor: nextCursor
+    };
+  }
+
+  /**
+   * Deletes a message (tombstoning).
+   * Only the sender can delete their own message.
+   * Requires 'write' access (active friendship) to the conversation.
+   */
+  static async deleteMessage(db: DBConnection, userId: string, messageId: string): Promise<void> {
+    const [message] = await db.select()
+      .from(schema.chatMessages)
+      .where(
+        and(
+          eq(schema.chatMessages.id, messageId),
+          eq(schema.chatMessages.senderId, userId)
+        )
+      );
+
+    if (!message) throw new Error('Message not found or unauthorized');
+
+    // Verify 'write' access to the conversation (locks deletion if unfriended)
+    await this.verifyAccess(db, userId, message.conversationId, 'write');
+
+    await db.update(schema.chatMessages)
+      .set({ body: '', deletedAt: new Date() })
+      .where(eq(schema.chatMessages.id, messageId));
+  }
+
+  /**
+   * Tombstones all messages from a user upon account deletion.
+   */
+  static async tombstoneUserMessages(db: DBConnection, userId: string): Promise<void> {
+    await db.update(schema.chatMessages)
+      .set({ body: '', senderId: null, deletedAt: new Date() })
+      .where(eq(schema.chatMessages.senderId, userId));
+  }
+}

@@ -22,7 +22,8 @@ export const db = drizzle(pool, { schema });
 export const createTestUser = async (username: string, email: string): Promise<User> => {
   const passwordHash = await hash('password123', 10);
   const [localPart, domain] = email.split('@');
-  const uniqueEmail = `${localPart || 'user'}_${crypto.randomUUID().slice(0, 8)}@${domain || 'example.com'}`;
+  const uniqueId = crypto.randomUUID().slice(0, 8);
+  const uniqueEmail = `${localPart || 'user'}_${uniqueId}@${domain || 'example.com'}`;
   const result = await db.insert(users)
     .values({
       id: crypto.randomUUID(),
@@ -176,4 +177,50 @@ export const createTestDeletion = async (ownerId: string, entityId: string, enti
 
 export const generateMassiveString = (length: number = 10001) => {
   return 'A'.repeat(length);
+};
+
+export const createTestConversation = async (user1Id: string, user2Id: string): Promise<any> => {
+  const [u1, u2] = user1Id < user2Id ? [user1Id, user2Id] : [user2Id, user1Id];
+  const result = await db.insert(schema.chatConversations)
+    .values({
+      id: crypto.randomUUID(),
+      user1Id: u1,
+      user2Id: u2,
+      lastMessageAt: new Date(),
+      createdAt: new Date(),
+      updatedAt: new Date()
+    })
+    .returning();
+  if (!result[0]) throw new Error('Failed to create test conversation');
+  return result[0];
+};
+
+export const createTestMessage = async (conversationId: string, senderId: string, body: string): Promise<any> => {
+  const result = await db.insert(schema.chatMessages)
+    .values({
+      id: crypto.randomUUID(),
+      conversationId,
+      senderId,
+      body,
+      createdAt: new Date()
+    })
+    .returning();
+  if (!result[0]) throw new Error('Failed to create test message');
+  return result[0];
+};
+
+export const createTestParticipant = async (conversationId: string, userId: string): Promise<any> => {
+  const result = await db.insert(schema.chatParticipants)
+    .values({
+      conversationId,
+      userId,
+      lastReadAt: new Date()
+    })
+    .returning();
+  if (!result[0]) throw new Error('Failed to create test participant');
+  return result[0];
+};
+
+export const deleteTestConversation = async (conversationId: string) => {
+  await db.delete(schema.chatConversations).where(eq(schema.chatConversations.id, conversationId));
 };
