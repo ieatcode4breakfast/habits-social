@@ -34,19 +34,28 @@
         class="flex-1 min-h-0 overflow-y-auto divide-y divide-zinc-900/60 p-2 space-y-1 will-change-transform transition-colors duration-300"
         :style="conversationsPullStyle"
       >
-        <div v-if="conversationsLoading" class="flex justify-center py-10">
+        <div v-if="conversationsLoading || !viewportReady" class="flex justify-center py-10">
           <div class="h-6 w-6 rounded-full border-b-2 border-white animate-spin"></div>
         </div>
         
         <template v-else>
           <div v-if="conversations.length === 0" class="py-12 px-4 text-center">
-            <p class="text-sm text-zinc-500 italic">No conversations yet.</p>
-            <button 
-              @click="showNewChatModal = true"
-              class="mt-3 text-sm text-white/80 hover:text-white font-semibold underline underline-offset-4 cursor-pointer"
-            >
-              Start chatting with a friend
-            </button>
+            <div v-if="isMobile" class="flex flex-col items-center justify-center min-h-[calc(100dvh-180px)] text-center select-none">
+              <div class="w-16 h-16 rounded-2xl bg-zinc-900/60 border border-zinc-800/80 flex items-center justify-center text-zinc-400 mb-4 shadow-xl relative animate-float">
+                <div class="absolute inset-0 bg-white/5 rounded-2xl filter blur-sm -z-10 animate-pulse"></div>
+                <MessageCircle class="w-7 h-7 text-zinc-400" />
+              </div>
+              <p class="text-zinc-400 text-sm max-w-[280px] leading-relaxed">
+                Chat securely with friends, keep each other accountable, and achieve your habit goals together.
+              </p>
+              <button
+                @click="showNewChatModal = true"
+                class="mt-6 px-4 py-2 bg-white hover:bg-zinc-200 text-black text-sm font-bold rounded-xl shadow-lg shadow-white/5 transition-all duration-200 active:scale-95 cursor-pointer"
+              >
+                Start a new chat
+              </button>
+            </div>
+            <p v-else class="text-sm text-zinc-500 italic">No conversations yet.</p>
           </div>
 
           <button
@@ -116,7 +125,7 @@
 
     <!-- Main Pane: Chat History & Input -->
     <div 
-      v-show="activeFriend || !isMobile"
+      v-show="activeFriend || (viewportReady && !isMobile)"
       class="flex-1 flex flex-col min-h-0 md:h-[calc(100dvh-120px)] bg-zinc-950/20 relative md:rounded-2xl md:border md:border-zinc-800/80 md:bg-black/60 md:backdrop-blur-xl md:shadow-2xl md:overflow-hidden"
     >
       <!-- Chat Header + Messages + Input (only when a conversation is active) -->
@@ -150,17 +159,7 @@
             </div>
           </div>
 
-          <div class="flex items-center gap-2">
-            <button 
-              @click="refreshConversation"
-              class="p-2 hover:bg-zinc-850 rounded-lg text-zinc-400 hover:text-white transition-all cursor-pointer flex items-center justify-center"
-              title="Refresh conversation"
-              :disabled="messagesLoading || isRefreshingConversation"
-            >
-              <div v-if="isRefreshingConversation" class="w-4 h-4 rounded-full border-2 border-white/20 border-t-white animate-spin"></div>
-              <RotateCw v-else class="w-4 h-4" />
-            </button>
-          </div>
+
         </div>
 
         <!-- Messages Stream Scroll Area -->
@@ -206,7 +205,7 @@
 
               <!-- Delete Button (Only own messages & not deleted already) -->
               <button 
-                v-if="msg.senderId === user?.id && !msg.deletedAt"
+                v-if="msg.senderId === user?.id && !msg.deletedAt && !msg.isOptimistic"
                 @click="confirmDeleteMessage(msg.id)"
                 class="opacity-0 group-hover/msg:opacity-100 transition-opacity p-1.5 hover:bg-zinc-850 rounded-lg text-zinc-500 hover:text-rose-500 cursor-pointer duration-200 shrink-0 self-center"
                 title="Delete Message"
@@ -257,8 +256,7 @@
                 class="p-2 bg-white hover:bg-zinc-200 text-black rounded-lg transition-all shadow-md active:scale-95 disabled:opacity-40 disabled:hover:bg-white disabled:active:scale-100 cursor-pointer flex items-center justify-center"
                 :disabled="!canSend"
               >
-                <div v-if="sending" class="h-3.5 w-3.5 rounded-full border-2 border-black/20 border-t-black animate-spin"></div>
-                <Send v-else class="w-3.5 h-3.5" />
+                <Send class="w-3.5 h-3.5" />
               </button>
             </div>
           </div>
@@ -355,8 +353,7 @@ import {
   Trash2, 
   Send, 
   X, 
-  ChevronLeft, 
-  RotateCw 
+  ChevronLeft
 } from 'lucide-vue-next';
 import { formatDistanceToNow, parseISO } from 'date-fns';
 import { useSocial, type UserProfile } from '~/composables/useSocial';
@@ -391,6 +388,7 @@ interface InboxMessage {
   body: string;
   deletedAt: string | Date | null;
   createdAt: string | Date;
+  isOptimistic?: boolean;
 }
 
 interface PaginatedMessagesResponse {
@@ -415,11 +413,9 @@ const activeChatLocked = useState<boolean>('realtime-active-chat-locked', () => 
 const chatRefreshSequence = useState<number>('realtime-chat-refresh-sequence', () => 0);
 
 // Loading states
-const conversationsLoading = ref(false);
+const conversationsLoading = ref(true);
 const messagesLoading = ref(false);
-const isRefreshingConversation = ref(false);
 const loadingMore = ref(false);
-const sending = ref(false);
 
 // Input states
 const messageBody = ref('');
@@ -429,6 +425,7 @@ const nextCursor = ref<string | null>(null);
 // Modal/Responsive toggles
 const showNewChatModal = ref(false);
 const isMobile = ref(false);
+const viewportReady = ref(false);
 
 // Refs
 const scrollContainer = ref<HTMLElement | null>(null);
@@ -437,7 +434,7 @@ const messageTextareaRef = ref<HTMLTextAreaElement | null>(null);
 // Computed validators
 const canSend = computed(() => {
   const trimmed = messageBody.value.trim();
-  return trimmed.length > 0 && trimmed.length <= 1000 && !sending.value && !activeChatLocked.value;
+  return trimmed.length > 0 && trimmed.length <= 1000 && !activeChatLocked.value;
 });
 
 const syncMessageTextareaHeight = () => {
@@ -446,16 +443,23 @@ const syncMessageTextareaHeight = () => {
   }
 };
 
-const refreshConversation = async () => {
-  if (!activeConversationId.value || messagesLoading.value || isRefreshingConversation.value) return;
+const createOptimisticMessageId = (): string => {
+  const webCrypto = globalThis.crypto;
 
-  isRefreshingConversation.value = true;
-  try {
-    await loadMessages();
-  } finally {
-    isRefreshingConversation.value = false;
+  if (typeof webCrypto?.randomUUID === 'function') {
+    return `optimistic-${webCrypto.randomUUID()}`;
   }
+
+  if (typeof webCrypto?.getRandomValues === 'function') {
+    const randomValues = new Uint32Array(2);
+    webCrypto.getRandomValues(randomValues);
+    return `optimistic-${Date.now().toString(36)}-${Array.from(randomValues, value => value.toString(36)).join('')}`;
+  }
+
+  return `optimistic-${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
 };
+
+
 
 // Load Conversations list from backend
 const loadConversations = async (silent = false, preserveLoading = false) => {
@@ -608,25 +612,40 @@ const loadOlderMessages = () => {
 
 // Send message to the selected friend
 const sendMessage = async () => {
-  if (!canSend.value || !activeFriend.value) return;
+  if (!canSend.value || !activeFriend.value || !user.value?.id) return;
   
   const text = messageBody.value.trim();
-  sending.value = true;
+  const targetFriendId = activeFriend.value.id;
+  const optimisticMessageId = createOptimisticMessageId();
+  const optimisticMessage: InboxMessage = {
+    id: optimisticMessageId,
+    conversationId: activeConversationId.value || `pending-${targetFriendId}`,
+    senderId: user.value.id,
+    body: text,
+    deletedAt: null,
+    createdAt: new Date().toISOString(),
+    isOptimistic: true
+  };
+
+  messages.value = [optimisticMessage, ...messages.value];
+  messageBody.value = '';
+  await nextTick();
+  syncMessageTextareaHeight();
+  scrollToBottom();
 
   try {
-    const response = await $fetch<InboxMessage>(`/api/chat/conversations/by-friend/${activeFriend.value.id}/messages`, {
+    const response = await $fetch<InboxMessage>(`/api/chat/conversations/by-friend/${targetFriendId}/messages`, {
       method: 'POST',
       body: { body: text }
     });
 
-    // Append to messages stream
-    messages.value = [response, ...messages.value];
-    messageBody.value = '';
-    await nextTick();
-    syncMessageTextareaHeight();
+    const optimisticIndex = messages.value.findIndex(message => message.id === optimisticMessageId);
+    if (optimisticIndex !== -1) {
+      messages.value[optimisticIndex] = response;
+    }
     
     // Set active conversation ID if it wasn't set (first message)
-    if (!activeConversationId.value) {
+    if (!activeConversationId.value && activeFriend.value?.id === targetFriendId) {
       activeConversationId.value = response.conversationId;
       sharedActiveConversationId.value = response.conversationId;
     }
@@ -638,14 +657,19 @@ const sendMessage = async () => {
     // Refresh conversations list silently
     await loadConversations(true);
   } catch (error: unknown) {
+    messages.value = messages.value.filter(message => message.id !== optimisticMessageId);
+    if (activeFriend.value?.id === targetFriendId && messageBody.value.trim().length === 0) {
+      messageBody.value = text;
+      await nextTick();
+      syncMessageTextareaHeight();
+    }
+
     console.error('[Inbox] Failed to send message:', error);
     if (getErrorStatus(error) === 429) {
       showToast('Rate limit exceeded. Please wait a moment.', 'failed');
     } else {
       showToast('Failed to send message', 'failed');
     }
-  } finally {
-    sending.value = false;
   }
 };
 
@@ -683,9 +707,14 @@ const formatTime = (dateStr: string | Date) => {
   if (!dateStr) return '';
   try {
     const date = typeof dateStr === 'string' ? parseISO(dateStr) : dateStr;
+    const diffMs = Date.now() - date.getTime();
+
+    if (Math.abs(diffMs) < 60_000) {
+      return 'just now';
+    }
+
     return formatDistanceToNow(date, { addSuffix: true })
-      .replace('about ', '')
-      .replace('less than a minute ago', 'just now');
+      .replace('about ', '');
   } catch {
     return '';
   }
@@ -712,6 +741,7 @@ const handleScroll = (event: Event) => {
 // Mobile responsiveness tracking
 const checkViewport = () => {
   isMobile.value = window.innerWidth < 768;
+  viewportReady.value = true;
 };
 
 onMounted(async () => {

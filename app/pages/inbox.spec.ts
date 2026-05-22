@@ -40,6 +40,7 @@ const activeConversation = {
 
 interface ChatMessage {
   id: string;
+  conversationId: string;
   senderId: string;
   body: string;
   createdAt: string;
@@ -56,6 +57,12 @@ interface Deferred<T> {
   promise: Promise<T>;
   resolve: (value: T) => void;
   reject: (reason?: unknown) => void;
+}
+
+interface FetchOptions {
+  method?: string;
+  body?: unknown;
+  query?: Record<string, string | number>;
 }
 
 const createDeferred = <T,>(): Deferred<T> => {
@@ -153,8 +160,8 @@ describe('Inbox conversation refresh icon', () => {
   let wrapper: VueWrapper<unknown> | null = null;
   let fetchMock: ReturnType<typeof vi.fn>;
   let initialMessages: Deferred<MessagesResponse>;
-  let refreshMessages: Deferred<MessagesResponse>;
   let olderMessages: Deferred<MessagesResponse>;
+  let sentMessage: Deferred<ChatMessage>;
   let messageRequestCount = 0;
 
   const mountPage = () =>
@@ -183,20 +190,34 @@ describe('Inbox conversation refresh icon', () => {
     return button;
   };
 
-  const getRefreshButton = () => {
-    const button = wrapper?.get('button[title="Refresh conversation"]');
-    if (!button) {
-      throw new Error('Expected refresh button to render');
-    }
-    return button;
-  };
-
   const getLoadOlderButton = () => {
     const button = wrapper?.findAll('button').find((candidate) => candidate.text().includes('Load older messages'));
     if (!button) {
       throw new Error('Expected load older messages button to render');
     }
     return button;
+  };
+
+  const getMessageTextarea = () => {
+    const textarea = wrapper?.find('textarea');
+    if (!textarea?.exists()) {
+      throw new Error('Expected message textarea to render');
+    }
+    return textarea;
+  };
+
+  const getSendButtonElement = () => {
+    const textarea = getMessageTextarea().element;
+    const button = textarea.parentElement?.querySelector('button');
+    if (!(button instanceof HTMLButtonElement)) {
+      throw new Error('Expected send button to render');
+    }
+    return button;
+  };
+
+  const openActiveConversation = async () => {
+    await getConversationButton().trigger('click');
+    await nextTick();
   };
 
   beforeEach(async () => {
@@ -208,14 +229,21 @@ describe('Inbox conversation refresh icon', () => {
     messageRequestCount = 0;
 
     initialMessages = createDeferred<MessagesResponse>();
-    refreshMessages = createDeferred<MessagesResponse>();
     olderMessages = createDeferred<MessagesResponse>();
+    sentMessage = createDeferred<ChatMessage>();
 
-    fetchMock = vi.fn(async (url: string) => {
+    fetchMock = vi.fn(async (url: string, options?: FetchOptions) => {
       if (url === '/api/chat/conversations') {
         return [
           activeConversation
         ];
+      }
+
+      if (
+        url === `/api/chat/conversations/by-friend/${friendProfile.id}/messages`
+        && options?.method === 'POST'
+      ) {
+        return sentMessage.promise;
       }
 
       if (url === `/api/chat/conversations/${activeConversation.id}/read`) {
@@ -226,8 +254,7 @@ describe('Inbox conversation refresh icon', () => {
         messageRequestCount += 1;
 
         if (messageRequestCount === 1) return initialMessages.promise;
-        if (messageRequestCount === 2) return refreshMessages.promise;
-        if (messageRequestCount === 3) return olderMessages.promise;
+        if (messageRequestCount === 2) return olderMessages.promise;
       }
 
       throw new Error(`Unexpected fetch request: ${url}`);
@@ -243,72 +270,124 @@ describe('Inbox conversation refresh icon', () => {
   afterEach(() => {
     wrapper?.unmount();
     wrapper = null;
+    vi.useRealTimers();
     vi.unstubAllGlobals();
     vi.restoreAllMocks();
   });
 
-  it('keeps the header icon static on initial load, spins only on manual refresh, and stays stable during pagination', async () => {
-    await getConversationButton().trigger('click');
+  it('keeps the shared padding contract while using a sm-only full-bleed inbox shell', async () => {
+    const shellClasses = getRootShell().className.split(/\s+/);
+
+    expect(shellClasses).toContain('sm:-mx-6');
+    expect(shellClasses).toContain('md:mx-0');
+  });
+
+  it('shows a sent message optimistically and keeps the send button icon static while the request is pending', async () => {
+    await openActiveConversation();
+
+    await getMessageTextarea().setValue('Hello optimistically');
+    getSendButtonElement().click();
     await nextTick();
 
-    const refreshButton = getRefreshButton();
-    expect(refreshButton.find('.animate-spin').exists()).toBe(false);
+    expect(wrapper?.text()).toContain('Hello optimistically');
+    expect(getMessageTextarea().element.value).toBe('');
+    expect(getSendButtonElement().disabled).toBe(true);
+    expect(getSendButtonElement().querySelector('.animate-spin')).toBeNull();
+    expect(fetchMock).toHaveBeenCalledWith(
+      `/api/chat/conversations/by-friend/${friendProfile.id}/messages`,
+      {
+        method: 'POST',
+        body: { body: 'Hello optimistically' }
+      }
+    );
+  });
+
+  it('sends optimistically when crypto.randomUUID is unavailable on physical mobile dev contexts', async () => {
+    await openActiveConversation();
+
+    vi.stubGlobal('crypto', {
+      getRandomValues: (array: Uint32Array<ArrayBuffer>): Uint32Array<ArrayBuffer> => {
+        array[0] = 123;
+        array[1] = 456;
+        return array;
+      }
+    });
+
+    await getMessageTextarea().setValue('Mobile fallback send');
+    getSendButtonElement().click();
+    await nextTick();
+
+    expect(wrapper?.text()).toContain('Mobile fallback send');
+    expect(getMessageTextarea().element.value).toBe('');
+    expect(fetchMock).toHaveBeenCalledWith(
+      `/api/chat/conversations/by-friend/${friendProfile.id}/messages`,
+      {
+        method: 'POST',
+        body: { body: 'Mobile fallback send' }
+      }
+    );
+  });
+
+  it('replaces the optimistic message with the committed server message without duplicating it', async () => {
+    await openActiveConversation();
+
+    await getMessageTextarea().setValue('Replace me');
+    getSendButtonElement().click();
+    await nextTick();
+
+    sentMessage.resolve({
+      id: 'message-server-1',
+      conversationId: activeConversation.id,
+      senderId: 'user-1',
+      body: 'Replace me',
+      createdAt: '2026-05-20T10:01:00.000Z',
+      deletedAt: null
+    });
+
+    await flushPromises();
+    await nextTick();
+
+    const exactBodySpans = wrapper?.findAll('span').filter((span) => span.text() === 'Replace me') || [];
+    expect(exactBodySpans).toHaveLength(1);
+  });
+
+  it('removes the optimistic message and restores the draft when sending fails before the user types again', async () => {
+    await openActiveConversation();
+
+    await getMessageTextarea().setValue('Please survive failure');
+    getSendButtonElement().click();
+    await nextTick();
+
+    sentMessage.reject({ statusCode: 429 });
+
+    await flushPromises();
+    await nextTick();
+
+    expect(wrapper?.text()).not.toContain('Please survive failure');
+    expect(getMessageTextarea().element.value).toBe('Please survive failure');
+    expect(mockShowToast).toHaveBeenCalledWith('Rate limit exceeded. Please wait a moment.', 'failed');
+  });
+
+  it('formats sub-minute past and future message timestamps as just now', async () => {
+    await openActiveConversation();
+    const now = Date.now();
 
     initialMessages.resolve({
       messages: [
         {
-          id: 'msg-1',
+          id: 'future-message',
+          conversationId: activeConversation.id,
           senderId: friendProfile.id,
-          body: 'Hello there',
-          createdAt: '2026-05-20T10:01:00.000Z',
+          body: 'Future clock skew',
+          createdAt: new Date(now + 30_000).toISOString(),
           deletedAt: null
-        }
-      ],
-      hasMore: true,
-      cursor: 'older-cursor'
-    });
-
-    await flushPromises();
-    await nextTick();
-
-    expect(refreshButton.find('.animate-spin').exists()).toBe(false);
-
-    await refreshButton.trigger('click');
-    await nextTick();
-
-    expect(refreshButton.find('.animate-spin').exists()).toBe(true);
-
-    refreshMessages.resolve({
-      messages: [
+        },
         {
-          id: 'msg-2',
+          id: 'past-message',
+          conversationId: activeConversation.id,
           senderId: friendProfile.id,
-          body: 'Refreshed copy',
-          createdAt: '2026-05-20T10:02:00.000Z',
-          deletedAt: null
-        }
-      ],
-      hasMore: true,
-      cursor: 'older-cursor'
-    });
-
-    await flushPromises();
-    await nextTick();
-
-    expect(refreshButton.find('.animate-spin').exists()).toBe(false);
-
-    await getLoadOlderButton().trigger('click');
-    await nextTick();
-
-    expect(refreshButton.find('.animate-spin').exists()).toBe(false);
-
-    olderMessages.resolve({
-      messages: [
-        {
-          id: 'msg-0',
-          senderId: 'user-1',
-          body: 'Older message',
-          createdAt: '2026-05-20T09:59:00.000Z',
+          body: 'Past recent message',
+          createdAt: new Date(now - 30_000).toISOString(),
           deletedAt: null
         }
       ],
@@ -319,13 +398,10 @@ describe('Inbox conversation refresh icon', () => {
     await flushPromises();
     await nextTick();
 
-    expect(refreshButton.find('.animate-spin').exists()).toBe(false);
-  });
-
-  it('keeps the shared padding contract while using a sm-only full-bleed inbox shell', async () => {
-    const shellClasses = getRootShell().className.split(/\s+/);
-
-    expect(shellClasses).toContain('sm:-mx-6');
-    expect(shellClasses).toContain('md:mx-0');
+    expect(wrapper?.text()).toContain('Future clock skew');
+    expect(wrapper?.text()).toContain('Past recent message');
+    expect(wrapper?.text()).not.toContain('in less than a minute');
+    const justNowTimestamps = wrapper?.findAll('span').filter((span) => span.text() === 'just now') || [];
+    expect(justNowTimestamps).toHaveLength(2);
   });
 });
