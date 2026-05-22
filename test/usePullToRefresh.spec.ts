@@ -66,7 +66,7 @@ describe('usePullToRefresh composable', () => {
       throw new Error('Test wrapper is not mounted');
     }
 
-    return wrapper.vm as PullToRefreshVm;
+    return wrapper.vm as unknown as PullToRefreshVm;
   };
 
   beforeEach(() => {

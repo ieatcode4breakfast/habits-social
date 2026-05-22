@@ -233,11 +233,13 @@
         <div class="z-40 p-2 bg-black md:bg-black shrink-0">
           <div class="flex items-end gap-2 bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 focus-within:border-zinc-700 transition-colors shadow-inner relative">
             <textarea
+              ref="messageTextareaRef"
               v-model="messageBody"
               placeholder="Type your message..."
-              class="flex-1 bg-transparent text-sm text-white placeholder-zinc-500 outline-none resize-none max-h-24 min-h-[20px] font-normal leading-normal self-center align-middle"
+              class="flex-1 bg-transparent text-sm text-white placeholder-zinc-500 outline-none resize-none max-h-28 min-h-[20px] overflow-y-auto font-normal leading-normal self-center align-middle"
               rows="1"
               maxlength="1000"
+              @input="syncMessageTextareaHeight"
               @keydown.enter.exact.prevent="handleEnterKey"
             ></textarea>
 
@@ -360,6 +362,7 @@ import { formatDistanceToNow, parseISO } from 'date-fns';
 import { useSocial, type UserProfile } from '~/composables/useSocial';
 import { useAuth } from '~/composables/useAuth';
 import { useToast } from '~/composables/useToast';
+import { autoExpandTextarea } from '~/utils/ui';
 
 definePageMeta({ middleware: 'auth' });
 
@@ -396,12 +399,19 @@ const isMobile = ref(false);
 
 // Refs
 const scrollContainer = ref<HTMLElement | null>(null);
+const messageTextareaRef = ref<HTMLTextAreaElement | null>(null);
 
 // Computed validators
 const canSend = computed(() => {
   const trimmed = messageBody.value.trim();
   return trimmed.length > 0 && trimmed.length <= 1000 && !sending.value;
 });
+
+const syncMessageTextareaHeight = () => {
+  if (messageTextareaRef.value) {
+    autoExpandTextarea(messageTextareaRef.value);
+  }
+};
 
 // Load Conversations list from backend
 const loadConversations = async (silent = false, preserveLoading = false) => {
@@ -562,12 +572,14 @@ const sendMessage = async () => {
     // Append to messages stream
     messages.value = [response, ...messages.value];
     messageBody.value = '';
+    await nextTick();
+    syncMessageTextareaHeight();
     
     // Set active conversation ID if it wasn't set (first message)
     if (!activeConversationId.value) {
       activeConversationId.value = response.conversationId;
     }
-    
+
     nextTick(() => {
       scrollToBottom();
     });

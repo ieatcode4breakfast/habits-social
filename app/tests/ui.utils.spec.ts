@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { isStreakFaded } from '../utils/ui';
+import { autoExpandTextarea, isStreakFaded } from '../utils/ui';
 import { subDays, formatISO } from 'date-fns';
 
 describe('isStreakFaded', () => {
@@ -22,6 +22,20 @@ describe('isStreakFaded', () => {
   });
 
   it('should NOT be faded if anchor is null', () => {
-    expect(isStreakFaded(null as any)).toBe(false);
+    expect(isStreakFaded(null)).toBe(false);
+  });
+});
+
+describe('autoExpandTextarea', () => {
+  it('should set textarea height to match its scrollHeight', () => {
+    const textarea = document.createElement('textarea');
+    Object.defineProperty(textarea, 'scrollHeight', {
+      value: 160,
+      configurable: true
+    });
+
+    autoExpandTextarea(textarea);
+
+    expect(textarea.style.height).toBe('160px');
   });
 });
