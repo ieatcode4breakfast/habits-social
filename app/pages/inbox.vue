@@ -152,12 +152,12 @@
 
           <div class="flex items-center gap-2">
             <button 
-              @click="loadMessages(null)"
+              @click="refreshConversation"
               class="p-2 hover:bg-zinc-850 rounded-lg text-zinc-400 hover:text-white transition-all cursor-pointer flex items-center justify-center"
               title="Refresh conversation"
-              :disabled="messagesLoading"
+              :disabled="messagesLoading || isRefreshingConversation"
             >
-              <div v-if="messagesLoading" class="w-4 h-4 rounded-full border-2 border-white/20 border-t-white animate-spin"></div>
+              <div v-if="isRefreshingConversation" class="w-4 h-4 rounded-full border-2 border-white/20 border-t-white animate-spin"></div>
               <RotateCw v-else class="w-4 h-4" />
             </button>
           </div>
@@ -385,6 +385,7 @@ const conversationsScrollContainer = ref<HTMLElement | null>(null);
 // Loading states
 const conversationsLoading = ref(false);
 const messagesLoading = ref(false);
+const isRefreshingConversation = ref(false);
 const loadingMore = ref(false);
 const sending = ref(false);
 
@@ -410,6 +411,17 @@ const canSend = computed(() => {
 const syncMessageTextareaHeight = () => {
   if (messageTextareaRef.value) {
     autoExpandTextarea(messageTextareaRef.value);
+  }
+};
+
+const refreshConversation = async () => {
+  if (!activeConversationId.value || messagesLoading.value || isRefreshingConversation.value) return;
+
+  isRefreshingConversation.value = true;
+  try {
+    await loadMessages();
+  } finally {
+    isRefreshingConversation.value = false;
   }
 };
 
