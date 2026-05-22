@@ -14,25 +14,33 @@ vi.mock('@floating-ui/vue', () => ({
   autoUpdate: vi.fn()
 }));
 
-const mountOpenLogMenu = () => {
+const mountOpenLogMenu = async () => {
   const referenceEl = document.createElement('button');
   document.body.appendChild(referenceEl);
 
-  return mount(LogMenu, {
+  const wrapper = mount(LogMenu, {
     attachTo: document.body,
     props: {
-      habit: {
-        id: 'habit-1',
-        title: 'Drink water',
-        skipsPeriod: 'weekly',
-        skipsCount: 1,
-        sharedWith: []
-      } as any,
-      date: new Date('2026-05-20T00:00:00'),
+      habit: null,
+      date: null,
       logs: [],
-      referenceEl
+      referenceEl: null
     }
   });
+
+  await wrapper.setProps({
+    habit: {
+      id: 'habit-1',
+      title: 'Drink water',
+      skipsPeriod: 'weekly',
+      skipsCount: 1,
+      sharedWith: []
+    } as any,
+    date: new Date('2026-05-20T00:00:00'),
+    referenceEl
+  });
+
+  return wrapper;
 };
 
 describe('LogMenu', () => {
@@ -41,16 +49,17 @@ describe('LogMenu', () => {
     document.body.className = '';
   });
 
-  it('does not lock body scrolling when opened', () => {
-    const wrapper = mountOpenLogMenu();
+  it('locks body scrolling when opened', async () => {
+    const wrapper = await mountOpenLogMenu();
 
-    expect(document.body.classList.contains('overflow-hidden')).toBe(false);
+    expect(document.body.classList.contains('overflow-hidden')).toBe(true);
 
     wrapper.unmount();
+    expect(document.body.classList.contains('overflow-hidden')).toBe(false);
   });
 
-  it('prevents scroll gestures on its local overlay', () => {
-    const wrapper = mountOpenLogMenu();
+  it('prevents scroll gestures on its local overlay', async () => {
+    const wrapper = await mountOpenLogMenu();
     const overlay = document.body.querySelector('.touch-none');
     expect(overlay).toBeTruthy();
 

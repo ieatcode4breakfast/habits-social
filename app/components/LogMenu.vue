@@ -60,6 +60,7 @@ import { Check, X as XIcon, Minus, Trash2, Palmtree } from 'lucide-vue-next';
 import { useFloating, offset, flip, shift, arrow, autoUpdate } from '@floating-ui/vue';
 import { format, isSameWeek, isSameMonth } from 'date-fns';
 import type { Habit, HabitLog } from '~/composables/useHabitsApi';
+import { useModalHistory } from '~/composables/useModalHistory';
 
 const props = defineProps<{
   habit: Habit | null;
@@ -72,6 +73,11 @@ const props = defineProps<{
 }>();
 
 const emit = defineEmits(['select', 'close']);
+
+const isOpen = computed(() => !!(props.habit && props.date && props.referenceEl));
+useModalHistory(isOpen, () => {
+  emit('close');
+});
 
 const floatingRef = ref<HTMLElement | null>(null);
 const arrowRef = ref<HTMLElement | null>(null);
