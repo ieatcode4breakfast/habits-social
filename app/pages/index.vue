@@ -537,9 +537,9 @@ const handleMessageClick = (event: MouseEvent) => {
   }
 };
 
-const groupedFeed = computed(() => {
+const groupedFeed = computed<Record<string, any[]>>(() => {
   if (!feed.value) return {};
-  return feed.value.reduce((acc: any, item: any) => {
+  return feed.value.reduce((acc: Record<string, any[]>, item: any) => {
     const date = item.date;
     if (!acc[date]) acc[date] = [];
     acc[date].push(item);
