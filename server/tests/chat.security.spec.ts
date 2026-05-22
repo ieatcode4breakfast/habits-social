@@ -14,9 +14,10 @@ describe('Chat Security & Socket Tokens', () => {
   let conv: any;
 
   beforeEach(async () => {
-    userA = await createTestUser('SecA', 'sec_a@ex.com');
-    userB = await createTestUser('SecB', 'sec_b@ex.com');
-    userC = await createTestUser('SecC', 'sec_c@ex.com');
+    const id = crypto.randomUUID().slice(0, 8);
+    userA = await createTestUser(`SecA_${id}`, `sec_a_${id}@ex.com`);
+    userB = await createTestUser(`SecB_${id}`, `sec_b_${id}@ex.com`);
+    userC = await createTestUser(`SecC_${id}`, `sec_c_${id}@ex.com`);
     await createFriendship(userA.id, userB.id, 'accepted');
     conv = await ChatService.getOrCreateConversationForFriend(useDB(), userA.id, userB.id);
   });

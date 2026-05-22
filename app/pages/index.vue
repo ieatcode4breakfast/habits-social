@@ -1,547 +1,882 @@
 <template>
   <div class="relative">
-    <!-- Sticky Header + Date Row -->
-    <div class="sticky top-0 md:top-[57px] z-40 bg-black">
-    <div class="px-4 sm:px-0 flex items-end justify-between gap-4 bg-black pt-2 pb-2 sm:pt-4">
-      <div class="flex items-center gap-4">
-        <UserAvatar 
-          v-if="user"
-          :src="user.photoUrl" 
-          container-class="w-10 h-10 bg-zinc-925 rounded-xl shadow-sm cursor-pointer hover:opacity-80 transition-opacity"
-          icon-class="w-6 h-6 text-zinc-600"
-          @click="openProfileModal"
-        />
-        <div>
-          <h1 class="text-base font-bold tracking-tight text-white mb-1">My habits</h1>
-          <p class="text-zinc-400 text-xs">{{ habits.length }} habit{{ habits.length === 1 ? '' : 's' }}</p>
-        </div>
-      </div>
-      <div class="flex items-center gap-2">
-        <button
-          v-if="habits.length > 1"
-          @click="showReorderModal = true"
-          class="w-11 sm:w-28 py-2.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 hover:text-white font-semibold rounded-xl transition-all cursor-pointer text-sm flex items-center justify-center gap-2 active:scale-95 border border-zinc-700/60"
-          title="Reorder"
+    <!-- Tab Navigation -->
+    <div class="px-4 sm:px-0 sticky top-[57px] z-40 bg-black pt-2 pb-2 sm:pt-4">
+      <div class="flex p-1 bg-zinc-925 border border-zinc-800 rounded-xl relative">
+        <button 
+          @click="activeTab = 'activity'"
+          class="flex-1 py-2.5 text-[11px] font-bold tracking-widest uppercase rounded-lg transition-all relative z-10 cursor-pointer"
+          :class="activeTab === 'activity' ? 'text-white' : 'text-zinc-500 hover:text-zinc-300'"
         >
-          <ArrowUpDown class="w-4 h-4" />
-          <span class="hidden sm:inline">Reorder</span>
+          Activity
         </button>
         <button 
-          @click="openAddModal" 
-          class="w-11 sm:w-28 py-2.5 bg-white hover:bg-zinc-200 text-black font-semibold rounded-xl transition-all shadow-lg shadow-white/5 cursor-pointer text-sm flex items-center justify-center gap-2 active:scale-95"
-          title="Add Habit"
+          @click="activeTab = 'friends'"
+          class="flex-1 py-2.5 text-[11px] font-bold tracking-widest uppercase rounded-lg transition-all relative z-10 cursor-pointer flex items-center justify-center gap-2"
+          :class="activeTab === 'friends' ? 'text-white' : 'text-zinc-500 hover:text-zinc-300'"
         >
-          <Plus class="w-4 h-4" />
-          <span class="hidden sm:inline">Add</span>
+          Friends
+          <span v-if="pendingIncoming.length > 0 && activeTab !== 'friends'" class="flex w-2 h-2 bg-rose-500 rounded-full"></span>
         </button>
+        <!-- Sliding Indicator -->
+        <div 
+          class="absolute top-1 bottom-1 w-[calc(50%-6px)] bg-zinc-800 rounded-lg transition-all duration-300 ease-out z-0 shadow-sm"
+          :class="activeTab === 'activity' ? 'left-1' : 'left-[calc(50%+2px)]'"
+        ></div>
       </div>
     </div>
-    <!-- Date Header -->
-    <div class="bg-zinc-925 border-b border-t border-x-0 sm:border-x border-zinc-800/80 py-2 sm:rounded-t-2xl flex flex-col items-stretch sm:flex-row sm:items-center sm:justify-between gap-x-4 gap-y-2 sm:px-4">
-        <div class="w-full px-4 sm:px-0 sm:flex-1 sm:min-w-[200px] hidden sm:block pr-0 sm:pr-2"></div>
-        <div class="w-full sm:w-[320px] lg:w-[400px] shrink-0 px-2 sm:px-0">
-          <div class="flex items-end w-full">
-            <div v-for="(day, i) in days" :key="i" class="flex-1 flex flex-col items-center relative">
-              <!-- Sunday Divider -->
-              <div 
-                v-if="i > 0 && day.getDay() === 0" 
-                class="absolute left-0 top-0 bottom-0 w-px bg-zinc-800/80"
-              ></div>
-              <div 
-                class="text-[10px] uppercase tracking-tighter font-black transition-colors"
-                :class="isToday(day) ? 'text-white' : 'text-zinc-500'"
-              >
-                {{ format(day, 'EEE') }}
-              </div>
-              <div 
-                class="text-[10px] sm:text-xs font-bold transition-colors"
-                :class="isToday(day) ? 'text-white' : 'text-zinc-500'"
-              >
-                {{ format(day, 'd') }}
-              </div>
-            </div>
-          </div>
-        </div>
-    </div>
-    </div>
 
-    <!-- Habit List (Single Card) -->
-    <div v-motion-fade :style="pullStyle" class="backdrop-blur-md sm:rounded-b-2xl rounded-none border-b border-x-0 sm:border-x sm:border-b divide-y divide-zinc-800/80 relative will-change-transform transition-colors duration-300" :class="loading ? 'bg-transparent border-transparent shadow-none' : 'bg-zinc-925/80 border-zinc-800/80 shadow-2xl'">
-
-      <div v-if="loading" class="flex justify-center p-12">
+    <div :style="pullStyle" class="will-change-transform">
+    <div v-if="activeTab === 'activity'" v-motion-fade class="space-y-6">
+      <div v-if="feedLoading" class="flex justify-center p-12">
         <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
       </div>
+
       <template v-else>
-        <div v-if="habits.length === 0" class="p-10 text-center text-zinc-500 italic text-sm">
-          No habits yet. Add one above!
+        <div v-if="!feed || feed.length === 0" class="bg-zinc-925/80 backdrop-blur-sm sm:rounded-2xl rounded-none border-y border-x-0 sm:border border-zinc-800/80 p-10 text-center shadow-2xl flex flex-col items-center">
+        <div class="w-16 h-16 bg-zinc-950 rounded-full flex items-center justify-center mx-auto mb-4 border border-zinc-800">
+          <Activity class="w-8 h-8 text-zinc-500" />
         </div>
-      
-      <div 
-        v-for="habit in habits" :key="habit.id"
-        :data-habit-id="habit.id"
-        draggable="true"
-        @dragstart="onDragStart($event, habit.id)"
-        @dragover.prevent="onDragOver($event, habit.id)"
-        @drop.prevent="onDrop($event, habit.id)"
-        @dragend="onDragEnd"
-        @click="openEditModal(habit)"
-        class="relative py-3 group transition-all flex flex-col items-stretch sm:flex-row sm:items-center sm:justify-between gap-x-4 gap-y-2 cursor-pointer hover:bg-zinc-800/40 sm:px-4"
-        :class="[
-          draggingId === habit.id ? 'opacity-30' : 'opacity-100',
-          dragOverId === habit.id ? 'ring-2 ring-inset ring-white/20 bg-zinc-800/50' : ''
-        ]"
-      >
-        <div class="w-full px-4 sm:px-0 sm:flex-1 sm:min-w-[200px] flex flex-col gap-1 pr-0 sm:pr-2">
-          <div class="flex items-center gap-2 flex-wrap sm:flex-nowrap">
-            <h3 class="text-sm font-bold text-zinc-200 leading-tight break-all group-hover:text-white transition-colors">{{ habit.title }}</h3>
-            <!-- Compact Streak Badge -->
+        <h2 class="text-lg font-bold text-white mb-2">Welcome to Habits Social! 👋</h2>
+        <p class="text-zinc-400 text-sm max-w-sm mx-auto leading-relaxed mb-6">
+          Commit to new habits, add some friends, and start building streaks to bring this space to life!
+        </p>
+        <button 
+          @click="navigateTo('/habits?action=add')" 
+          class="px-6 py-3 bg-white text-black font-bold rounded-xl hover:bg-zinc-200 transition-colors shadow-lg cursor-pointer"
+        >
+          Commit to a new habit
+        </button>
+      </div>
+
+      <div v-else class="space-y-2 px-0 sm:px-0">
+        <div v-for="(group, date, index) in groupedFeed" :key="date" class="space-y-0">
+          <h3 class="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-600 px-4 sm:px-1 pb-2" :class="index === 0 ? 'mt-2' : 'mt-4'">
+            {{ formatFeedDate(String(date)) }}
+          </h3>
+          
+          <div class="space-y-0">
             <div 
-              v-if="(habit.currentStreak ?? 0) >= 2"
-              class="flex items-center gap-1 px-1.5 py-0.5 bg-black border rounded-md shrink-0"
+              v-for="(item, itemIndex) in group" 
+              :key="item.id"
+              @click="item.habit?.id ? openHabitDetails(item.habit.id) : (String(item.user.id) !== String(user?.id) ? navigateTo(`/friends/${item.user.id}?from=${activeTab}`) : null)"
+              class="group bg-zinc-925/50 hover:bg-zinc-900/80 border-b border-zinc-800/50 last:border-b-0 sm:border-x sm:border-b sm:border-zinc-800/50 p-4 transition-all duration-300 cursor-pointer flex flex-col gap-3 shadow-sm"
               :class="[
-                isFaded(habit) ? 'opacity-30' : 'opacity-100',
-                getStreakTheme(habit.currentStreak ?? 0).border
+                itemIndex === 0 ? 'sm:rounded-t-2xl sm:border-t' : '',
+                itemIndex === group.length - 1 ? 'sm:rounded-b-2xl' : ''
               ]"
             >
-              <Flame 
-                v-if="(habit.currentStreak ?? 0) >= 7"
-                class="w-2.5 h-2.5" 
-                :class="[
-                  getStreakTheme(habit.currentStreak ?? 0).text,
-                  getStreakTheme(habit.currentStreak ?? 0).fill
-                ]"
+              <!-- Row 1: Header (Avatar + Message) -->
+              <div class="flex items-center gap-4 w-full">
+                <!-- Avatar -->
+                <UserAvatar 
+                  @click="String(item.user.id) !== String(user?.id) ? ($event.stopPropagation(), navigateTo(`/friends/${item.user.id}?from=${activeTab}`)) : null"
+                  :src="item.user.photoUrl" 
+                  container-class="w-10 h-10 bg-zinc-950 border border-zinc-800 transition-transform cursor-pointer"
+                  :class="{ 'active:scale-95': String(item.user.id) !== String(user?.id) }"
+                  icon-class="w-5 h-5 text-zinc-700"
+                />
+
+                <!-- Content -->
+                <div class="flex-1 min-w-0">
+                  <div class="text-sm leading-relaxed min-w-0 break-words">
+                    <span 
+                      @click="String(item.user.id) !== String(user?.id) ? ($event.stopPropagation(), navigateTo(`/friends/${item.user.id}?from=${activeTab}`)) : null"
+                      class="font-bold text-zinc-100 transition-colors cursor-pointer mr-1.5"
+                      :class="{ 'hover:text-zinc-400': String(item.user.id) !== String(user?.id) }"
+                    >
+                      {{ item.user.name }}
+                    </span>
+                    <span class="text-zinc-400" v-html="formatMessage(item.message)" @click="handleMessageClick">
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Row 2: Habit Visual (Title + Grid) -->
+              <!-- Row 2: Habit Visual (Title + Grid) -->
+              <HabitLogVisualizer 
+                v-if="item.weeklyStatus"
+                :title="item.habit.title"
+                :streakCount="item.streakCount"
+                :weeklyStatus="item.weeklyStatus"
               />
-              <span 
-                class="text-[9px] font-black tracking-tight"
-                :class="getStreakTheme(habit.currentStreak ?? 0).text"
-              >
-                x{{ habit.currentStreak }} STREAK
-              </span>
+
+
             </div>
-          </div>
-          <!-- Frequency Text -->
-          <div class="text-[10px] font-semibold tracking-tight text-zinc-500">
-            {{ getFrequencyText(habit) }}
           </div>
         </div>
         
-        <!-- Interactive Logs -->
-        <TimelineRow
-          interactive
-          :days="days"
-          :status-map="getHabitStatusMap(habit.id)"
-          @click-day="(day, event) => openLogMenu(habit, day, event)"
-        />
-
+        <!-- Sentinel for infinite scroll -->
+        <div ref="loadMoreSentinel" class="h-4 w-full"></div>
+        
+        <!-- Loading indicator for load more -->
+        <div v-if="hasMore" class="flex justify-center p-4 h-14">
+          <div v-if="loadingMore" class="animate-spin rounded-full h-6 w-6 border-b-2 border-white"></div>
+        </div>
       </div>
-      </template>
+    </template>
+  </div>
+
+    <div v-if="activeTab === 'friends'" class="space-y-3">
+      <div v-if="isLoading" class="flex justify-center p-12">
+        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
+      </div>
+      <template v-else>
+        <!-- Incoming Requests Accordion -->
+      <div v-if="pendingIncoming.length > 0" v-motion-fade class="bg-zinc-925/80 backdrop-blur-sm sm:rounded-2xl rounded-none border-y border-x-0 sm:border border-zinc-800/80 overflow-hidden shadow-2xl">
+      <button @click="isRequestsExpanded = !isRequestsExpanded" 
+        class="w-full flex items-center justify-between p-6 hover:bg-white/5 transition-colors cursor-pointer group"
+      >
+        <div class="flex items-center gap-3">
+          <h2 class="text-sm font-bold uppercase tracking-wider text-zinc-500 group-hover:text-zinc-300 transition-colors">
+            Friend Requests
+          </h2>
+          <span class="bg-rose-500 text-white text-[10px] font-black px-2 py-0.5 rounded-full shadow-lg shadow-rose-500/20">
+            {{ pendingIncoming.length }}
+          </span>
+        </div>
+        <ChevronDown class="w-4 h-4 text-zinc-600 transition-transform duration-300" :class="{ 'rotate-180': isRequestsExpanded }" />
+      </button>
+
+      <div v-show="isRequestsExpanded" class="sm:px-6 px-0 pb-6 pt-2">
+        <div class="gap-0 flex flex-col max-h-[380px] overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-zinc-800 scrollbar-track-transparent">
+          <div v-for="req in pendingIncoming" :key="req.id" class="flex items-center justify-between bg-transparent border-none p-4 hover:bg-white/5 transition-colors rounded-none md:rounded-xl">
+            <NuxtLink :to="`/friends/${req.initiatorId}?from=${activeTab}`" class="flex items-center gap-3 hover:opacity-80 transition-opacity">
+              <UserAvatar 
+                :src="profilesMap[req.initiatorId]?.photoUrl" 
+                container-class="w-10 h-10 bg-zinc-950"
+                icon-class="w-5 h-5 text-zinc-600"
+              />
+              <div>
+                <div class="font-semibold text-zinc-200 text-sm">{{ profilesMap[req.initiatorId]?.username || 'Unknown' }}</div>
+              </div>
+            </NuxtLink>
+            <div class="flex gap-2">
+              <button @click="acceptRequest(req.id)" class="p-2 bg-white hover:bg-zinc-200 text-black rounded-lg transition-colors cursor-pointer"><Check class="w-4 h-4" /></button>
+              <button @click="declineRequest(req.id)" class="p-2 bg-zinc-925 hover:bg-zinc-800 text-zinc-400 rounded-lg transition-colors cursor-pointer"><XIcon class="w-4 h-4" /></button>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
 
+    <!-- Combined Social Sections -->
+    <div v-motion-fade class="bg-zinc-925/80 backdrop-blur-sm sm:rounded-2xl rounded-none shadow-2xl border-y border-x-0 sm:border border-zinc-800/80 overflow-hidden">
+      <!-- Add Friend -->
+      <div class="sm:p-6 sm:pb-0 py-6 pb-0">
+        <h2 class="text-sm font-bold uppercase tracking-wider text-zinc-500 mb-2 px-6 sm:px-0">Add Friend</h2>
+        <form @submit.prevent="handleSearch" class="flex gap-3 px-6 sm:px-0">
+          <div class="relative w-full max-w-md">
+            <Search class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" />
+            <input v-model="searchQuery" type="text" placeholder="Search by username..."
+              class="w-full pl-10 pr-4 py-2.5 bg-black border border-zinc-925 rounded-xl focus:outline-none focus:ring-2 focus:ring-zinc-600 text-white placeholder-zinc-600 text-sm transition-all" />
+          </div>
+        </form>
 
-    <!-- Add Habit Modal -->
-    <HabitAddModal
-      v-model="showModal"
-      :friends="friends"
-      :saving="isAddingHabit"
-      @save="handleHabitAdd"
+        <div v-if="searchResults.length > 0" class="mt-4 gap-0 flex flex-col max-h-[380px] overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-zinc-800 scrollbar-track-transparent pb-4">
+          <div v-for="res in searchResults" :key="res.id" class="flex items-center justify-between bg-transparent border-none p-4 hover:bg-white/5 transition-colors rounded-none md:rounded-xl">
+            <NuxtLink :to="`/friends/${res.id}?from=${activeTab}`" class="flex items-center gap-3 hover:opacity-80 transition-opacity">
+              <UserAvatar 
+                :src="res.photoUrl" 
+                container-class="w-10 h-10 bg-zinc-950"
+                icon-class="w-5 h-5 text-zinc-600"
+              />
+              <div>
+                <div class="font-semibold text-zinc-200 text-sm">{{ res.username }}</div>
+              </div>
+            </NuxtLink>
+            <span v-if="getRelationship(res.id)" class="text-xs font-semibold text-zinc-500 bg-zinc-925 px-3 py-1.5 rounded-full">
+              {{ getRelationship(res.id) === 'accepted' ? 'Friends' : 'Pending' }}
+            </span>
+            <button 
+              v-else 
+              @click="executeSendRequest(res)" 
+              :disabled="addingFriendId === res.id"
+              class="flex items-center justify-center gap-2 px-4 py-2 bg-white hover:bg-zinc-200 disabled:opacity-50 text-black rounded-xl transition-colors font-semibold text-sm cursor-pointer min-w-[80px]"
+            >
+              <template v-if="addingFriendId === res.id">
+                <div class="w-4 h-4 border-2 border-black/20 border-t-black rounded-full animate-spin"></div>
+              </template>
+              <template v-else>
+                <UserPlus class="w-4 h-4" /> Add
+              </template>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Friends List -->
+      <div class="sm:p-6 py-6">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2 sm:pr-1 px-6 sm:px-0">
+          <h2 class="text-sm font-bold uppercase tracking-wider text-zinc-500">My Friends</h2>
+          <div class="relative w-full sm:max-w-[240px]">
+            <Search class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
+            <input 
+              v-model="friendsSearchQuery"
+              type="text" 
+              placeholder="Filter friends..." 
+              class="w-full pl-10 pr-4 py-2.5 bg-black border border-zinc-925 rounded-xl focus:outline-none focus:ring-2 focus:ring-zinc-600 text-white placeholder-zinc-600 text-sm transition-all"
+            />
+          </div>
+        </div>
+        
+        <p v-if="displayFriends.length === 0" class="text-zinc-600 text-sm italic px-6 sm:px-0">No friends yet. Search for people above!</p>
+        <p v-else-if="filteredDisplayFriends.length === 0" class="text-zinc-600 text-sm italic px-6 sm:px-0">No friends found matching your filter.</p>
+        <div v-else class="grid grid-cols-1 md:grid-cols-2 gap-0 max-h-[480px] overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-zinc-800 scrollbar-track-transparent">
+          <div 
+            v-for="f in filteredDisplayFriends" :key="f.id"
+            @click="handleFriendClick(f)"
+            class="flex items-center gap-4 p-4 bg-transparent border-none transition-all group cursor-pointer hover:bg-white/5 rounded-none md:rounded-xl"
+          >
+            <UserAvatar 
+              :src="profilesMap[getFriendId(f)]?.photoUrl" 
+              container-class="w-12 h-12 bg-zinc-950"
+              icon-class="w-6 h-6 text-zinc-600"
+            />
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center gap-2">
+                <div class="font-semibold text-zinc-200 truncate transition-colors text-sm" :class="{ 'group-hover:text-zinc-400': f.status === 'accepted' }">
+                  {{ profilesMap[getFriendId(f)]?.username || 'Unknown' }}
+                </div>
+                <span v-if="f.status === 'pending'" class="text-[10px] font-bold uppercase tracking-widest text-zinc-600 bg-zinc-925 px-2 py-0.5 rounded-md shrink-0">
+                  Pending
+                </span>
+              </div>
+            </div>
+            <div class="flex items-center gap-1 flex-shrink-0">
+              <button 
+                v-if="f.status === 'accepted'"
+                @click.stop="handleToggleFavorite(f)" 
+                class="p-2 transition-all cursor-pointer rounded-xl"
+                :class="isFriendshipFavorite(f) ? 'text-amber-400 bg-amber-400/10' : 'text-zinc-600 hover:text-amber-400 hover:bg-amber-400/5'"
+                title="Favorite"
+              >
+                <Star class="w-4 h-4" :class="{ 'fill-amber-400': isFriendshipFavorite(f) }" />
+              </button>
+              <button 
+                @click.stop="confirmUnfriend(f)" 
+                class="p-2 text-zinc-600 hover:text-rose-500 hover:bg-rose-500/10 rounded-xl transition-all cursor-pointer"
+                :title="f.status === 'pending' ? 'Cancel Request' : 'Unfriend'"
+              >
+                <XIcon class="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </template>
+</div>
+</div>
+
+    <!-- Unfriend Confirmation Modal -->
+    <Teleport to="body">
+      <Transition
+        enter-active-class="transition duration-300 ease-out"
+        enter-from-class="opacity-0 scale-95"
+        enter-to-class="opacity-100 scale-100"
+        leave-active-class="transition duration-200 ease-in"
+        leave-from-class="opacity-100 scale-100"
+        leave-to-class="opacity-0 scale-95"
+      >
+        <div v-if="showUnfriendModal" class="fixed inset-0 z-[110] flex flex-col items-center justify-start overflow-y-auto p-4 sm:py-8">
+          <div class="fixed inset-0 bg-black/80 backdrop-blur-md touch-none" @click="showUnfriendModal = false"></div>
+          <div class="relative my-auto w-full max-w-sm bg-zinc-925 border border-zinc-800 rounded-3xl shadow-2xl p-8 text-center">
+            <div class="w-16 h-16 bg-zinc-925 rounded-full flex items-center justify-center mx-auto mb-4">
+              <User class="w-8 h-8 text-rose-500" />
+            </div>
+            <h2 class="text-xl font-bold text-white mb-2">{{ friendshipToUnfriend?.status === 'pending' ? 'Cancel Request?' : 'Unfriend?' }}</h2>
+            <p class="text-zinc-500 mb-8 text-sm">
+              {{ friendshipToUnfriend?.status === 'pending' 
+                ? `Cancel your friend request to ${unfriendDisplayName}?`
+                : `Are you sure you want to unfriend ${unfriendDisplayName}?` 
+              }}
+            </p>
+            <div class="flex gap-3 mt-2">
+              <button @click="showUnfriendModal = false" class="flex-1 px-5 py-3 bg-transparent hover:bg-zinc-800 text-zinc-400 hover:text-zinc-200 font-semibold rounded-xl transition-all cursor-pointer whitespace-nowrap">
+                Cancel
+              </button>
+              <button @click="executeUnfriend" class="flex-1 px-5 py-3 bg-rose-500 hover:bg-rose-600 text-white font-semibold rounded-xl transition-all shadow-lg shadow-rose-500/20 cursor-pointer whitespace-nowrap">
+                {{ friendshipToUnfriend?.status === 'pending' ? 'Cancel Request' : 'Unfriend' }}
+              </button>
+            </div>
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
+
+
+
+    <!-- Share Habits Modal (Post-Request) -->
+    <ShareHabitsModal
+      v-model="showShareModal"
+      :title="shareModalTitle"
+      :target-user="userBeingSharedWith"
+      :my-habits="myHabits"
+      :initial-selected-ids="selectedHabitIds"
+      @shared="showShareModal = false"
     />
-
-    <!-- Shared Habit Edit Modal -->
-    <HabitEditModal
-      v-model="showEditModal"
-      :habit="editingHabit"
-      :friends="friends"
-      :logs="logs"
-      @habit-updated="onHabitUpdatedFromModal"
-      @habit-deleted="onHabitDeletedFromModal"
-      @open-log-menu="openLogMenu"
-    />
-
-    <!-- Reorder Modal -->
-    <ReorderModal
-      v-model="showReorderModal"
-      title="Reorder habits"
-      :items="habits"
-      @reorder="onHabitsReordered"
-    />
-
-    <!-- Global Log Menu -->
-    <LogMenu
-      :habit="activeHabitForMenu || null"
-      :date="activeLogMenu?.date || null"
-      :logs="logs"
-      :reference-el="referenceRef"
-      :skips-period="showEditModal && editingHabit?.id === activeLogMenu?.habitId ? editSkipsPeriod : undefined"
-      :skips-count="showEditModal && editingHabit?.id === activeLogMenu?.habitId ? editSkipsCount : undefined"
-      @select="setLogStatus"
-      @close="closeLogMenu"
+    <!-- View Habit Details Modal -->
+    <HabitDetailsModal
+      v-model="showHabitModal"
+      :habit="selectedHabit"
+      :logs="selectedHabitLogs"
+      :loading="calendarLoading"
+      @month-changed="handleSocialMonthChanged"
     />
   </div>
 </template>
 
 <script setup lang="ts">
-import { Plus, Trash2, Check, X as XIcon, Minus, ChevronLeft, ChevronRight, User, ChevronUp, ChevronDown, Edit2, Save, CheckSquare, GripVertical, ArrowUpDown, Flame, Palmtree } from 'lucide-vue-next';
-import { format, subDays, isToday, startOfMonth, endOfMonth, eachDayOfInterval, addMonths, subMonths, isAfter, startOfDay, addDays, isSameWeek, isSameMonth, parseISO, startOfWeek, isBefore, isSameDay } from 'date-fns';
-import type { Habit, HabitLog } from '~/composables/useHabitsApi';
-import { getStreakTheme, isStreakFaded as isFaded, autoExpandTextarea as autoExpand } from '~/utils/ui';
-import { useSortableList } from '~/composables/useSortableList';
-import { useCalendar } from '~/composables/useCalendar';
+defineOptions({ name: 'index' });
+import { Search, UserPlus, UserMinus, Check, X as XIcon, User, Trash2, ChevronDown, CheckSquare, Activity, Star, ChevronLeft, ChevronRight, Flame, Minus, Palmtree } from 'lucide-vue-next';
+import { format, parseISO, isToday, addDays, startOfMonth, endOfMonth, eachDayOfInterval, subDays, isAfter, startOfDay, subMonths, addMonths } from 'date-fns';
+import { useSocial } from '../composables/useSocial';
+import { useToast } from '../composables/useToast';
+import { shouldRefreshFeed } from '~/utils/feed';
+import { onBeforeRouteLeave } from 'vue-router';
 
 definePageMeta({ middleware: 'auth' });
-import { useSocial } from '../composables/useSocial';
 
-const api = useHabitsApi();
 const { user } = useAuth();
-const { lastSyncTime } = api;
+const { showToast } = useToast();
+const route = useRoute();
 
 const { pullDistance, isPulling, isRefreshing } = usePullToRefresh(async () => {
-  await load();
+  if (activeTab.value === 'activity') {
+    await loadFeed({ force: true });
+  } else {
+    await loadFriendships(false);
+  }
 });
 
 const pullStyle = computed(() => {
-  const useTransition = !isPulling.value && !loading.value && !isRefreshing.value;
+  const useTransition = !isPulling.value && !isLoading.value && !isRefreshing.value;
   return {
     transform: 'translateY(var(--pull-distance, 0px))',
     transition: useTransition ? 'transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)' : 'none'
   };
 });
 
-const { friends: rawFriends, refresh: refreshSocial, init: initSocial, cleanup: cleanupSocial } = useSocial();
-const showProfileModal = useState('showProfileModal', () => false);
-const { isOnline } = useNetwork();
+const lastPath = useState('social_prev_path', () => '');
+const router = useRouter();
 
-const openProfileModal = () => {
-  if (!isOnline.value) {
-    showToast('You are offline. Profile changes require a connection.', 'failed');
-    return;
-  }
-  showProfileModal.value = true;
-};
+// Track previous path for conditional refresh logic
+const unhook = router.beforeEach((to, from) => {
+  lastPath.value = from.fullPath;
+});
+onUnmounted(() => unhook());
 
-const friends = computed(() => {
-  const list = [...(rawFriends.value || [])];
-  return list.sort((a, b) => (a.username || '').localeCompare(b.username || ''));
+const activeTab = computed({
+  get: () => (route.query.tab as 'activity' | 'friends') || 'activity',
+  set: (val) => navigateTo({ query: { ...route.query, tab: val } } as any, { replace: true })
 });
 
-const sortedFriendsForEdit = computed(() => {
-  if (!editingHabit.value) return friends.value;
-  const sharedIds = new Set(editingHabit.value.sharedWith || []);
-  return [...friends.value].sort((a, b) => {
-    const aShared = sharedIds.has(a.id);
-    const bShared = sharedIds.has(b.id);
-    if (aShared && !bShared) return -1;
-    if (!aShared && bShared) return 1;
-    return 0; // friends is already sorted alphabetically
-  });
-});
-const { showToast } = useToast();
+interface UserProfile { id: string; email: string; username: string; photoUrl?: string; }
+interface Friendship { 
+  id: string; 
+  participants: string[]; 
+  initiatorId: string; 
+  receiverId: string; 
+  status: 'pending' | 'accepted'; 
+  initiatorFavorite?: boolean;
+  receiverFavorite?: boolean;
+}
 
-const habits = ref<Habit[]>([]);
-const logs = ref<HabitLog[]>([]);
-const loading = ref(true);
+const searchQuery = ref('');
+const friendsSearchQuery = ref('');
+const isRequestsExpanded = ref(false);
+const searchResults = ref<UserProfile[]>([]);
+const { 
+  friendships, 
+  profilesMap, 
+  refresh: refreshSocial, 
+  init: initSocial, 
+  cleanup: cleanupSocial,
+  toggleFavorite,
+  isLoading
+} = useSocial();
+const showUnfriendModal = ref(false);
+const friendshipToUnfriend = ref<Friendship | null>(null);
+const unfriendDisplayName = ref('');
+const addingFriendId = ref<string | null>(null);
+const showShareModal = ref(false);
+const myHabits = ref<any[]>([]);
+const selectedHabitIds = ref<string[]>([]);
+const userBeingSharedWith = ref<UserProfile | null>(null);
+const shareModalTitle = ref('Request Sent!');
 
-const showModal = ref(false);
-const showReorderModal = ref(false);
-const showEditModal = ref(false);
-const editingHabit = ref<Habit | null>(null);
-const editSkipsPeriod = ref<'none' | 'weekly' | 'monthly' | undefined>(undefined);
-const editSkipsCount = ref<number | undefined>(undefined);
-const editSharedWith = ref<string[]>([]);
-const editSharedWithWorking = ref<string[]>([]);
-const isEditingSharing = ref(false);
-const showSharingConfirmModal = ref(false);
-const reachedConfirmViaDone = ref(false);
-const editDescriptionRef = ref<HTMLTextAreaElement | null>(null);
-const {
-  currentDate: currentCalendarDate,
-  days: calendarDays,
-  prevMonth,
-  nextMonth
-} = useCalendar();
+const favoritedAtStart = ref<Set<string>>(new Set());
 
+// --- Habit Details Modal Logic ---
+const showHabitModal = ref(false);
+const habitLoading = ref(false);
+const selectedHabit = ref<any>(null);
+const selectedHabitLogs = ref<any[]>([]);
+const currentCalendarDate = ref(new Date());
 const calendarLoading = ref(false);
-const isAddingHabit = ref(false);
 
-const {
-  draggingId,
-  dragOverId,
-  isDragging,
-  onDragStart,
-  onDragOver,
-  onDrop,
-  onDragEnd,
-  onGripTouchStart: onGripTouchStartRaw
-} = useSortableList(habits, (newOrderIds) => {
-  api.reorderHabits(newOrderIds).catch(err => {
-    console.error('[My Habits] Failed to save reorder:', err);
-    showToast('Failed to save order', 'failed');
-  });
-});
-
-const onHabitsReordered = (newOrderIds: string[]) => {
-  api.reorderHabits(newOrderIds);
-};
-
-const onGripTouchStart = (e: TouchEvent, id: string) => {
-  onGripTouchStartRaw(e, id, '[data-habit-id]');
-};
-
-const openAddModal = () => {
-  if (habits.value.length >= 30) {
-    showToast('Limit reached: You can track a maximum of 30 habits.', 'failed');
-    return;
-  }
-  showModal.value = true;
-};
-
-// Logic moved to utils/ui
-
-// Logic moved to useCalendar
-
-const today = new Date();
-const isFutureDay = (day: Date) => isAfter(startOfDay(day), startOfDay(today));
-const isMarkable = (day: Date) => {
-  const d = startOfDay(day);
-  const t = startOfDay(today);
-  const limit = subDays(t, 13); // Last 14 days including today
-  return !isBefore(d, limit) && !isAfter(d, t);
-};
-const days = Array.from({ length: 7 }, (_, i) => subDays(new Date(), 6 - i));
-const startDate = format(startOfMonth(subMonths(today, 1)), 'yyyy-MM-dd');
-const endDate = format(endOfMonth(addMonths(today, 1)), 'yyyy-MM-dd');
-
-// Logic moved to utils/ui
-
-const getFrequencyText = (habit: Habit) => {
-  const period = habit.skipsPeriod;
-  const maxSkips = habit.skipsCount ?? 0;
-  const now = new Date();
-
-  let skipped = 0;
-  if (period === 'weekly') {
-    skipped = logs.value.filter(l => 
-      l.habitId === habit.id && 
-      l.status === 'skipped' && 
-      isSameWeek(new Date(l.date), now, { weekStartsOn: 0 })
-    ).length;
-  } else if (period === 'monthly') {
-    skipped = logs.value.filter(l => 
-      l.habitId === habit.id && 
-      l.status === 'skipped' && 
-      isSameMonth(new Date(l.date), now)
-    ).length;
-  }
-
-  if (period === 'none') return 'Unlimited skips';
-
-  const remainingSkips = Math.max(0, maxSkips - skipped);
-  const skipText = remainingSkips === 1 ? '1 skip remaining' : `${remainingSkips} skips remaining`;
-  
-  return `${skipText} this ${period === 'weekly' ? 'week' : 'month'}`;
-};
-
-const load = async (silent = false) => {
-
-  if (!silent) loading.value = true;
+const openHabitDetails = async (habitId: string) => {
+  habitLoading.value = true;
   try {
-    const [h, l] = await Promise.all([
-      api.getHabits(), 
-      api.getLogs(startDate, endDate),
-      refreshSocial(),
-      new Promise(resolve => setTimeout(resolve, 500))
-    ]);
-    habits.value = h;
-    logs.value = l;
-
-  } catch (error) {
-    console.error('[My Habits] load() failed:', error);
+    const { data } = await $fetch<{ data: any }>(`/api/social/habit-details`, { query: { habitId } });
+    selectedHabit.value = data.habit;
+    selectedHabitLogs.value = data.logs;
+    currentCalendarDate.value = new Date();
+    showHabitModal.value = true;
+  } catch (err: any) {
+    console.error('Error fetching habit details:', err);
+    if (err.statusCode === 404) {
+      showToast('This habit is no longer shared with you', 'failed');
+    }
   } finally {
-    loading.value = false;
+    habitLoading.value = false;
   }
 };
 
+const calendarDays = computed(() => {
+  const start = startOfMonth(currentCalendarDate.value);
+  const end = endOfMonth(currentCalendarDate.value);
+  const daysInMonth = eachDayOfInterval({ start, end });
+  const firstDay = start.getDay();
+  const paddingStart = Array.from({ length: firstDay }, (_, i) => subDays(start, firstDay - i));
+  const lastDay = end.getDay();
+  const paddingEnd = Array.from({ length: 6 - lastDay }, (_, i) => addDays(end, i + 1));
+  return [...paddingStart, ...daysInMonth, ...paddingEnd];
+});
 
+const prevMonth = () => currentCalendarDate.value = subMonths(currentCalendarDate.value, 1);
+const nextMonth = () => currentCalendarDate.value = addMonths(currentCalendarDate.value, 1);
+const isFutureDay = (day: Date) => isAfter(startOfDay(day), startOfDay(new Date()));
 
-const getHabitStatusMap = (habitId: string) => {
-  const map: Record<string, string> = {};
-  logs.value.filter(l => l.habitId === habitId).forEach(l => {
-    map[l.date] = l.status;
-  });
-  return map;
+const getStatus = (habitId: string, day: Date) => {
+  const dateStr = format(day, 'yyyy-MM-dd');
+  return selectedHabitLogs.value.find(l => l.habitId === habitId && l.date === dateStr)?.status;
 };
 
-const activeLogMenu = ref<{ habitId: string, date: Date } | null>(null);
-const referenceRef = ref<HTMLElement | null>(null);
+import { isStreakFaded, getStreakTheme } from '~/utils/ui';
+const isFaded = (habit: any) => isStreakFaded(habit);
 
-const activeHabitForMenu = computed(() => {
-  if (!activeLogMenu.value) return null;
-  return habits.value.find(h => h.id === activeLogMenu.value?.habitId) || (editingHabit.value?.id === activeLogMenu.value?.habitId ? editingHabit.value : null);
-});
-const openLogMenu = (habit: Habit, day: Date, event: MouseEvent, options?: { skipsPeriod?: any, skipsCount?: number }) => {
-  if (!isMarkable(day)) {
-    showToast('You can only update habits for the last 14 days', 'failed');
-    return;
+// --- Activity Feed Logic ---
+const feed = ref<any[]>([]);
+const feedLoading = ref(false);
+const didDeactivate = ref(false);
+const nextCursor = ref<any>(null);
+const hasMore = ref(true);
+const loadingMore = ref(false);
+const loadMoreSentinel = ref<HTMLElement | null>(null);
+
+const lastFeedFetchTime = ref(0);
+const FEED_STALE_THRESHOLD_MS = 10 * 60 * 1000; // 10 minutes
+
+const loadFeed = async ({ isLoadMore = false, force = false } = {}) => {
+  if (activeTab.value !== 'activity') return;
+  if (isLoadMore && (!hasMore.value || loadingMore.value)) return;
+  
+  if (!isLoadMore) {
+    const shouldRefresh = shouldRefreshFeed(
+      lastFeedFetchTime.value,
+      feed.value.length,
+      force,
+      FEED_STALE_THRESHOLD_MS
+    );
+    if (!shouldRefresh) return;
+    
+    feedLoading.value = true;
+  }
+  if (isLoadMore) {
+    loadingMore.value = true;
   }
   
-  // Capture temporary skip settings from Edit Modal if provided
-  if (options) {
-    editSkipsPeriod.value = options.skipsPeriod;
-    editSkipsCount.value = options.skipsCount;
-  } else {
-    editSkipsPeriod.value = undefined;
-    editSkipsCount.value = undefined;
-  }
-
-  if (activeLogMenu.value && activeLogMenu.value.habitId === habit.id && isSameDay(activeLogMenu.value.date, day)) {
-    activeLogMenu.value = null;
-    referenceRef.value = null;
-  } else {
-    const el = (event.target as HTMLElement).closest('button');
-    if (el) {
-      referenceRef.value = el;
-      activeLogMenu.value = { habitId: habit.id, date: day };
-    }
-  }
-};
-
-const closeLogMenu = () => {
-  activeLogMenu.value = null;
-};
-
-
-const setLogStatus = async (habit: Habit, day: Date, nextStatus: 'completed' | 'failed' | 'skipped' | 'vacation' | null) => {
-  const dateStr = format(day, 'yyyy-MM-dd');
-  const originalLogs = JSON.parse(JSON.stringify(logs.value));
-  const originalHabits = JSON.parse(JSON.stringify(habits.value));
-
-  // 1. Optimistic UI Update
-  if (nextStatus) {
-    const idx = logs.value.findIndex(l => l.habitId === habit.id && l.date === dateStr);
-    const existingLog = logs.value[idx];
-    if (existingLog) {
-      existingLog.status = nextStatus;
-    } else {
-      logs.value.push({
-        id: `temp-${Date.now()}`,
-        habitId: habit.id,
-        ownerId: user.value?.id || '',
-        date: dateStr,
-        status: nextStatus,
-        sharedWith: habit.sharedWith || []
-      });
+  try {
+    const query: any = {};
+    if (isLoadMore && nextCursor.value) {
+      query.cursorDate = nextCursor.value.date;
+      query.cursorTimestamp = nextCursor.value.timestamp;
+      query.cursorId = nextCursor.value.id;
     }
     
-    if (nextStatus === 'completed') showToast('Completed', 'completed');
-    else if (nextStatus === 'failed') showToast('Failed', 'failed');
-    else if (nextStatus === 'skipped') showToast('Skipped', 'skipped');
-    else if (nextStatus === 'vacation') showToast('On Vacation!', 'skipped');
-  } else {
-    logs.value = logs.value.filter(l => !(l.habitId === habit.id && l.date === dateStr));
-    showToast('Cleared', 'cleared');
-  }
-
-  activeLogMenu.value = null;
-
-  // 2. Background Sync
-  try {
-    if (nextStatus) {
-      const { log, habit: updatedHabit } = await api.upsertLog({ 
-        habitId: habit.id, 
-        date: dateStr, 
-        status: nextStatus, 
-        sharedWith: habit.sharedWith 
-      });
-      
-      // Update with real server data (ensures correct IDs and recalculated streaks)
-      const idx = logs.value.findIndex(l => l.habitId === habit.id && l.date === dateStr);
-      if (idx >= 0) logs.value[idx] = log;
-      
-      const habitIdx = habits.value.findIndex(h => h.id === habit.id);
-      if (habitIdx >= 0) habits.value[habitIdx] = updatedHabit;
+    const [response] = await Promise.all([
+      $fetch<{ data: any[], nextCursor: any }>('/api/social/feed', { query }),
+      new Promise(resolve => setTimeout(resolve, 500))
+    ]);
+    
+    if (isLoadMore) {
+      feed.value = [...feed.value, ...response.data];
     } else {
-      const { log, habit: updatedHabit } = await api.deleteLog(habit.id, dateStr);
-      
-      // Update logs array with the 'cleared' record
-      const idx = logs.value.findIndex(l => l.habitId === habit.id && l.date === dateStr);
-      if (idx >= 0) logs.value[idx] = log;
-      else logs.value.push(log);
-
-      // Update habits array with returned habit (updated streaks)
-      const habitIdx = habits.value.findIndex(h => h.id === habit.id);
-      if (habitIdx >= 0) habits.value[habitIdx] = updatedHabit;
+      feed.value = response.data;
+      lastFeedFetchTime.value = Date.now();
     }
-  } catch (error) {
-    console.error('[Optimistic Update] Sync failed:', error);
-    // 3. Revert on failure
-    logs.value = originalLogs;
-    habits.value = originalHabits;
-    showToast('Failed to sync. Reverting...', 'failed');
-  }
-};
-
-const handleHabitAdd = async (data: any) => {
-  if (isAddingHabit.value) return;
-  isAddingHabit.value = true;
-  try {
-    const habit = await api.createHabit({ 
-      ...data,
-      color: '#6366f1',
-      userDate: format(new Date(), 'yyyy-MM-dd')
-    });
-    habits.value.unshift(habit);
-    showModal.value = false;
-  } catch (error) {
-    console.error('[My Habits] Failed to add habit:', error);
-    showToast('Failed to create habit', 'failed');
+    
+    nextCursor.value = response.nextCursor;
+    hasMore.value = !!response.nextCursor;
+  } catch (err) {
+    console.error('Error fetching feed:', err);
   } finally {
-    isAddingHabit.value = false;
+    feedLoading.value = false;
+    loadingMore.value = false;
   }
 };
 
-const onHabitUpdatedFromModal = ({ habit, logs: newLogs }: { habit?: Habit, logs?: HabitLog[] }) => {
-  if (habit) {
-    const idx = habits.value.findIndex(h => h.id === habit.id);
-    if (idx >= 0) habits.value[idx] = habit;
+useIntersectionObserver(loadMoreSentinel, (entries) => {
+  const isIntersecting = entries[0]?.isIntersecting;
+  if (isIntersecting && hasMore.value && !loadingMore.value && !feedLoading.value) {
+    loadFeed({ isLoadMore: true });
   }
-  if (newLogs) {
-    newLogs.forEach(nl => {
-      const idx = logs.value.findIndex(l => l.id === nl.id);
-      if (idx >= 0) logs.value[idx] = nl;
-      else logs.value.push(nl);
+});
+
+const handleMessageClick = (event: MouseEvent) => {
+  const target = event.target as HTMLElement;
+  const userId = target.getAttribute('data-user-id');
+  if (userId) {
+    event.stopPropagation();
+    if (userId !== String(user.value?.id)) {
+      navigateTo(`/friends/${userId}?from=${activeTab.value}`);
+    }
+  }
+};
+
+const groupedFeed = computed(() => {
+  if (!feed.value) return {};
+  return feed.value.reduce((acc: any, item: any) => {
+    const date = item.date;
+    if (!acc[date]) acc[date] = [];
+    acc[date].push(item);
+    return acc;
+  }, {});
+});
+
+const formatFeedDate = (dateStr: string) => {
+  const d = parseISO(dateStr);
+  if (isToday(d)) return 'Today';
+  if (isToday(addDays(d, 1))) return 'Yesterday';
+  return format(d, 'MMMM d, yyyy');
+};
+
+const formatMessage = (msg: string) => {
+  if (!msg) return '';
+  // Escape HTML to prevent injection
+  let content = msg
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+  
+  // 1. Process Habits [H]...[/H] -> Sky Blue
+  content = content.replace(/\[H\](.*?)\[\/H\]/g, '<strong class="text-blue-500 font-bold">$1</strong>');
+  
+  // 2. Process Usernames [U:id]...[/U] -> Bold White + Clickable (Interactive only if not current user)
+  content = content.replace(/\[U:(.*?)\](.*?)\[\/U\]/g, (match, id, label) => {
+    const isMe = id === String(user.value?.id);
+    if (isMe) {
+      return `<span class="font-bold text-zinc-100">${label}</span>`;
+    }
+    return `<span class="font-bold text-zinc-100 hover:text-zinc-400 transition-colors cursor-pointer" data-user-id="${id}">${label}</span>`;
+  });
+  
+  // Legacy support for [U]...[/U] without ID
+  content = content.replace(/\[U\](.*?)\[\/U\]/g, '<strong class="text-zinc-100 font-bold">$1</strong>');
+  
+  // 3. Process Streaks [S:count]...[/S] -> Dynamic Color
+  content = content.replace(/\[S:(\d+)(?::(broken))?\](.*?)\[\/S\]/g, (_, countStr, broken, text) => {
+    if (broken) return `<strong class="text-rose-500 font-bold">${text}</strong>`;
+    
+    const count = parseInt(countStr);
+    let colorClass = 'text-emerald-500'; // Default < 7 days (Green)
+    if (count >= 30) colorClass = 'text-yellow-400'; // 30+ days (Gold)
+    else if (count >= 7) colorClass = 'text-violet-400'; // 7+ days (Purple)
+    
+    return `<strong class="${colorClass} font-bold">${text}</strong>`;
+  });
+
+  return content;
+};
+
+// Refresh sort snapshot when entering the friends tab
+watch(activeTab, (newTab, oldTab) => {
+  if (newTab === 'activity') {
+    loadFeed();
+    refreshSocial(true);
+  }
+  if (newTab === 'friends' && oldTab !== 'friends') {
+    refreshSocial(true);
+    const myId = String(user.value?.id);
+    const favs = friendships.value
+      .filter((f: any) => f.status === 'accepted' && (String(f.initiatorId) === myId ? f.initiatorFavorite : f.receiverFavorite))
+      .map((f: any) => f.id);
+    favoritedAtStart.value = new Set(favs);
+  }
+});
+
+// --- Dynamic Log Fetching ---
+const handleSocialMonthChanged = async (newDate: Date) => {
+  if (!selectedHabit.value) return;
+  const start = format(startOfMonth(newDate), 'yyyy-MM-dd');
+  const end = format(endOfMonth(newDate), 'yyyy-MM-dd');
+  calendarLoading.value = true;
+  try {
+    const { data } = await $fetch<{ data: any }>('/api/social/habit-details', { 
+      query: { 
+        habitId: selectedHabit.value.id,
+        startDate: start,
+        endDate: end
+      } 
     });
+    if (data.logs) {
+      data.logs.forEach((newLog: any) => {
+        const idx = selectedHabitLogs.value.findIndex((l: any) => l.id === newLog.id);
+        if (idx >= 0) {
+          selectedHabitLogs.value[idx] = newLog;
+        } else {
+          selectedHabitLogs.value.push(newLog);
+        }
+      });
+    }
+  } catch (err) {
+    console.error('Failed to fetch historical social logs:', err);
+  } finally {
+    calendarLoading.value = false;
   }
 };
+// ----------------------------
 
-const onHabitDeletedFromModal = (habitId: string) => {
-  habits.value = habits.value.filter(h => h.id !== habitId);
-};
-
-const openEditModal = (habit: Habit) => {
-  editingHabit.value = habit;
-  showEditModal.value = true;
-};
-// --- Modal State Management ---
-const modalContent = ref<HTMLElement | null>(null);
-
-const isAnyModalOpen = computed(() => 
-  showModal.value || showReorderModal.value
+const isLocalModalOpen = computed(() => 
+  showUnfriendModal.value
 );
 
-useModalHistory(isAnyModalOpen, () => {
-  showModal.value = false;
-  showReorderModal.value = false;
+useModalHistory(isLocalModalOpen, () => {
+  showUnfriendModal.value = false;
 });
 
-// Social integration is now handled by useSocial
+const pendingIncoming = computed(() => {
+  if (!user.value?.id) return [];
+  const myId = String(user.value.id);
+  return friendships.value.filter((f: any) => f.status === 'pending' && String(f.receiverId) === myId);
+});
+
+const pendingOutgoing = computed(() => {
+  if (!user.value?.id) return [];
+  const myId = String(user.value.id);
+  return friendships.value.filter((f: any) => f.status === 'pending' && String(f.initiatorId) === myId);
+});
+
+const acceptedFriends = computed(() => {
+  return friendships.value.filter((f: any) => f.status === 'accepted');
+});
+
+const displayFriends = computed(() => {
+  const combined = [...acceptedFriends.value, ...pendingOutgoing.value];
+  if (!user.value?.id) return combined;
+  const myId = String(user.value.id);
+  
+  return combined
+    .filter((f: any) => {
+      const friendId = getFriendId(f);
+      return friendId && friendId !== myId;
+    })
+    .sort((a, b) => {
+      const aFav = favoritedAtStart.value.has(a.id);
+      const bFav = favoritedAtStart.value.has(b.id);
+      
+      if (aFav && !bFav) return -1;
+      if (!aFav && bFav) return 1;
+
+      const nameA = profilesMap.value[getFriendId(a)]?.username || '';
+      const nameB = profilesMap.value[getFriendId(b)]?.username || '';
+      return nameA.localeCompare(nameB);
+    });
+});
+
+const filteredDisplayFriends = computed(() => {
+  if (!friendsSearchQuery.value.trim()) return displayFriends.value;
+  const q = friendsSearchQuery.value.toLowerCase().trim();
+  return displayFriends.value.filter((f: any) => {
+    const username = profilesMap.value[getFriendId(f)]?.username.toLowerCase() || '';
+    return username.includes(q);
+  });
+});
+const getFriendId = (f: Friendship) => {
+  if (!user.value?.id) return '';
+  const myId = String(user.value.id);
+  return f.participants?.find(p => String(p) !== myId) ?? '';
+};
+const getRelationship = (targetId: string) => friendships.value.find((f: any) => f.participants?.includes(targetId))?.status;
+
+const isFriendshipFavorite = (f: Friendship) => {
+  if (!user.value?.id) return false;
+  const myId = String(user.value.id);
+  return String(f.initiatorId) === myId ? f.initiatorFavorite : f.receiverFavorite;
+};
+
+const handleFriendClick = (f: Friendship) => {
+  navigateTo(`/friends/${getFriendId(f)}?from=${activeTab.value}` as any);
+};
+
+// Modal Adaptive Logic
+// --- Modal State Management ---
+const modalContent = ref<HTMLElement | null>(null);
+const habitModalContent = ref<HTMLElement | null>(null);
+
+const loadFriendships = async (silent = true) => {
+  await Promise.all([
+    refreshSocial(silent),
+    new Promise(resolve => setTimeout(resolve, 500))
+  ]);
+};
 
 onMounted(() => {
-  // Social state is now initialized globally in default.vue layout
-  load();
-  api.sync();
+  initSocial();
+  loadFeed();
 });
 
-watch(lastSyncTime, () => {
-  console.log('[Dashboard] Background sync detected, refreshing data...');
-  load(true);
+onUnmounted(() => {
 });
+
+onActivated(async () => {
+  // 1. Restore scroll position ONLY if we actually deactivated (navigated away)
+  if (didDeactivate.value) {
+    await nextTick();
+    requestAnimationFrame(() => {
+      if (savedScrollY.value > 0) {
+        window.scrollTo({ top: savedScrollY.value, behavior: 'instant' });
+      }
+    });
+    didDeactivate.value = false;
+  }
+
+
+
+  // 2. Conditional Refresh
+  // We refresh if we're coming from anywhere EXCEPT a friend's profile (to preserve state on back-nav)
+  const isFromProfile = lastPath.value.includes('/friends/');
+  
+  if (!isFromProfile) {
+    const shouldRefresh = shouldRefreshFeed(
+      lastFeedFetchTime.value,
+      feed.value.length,
+      false,
+      FEED_STALE_THRESHOLD_MS
+    );
+    
+    if (shouldRefresh) {
+      await loadFriendships();
+      if (activeTab.value === 'activity') {
+        loadFeed();
+      }
+      
+      // Also update the stable favorites snapshot for friends list sorting
+      const myId = String(user.value?.id);
+      const favs = friendships.value
+        .filter((f: any) => f.status === 'accepted' && (String(f.initiatorId) === myId ? f.initiatorFavorite : f.receiverFavorite))
+        .map((f: any) => f.id);
+      favoritedAtStart.value = new Set(favs);
+    }
+  }
+});
+
+// Preserve scroll position across KeepAlive navigation (fallback for router savedPosition)
+const savedScrollY = ref(0);
+
+onBeforeRouteLeave((to, from) => {
+  savedScrollY.value = window.scrollY;
+  didDeactivate.value = true;
+});
+
+const handleSearch = async () => {
+  if (!searchQuery.value.trim()) {
+    searchResults.value = [];
+    return;
+  }
+  const { data } = await $fetch<{ data: UserProfile[] }>('/api/users/search', { query: { username: searchQuery.value.trim() } });
+  searchResults.value = data;
+};
+
+let searchTimeout: any;
+watch(searchQuery, (val) => {
+  clearTimeout(searchTimeout);
+  searchTimeout = setTimeout(handleSearch, 300);
+});
+
+const executeSendRequest = async (target: UserProfile) => {
+  addingFriendId.value = target.id;
+  try {
+    await $fetch('/api/friendships', { method: 'POST', body: { targetUserId: target.id } });
+    await loadFriendships();
+    
+    // Setup for share modal
+    userBeingSharedWith.value = target;
+    const { data: habitsData } = await $fetch<{ data: any[] }>('/api/habits');
+    myHabits.value = habitsData;
+    selectedHabitIds.value = [];
+    
+    searchResults.value = [];
+    searchQuery.value = '';
+    
+    // Open share modal if user has habits
+    if (habitsData.length > 0) {
+      shareModalTitle.value = 'Request Sent!';
+      showShareModal.value = true;
+    }
+  } catch (err) {
+    console.error('Failed to send friend request:', err);
+  } finally {
+    addingFriendId.value = null;
+  }
+};
+
+const acceptRequest = async (fid: string) => {
+  const friendship = friendships.value.find((f: any) => f.id === fid);
+  if (!friendship) return;
+  
+  const initiatorId = friendship.initiatorId;
+  const initiatorProfile = profilesMap.value[initiatorId];
+
+  await $fetch(`/api/friendships/${fid}`, { method: 'PUT' });
+  await loadFriendships();
+
+  // Setup for share modal
+  if (initiatorProfile) {
+    userBeingSharedWith.value = initiatorProfile;
+    const { data: habitsData } = await $fetch<{ data: any[] }>('/api/habits');
+    myHabits.value = habitsData;
+    selectedHabitIds.value = [];
+    
+    if (habitsData.length > 0) {
+      shareModalTitle.value = 'Request Accepted!';
+      showShareModal.value = true;
+    }
+  }
+};
+
+const declineRequest = async (fid: string) => {
+  await $fetch(`/api/friendships/${fid}`, { method: 'DELETE' });
+  await loadFriendships();
+};
+
+const confirmUnfriend = (f: Friendship) => {
+  friendshipToUnfriend.value = f;
+  unfriendDisplayName.value = profilesMap.value[getFriendId(f)]?.username || 'Unknown';
+  showUnfriendModal.value = true;
+};
+
+const executeUnfriend = async () => {
+  if (!friendshipToUnfriend.value) return;
+  const fid = friendshipToUnfriend.value.id;
+  
+  // Close modal first to avoid flickering when data reloads
+  showUnfriendModal.value = false;
+  
+  await $fetch(`/api/friendships/${fid}`, { method: 'DELETE' });
+  await loadFriendships();
+  
+  // Clear reference after data is reloaded
+  friendshipToUnfriend.value = null;
+  unfriendDisplayName.value = '';
+};
+const handleToggleFavorite = async (f: Friendship) => {
+  const current = isFriendshipFavorite(f);
+  await toggleFavorite(f.id, !current);
+};
 </script>

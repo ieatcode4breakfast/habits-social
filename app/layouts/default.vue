@@ -2,7 +2,7 @@
   <div class="min-h-[100dvh] text-zinc-100 flex flex-col transition-colors duration-300">
     <header 
       class="sticky top-0 z-50 h-[57px] bg-nav-bg border-b border-white/10"
-      :class="{ 'hidden md:block': $route.path !== '/social' }"
+      :class="{ 'hidden md:block': $route.path !== '/' }"
     >
       <div class="h-full max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between">
         <div class="flex items-center gap-2">
@@ -17,12 +17,12 @@
 
           <template v-if="user">
             <nav class="hidden md:flex items-center gap-1 ml-2">
-              <NuxtLink to="/" class="nav-link" :class="{ 'nav-link-active': $route.path === '/' }">My Habits</NuxtLink>
-              <NuxtLink to="/buckets" class="nav-link" :class="{ 'nav-link-active': $route.path === '/buckets' }">Buckets</NuxtLink>
-              <NuxtLink to="/social" class="nav-link flex items-center gap-2" :class="{ 'nav-link-active': $route.path === '/social' }">
-                Social
-                <span v-if="pendingCount > 0 && $route.path !== '/social'" class="flex w-2 h-2 bg-rose-500 rounded-full"></span>
+              <NuxtLink to="/" class="nav-link flex items-center gap-2" :class="{ 'nav-link-active': $route.path === '/' }">
+                Activity
+                <span v-if="pendingCount > 0 && $route.path !== '/'" class="flex w-2 h-2 bg-rose-500 rounded-full"></span>
               </NuxtLink>
+              <NuxtLink to="/habits" class="nav-link" :class="{ 'nav-link-active': $route.path === '/habits' }">My Habits</NuxtLink>
+              <NuxtLink to="/buckets" class="nav-link" :class="{ 'nav-link-active': $route.path === '/buckets' }">Buckets</NuxtLink>
             </nav>
           </template>
         </div>
@@ -48,8 +48,15 @@
     <!-- Mobile Bottom Navigation -->
     <nav v-if="user" class="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-nav-bg border-t border-white/5 px-6 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))]">
       <div class="flex items-center justify-around">
-        <NuxtLink to="/" class="flex items-center group transition-colors" :class="$route.path === '/' ? 'text-white' : 'text-zinc-500'">
+        <NuxtLink to="/" class="flex items-center group transition-colors relative" :class="$route.path === '/' ? 'text-white' : 'text-zinc-500'">
           <div class="p-2 rounded-xl transition-all duration-300" :class="$route.path === '/' ? 'bg-white/10 scale-110' : 'group-hover:bg-white/5'">
+            <Users class="w-6 h-6" />
+          </div>
+          <!-- Badge -->
+          <div v-if="pendingCount > 0 && $route.path !== '/'" class="absolute top-1 right-1 w-2.5 h-2.5 bg-rose-500 rounded-full border-2 border-zinc-950"></div>
+        </NuxtLink>
+        <NuxtLink to="/habits" class="flex items-center group transition-colors" :class="$route.path === '/habits' ? 'text-white' : 'text-zinc-500'">
+          <div class="p-2 rounded-xl transition-all duration-300" :class="$route.path === '/habits' ? 'bg-white/10 scale-110' : 'group-hover:bg-white/5'">
             <Target class="w-6 h-6" />
           </div>
         </NuxtLink>
@@ -57,13 +64,6 @@
           <div class="p-2 rounded-xl transition-all duration-300" :class="$route.path === '/buckets' ? 'bg-white/10 scale-110' : 'group-hover:bg-white/5'">
             <PaintBucket class="w-6 h-6" />
           </div>
-        </NuxtLink>
-        <NuxtLink to="/social" class="flex items-center group transition-colors relative" :class="$route.path === '/social' ? 'text-white' : 'text-zinc-500'">
-          <div class="p-2 rounded-xl transition-all duration-300" :class="$route.path === '/social' ? 'bg-white/10 scale-110' : 'group-hover:bg-white/5'">
-            <Users class="w-6 h-6" />
-          </div>
-          <!-- Badge -->
-          <div v-if="pendingCount > 0 && $route.path !== '/social'" class="absolute top-1 right-1 w-2.5 h-2.5 bg-rose-500 rounded-full border-2 border-zinc-950"></div>
         </NuxtLink>
       </div>
     </nav>

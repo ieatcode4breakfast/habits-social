@@ -10,9 +10,10 @@ describe('Chat API', () => {
   let userC: any;
 
   beforeAll(async () => {
-    userA = await createTestUser('ApiUserA', 'api_a@example.com');
-    userB = await createTestUser('ApiUserB', 'api_b@example.com');
-    userC = await createTestUser('ApiUserC', 'api_c@example.com');
+    const id = crypto.randomUUID().slice(0, 8);
+    userA = await createTestUser(`ApiUserA_${id}`, `api_a_${id}@example.com`);
+    userB = await createTestUser(`ApiUserB_${id}`, `api_b_${id}@example.com`);
+    userC = await createTestUser(`ApiUserC_${id}`, `api_c_${id}@example.com`);
     await createFriendship(userA.id, userB.id, 'accepted');
   });
 
