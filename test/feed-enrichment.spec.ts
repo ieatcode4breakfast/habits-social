@@ -31,7 +31,7 @@ describe('SocialNarratorService.enrichWithWeeklyLogs', () => {
 
     expect(enriched[0]!.weeklyStatus).toBeDefined();
     expect(enriched[0]!.weeklyStatus!.length).toBe(7);
-    
+
     const day18 = enriched[0]!.weeklyStatus!.find(d => d.date === '2026-05-18');
     const day17 = enriched[0]!.weeklyStatus!.find(d => d.date === '2026-05-17');
     const day16 = enriched[0]!.weeklyStatus!.find(d => d.date === '2026-05-16');
