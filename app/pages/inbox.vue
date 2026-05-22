@@ -105,8 +105,11 @@
               </div>
               
               <div class="flex items-center justify-between gap-1 mt-0.5">
-                <span class="text-[10px] text-zinc-500 truncate font-medium">
-                  {{ getFriendProfile(conv) ? 'Click to view messages' : 'Conversation archived' }}
+                <span
+                  class="text-[10px] truncate min-w-0"
+                  :class="conv.unreadCount > 0 ? 'text-zinc-200 font-bold' : 'text-zinc-500 font-medium'"
+                >
+                  {{ getConversationPreview(conv) }}
                 </span>
                 
                 <!-- Unread Badge -->
@@ -176,11 +179,28 @@
           <template v-else>
             <!-- Message Bubbles -->
             <div 
-              v-for="msg in messages" 
+              v-for="(msg, index) in messages" 
               :key="msg.id"
               class="flex items-end gap-2 group/msg max-w-[85%] md:max-w-[70%]"
               :class="msg.senderId === user?.id ? 'self-end flex-row-reverse' : 'self-start'"
             >
+              <!-- Avatar slot keeps grouped message rows aligned. -->
+              <div class="w-7 h-7 shrink-0">
+                <div
+                  v-if="shouldShowMessageAvatar(msg, index)"
+                  data-testid="message-avatar"
+                  class="w-7 h-7 rounded-full bg-zinc-900 border border-zinc-800 flex items-center justify-center text-[10px] font-black uppercase text-zinc-300 overflow-hidden shadow-sm"
+                >
+                  <img
+                    v-if="getMessageAvatarUrl(msg)"
+                    :src="getMessageAvatarUrl(msg)"
+                    class="w-full h-full object-cover"
+                    alt="Avatar"
+                  />
+                  <span v-else>{{ getMessageAvatarInitial(msg) }}</span>
+                </div>
+              </div>
+
               <!-- Message Bubble -->
               <div 
                 class="rounded-2xl px-3.5 py-2.5 text-sm shadow-md relative break-words select-text font-normal leading-relaxed"
@@ -192,7 +212,7 @@
               >
                 <!-- Tombstone Deleted State -->
                 <span v-if="msg.deletedAt" class="text-zinc-500 italic select-none">This message was deleted.</span>
-                <span v-else>{{ msg.body }}</span>
+                <span v-else class="whitespace-pre-wrap">{{ msg.body }}</span>
                 
                 <!-- Message Timestamp inside bubble -->
                 <span 
@@ -359,6 +379,7 @@ import { formatDistanceToNow, parseISO } from 'date-fns';
 import { useSocial, type UserProfile } from '~/composables/useSocial';
 import { useAuth } from '~/composables/useAuth';
 import { useToast } from '~/composables/useToast';
+import { useChatInbox, type ChatInboxConversation } from '~/composables/useChatInbox';
 import { autoExpandTextarea } from '~/utils/ui';
 
 definePageMeta({ middleware: 'auth' });
@@ -371,15 +392,12 @@ useSeoMeta({
 const { user } = useAuth();
 const { friends, profilesMap, init: initSocial, refresh: refreshSocial } = useSocial();
 const { showToast } = useToast();
-
-// List States
-interface InboxConversation {
-  id: string;
-  lastMessageAt: string | Date | null;
-  user1Id: string | null;
-  user2Id: string | null;
-  unreadCount: number;
-}
+const {
+  conversations,
+  isLoading: conversationsLoading,
+  refresh: refreshChatInbox,
+  markConversationReadLocally
+} = useChatInbox();
 
 interface InboxMessage {
   id: string;
@@ -403,7 +421,6 @@ const getErrorStatus = (error: unknown): number | undefined => {
   return typeof record.statusCode === 'number' ? record.statusCode : undefined;
 };
 
-const conversations = ref<InboxConversation[]>([]);
 const activeConversationId = ref<string | null>(null);
 const activeFriend = ref<UserProfile | null>(null);
 const messages = ref<InboxMessage[]>([]);
@@ -413,7 +430,6 @@ const activeChatLocked = useState<boolean>('realtime-active-chat-locked', () => 
 const chatRefreshSequence = useState<number>('realtime-chat-refresh-sequence', () => 0);
 
 // Loading states
-const conversationsLoading = ref(true);
 const messagesLoading = ref(false);
 const loadingMore = ref(false);
 
@@ -463,27 +479,23 @@ const createOptimisticMessageId = (): string => {
 
 // Load Conversations list from backend
 const loadConversations = async (silent = false, preserveLoading = false) => {
-  if (!silent) conversationsLoading.value = true;
   try {
-    const data = await $fetch<InboxConversation[]>('/api/chat/conversations');
-    conversations.value = data || [];
+    await refreshChatInbox(silent, preserveLoading);
   } catch (error: unknown) {
     console.error('[Inbox] Failed to load conversations:', error);
     showToast('Failed to load conversations', 'failed');
-  } finally {
-    if (!preserveLoading) {
-      conversationsLoading.value = false;
-    }
   }
 };
 
 const refreshConversations = async () => {
-  conversationsLoading.value = true;
   try {
     await Promise.all([
-      loadConversations(true, true),
+      refreshChatInbox(false, true),
       refreshSocial()
     ]);
+  } catch (error: unknown) {
+    console.error('[Inbox] Failed to refresh conversations:', error);
+    showToast('Failed to load conversations', 'failed');
   } finally {
     conversationsLoading.value = false;
   }
@@ -504,14 +516,33 @@ const conversationsPullStyle = computed(() => {
 });
 
 // Get profile details of the conversation's partner
-const getFriendProfile = (conv: InboxConversation) => {
+const getFriendProfile = (conv: ChatInboxConversation) => {
   if (!user.value?.id) return null;
   const otherId = conv.user1Id === user.value.id ? conv.user2Id : conv.user1Id;
   return otherId ? profilesMap.value[otherId] || null : null;
 };
 
+const getConversationPreview = (conv: ChatInboxConversation) => {
+  if (!getFriendProfile(conv)) return 'Conversation archived';
+  if (conv.lastMessageDeletedAt) return 'This message was deleted.';
+
+  const preview = conv.lastMessageBody?.trim();
+  if (!preview) return 'No messages yet.';
+
+  return conv.lastMessageSenderId === user.value?.id ? `You: ${preview}` : preview;
+};
+
+const markConversationRead = async (conversationId: string) => {
+  try {
+    await $fetch(`/api/chat/conversations/${conversationId}/read`, { method: 'POST' });
+    markConversationReadLocally(conversationId);
+  } catch (e) {
+    console.warn('[Inbox] Failed to mark as read', e);
+  }
+};
+
 // Select a specific conversation from list
-const selectConversation = async (conv: InboxConversation) => {
+const selectConversation = async (conv: ChatInboxConversation) => {
   const profile = getFriendProfile(conv);
   if (!profile) {
     showToast('Cannot chat with inactive users', 'failed');
@@ -527,12 +558,7 @@ const selectConversation = async (conv: InboxConversation) => {
   
   // Mark as read after load
   if (conv.unreadCount > 0) {
-    try {
-      await $fetch(`/api/chat/conversations/${conv.id}/read`, { method: 'POST' });
-      conv.unreadCount = 0;
-    } catch (e) {
-      console.warn('[Inbox] Failed to mark as read', e);
-    }
+    await markConversationRead(conv.id);
   }
 };
 
@@ -608,6 +634,25 @@ const loadOlderMessages = () => {
   if (hasMore.value && nextCursor.value && !loadingMore.value) {
     loadMessages(nextCursor.value);
   }
+};
+
+const shouldShowMessageAvatar = (msg: InboxMessage, index: number) => {
+  if (!msg.senderId) return false;
+
+  const newerMessage = messages.value[index - 1];
+  return !newerMessage || newerMessage.senderId !== msg.senderId;
+};
+
+const getMessageAvatarUrl = (msg: InboxMessage) => {
+  if (msg.senderId === user.value?.id) return user.value.photoUrl || '';
+  if (msg.senderId === activeFriend.value?.id) return activeFriend.value.photoUrl || '';
+  return '';
+};
+
+const getMessageAvatarInitial = (msg: InboxMessage) => {
+  if (msg.senderId === user.value?.id) return user.value.username.charAt(0) || '?';
+  if (msg.senderId === activeFriend.value?.id) return activeFriend.value.username.charAt(0) || '?';
+  return '?';
 };
 
 // Send message to the selected friend
@@ -759,9 +804,13 @@ onUnmounted(() => {
   sharedActiveConversationId.value = null;
 });
 
-watch(chatRefreshSequence, () => {
+watch(chatRefreshSequence, async () => {
   if (activeConversationId.value) {
-    void loadMessages();
+    await loadMessages();
+    const activeConversation = conversations.value.find((conversation) => conversation.id === activeConversationId.value);
+    if (activeConversation && activeConversation.unreadCount > 0) {
+      await markConversationRead(activeConversation.id);
+    }
   }
 });
 </script>

@@ -97,6 +97,24 @@ describe('Chat Service', () => {
       expect(conversations[0]?.id).toBe(convAC!.id);
       expect(conversations[1]?.id).toBe(convAB!.id);
     });
+
+    it('should include the latest message preview and deletion state', async () => {
+      const conv = await ChatService.getOrCreateConversationForFriend(db, userA.id, userB.id);
+      await ChatService.sendMessage(db, userA.id, conv!.id, 'Older message');
+      await new Promise(resolve => setTimeout(resolve, 10));
+      const latest = await ChatService.sendMessage(db, userB.id, conv!.id, 'Latest preview');
+
+      let conversations = await ChatService.listConversations(db, userA.id);
+      expect((conversations[0] as any)?.lastMessageBody).toBe('Latest preview');
+      expect((conversations[0] as any)?.lastMessageSenderId).toBe(userB.id);
+      expect((conversations[0] as any)?.lastMessageDeletedAt).toBeNull();
+
+      await ChatService.deleteMessage(db, userB.id, latest.id);
+
+      conversations = await ChatService.listConversations(db, userA.id);
+      expect((conversations[0] as any)?.lastMessageBody).toBe('');
+      expect((conversations[0] as any)?.lastMessageDeletedAt).not.toBeNull();
+    });
   });
 
   describe('Unread State and Pagination', () => {

@@ -95,7 +95,25 @@ describe('useRealtimeInvalidation', () => {
     expect(fetchMock).toHaveBeenCalledWith('/api/realtime/token', { method: 'POST' });
   });
 
-  it('debounces chat.changed into conversation refresh and active message refresh', async () => {
+  it('debounces chat.changed into shared conversation refresh and active chat sequence', async () => {
+    fetchMock.mockImplementation(async (url: string) => {
+      if (url === '/api/chat/conversations') {
+        return [
+          {
+            id: 'conversation-1',
+            lastMessageAt: '2026-05-22T10:00:00.000Z',
+            lastMessageBody: 'Realtime preview',
+            lastMessageDeletedAt: null,
+            lastMessageSenderId: 'user-2',
+            user1Id: 'user-1',
+            user2Id: 'user-2',
+            unreadCount: 2,
+          },
+        ];
+      }
+
+      return { token: 'token-1' };
+    });
     const { useRealtimeInvalidation } = await import('./useRealtimeInvalidation');
     activeConversationId.value = 'conversation-1';
     useRealtimeInvalidation({ activeConversationId }).start();
@@ -106,7 +124,19 @@ describe('useRealtimeInvalidation', () => {
     await vi.advanceTimersByTimeAsync(250);
 
     expect(fetchMock).toHaveBeenCalledWith('/api/chat/conversations');
-    expect(fetchMock).toHaveBeenCalledWith('/api/chat/conversations/conversation-1/messages', { query: { limit: 50 } });
+    expect(stateStore.get('chat-inbox-conversations')?.value).toEqual([
+      {
+        id: 'conversation-1',
+        lastMessageAt: '2026-05-22T10:00:00.000Z',
+        lastMessageBody: 'Realtime preview',
+        lastMessageDeletedAt: null,
+        lastMessageSenderId: 'user-2',
+        user1Id: 'user-1',
+        user2Id: 'user-2',
+        unreadCount: 2,
+      },
+    ]);
+    expect(stateStore.get('realtime-chat-refresh-sequence')?.value).toBe(1);
   });
 
   it('debounces friends.changed into social refresh', async () => {

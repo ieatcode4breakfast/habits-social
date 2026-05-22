@@ -8,6 +8,9 @@ export type ChatParticipant = InferSelectModel<typeof schema.chatParticipants>;
 export interface ConversationListItem {
   id: string;
   lastMessageAt: Date | null;
+  lastMessageBody: string | null;
+  lastMessageDeletedAt: Date | null;
+  lastMessageSenderId: string | null;
   user1Id: string | null;
   user2Id: string | null;
   unreadCount: number;

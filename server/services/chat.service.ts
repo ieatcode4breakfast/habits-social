@@ -229,6 +229,27 @@ export class ChatService {
     return await db.select({
       id: c.id,
       lastMessageAt: c.lastMessageAt,
+      lastMessageBody: sql<string | null>`(
+        SELECT ${m.body}
+        FROM ${m}
+        WHERE ${m.conversationId} = ${c.id}
+        ORDER BY ${m.createdAt} DESC, ${m.id} DESC
+        LIMIT 1
+      )`,
+      lastMessageDeletedAt: sql<Date | null>`(
+        SELECT ${m.deletedAt}
+        FROM ${m}
+        WHERE ${m.conversationId} = ${c.id}
+        ORDER BY ${m.createdAt} DESC, ${m.id} DESC
+        LIMIT 1
+      )`,
+      lastMessageSenderId: sql<string | null>`(
+        SELECT ${m.senderId}
+        FROM ${m}
+        WHERE ${m.conversationId} = ${c.id}
+        ORDER BY ${m.createdAt} DESC, ${m.id} DESC
+        LIMIT 1
+      )`,
       user1Id: c.user1Id,
       user2Id: c.user2Id,
       unreadCount: sql<number>`(

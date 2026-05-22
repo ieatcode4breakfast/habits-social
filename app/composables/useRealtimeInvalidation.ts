@@ -1,6 +1,7 @@
 import PartySocket from 'partysocket';
 import type { Ref } from 'vue';
 import { parseRealtimeInvalidationEvent } from '../../utils/realtime';
+import { useChatInbox } from './useChatInbox';
 
 interface RealtimeInvalidationOptions {
   activeConversationId?: Ref<string | null>;
@@ -55,16 +56,16 @@ const fetchRealtimeToken = async (): Promise<string> => {
 export const useRealtimeInvalidation = (options: RealtimeInvalidationOptions = {}) => {
   const { user } = useAuth();
   const { refresh: refreshSocial } = useSocial();
+  const { refresh: refreshChatInbox } = useChatInbox();
   const sharedActiveConversationId = useState<string | null>('realtime-active-conversation-id', () => null);
   const activeConversationId = options.activeConversationId || sharedActiveConversationId;
   const chatRefreshSequence = useState<number>('realtime-chat-refresh-sequence', () => 0);
   const activeChatLocked = useState<boolean>('realtime-active-chat-locked', () => false);
 
   const refreshChatSnapshot = async (): Promise<void> => {
-    await $fetch('/api/chat/conversations');
+    await refreshChatInbox(true);
 
     if (activeConversationId.value) {
-      await $fetch(`/api/chat/conversations/${activeConversationId.value}/messages`, { query: { limit: 50 } });
       chatRefreshSequence.value += 1;
     }
   };

@@ -19,9 +19,12 @@
             <nav class="hidden md:flex items-center gap-1 ml-2">
               <NuxtLink to="/" class="nav-link flex items-center gap-2" :class="{ 'nav-link-active': $route.path === '/' }">
                 Activity
-                <span v-if="pendingCount > 0 && $route.path !== '/'" class="flex w-2 h-2 bg-rose-500 rounded-full"></span>
+                <span v-if="pendingCount > 0" class="flex w-2 h-2 bg-rose-500 rounded-full"></span>
               </NuxtLink>
-              <NuxtLink to="/inbox" class="nav-link" :class="{ 'nav-link-active': $route.path === '/inbox' }">Inbox</NuxtLink>
+              <NuxtLink to="/inbox" class="nav-link flex items-center gap-2" :class="{ 'nav-link-active': $route.path === '/inbox' }">
+                Inbox
+                <span v-if="totalUnreadCount > 0" class="flex w-2 h-2 bg-rose-500 rounded-full"></span>
+              </NuxtLink>
               <NuxtLink to="/habits" class="nav-link" :class="{ 'nav-link-active': $route.path === '/habits' }">My Habits</NuxtLink>
               <NuxtLink to="/buckets" class="nav-link" :class="{ 'nav-link-active': $route.path === '/buckets' }">Buckets</NuxtLink>
             </nav>
@@ -61,12 +64,13 @@
             <Users class="w-6 h-6" />
           </div>
           <!-- Badge -->
-          <div v-if="pendingCount > 0 && $route.path !== '/'" class="absolute top-1 right-1 w-2.5 h-2.5 bg-rose-500 rounded-full border-2 border-zinc-950"></div>
+          <div v-if="pendingCount > 0" class="absolute top-1 right-1 w-2.5 h-2.5 bg-rose-500 rounded-full border-2 border-zinc-950"></div>
         </NuxtLink>
-        <NuxtLink to="/inbox" class="flex items-center group transition-colors" :class="$route.path === '/inbox' ? 'text-white' : 'text-zinc-500'">
+        <NuxtLink to="/inbox" class="flex items-center group transition-colors relative" :class="$route.path === '/inbox' ? 'text-white' : 'text-zinc-500'">
           <div class="p-2 rounded-xl transition-all duration-300" :class="$route.path === '/inbox' ? 'bg-white/10 scale-110' : 'group-hover:bg-white/5'">
             <MessageCircle class="w-6 h-6" />
           </div>
+          <div v-if="totalUnreadCount > 0" class="absolute top-1 right-1 w-2.5 h-2.5 bg-rose-500 rounded-full border-2 border-zinc-950"></div>
         </NuxtLink>
         <NuxtLink to="/habits" class="flex items-center group transition-colors" :class="$route.path === '/habits' ? 'text-white' : 'text-zinc-500'">
           <div class="p-2 rounded-xl transition-all duration-300" :class="$route.path === '/habits' ? 'bg-white/10 scale-110' : 'group-hover:bg-white/5'">
@@ -93,6 +97,7 @@ const { user, fetchUser } = useAuth();
 const { showToast } = useToast();
 const { isOnline } = useNetwork();
 const { pendingCount, init: initSocial, cleanup: cleanupSocial, logoutCleanup } = useSocial();
+const { totalUnreadCount, init: initChatInbox, logoutCleanup: chatInboxLogoutCleanup } = useChatInbox();
 const realtimeInvalidation = useRealtimeInvalidation();
 
 useSeoMeta({
@@ -107,6 +112,7 @@ useSeoMeta({
 onMounted(() => {
   if (user.value) {
     initSocial();
+    initChatInbox();
     realtimeInvalidation.start();
   }
 });
@@ -133,6 +139,7 @@ const handleEditProfile = () => {
 const logout = async () => {
   await $fetch('/api/auth/logout', { method: 'POST' });
   logoutCleanup();
+  chatInboxLogoutCleanup();
 
   // Destroy all local data (shared device security).
   // This is the ONLY code path that wipes IndexedDB.

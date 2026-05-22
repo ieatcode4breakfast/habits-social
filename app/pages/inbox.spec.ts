@@ -35,7 +35,10 @@ const activeConversation = {
   user1Id: 'user-1',
   user2Id: friendProfile.id,
   unreadCount: 1,
-  lastMessageAt: '2026-05-20T10:00:00.000Z'
+  lastMessageAt: '2026-05-20T10:00:00.000Z',
+  lastMessageBody: 'Latest message preview that should render in one line',
+  lastMessageDeletedAt: null,
+  lastMessageSenderId: friendProfile.id
 };
 
 interface ChatMessage {
@@ -134,7 +137,8 @@ vi.mock('~/composables/useAuth', () => ({
     user: ref({
       id: 'user-1',
       email: 'me@example.com',
-      username: 'Me'
+      username: 'Me',
+      photoUrl: ''
     })
   })
 }));
@@ -155,6 +159,48 @@ vi.mock('~/composables/useToast', () => ({
     showToast: mockShowToast
   })
 }));
+
+vi.mock('~/composables/useChatInbox', async () => {
+  const { computed, ref } = await vi.importActual<typeof import('vue')>('vue');
+  const conversations = ref<Array<{
+    id: string;
+    user1Id: string;
+    user2Id: string;
+    unreadCount: number;
+    lastMessageAt: string | null;
+    lastMessageBody: string | null;
+    lastMessageDeletedAt: string | null;
+    lastMessageSenderId: string | null;
+  }>>([]);
+  const isLoading = ref(false);
+
+  return {
+    useChatInbox: () => ({
+      conversations,
+      isLoading,
+      totalUnreadCount: computed(() =>
+        conversations.value.reduce((total, conversation) => total + Math.max(0, conversation.unreadCount), 0)
+      ),
+      refresh: async (silent = false, preserveLoading = false) => {
+        if (!silent) isLoading.value = true;
+        try {
+          conversations.value = await (globalThis as {
+            $fetch: (url: string) => Promise<typeof conversations.value>;
+          }).$fetch('/api/chat/conversations');
+        } finally {
+          if (!preserveLoading) isLoading.value = false;
+        }
+      },
+      markConversationReadLocally: (conversationId: string) => {
+        conversations.value = conversations.value.map((conversation) =>
+          conversation.id === conversationId
+            ? { ...conversation, unreadCount: 0 }
+            : conversation
+        );
+      }
+    })
+  };
+});
 
 describe('Inbox conversation refresh icon', () => {
   let wrapper: VueWrapper<unknown> | null = null;
@@ -282,6 +328,51 @@ describe('Inbox conversation refresh icon', () => {
     expect(shellClasses).toContain('md:mx-0');
   });
 
+  it('shows the latest message as a bold one-line preview when unread', async () => {
+    const preview = getConversationButton().findAll('span').find((span) =>
+      span.text() === 'Latest message preview that should render in one line'
+    );
+
+    expect(preview?.exists()).toBe(true);
+    expect(preview?.classes()).toContain('truncate');
+    expect(preview?.classes()).toContain('font-bold');
+    expect(wrapper?.text()).not.toContain('Click to view messages');
+  });
+
+  it('prefixes the latest preview with You when the current user sent it', async () => {
+    fetchMock.mockImplementation(async (url: string, options?: FetchOptions) => {
+      if (url === '/api/chat/conversations') {
+        return [
+          {
+            ...activeConversation,
+            unreadCount: 0,
+            lastMessageBody: 'My latest message',
+            lastMessageSenderId: 'user-1'
+          }
+        ];
+      }
+
+      if (
+        url === `/api/chat/conversations/by-friend/${friendProfile.id}/messages`
+        && options?.method === 'POST'
+      ) {
+        return sentMessage.promise;
+      }
+
+      if (url === `/api/chat/conversations/${activeConversation.id}/read`) return {};
+      if (url === `/api/chat/conversations/${activeConversation.id}/messages`) return initialMessages.promise;
+
+      throw new Error(`Unexpected fetch request: ${url}`);
+    });
+
+    wrapper?.unmount();
+    wrapper = mountPage();
+    await flushPromises();
+    await nextTick();
+
+    expect(getConversationButton().text()).toContain('You: My latest message');
+  });
+
   it('shows a sent message optimistically and keeps the send button icon static while the request is pending', async () => {
     await openActiveConversation();
 
@@ -366,6 +457,82 @@ describe('Inbox conversation refresh icon', () => {
     expect(wrapper?.text()).not.toContain('Please survive failure');
     expect(getMessageTextarea().element.value).toBe('Please survive failure');
     expect(mockShowToast).toHaveBeenCalledWith('Rate limit exceeded. Please wait a moment.', 'failed');
+  });
+
+  it('preserves multiline message bodies including blank lines', async () => {
+    await openActiveConversation();
+
+    initialMessages.resolve({
+      messages: [
+        {
+          id: 'multiline-message',
+          conversationId: activeConversation.id,
+          senderId: friendProfile.id,
+          body: 'Line 1\n\nLine 2',
+          createdAt: '2026-05-20T10:01:00.000Z',
+          deletedAt: null
+        }
+      ],
+      hasMore: false,
+      cursor: null
+    });
+
+    await flushPromises();
+    await nextTick();
+
+    const multilineSpan = wrapper?.findAll('span').find((span) => span.text() === 'Line 1\n\nLine 2');
+    expect(multilineSpan?.exists()).toBe(true);
+    expect(multilineSpan?.classes()).toContain('whitespace-pre-wrap');
+  });
+
+  it('shows one avatar on the bottom-most message of each sender turn', async () => {
+    await openActiveConversation();
+
+    initialMessages.resolve({
+      messages: [
+        {
+          id: 'own-newest',
+          conversationId: activeConversation.id,
+          senderId: 'user-1',
+          body: 'Own newest',
+          createdAt: '2026-05-20T10:04:00.000Z',
+          deletedAt: null
+        },
+        {
+          id: 'own-older',
+          conversationId: activeConversation.id,
+          senderId: 'user-1',
+          body: 'Own older',
+          createdAt: '2026-05-20T10:03:00.000Z',
+          deletedAt: null
+        },
+        {
+          id: 'friend-newest',
+          conversationId: activeConversation.id,
+          senderId: friendProfile.id,
+          body: 'Friend newest',
+          createdAt: '2026-05-20T10:02:00.000Z',
+          deletedAt: null
+        },
+        {
+          id: 'friend-older',
+          conversationId: activeConversation.id,
+          senderId: friendProfile.id,
+          body: 'Friend older',
+          createdAt: '2026-05-20T10:01:00.000Z',
+          deletedAt: null
+        }
+      ],
+      hasMore: false,
+      cursor: null
+    });
+
+    await flushPromises();
+    await nextTick();
+
+    const visibleAvatars = wrapper?.findAll('[data-testid="message-avatar"]') || [];
+    expect(visibleAvatars).toHaveLength(2);
+    expect(visibleAvatars.map((avatar) => avatar.text())).toEqual(expect.arrayContaining(['M', 'A']));
   });
 
   it('formats sub-minute past and future message timestamps as just now', async () => {

@@ -16,7 +16,7 @@
           :class="activeTab === 'friends' ? 'text-white' : 'text-zinc-500 hover:text-zinc-300'"
         >
           Friends
-          <span v-if="pendingIncoming.length > 0 && activeTab !== 'friends'" class="flex w-2 h-2 bg-rose-500 rounded-full"></span>
+          <span v-if="pendingIncoming.length > 0" class="flex w-2 h-2 bg-rose-500 rounded-full"></span>
         </button>
         <!-- Sliding Indicator -->
         <div 
