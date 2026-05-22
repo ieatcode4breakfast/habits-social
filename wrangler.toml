@@ -18,9 +18,17 @@ NODE_ENV = "production"
 binding = "AUTH_KV"
 id = "da1a5af94cbc47acbda4f1b214b1b134"
 
+[[kv_namespaces]]
+binding = "CHAT_KV"
+id = "be61e29f25db41d0ad1480cd1a27c8f8"
+
 [[env.production.kv_namespaces]]
 binding = "AUTH_KV"
 id = "4a137eebd4fc44c1b123385a64c242c9"
+
+[[env.production.kv_namespaces]]
+binding = "CHAT_KV"
+id = "4faf1845d9464f8fa9720164d5a9203a"
 
 [assets]
 directory = ".output/public"
