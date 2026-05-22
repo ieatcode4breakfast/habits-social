@@ -355,7 +355,6 @@
                 
                 <div class="flex-1 min-w-0">
                   <div class="text-sm font-bold text-white truncate">{{ friend.username }}</div>
-                  <div class="text-[9px] text-zinc-500 font-semibold tracking-tight uppercase mt-0.5">Active Friend</div>
                 </div>
               </button>
             </div>
