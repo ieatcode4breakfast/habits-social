@@ -21,6 +21,7 @@
                 Activity
                 <span v-if="pendingCount > 0 && $route.path !== '/'" class="flex w-2 h-2 bg-rose-500 rounded-full"></span>
               </NuxtLink>
+              <NuxtLink to="/inbox" class="nav-link" :class="{ 'nav-link-active': $route.path === '/inbox' }">Inbox</NuxtLink>
               <NuxtLink to="/habits" class="nav-link" :class="{ 'nav-link-active': $route.path === '/habits' }">My Habits</NuxtLink>
               <NuxtLink to="/buckets" class="nav-link" :class="{ 'nav-link-active': $route.path === '/buckets' }">Buckets</NuxtLink>
             </nav>
@@ -42,7 +43,7 @@
       </div>
     </header>
 
-    <main class="flex-1 w-full max-w-5xl mx-auto px-0 sm:px-6 lg:px-8 pb-20 md:pb-12">
+    <main :class="['flex-1 w-full max-w-5xl mx-auto px-0 sm:px-6 lg:px-8', $route.name === 'inbox' ? 'pb-0' : 'pb-20 md:pb-12']">
       <slot />
     </main>
     <!-- Mobile Bottom Navigation -->
@@ -54,6 +55,11 @@
           </div>
           <!-- Badge -->
           <div v-if="pendingCount > 0 && $route.path !== '/'" class="absolute top-1 right-1 w-2.5 h-2.5 bg-rose-500 rounded-full border-2 border-zinc-950"></div>
+        </NuxtLink>
+        <NuxtLink to="/inbox" class="flex items-center group transition-colors" :class="$route.path === '/inbox' ? 'text-white' : 'text-zinc-500'">
+          <div class="p-2 rounded-xl transition-all duration-300" :class="$route.path === '/inbox' ? 'bg-white/10 scale-110' : 'group-hover:bg-white/5'">
+            <MessageCircle class="w-6 h-6" />
+          </div>
         </NuxtLink>
         <NuxtLink to="/habits" class="flex items-center group transition-colors" :class="$route.path === '/habits' ? 'text-white' : 'text-zinc-500'">
           <div class="p-2 rounded-xl transition-all duration-300" :class="$route.path === '/habits' ? 'bg-white/10 scale-110' : 'group-hover:bg-white/5'">
@@ -74,7 +80,7 @@
 </template>
 
 <script setup lang="ts">
-import { LogOut, Target, Users, User as UserIcon, PaintBucket } from 'lucide-vue-next';
+import { LogOut, Target, Users, User as UserIcon, PaintBucket, MessageCircle } from 'lucide-vue-next';
 
 const { user, fetchUser } = useAuth();
 const { showToast } = useToast();

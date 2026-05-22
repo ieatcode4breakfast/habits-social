@@ -8,7 +8,7 @@
           <PaintBucket class="w-6 h-6 text-zinc-400" />
         </div>
         <div>
-          <h1 class="text-base font-bold tracking-tight text-white mb-1">Buckets</h1>
+          <h1 class="text-base font-bold tracking-tight text-white">Buckets</h1>
           <p class="text-zinc-400 text-xs">{{ buckets.length }} bucket{{ buckets.length === 1 ? '' : 's' }}</p>
         </div>
       </div>

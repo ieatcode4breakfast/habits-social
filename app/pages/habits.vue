@@ -12,7 +12,7 @@
           @click="openProfileModal"
         />
         <div>
-          <h1 class="text-base font-bold tracking-tight text-white mb-1">My habits</h1>
+          <h1 class="text-base font-bold tracking-tight text-white">My habits</h1>
           <p class="text-zinc-400 text-xs">{{ habits.length }} habit{{ habits.length === 1 ? '' : 's' }}</p>
         </div>
       </div>
