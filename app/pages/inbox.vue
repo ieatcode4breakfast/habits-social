@@ -1,5 +1,5 @@
 <template>
-  <div class="relative h-[calc(100dvh-57px)] md:h-auto md:min-h-[calc(100dvh-120px)] flex flex-col md:flex-row bg-black/60 backdrop-blur-xl sm:rounded-2xl border border-zinc-800/80 overflow-hidden shadow-2xl md:mt-2 md:mb-2 md:bg-transparent md:backdrop-blur-none md:border-transparent md:overflow-visible md:shadow-none md:gap-2">
+  <div class="relative h-[calc(100dvh-57px)] md:h-auto md:min-h-[calc(100dvh-120px)] flex flex-col md:flex-row bg-black/60 backdrop-blur-xl sm:-mx-6 md:mx-0 md:rounded-2xl border border-zinc-800/80 overflow-hidden shadow-2xl md:mt-2 md:mb-2 md:bg-transparent md:backdrop-blur-none md:border-transparent md:overflow-visible md:shadow-none md:gap-2">
     
     <!-- Sidebar Pane: Conversations List -->
     <div 
@@ -376,11 +376,43 @@ const { friends, profilesMap, init: initSocial, refresh: refreshSocial } = useSo
 const { showToast } = useToast();
 
 // List States
-const conversations = ref<any[]>([]);
+interface InboxConversation {
+  id: string;
+  lastMessageAt: string | Date | null;
+  user1Id: string | null;
+  user2Id: string | null;
+  unreadCount: number;
+}
+
+interface InboxMessage {
+  id: string;
+  conversationId: string;
+  senderId: string | null;
+  body: string;
+  deletedAt: string | Date | null;
+  createdAt: string | Date;
+}
+
+interface PaginatedMessagesResponse {
+  messages: InboxMessage[];
+  hasMore: boolean;
+  cursor?: string | null;
+}
+
+const getErrorStatus = (error: unknown): number | undefined => {
+  if (!error || typeof error !== 'object') return undefined;
+  const record = error as Record<string, unknown>;
+  return typeof record.statusCode === 'number' ? record.statusCode : undefined;
+};
+
+const conversations = ref<InboxConversation[]>([]);
 const activeConversationId = ref<string | null>(null);
 const activeFriend = ref<UserProfile | null>(null);
-const messages = ref<any[]>([]);
+const messages = ref<InboxMessage[]>([]);
 const conversationsScrollContainer = ref<HTMLElement | null>(null);
+const sharedActiveConversationId = useState<string | null>('realtime-active-conversation-id', () => null);
+const activeChatLocked = useState<boolean>('realtime-active-chat-locked', () => false);
+const chatRefreshSequence = useState<number>('realtime-chat-refresh-sequence', () => 0);
 
 // Loading states
 const conversationsLoading = ref(false);
@@ -405,7 +437,7 @@ const messageTextareaRef = ref<HTMLTextAreaElement | null>(null);
 // Computed validators
 const canSend = computed(() => {
   const trimmed = messageBody.value.trim();
-  return trimmed.length > 0 && trimmed.length <= 1000 && !sending.value;
+  return trimmed.length > 0 && trimmed.length <= 1000 && !sending.value && !activeChatLocked.value;
 });
 
 const syncMessageTextareaHeight = () => {
@@ -429,9 +461,9 @@ const refreshConversation = async () => {
 const loadConversations = async (silent = false, preserveLoading = false) => {
   if (!silent) conversationsLoading.value = true;
   try {
-    const data = await $fetch<any[]>('/api/chat/conversations');
+    const data = await $fetch<InboxConversation[]>('/api/chat/conversations');
     conversations.value = data || [];
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('[Inbox] Failed to load conversations:', error);
     showToast('Failed to load conversations', 'failed');
   } finally {
@@ -468,14 +500,14 @@ const conversationsPullStyle = computed(() => {
 });
 
 // Get profile details of the conversation's partner
-const getFriendProfile = (conv: any) => {
+const getFriendProfile = (conv: InboxConversation) => {
   if (!user.value?.id) return null;
   const otherId = conv.user1Id === user.value.id ? conv.user2Id : conv.user1Id;
-  return profilesMap.value[otherId] || null;
+  return otherId ? profilesMap.value[otherId] || null : null;
 };
 
 // Select a specific conversation from list
-const selectConversation = async (conv: any) => {
+const selectConversation = async (conv: InboxConversation) => {
   const profile = getFriendProfile(conv);
   if (!profile) {
     showToast('Cannot chat with inactive users', 'failed');
@@ -483,6 +515,8 @@ const selectConversation = async (conv: any) => {
   }
   activeFriend.value = profile;
   activeConversationId.value = conv.id;
+  sharedActiveConversationId.value = conv.id;
+  activeChatLocked.value = false;
   messages.value = [];
   
   await loadMessages();
@@ -502,6 +536,7 @@ const selectConversation = async (conv: any) => {
 const selectFriend = async (friend: UserProfile) => {
   showNewChatModal.value = false;
   activeFriend.value = friend;
+  activeChatLocked.value = false;
   
   // Check if we already have an active conversation with this friend
   const existingConv = conversations.value.find(conv => {
@@ -514,12 +549,15 @@ const selectFriend = async (friend: UserProfile) => {
   } else {
     activeConversationId.value = null;
     messages.value = [];
+    sharedActiveConversationId.value = null;
   }
 };
 
 const deselectConversation = () => {
   activeFriend.value = null;
   activeConversationId.value = null;
+  sharedActiveConversationId.value = null;
+  activeChatLocked.value = false;
   messages.value = [];
 };
 
@@ -535,10 +573,10 @@ const loadMessages = async (cursor: string | null = null) => {
   }
 
   try {
-    const query: Record<string, any> = { limit: 50 };
+    const query: Record<string, string | number> = { limit: 50 };
     if (cursor) query.cursor = cursor;
 
-    const data = await $fetch<any>(`/api/chat/conversations/${activeConversationId.value}/messages`, { query });
+    const data = await $fetch<PaginatedMessagesResponse>(`/api/chat/conversations/${activeConversationId.value}/messages`, { query });
     
     if (isPaginating) {
       messages.value = [...messages.value, ...(data.messages || [])];
@@ -552,7 +590,7 @@ const loadMessages = async (cursor: string | null = null) => {
 
     hasMore.value = data.hasMore;
     nextCursor.value = data.cursor || null;
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('[Inbox] Failed to load messages:', error);
     showToast('Failed to load messages', 'failed');
   } finally {
@@ -576,7 +614,7 @@ const sendMessage = async () => {
   sending.value = true;
 
   try {
-    const response = await $fetch<any>(`/api/chat/conversations/by-friend/${activeFriend.value.id}/messages`, {
+    const response = await $fetch<InboxMessage>(`/api/chat/conversations/by-friend/${activeFriend.value.id}/messages`, {
       method: 'POST',
       body: { body: text }
     });
@@ -590,6 +628,7 @@ const sendMessage = async () => {
     // Set active conversation ID if it wasn't set (first message)
     if (!activeConversationId.value) {
       activeConversationId.value = response.conversationId;
+      sharedActiveConversationId.value = response.conversationId;
     }
 
     nextTick(() => {
@@ -598,9 +637,9 @@ const sendMessage = async () => {
 
     // Refresh conversations list silently
     await loadConversations(true);
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('[Inbox] Failed to send message:', error);
-    if (error.statusCode === 429) {
+    if (getErrorStatus(error) === 429) {
       showToast('Rate limit exceeded. Please wait a moment.', 'failed');
     } else {
       showToast('Failed to send message', 'failed');
@@ -617,15 +656,16 @@ const confirmDeleteMessage = async (messageId: string) => {
     
     // Local updates
     const msgIndex = messages.value.findIndex(m => m.id === messageId);
-    if (msgIndex !== -1) {
+    const existingMessage = messages.value[msgIndex];
+    if (msgIndex !== -1 && existingMessage) {
       messages.value[msgIndex] = {
-        ...messages.value[msgIndex],
+        ...existingMessage,
         body: '',
         deletedAt: new Date().toISOString()
       };
     }
     showToast('Message deleted', 'completed');
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('[Inbox] Failed to delete message:', error);
     showToast('Failed to delete message', 'failed');
   }
@@ -686,6 +726,13 @@ onMounted(async () => {
 
 onUnmounted(() => {
   window.removeEventListener('resize', checkViewport);
+  sharedActiveConversationId.value = null;
+});
+
+watch(chatRefreshSequence, () => {
+  if (activeConversationId.value) {
+    void loadMessages();
+  }
 });
 </script>
 

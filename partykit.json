@@ -1,0 +1,5 @@
+{
+  "name": "habits-social-realtime-staging",
+  "main": "party/server.ts",
+  "compatibilityDate": "2024-11-01"
+}

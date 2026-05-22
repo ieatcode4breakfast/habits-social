@@ -27,6 +27,8 @@
     "jose": "^6.0.0",
     "lucide-vue-next": "^1.0.0",
     "nuxt": "^4.4.2",
+    "partykit": "^0.0.115",
+    "partysocket": "^1.1.19",
     "zod": "^4.4.2"
   },
   "devDependencies": {

@@ -1,4 +1,5 @@
 import { eq, and, or, desc, sql, isNull } from 'drizzle-orm';
+import type { SQL } from 'drizzle-orm';
 import type { DBConnection } from '../types/db';
 import * as schema from '../db/schema';
 import type { 
@@ -7,6 +8,27 @@ import type {
   ChatConversation, 
   ChatMessage 
 } from '../types/chat';
+import * as realtimeNotifier from '../utils/realtimeNotifier';
+
+const getErrorCode = (error: unknown): string => {
+  if (!error || typeof error !== 'object') return '';
+  const record = error as Record<string, unknown>;
+  const cause = record.cause && typeof record.cause === 'object'
+    ? record.cause as Record<string, unknown>
+    : undefined;
+  return String(record.code || cause?.code || '');
+};
+
+const getErrorMessage = (error: unknown): string => error instanceof Error ? error.message : '';
+
+const notifyChatChanged = (conversation: ChatConversation, actorId: string): void => {
+  const participantIds = [conversation.user1Id, conversation.user2Id].filter((userId): userId is string => typeof userId === 'string');
+  const recipients = [actorId, ...participantIds.filter((userId) => userId !== actorId)];
+  void realtimeNotifier.notifyUsersRealtime(recipients, { type: 'chat.changed' }).catch((error: unknown) => {
+    const message = error instanceof Error ? error.message : 'Unknown realtime notification failure';
+    console.warn('[Realtime] Chat invalidation failed:', message);
+  });
+};
 
 export class ChatService {
   /**
@@ -72,9 +94,9 @@ export class ChatService {
 
         if (!result) throw new Error('Failed to create conversation');
         return result;
-      } catch (error: any) {
-        const msg = String(error?.message || '');
-        const code = String(error?.code || error?.cause?.code || '');
+      } catch (error: unknown) {
+        const msg = getErrorMessage(error);
+        const code = getErrorCode(error);
         if (code === '23505' || msg.includes('unique constraint') || msg.includes('duplicate key value')) {
           const [existingConv] = await db.select()
             .from(schema.chatConversations)
@@ -154,9 +176,9 @@ export class ChatService {
    * Updates lastMessageAt and enforces active friendship.
    */
   static async sendMessage(db: DBConnection, senderId: string, conversationId: string, body: string): Promise<ChatMessage> {
-    await this.verifyAccess(db, senderId, conversationId, 'write');
+    const conversation = await this.verifyAccess(db, senderId, conversationId, 'write');
 
-    return await db.transaction(async (tx) => {
+    const message = await db.transaction(async (tx) => {
       const now = new Date();
       // Insert message
       const [message] = await tx.insert(schema.chatMessages)
@@ -188,6 +210,9 @@ export class ChatService {
 
       return message;
     });
+
+    notifyChatChanged(conversation, senderId);
+    return message;
   }
 
   /**
@@ -260,7 +285,7 @@ export class ChatService {
     await this.verifyAccess(db, userId, conversationId, 'read');
     
     const { limit = 50, cursor } = options;
-    const filters: any[] = [eq(schema.chatMessages.conversationId, conversationId)];
+    const filters: SQL[] = [eq(schema.chatMessages.conversationId, conversationId)];
 
     if (cursor) {
       try {
@@ -269,18 +294,17 @@ export class ChatService {
         if (cursorCreatedAt && cursorId) {
           const cursorDate = new Date(cursorCreatedAt);
           if (!isNaN(cursorDate.getTime())) {
-            filters.push(
-              or(
-                sql`${schema.chatMessages.createdAt} < ${cursorDate}`,
-                and(
-                  eq(schema.chatMessages.createdAt, cursorDate),
-                  sql`${schema.chatMessages.id} < ${cursorId}`
-                )
-              ) as any
+            const cursorFilter = or(
+              sql`${schema.chatMessages.createdAt} < ${cursorDate}`,
+              and(
+                eq(schema.chatMessages.createdAt, cursorDate),
+                sql`${schema.chatMessages.id} < ${cursorId}`
+              )
             );
+            if (cursorFilter) filters.push(cursorFilter);
           }
         }
-      } catch (e) {
+      } catch {
         // Invalid cursor, ignore
       }
     }
@@ -327,11 +351,13 @@ export class ChatService {
     if (!message) throw new Error('Message not found or unauthorized');
 
     // Verify 'write' access to the conversation (locks deletion if unfriended)
-    await this.verifyAccess(db, userId, message.conversationId, 'write');
+    const conversation = await this.verifyAccess(db, userId, message.conversationId, 'write');
 
     await db.update(schema.chatMessages)
       .set({ body: '', deletedAt: new Date() })
       .where(eq(schema.chatMessages.id, messageId));
+
+    notifyChatChanged(conversation, userId);
   }
 
   /**

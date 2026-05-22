@@ -1,5 +1,14 @@
 import tailwindcss from '@tailwindcss/vite';
 
+const configuredPartykitHost = process.env.NUXT_PUBLIC_PARTYKIT_HOST?.trim().toLowerCase() || '';
+const partykitHostForCsp = process.env.NUXT_PUBLIC_REALTIME_ENABLED === 'true'
+  && /^[a-z0-9.-]+\.partykit\.dev$/.test(configuredPartykitHost)
+  ? configuredPartykitHost
+  : '';
+const connectSrc = partykitHostForCsp
+  ? `'self' https://${partykitHostForCsp} wss://${partykitHostForCsp}`
+  : "'self'";
+
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
   compatibilityDate: '2024-11-01',
@@ -8,8 +17,8 @@ export default defineNuxtConfig({
     '@vueuse/nuxt',
     '@vueuse/motion/nuxt',
     '@nuxtjs/seo',
-    process.env.NODE_ENV !== 'test' ? '@vite-pwa/nuxt' : undefined
-  ].filter(Boolean) as any[],
+    ...(process.env.NODE_ENV !== 'test' ? ['@vite-pwa/nuxt'] : [])
+  ],
   pwa: {
     registerType: 'autoUpdate',
     manifest: {
@@ -91,7 +100,7 @@ export default defineNuxtConfig({
           'X-Frame-Options': 'DENY',
           'Referrer-Policy': 'strict-origin-when-cross-origin',
           'Permissions-Policy': 'camera=(), microphone=(), geolocation=()',
-          'Content-Security-Policy': "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://api.dicebear.com; connect-src 'self'; font-src 'self';"
+          'Content-Security-Policy': `default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://api.dicebear.com; connect-src ${connectSrc}; font-src 'self';`
         } 
       }
     },
@@ -109,7 +118,11 @@ export default defineNuxtConfig({
   runtimeConfig: {
     databaseUrl: process.env.DATABASE_URL,
     jwtSecret: process.env.JWT_SECRET,
+    realtimeJwtSecret: process.env.REALTIME_JWT_SECRET,
+    partykitNotifySecret: process.env.PARTYKIT_NOTIFY_SECRET,
     public: {
+      realtimeEnabled: process.env.NUXT_PUBLIC_REALTIME_ENABLED === 'true',
+      partykitHost: process.env.NUXT_PUBLIC_PARTYKIT_HOST || '',
     }
   },
 

@@ -43,7 +43,14 @@
       </div>
     </header>
 
-    <main :class="['flex-1 w-full max-w-5xl mx-auto px-0 sm:px-6 lg:px-8', $route.name === 'inbox' ? 'pb-0' : 'pb-20 md:pb-12']">
+    <main
+      :class="[
+        'flex-1 w-full',
+        $route.name === 'inbox'
+          ? 'max-w-5xl mx-auto px-0 sm:px-6 lg:px-8 pb-0'
+          : 'max-w-5xl mx-auto px-0 sm:px-6 lg:px-8 pb-20 md:pb-12'
+      ]"
+    >
       <slot />
     </main>
     <!-- Mobile Bottom Navigation -->
@@ -86,6 +93,7 @@ const { user, fetchUser } = useAuth();
 const { showToast } = useToast();
 const { isOnline } = useNetwork();
 const { pendingCount, init: initSocial, cleanup: cleanupSocial, logoutCleanup } = useSocial();
+const realtimeInvalidation = useRealtimeInvalidation();
 
 useSeoMeta({
   title: 'My Habits - HabitsSocial',
@@ -99,10 +107,12 @@ useSeoMeta({
 onMounted(() => {
   if (user.value) {
     initSocial();
+    realtimeInvalidation.start();
   }
 });
 
 onUnmounted(() => {
+  realtimeInvalidation.stop();
   cleanupSocial();
 });
 

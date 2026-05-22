@@ -1,11 +1,27 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { nextTick, ref } from 'vue';
+import { nextTick, ref, type Ref } from 'vue';
 import { flushPromises, mount, type VueWrapper } from '@vue/test-utils';
 import InboxPage from './inbox.vue';
 
 const mockInitSocial = vi.fn();
 const mockRefreshSocial = vi.fn();
 const mockShowToast = vi.fn();
+const { stateStore, useNuxtAppMock, useStateMock } = vi.hoisted(() => {
+  const stateStore = new Map<string, Ref<unknown>>();
+  const useNuxtAppMock = vi.fn(() => ({
+    payload: { state: {} },
+    runWithContext: (fn: () => unknown) => fn()
+  }));
+
+  const useStateMock = <T,>(key: string, init: () => T): Ref<T> => {
+    if (!stateStore.has(key)) {
+      stateStore.set(key, { value: init() } as Ref<unknown>);
+    }
+    return stateStore.get(key) as Ref<T>;
+  };
+
+  return { stateStore, useNuxtAppMock, useStateMock };
+});
 
 const friendProfile = {
   id: 'friend-1',
@@ -63,12 +79,38 @@ vi.mock('#imports', async () => {
     useHead: vi.fn(),
     useSeoMeta: vi.fn(),
     useServerSeoMeta: vi.fn(),
+    useState: useStateMock,
     usePullToRefresh: () => ({
       isPulling: ref(false),
       isRefreshing: ref(false)
     })
   };
 });
+
+vi.mock('#app', () => ({
+  useState: useStateMock,
+  useNuxtApp: useNuxtAppMock,
+  useRequestHeaders: vi.fn(() => ({})),
+  useSeoMeta: vi.fn(),
+  useHead: vi.fn(),
+  definePageMeta: vi.fn()
+}));
+
+vi.mock('nuxt/app', () => ({
+  useState: useStateMock,
+  useNuxtApp: useNuxtAppMock,
+  useRequestHeaders: vi.fn(() => ({})),
+  useSeoMeta: vi.fn(),
+  useHead: vi.fn(),
+  definePageMeta: vi.fn()
+}));
+
+vi.mock('#app/composables/state', () => ({
+  useState: useStateMock
+}));
+
+vi.stubGlobal('useState', useStateMock);
+vi.stubGlobal('useNuxtApp', useNuxtAppMock);
 
 vi.mock('#app/composables/head', () => ({
   injectHead: vi.fn(),
@@ -125,6 +167,14 @@ describe('Inbox conversation refresh icon', () => {
       }
     });
 
+  const getRootShell = () => {
+    const shell = wrapper?.element as HTMLElement | undefined;
+    if (!shell) {
+      throw new Error('Expected inbox shell to render');
+    }
+    return shell;
+  };
+
   const getConversationButton = () => {
     const button = wrapper?.findAll('button').find((candidate) => candidate.text().includes('Alex'));
     if (!button) {
@@ -151,6 +201,7 @@ describe('Inbox conversation refresh icon', () => {
 
   beforeEach(async () => {
     document.body.innerHTML = '';
+    stateStore.clear();
     mockInitSocial.mockReset();
     mockRefreshSocial.mockReset();
     mockShowToast.mockReset();
@@ -269,5 +320,12 @@ describe('Inbox conversation refresh icon', () => {
     await nextTick();
 
     expect(refreshButton.find('.animate-spin').exists()).toBe(false);
+  });
+
+  it('keeps the shared padding contract while using a sm-only full-bleed inbox shell', async () => {
+    const shellClasses = getRootShell().className.split(/\s+/);
+
+    expect(shellClasses).toContain('sm:-mx-6');
+    expect(shellClasses).toContain('md:mx-0');
   });
 });

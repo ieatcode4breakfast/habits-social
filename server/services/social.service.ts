@@ -1,15 +1,31 @@
 import { eq, and, or, sql } from 'drizzle-orm';
-import { friendships as friendshipsTable, habits, habitLogs, users } from '~~/server/db/schema';
+import { friendships as friendshipsTable, habits, habitLogs } from '~~/server/db/schema';
 import { extractRows } from '~~/server/utils/db';
 import { reevaluateMultipleBuckets } from '~~/server/utils/buckets';
+import type { DBConnection } from '~~/server/types/db';
+import type { Friendship } from '~~/server/types';
+import * as realtimeNotifier from '~~/server/utils/realtimeNotifier';
+
+const isUniqueConstraintError = (error: unknown): boolean => {
+  if (!error || typeof error !== 'object') return false;
+  const record = error as Record<string, unknown>;
+  return record.code === '23505';
+};
+
+const notifyFriendsChanged = (userIds: readonly string[]): void => {
+  void realtimeNotifier.notifyUsersRealtime(userIds, { type: 'friends.changed' }).catch((error: unknown) => {
+    const message = error instanceof Error ? error.message : 'Unknown realtime notification failure';
+    console.warn('[Realtime] Friends invalidation failed:', message);
+  });
+};
 
 export const SocialService = {
-  async createFriendship(db: any, initiatorId: string, targetUserId: string, event: any) {
+  async createFriendship(db: DBConnection, initiatorId: string, targetUserId: string, event: unknown): Promise<Friendship> {
     if (initiatorId === targetUserId) {
       throw createError({ statusCode: 400, statusMessage: 'You cannot friend yourself' });
     }
 
-    let result;
+    let result: Friendship[];
     try {
       result = await db.insert(friendshipsTable)
         .values({
@@ -21,28 +37,35 @@ export const SocialService = {
           updatedAt: new Date()
         })
         .returning();
-    } catch (err: any) {
-      if (err.code === '23505') {
+    } catch (error: unknown) {
+      if (isUniqueConstraintError(error)) {
         throw createError({ statusCode: 409, statusMessage: 'Friendship already exists' });
       }
-      throw err;
+      throw error;
     }
 
     const friendship = result[0];
+    if (!friendship) {
+      throw createError({ statusCode: 500, statusMessage: 'Failed to create friendship' });
+    }
+    notifyFriendsChanged([initiatorId, targetUserId]);
     return friendship;
   },
 
-  async acceptFriendship(db: any, userId: string, id: string, event: any) {
+  async acceptFriendship(db: DBConnection, userId: string, id: string, event: unknown): Promise<Friendship | undefined> {
     const result = await db.update(friendshipsTable)
       .set({ status: 'accepted', updatedAt: new Date() })
       .where(and(eq(friendshipsTable.id, id), eq(friendshipsTable.receiverId, userId)))
       .returning();
 
     const friendship = result[0];
+    if (friendship) {
+      notifyFriendsChanged([friendship.initiatorId, friendship.receiverId]);
+    }
     return friendship;
   },
 
-  async cleanupFriendshipData(db: any, u1: string, u2: string) {
+  async cleanupFriendshipData(db: DBConnection, u1: string, u2: string): Promise<void> {
     // Cascade 'removed' status for cross-owned bucket habits
     const affected = await db.execute(sql`
       UPDATE bucket_habits bh
@@ -80,14 +103,13 @@ export const SocialService = {
       .where(eq(habitLogs.ownerId, u2));
   },
 
-  async removeFriendship(db: any, userId: string, id: string, event: any) {
+  async removeFriendship(db: DBConnection, userId: string, id: string, event: unknown): Promise<boolean> {
     const friendshipsRes = await db.select()
       .from(friendshipsTable)
       .where(eq(friendshipsTable.id, id));
     
-    if (friendshipsRes.length === 0) return false;
-
     const friendship = friendshipsRes[0];
+    if (!friendship) return false;
     
     // Authorization Check
     if (friendship.initiatorId !== userId && friendship.receiverId !== userId) {
@@ -98,11 +120,12 @@ export const SocialService = {
     const u2 = friendship.receiverId;
 
     // Use transaction for atomic cleanup and deletion
-    await db.transaction(async (tx: any) => {
+    await db.transaction(async (tx) => {
       await this.cleanupFriendshipData(tx, u1, u2);
       await tx.delete(friendshipsTable).where(eq(friendshipsTable.id, id));
     });
 
+    notifyFriendsChanged([u1, u2]);
     return true;
   }
 };
