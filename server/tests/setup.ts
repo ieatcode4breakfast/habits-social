@@ -5,7 +5,11 @@ import * as schema from '../db/schema';
 vi.stubGlobal('useRuntimeConfig', (event?: any) => {
   return {
     databaseUrl: process.env.DATABASE_URL || 'postgres://localhost:5432/postgres',
-    jwtSecret: process.env.JWT_SECRET || 'fallback-secret-for-dev'
+    jwtSecret: process.env.JWT_SECRET || 'fallback-secret-for-dev',
+    public: {
+      realtimeEnabled: true,
+      partykitHost: 'habits-social-realtime-test.partykit.dev',
+    },
   };
 });
 

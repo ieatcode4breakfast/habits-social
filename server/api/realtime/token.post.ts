@@ -5,6 +5,10 @@ import { checkRealtimeTokenRateLimit } from '~~/server/utils/realtimeRateLimit';
 
 interface RealtimeRuntimeConfig {
   realtimeJwtSecret?: string;
+  public?: {
+    realtimeEnabled?: boolean;
+    partykitHost?: string;
+  };
 }
 
 interface CloudflareRealtimeContext {
@@ -41,6 +45,11 @@ const getRealtimeJwtSecret = (event: H3Event): string => {
 };
 
 export default defineEventHandler(async (event) => {
+  const config = getRuntimeConfigGetter()(event);
+  if (config.public?.realtimeEnabled !== true || !config.public?.partykitHost) {
+    throw createError({ statusCode: 404, statusMessage: 'Realtime disabled' });
+  }
+
   const userId = await requireAuth(event);
   await checkRealtimeTokenRateLimit(event, userId);
 

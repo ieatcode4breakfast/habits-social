@@ -10,6 +10,14 @@ describe('POST /api/realtime/token', () => {
   beforeEach(() => {
     originalRealtimeSecret = process.env.REALTIME_JWT_SECRET;
     process.env.REALTIME_JWT_SECRET = realtimeSecret;
+    vi.stubGlobal('useRuntimeConfig', () => ({
+      databaseUrl: process.env.DATABASE_URL || 'postgres://localhost:5432/postgres',
+      jwtSecret: process.env.JWT_SECRET || 'fallback-secret-for-dev',
+      public: {
+        realtimeEnabled: true,
+        partykitHost: 'habits-social-realtime-test.partykit.dev',
+      },
+    }));
   });
 
   afterEach(() => {
@@ -25,6 +33,19 @@ describe('POST /api/realtime/token', () => {
     const event = createMockEvent('', {}, { auth_token: 'invalid' }, {}, {}, 'POST');
 
     await expect(handler(event)).rejects.toMatchObject({ statusCode: 401 });
+  });
+
+  it('fails closed before auth and rate limiting when realtime is disabled', async () => {
+    vi.stubGlobal('useRuntimeConfig', () => ({
+      public: {
+        realtimeEnabled: false,
+        partykitHost: '',
+      },
+    }));
+    const handler = (await import('../api/realtime/token.post')).default;
+    const event = createMockEvent('', {}, { auth_token: 'invalid' }, {}, {}, 'POST');
+
+    await expect(handler(event)).rejects.toMatchObject({ statusCode: 404 });
   });
 
   it('issues a 15-minute realtime token for the authenticated user room', async () => {

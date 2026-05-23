@@ -31,16 +31,16 @@ jobs:
         run: |
           if [ "${{ github.ref }}" = "refs/heads/main" ]; then
             export NUXT_PUBLIC_REALTIME_ENABLED="false"
-            export NUXT_PUBLIC_PARTYKIT_HOST="habits-social-realtime-production.ieatcode4breakfast.partykit.dev"
+            export NUXT_PUBLIC_PARTYKIT_HOST=""
             npm run build
             # Verify PartyKit is NOT in CSP for production
-            ! grep -q "https://${NUXT_PUBLIC_PARTYKIT_HOST}" .output/public/_headers
+            ! grep -q "partykit.dev" .output/public/_headers
           else
-            export NUXT_PUBLIC_REALTIME_ENABLED="true"
-            export NUXT_PUBLIC_PARTYKIT_HOST="habits-social-realtime-staging.ieatcode4breakfast.partykit.dev"
+            export NUXT_PUBLIC_REALTIME_ENABLED="false"
+            export NUXT_PUBLIC_PARTYKIT_HOST=""
             npm run build
-            # Verify PartyKit IS in CSP for staging
-            grep -q "connect-src 'self' https://${NUXT_PUBLIC_PARTYKIT_HOST} wss://${NUXT_PUBLIC_PARTYKIT_HOST}" .output/public/_headers
+            # Verify PartyKit is NOT in CSP for staging while realtime is disabled
+            ! grep -q "partykit.dev" .output/public/_headers
           fi
 
       - name: Check Database Migrations

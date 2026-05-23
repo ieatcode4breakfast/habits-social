@@ -27,6 +27,7 @@ let tokenRefreshTimer: ReturnType<typeof setTimeout> | null = null;
 let chatRefreshTimer: ReturnType<typeof setTimeout> | null = null;
 let friendsRefreshTimer: ReturnType<typeof setTimeout> | null = null;
 let tokenFetchPausedUntil = 0;
+let realtimeDisabled = false;
 
 const TOKEN_REFRESH_MS = 14 * 60 * 1000;
 const TOKEN_FAILURE_BACKOFF_MS = 30 * 1000;
@@ -51,6 +52,10 @@ const getPublicRealtimeConfig = (): RealtimePublicConfig => {
 };
 
 const fetchRealtimeToken = async (): Promise<string> => {
+  if (realtimeDisabled) {
+    throw new Error('Realtime is disabled');
+  }
+
   const now = Date.now();
   if (tokenFetchPausedUntil > now) {
     throw new Error('Realtime token fetch is temporarily paused after a failed attempt');
@@ -61,6 +66,13 @@ const fetchRealtimeToken = async (): Promise<string> => {
     tokenFetchPausedUntil = 0;
     return response.token;
   } catch (error) {
+    const statusCode = typeof error === 'object' && error !== null && 'statusCode' in error
+      ? Number((error as { statusCode?: unknown }).statusCode)
+      : 0;
+    if (statusCode === 404 || statusCode === 503) {
+      realtimeDisabled = true;
+    }
+
     tokenFetchPausedUntil = now + TOKEN_FAILURE_BACKOFF_MS;
     throw error;
   }
@@ -128,7 +140,10 @@ export const useRealtimeInvalidation = (options: RealtimeInvalidationOptions = {
     if (import.meta.server || socket || !user.value?.id) return;
 
     const publicConfig = getPublicRealtimeConfig();
-    if (publicConfig.realtimeEnabled !== true || !publicConfig.partykitHost) return;
+    if (realtimeDisabled || publicConfig.realtimeEnabled !== true || !publicConfig.partykitHost) {
+      stop();
+      return;
+    }
 
     socket = new PartySocket({
       host: publicConfig.partykitHost,
