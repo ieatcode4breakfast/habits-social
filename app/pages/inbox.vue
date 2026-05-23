@@ -281,7 +281,10 @@
                   </div>
                   
                   <!-- Message Actions inside bubble -->
-                  <div class="flex items-center justify-end gap-1 px-2.5 pb-1">
+                  <div
+                    class="flex items-center gap-1 px-2.5 pb-1"
+                    :class="msg.senderId === user?.id ? 'justify-end' : 'justify-start'"
+                  >
                     <span 
                       class="block text-[10px] select-none font-bold tracking-tight shrink-0"
                       :class="msg.senderId === user?.id ? 'text-zinc-600' : 'text-zinc-500'"
@@ -314,7 +317,10 @@
                   </div>
                   
                   <!-- Message Actions inside bubble -->
-                  <div class="flex items-center justify-end gap-1 mt-1">
+                  <div
+                    class="flex items-center gap-1 mt-1"
+                    :class="msg.senderId === user?.id ? 'justify-end' : 'justify-start'"
+                  >
                     <span 
                       class="block text-[10px] select-none font-bold tracking-tight shrink-0"
                       :class="msg.senderId === user?.id ? 'text-zinc-600' : 'text-zinc-500'"
