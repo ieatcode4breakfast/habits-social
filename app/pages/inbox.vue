@@ -332,13 +332,25 @@
             </div>
 
             <!-- Modal Content/Friends List -->
+            <div class="px-3 pt-2 pb-1">
+              <input
+                v-model="friendSearchQuery"
+                type="text"
+                placeholder="Filter friends..."
+                class="w-full bg-zinc-900 border border-zinc-800 text-white text-sm rounded-xl px-4 py-2 focus:outline-none focus:border-zinc-700 transition-colors"
+              />
+            </div>
+
             <div class="flex-1 overflow-y-auto p-2 space-y-1">
               <div v-if="friends.length === 0" class="py-12 text-center text-zinc-500 italic text-sm">
                 No active friends yet. Invite them in the Activity section!
               </div>
+              <div v-else-if="filteredFriends.length === 0" class="py-12 text-center text-zinc-500 italic text-sm">
+                No friends found matching your filter.
+              </div>
               
               <button
-                v-for="friend in friends"
+                v-for="friend in filteredFriends"
                 :key="friend.id"
                 @click="selectFriend(friend)"
                 class="w-full text-left p-3 rounded-xl hover:bg-zinc-900/60 transition-colors flex items-center gap-3 cursor-pointer outline-none border border-transparent"
@@ -436,11 +448,24 @@ const loadingMore = ref(false);
 const messageBody = ref('');
 const hasMore = ref(false);
 const nextCursor = ref<string | null>(null);
+const friendSearchQuery = ref('');
 
 // Modal/Responsive toggles
 const showNewChatModal = ref(false);
 const isMobile = ref(false);
 const viewportReady = ref(false);
+
+const filteredFriends = computed(() => {
+  if (!friendSearchQuery.value.trim()) return friends.value;
+  const q = friendSearchQuery.value.toLowerCase().trim();
+  return friends.value.filter(friend => friend.username.toLowerCase().includes(q));
+});
+
+watch(showNewChatModal, (val) => {
+  if (!val) {
+    friendSearchQuery.value = '';
+  }
+});
 
 // Refs
 const scrollContainer = ref<HTMLElement | null>(null);
