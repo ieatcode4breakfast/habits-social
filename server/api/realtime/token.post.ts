@@ -7,6 +7,15 @@ interface RealtimeRuntimeConfig {
   realtimeJwtSecret?: string;
 }
 
+interface CloudflareRealtimeContext {
+  cloudflare?: {
+    env?: {
+      NUXT_REALTIME_JWT_SECRET?: string;
+      REALTIME_JWT_SECRET?: string;
+    };
+  };
+}
+
 type RuntimeConfigGetter = (event?: H3Event) => RealtimeRuntimeConfig;
 
 const getRuntimeConfigGetter = (): RuntimeConfigGetter => {
@@ -19,7 +28,12 @@ const getRuntimeConfigGetter = (): RuntimeConfigGetter => {
 
 const getRealtimeJwtSecret = (event: H3Event): string => {
   const config = getRuntimeConfigGetter()(event);
-  const secret = config.realtimeJwtSecret || process.env.REALTIME_JWT_SECRET;
+  const cloudflareEnv = (event.context as CloudflareRealtimeContext).cloudflare?.env;
+  const secret =
+    cloudflareEnv?.NUXT_REALTIME_JWT_SECRET ||
+    cloudflareEnv?.REALTIME_JWT_SECRET ||
+    config.realtimeJwtSecret ||
+    process.env.REALTIME_JWT_SECRET;
   if (!secret) {
     throw createError({ statusCode: 500, statusMessage: 'Realtime configuration missing' });
   }

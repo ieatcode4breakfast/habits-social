@@ -95,6 +95,25 @@ describe('useRealtimeInvalidation', () => {
     expect(fetchMock).toHaveBeenCalledWith('/api/realtime/token', { method: 'POST' });
   });
 
+  it('backs off token requests after a failed realtime token fetch', async () => {
+    const { useRealtimeInvalidation } = await import('./useRealtimeInvalidation');
+    fetchMock.mockRejectedValueOnce(new Error('token endpoint unavailable'));
+    const realtime = useRealtimeInvalidation({ activeConversationId });
+
+    realtime.start();
+    const socket = MockPartySocket.instances[0];
+
+    await expect(socket?.options.query()).rejects.toThrow('token endpoint unavailable');
+    await expect(socket?.options.query()).rejects.toThrow('temporarily paused');
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+
+    await vi.advanceTimersByTimeAsync(30_000);
+    fetchMock.mockResolvedValueOnce({ token: 'token-2' });
+
+    await expect(socket?.options.query()).resolves.toEqual({ token: 'token-2' });
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
   it('debounces chat.changed into shared conversation refresh and active chat sequence', async () => {
     fetchMock.mockImplementation(async (url: string) => {
       if (url === '/api/chat/conversations') {

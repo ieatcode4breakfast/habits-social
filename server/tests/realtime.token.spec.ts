@@ -47,6 +47,29 @@ describe('POST /api/realtime/token', () => {
     }
   });
 
+  it('uses the Cloudflare Worker NUXT realtime secret when running on the edge', async () => {
+    const handler = (await import('../api/realtime/token.post')).default;
+    const user = await createTestUser(`rt_cf_${Date.now()}`, `rt_cf_${Date.now()}@ex.com`);
+    const cloudflareSecret = 'cloudflare-realtime-token-secret';
+    const event = createMockEvent(user.id, {}, {}, {}, {}, 'POST');
+    event.context.cloudflare = {
+      env: {
+        NUXT_REALTIME_JWT_SECRET: cloudflareSecret,
+      },
+    };
+    delete process.env.REALTIME_JWT_SECRET;
+
+    try {
+      const response = await handler(event);
+      const { payload } = await jwtVerify(response.token, new TextEncoder().encode(cloudflareSecret));
+
+      expect(payload.userId).toBe(user.id);
+      expect(payload.roomId).toBe(user.id);
+    } finally {
+      await deleteTestUser(user.id);
+    }
+  });
+
   it('rate-limits token generation', async () => {
     const handler = (await import('../api/realtime/token.post')).default;
     const user = await createTestUser(`rt_limit_${Date.now()}`, `rt_limit_${Date.now()}@ex.com`);

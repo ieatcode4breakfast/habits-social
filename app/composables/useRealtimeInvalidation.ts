@@ -26,8 +26,10 @@ let socket: PartySocket | null = null;
 let tokenRefreshTimer: ReturnType<typeof setTimeout> | null = null;
 let chatRefreshTimer: ReturnType<typeof setTimeout> | null = null;
 let friendsRefreshTimer: ReturnType<typeof setTimeout> | null = null;
+let tokenFetchPausedUntil = 0;
 
 const TOKEN_REFRESH_MS = 14 * 60 * 1000;
+const TOKEN_FAILURE_BACKOFF_MS = 30 * 1000;
 const INVALIDATION_DEBOUNCE_MS = 200;
 
 const clearTimer = (timer: ReturnType<typeof setTimeout> | null): void => {
@@ -49,8 +51,19 @@ const getPublicRealtimeConfig = (): RealtimePublicConfig => {
 };
 
 const fetchRealtimeToken = async (): Promise<string> => {
-  const response = await $fetch<RealtimeTokenResponse>('/api/realtime/token', { method: 'POST' });
-  return response.token;
+  const now = Date.now();
+  if (tokenFetchPausedUntil > now) {
+    throw new Error('Realtime token fetch is temporarily paused after a failed attempt');
+  }
+
+  try {
+    const response = await $fetch<RealtimeTokenResponse>('/api/realtime/token', { method: 'POST' });
+    tokenFetchPausedUntil = 0;
+    return response.token;
+  } catch (error) {
+    tokenFetchPausedUntil = now + TOKEN_FAILURE_BACKOFF_MS;
+    throw error;
+  }
 };
 
 export const useRealtimeInvalidation = (options: RealtimeInvalidationOptions = {}) => {
@@ -148,6 +161,7 @@ export const useRealtimeInvalidation = (options: RealtimeInvalidationOptions = {
     tokenRefreshTimer = null;
     chatRefreshTimer = null;
     friendsRefreshTimer = null;
+    tokenFetchPausedUntil = 0;
 
     if (socket) {
       socket.close();
