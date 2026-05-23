@@ -80,7 +80,7 @@ export const bucketHabits = pgTable('bucket_habits', {
   bucketId: uuid('bucket_id').notNull().references(() => buckets.id, { onDelete: 'cascade' }),
   habitId: uuid('habit_id').notNull().references(() => habits.id, { onDelete: 'cascade' }),
   addedBy: uuid('added_by').references(() => users.id, { onDelete: 'cascade' }),
-  approvalStatus: text('approval_status').default('approved'),
+  approvalStatus: text('approval_status').default('accepted'),
 }, (table) => {
   return {
     pk: primaryKey({ columns: [table.bucketId, table.habitId] }),
