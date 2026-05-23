@@ -145,20 +145,25 @@
               <ChevronLeft class="w-6 h-6" />
             </button>
 
-            <div class="relative shrink-0">
-              <div class="w-9 h-9 rounded-full bg-zinc-900 border border-zinc-800 flex items-center justify-center font-bold text-xs uppercase text-zinc-300">
-                <img 
-                  v-if="activeFriend.photoUrl" 
-                  :src="activeFriend.photoUrl" 
-                  class="w-full h-full rounded-full object-cover"
-                  alt="Avatar"
-                />
-                <span v-else>{{ activeFriend.username.charAt(0) }}</span>
+            <div 
+              @click="navigateTo(`/friends/${activeFriend.id}?from=inbox`)"
+              class="flex items-center gap-3 cursor-pointer group"
+            >
+              <div class="relative shrink-0 transition-transform group-active:scale-95 group-hover:opacity-80">
+                <div class="w-9 h-9 rounded-full bg-zinc-900 border border-zinc-800 flex items-center justify-center font-bold text-xs uppercase text-zinc-300">
+                  <img 
+                    v-if="activeFriend.photoUrl" 
+                    :src="activeFriend.photoUrl" 
+                    class="w-full h-full rounded-full object-cover"
+                    alt="Avatar"
+                  />
+                  <span v-else>{{ activeFriend.username.charAt(0) }}</span>
+                </div>
               </div>
-            </div>
 
-            <div class="min-w-0">
-              <h2 class="text-sm font-bold text-white truncate leading-tight">{{ activeFriend.username }}</h2>
+              <div class="min-w-0">
+                <h2 class="text-sm font-bold text-white truncate leading-tight group-hover:text-zinc-300 transition-colors">{{ activeFriend.username }}</h2>
+              </div>
             </div>
           </div>
 
@@ -190,12 +195,13 @@
               class="flex items-end gap-2 group/msg max-w-[85%] md:max-w-[70%]"
               :class="msg.senderId === user?.id ? 'self-end flex-row-reverse' : 'self-start'"
             >
-              <!-- Avatar slot keeps grouped message rows aligned. -->
-              <div class="w-7 h-7 shrink-0">
+              <!-- Avatar slot keeps grouped message rows aligned, hidden for current user -->
+              <div v-if="msg.senderId !== user?.id" class="w-7 h-7 shrink-0">
                 <div
                   v-if="shouldShowMessageAvatar(msg, index)"
                   data-testid="message-avatar"
-                  class="w-7 h-7 rounded-full bg-zinc-900 border border-zinc-800 flex items-center justify-center text-[10px] font-black uppercase text-zinc-300 overflow-hidden shadow-sm"
+                  @click="navigateTo(`/friends/${msg.senderId}?from=inbox`)"
+                  class="w-7 h-7 rounded-full bg-zinc-900 border border-zinc-800 flex items-center justify-center text-[10px] font-black uppercase text-zinc-300 overflow-hidden shadow-sm cursor-pointer transition-transform active:scale-95 hover:opacity-80"
                 >
                   <img
                     v-if="getMessageAvatarUrl(msg)"

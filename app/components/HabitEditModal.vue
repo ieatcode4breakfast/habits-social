@@ -212,7 +212,10 @@
                         container-class="w-8 h-8 bg-zinc-925"
                         icon-class="w-4 h-4 text-zinc-600"
                       />
-                      <span class="text-sm font-semibold text-zinc-200 truncate flex-1 min-w-0 mr-4">{{ friend.username || 'Unknown' }}</span>
+                      <div class="flex items-center gap-1.5 flex-1 min-w-0 mr-4">
+                        <span class="text-sm font-semibold text-zinc-200 truncate">{{ friend.username || 'Unknown' }}</span>
+                        <Star v-if="friend.isFavorite" class="w-3 h-3 text-amber-400 fill-amber-400 shrink-0" />
+                      </div>
                     </div>
                     <div 
                       class="w-6 h-6 rounded-lg flex items-center justify-center transition-all"
@@ -301,7 +304,7 @@
 
 <script setup lang="ts">
 import { useModalHistory } from '~/composables/useModalHistory';
-import { Trash2, Check, X as XIcon, Minus, ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Flame, Palmtree } from 'lucide-vue-next';
+import { Trash2, Check, X as XIcon, Minus, ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Flame, Palmtree, Star } from 'lucide-vue-next';
 import { format, subDays, startOfMonth, endOfMonth, eachDayOfInterval, addDays, isAfter, startOfDay, subMonths, addMonths, parseISO, isBefore, isSameDay, isSameWeek, isSameMonth } from 'date-fns';
 import type { Habit, HabitLog } from '~/composables/useHabitsApi';
 import { getStreakTheme, isStreakFaded as isFaded, autoExpandTextarea as autoExpand, isMarkable } from '~/utils/ui';
@@ -434,6 +437,10 @@ const sortedFriendsForEdit = computed(() => {
     const bShared = sharedIds.has(b.id);
     if (aShared && !bShared) return -1;
     if (!aShared && bShared) return 1;
+    
+    if (a.isFavorite && !b.isFavorite) return -1;
+    if (!a.isFavorite && b.isFavorite) return 1;
+    
     return (a.username || '').localeCompare(b.username || '');
   });
 });

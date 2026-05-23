@@ -38,9 +38,16 @@ export const useSocial = () => {
       .filter(f => f.status === 'accepted')
       .map(f => {
         const friendId = f.participants.find(p => String(p) !== myId);
-        return profiles.value.find(p => String(p.id) === String(friendId));
+        const profile = profiles.value.find(p => String(p.id) === String(friendId));
+        if (profile) {
+          return {
+            ...profile,
+            isFavorite: String(f.initiatorId) === myId ? f.initiatorFavorite : f.receiverFavorite
+          };
+        }
+        return null;
       })
-      .filter((p): p is UserProfile => !!p);
+      .filter((p): p is UserProfile & { isFavorite?: boolean } => !!p);
   });
 
   const profilesMap = computed(() => {

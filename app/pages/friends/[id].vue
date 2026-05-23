@@ -16,7 +16,18 @@
               icon-class="w-6 h-6 text-zinc-600"
             />
             <div>
-              <h1 class="text-xl font-bold tracking-tight text-white mb-1">{{ profile.username }}</h1>
+              <div class="flex items-center gap-2 mb-1">
+                <h1 class="text-xl font-bold tracking-tight text-white">{{ profile.username }}</h1>
+                <button 
+                  v-if="relationshipStatus === 'friends'"
+                  @click="handleToggleFavorite"
+                  class="p-2 transition-all cursor-pointer rounded-xl -ml-1"
+                  :class="isFavorite ? 'text-amber-400 bg-amber-400/10' : 'text-zinc-600 hover:text-amber-400 hover:bg-amber-400/5'"
+                  title="Toggle Favorite"
+                >
+                  <Star class="w-4 h-4" :class="{ 'fill-amber-400': isFavorite }" />
+                </button>
+              </div>
               <p class="text-zinc-400 text-xs">{{ habits.length }} habit{{ habits.length === 1 ? '' : 's' }} shared with you</p>
             </div>
           </div>
@@ -240,7 +251,7 @@
 </template>
 
 <script setup lang="ts">
-import { ChevronLeft, User, Flame, X as XIcon, ChevronRight, Check, Minus, UserPlus, CheckSquare, Share2, UserMinus } from 'lucide-vue-next';
+import { ChevronLeft, User, Flame, X as XIcon, ChevronRight, Check, Minus, UserPlus, CheckSquare, Share2, UserMinus, Star } from 'lucide-vue-next';
 import { format, subDays, isToday, startOfMonth, endOfMonth, eachDayOfInterval, addMonths, subMonths, isAfter, startOfDay, addDays, isSameWeek, isSameMonth, getDaysInMonth, parseISO, startOfWeek } from 'date-fns';
 import type { Habit, HabitLog } from '~/composables/useHabitsApi';
 import { useSocial } from '~/composables/useSocial';
@@ -250,12 +261,25 @@ definePageMeta({ middleware: 'auth' });
 const route = useRoute();
 const friendId = route.params.id as string;
 
-const { friendships, refresh: refreshSocial } = useSocial();
+const { friendships, refresh: refreshSocial, toggleFavorite } = useSocial();
 const { user } = useAuth();
 
 const friendship = computed(() => {
   return friendships.value.find(f => f.participants.includes(friendId));
 });
+
+const isFavorite = computed(() => {
+  if (!user.value || !friendship.value) return false;
+  const myId = String(user.value.id);
+  return String(friendship.value.initiatorId) === myId 
+    ? friendship.value.initiatorFavorite 
+    : friendship.value.receiverFavorite;
+});
+
+const handleToggleFavorite = async () => {
+  if (!friendship.value) return;
+  await toggleFavorite(friendship.value.id, !isFavorite.value);
+};
 
 const backLink = computed(() => {
   const from = route.query.from as string;
