@@ -102,12 +102,10 @@ export default defineNuxtConfig({
     },
     storage: {
       authRateLimit: {
-        driver: (process.env.NODE_ENV === 'production' || process.env.KV_BINDING) ? 'cloudflare-kv-binding' : 'memory',
-        binding: 'AUTH_KV'
+        driver: 'memory'
       },
       chatRateLimit: {
-        driver: (process.env.NODE_ENV === 'production' || process.env.KV_BINDING) ? 'cloudflare-kv-binding' : 'memory',
-        binding: 'CHAT_KV'
+        driver: 'memory'
       }
     }
   },

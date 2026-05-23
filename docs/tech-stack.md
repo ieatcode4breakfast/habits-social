@@ -20,9 +20,7 @@ This document is the source of truth for the current application stack and the o
 - **Production Worker**: `habits-social-live`.
 - **Production Domains**: `habitssocial.com` and `www.habitssocial.com`.
 - **Static Assets**: served from `.output/public` through the Cloudflare Workers assets binding.
-- **Cloudflare KV Bindings**:
-  - `AUTH_KV`
-  - `CHAT_KV`
+
 - **Deployment Workflow**: GitHub Actions deploys on pushes to `staging` and `main`.
 
 ## 3. Database
