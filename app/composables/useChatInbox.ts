@@ -59,6 +59,45 @@ export const useChatInbox = () => {
     );
   };
 
+  const updateOptimisticPreview = (friendId: string, body: string, senderId: string, timestamp: Date | string): void => {
+    let found = false;
+    conversations.value = conversations.value.map((conv) => {
+      if (conv.user1Id === friendId || conv.user2Id === friendId) {
+        found = true;
+        return {
+          ...conv,
+          lastMessageBody: body,
+          lastMessageSenderId: senderId,
+          lastMessageAt: timestamp,
+          lastMessageDeletedAt: null,
+        };
+      }
+      return conv;
+    });
+
+    if (!found) {
+      conversations.value = [
+        {
+          id: `pending-${friendId}`,
+          lastMessageAt: timestamp,
+          lastMessageBody: body,
+          lastMessageDeletedAt: null,
+          lastMessageSenderId: senderId,
+          user1Id: user.value?.id || '',
+          user2Id: friendId,
+          unreadCount: 0,
+        },
+        ...conversations.value
+      ];
+    } else {
+      conversations.value.sort((a, b) => {
+        const timeA = a.lastMessageAt ? new Date(a.lastMessageAt).getTime() : 0;
+        const timeB = b.lastMessageAt ? new Date(b.lastMessageAt).getTime() : 0;
+        return timeB - timeA;
+      });
+    }
+  };
+
   const logoutCleanup = (): void => {
     isInitialized = false;
     conversations.value = [];
@@ -72,6 +111,7 @@ export const useChatInbox = () => {
     refresh,
     init,
     markConversationReadLocally,
+    updateOptimisticPreview,
     logoutCleanup,
   };
 };

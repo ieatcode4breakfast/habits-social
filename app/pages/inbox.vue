@@ -407,7 +407,8 @@ const {
   conversations,
   isLoading: conversationsLoading,
   refresh: refreshChatInbox,
-  markConversationReadLocally
+  markConversationReadLocally,
+  updateOptimisticPreview
 } = useChatInbox();
 
 interface InboxMessage {
@@ -697,6 +698,7 @@ const sendMessage = async () => {
   };
 
   messages.value = [optimisticMessage, ...messages.value];
+  updateOptimisticPreview(targetFriendId, text, user.value.id, optimisticMessage.createdAt);
   messageBody.value = '';
   await nextTick();
   syncMessageTextareaHeight();
@@ -727,6 +729,7 @@ const sendMessage = async () => {
     await loadConversations(true);
   } catch (error: unknown) {
     messages.value = messages.value.filter(message => message.id !== optimisticMessageId);
+    await loadConversations(true);
     if (activeFriend.value?.id === targetFriendId && messageBody.value.trim().length === 0) {
       messageBody.value = text;
       await nextTick();
