@@ -1,5 +1,5 @@
 import { sql } from 'drizzle-orm';
-import { pgTable, text, timestamp, integer, uuid, boolean, date, index, primaryKey, uniqueIndex } from 'drizzle-orm/pg-core';
+import { pgTable, text, timestamp, integer, uuid, boolean, date, index, primaryKey, uniqueIndex, jsonb } from 'drizzle-orm/pg-core';
 
 export const users = pgTable('users', {
   id: uuid('id').primaryKey(),
@@ -193,6 +193,7 @@ export const chatMessages = pgTable('chat_messages', {
   conversationId: uuid('conversation_id').notNull().references(() => chatConversations.id, { onDelete: 'cascade' }),
   senderId: uuid('sender_id').references(() => users.id, { onDelete: 'set null' }),
   body: text('body').notNull(),
+  replyToActivity: jsonb('reply_to_activity'),
   deletedAt: timestamp('deleted_at', { withTimezone: true, mode: 'date' }),
   createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' }).defaultNow(),
 }, (table) => {

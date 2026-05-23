@@ -10,6 +10,7 @@ import type {
 } from '../types/chat';
 import * as realtimeNotifier from '../utils/realtimeNotifier';
 import { createError } from 'h3';
+import type { FeedItem } from './social-narrator.service';
 
 const getErrorCode = (error: unknown): string => {
   if (!error || typeof error !== 'object') return '';
@@ -176,8 +177,26 @@ export class ChatService {
    * Sends a message in a conversation.
    * Updates lastMessageAt and enforces active friendship.
    */
-  static async sendMessage(db: DBConnection, senderId: string, conversationId: string, body: string): Promise<ChatMessage> {
+  static async sendMessage(
+    db: DBConnection,
+    senderId: string,
+    conversationId: string,
+    body: string,
+    replyToActivity?: FeedItem
+  ): Promise<ChatMessage> {
     const conversation = await this.verifyAccess(db, senderId, conversationId, 'write');
+
+    if (replyToActivity) {
+      const otherParticipantId = conversation.user1Id === senderId ? conversation.user2Id : conversation.user1Id;
+      const allowedIds = [senderId, otherParticipantId].filter((id): id is string => typeof id === 'string');
+      
+      if (!allowedIds.includes(replyToActivity.user.id)) {
+        throw createError({
+          statusCode: 400,
+          statusMessage: 'Invalid activity owner in visual card context'
+        });
+      }
+    }
 
     const message = await db.transaction(async (tx) => {
       // Insert message
@@ -187,6 +206,7 @@ export class ChatService {
           conversationId,
           senderId,
           body,
+          replyToActivity: replyToActivity || null,
           createdAt: sql`now()`
         })
         .returning();

@@ -137,8 +137,38 @@ export const bucketReorderSchema = z.object({
   ids: zStandardArray(zId).min(1).max(50)
 });
 
+export const feedItemSchema = z.object({
+  id: z.string(),
+  type: z.string(),
+  user: z.object({
+    id: z.string().uuid(),
+    name: z.string(),
+    photoUrl: z.string().url().or(z.literal('')).nullable().optional().default(null)
+  }),
+  habit: z.object({
+    id: z.string().nullable().optional().default(null),
+    title: z.string()
+  }),
+  habits: z.array(z.object({
+    id: z.string().nullable().optional().default(null),
+    title: z.string()
+  })).optional(),
+  message: z.string(),
+  date: z.string(),
+  timestamp: z.preprocess((arg) => {
+    if (typeof arg === 'string') return new Date(arg);
+    return arg;
+  }, z.date()),
+  weeklyStatus: z.array(z.object({
+    date: z.string(),
+    status: z.string().nullable().optional().transform(v => v === null ? undefined : v)
+  })).optional(),
+  streakCount: z.number().int().optional()
+});
+
 export const chatMessageSchema = z.object({
-  body: z.string().min(1).max(1000).refine(s => s.trim().length > 0, { message: "Message cannot be empty or only whitespace" })
+  body: z.string().min(1).max(1000).refine(s => s.trim().length > 0, { message: "Message cannot be empty or only whitespace" }),
+  replyToActivity: feedItemSchema.optional()
 }).strict();
 
 export const conversationIdSchema = zId;

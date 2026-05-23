@@ -267,3 +267,9 @@ Habit-log updates currently trigger the full sync path, which pushes local chang
 - We are intentionally not switching habit-log updates to push-only at this time. Push-only would reduce visible flicker, but it could hide failed or stale same-row writes until a later pull, making the user believe a local edit synced when the server still has the previous value.
 - **DO NOT FLAG** this behavior as a required fix unless product direction changes toward fully stable optimistic UI over immediate server-confirmation feedback.
 
+### 9. Chat Message Delete Visibility Window (By Design)
+The 5-minute message delete icon visibility rule is intentionally enforced only in the frontend.
+- Messages can be deleted by their sender through the backend tombstone endpoint regardless of age.
+- The frontend only shows the inline delete icon for recently sent messages because the age threshold is a UX affordance, not an authorization boundary.
+- **DO NOT FLAG** the absence of backend 5-minute enforcement as a security issue unless product direction changes and the age window becomes a true access-control requirement.
+

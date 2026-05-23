@@ -21,7 +21,7 @@ export default defineEventHandler(async (event) => {
   try {
     const conv = await ChatService.getOrCreateConversationForFriend(db, userId, friendIdValidation.data);
     if (!conv) throw new Error('Could not create conversation');
-    return await ChatService.sendMessage(db, userId, conv.id, bodyValidation.data.body);
+    return await ChatService.sendMessage(db, userId, conv.id, bodyValidation.data.body, bodyValidation.data.replyToActivity);
   } catch (error: any) {
     throw createError({
       statusCode: error.statusCode === 429 ? 429 : 403,

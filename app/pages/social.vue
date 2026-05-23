@@ -102,6 +102,20 @@
                 :weeklyStatus="item.weeklyStatus"
               />
 
+              <!-- Row 3: Action Bar (Subtle Chat Reply Button) -->
+              <div 
+                v-if="String(item.user.id) !== String(user?.id)" 
+                class="flex items-center justify-end w-full"
+              >
+                <button
+                  @click.stop="replyToActivity(item)"
+                  class="p-1 text-zinc-500 hover:text-zinc-300 transition-all active:scale-95 cursor-pointer flex items-center justify-center"
+                  title="Reply privately"
+                >
+                  <MessageCircle class="w-5 h-5 text-zinc-500 hover:text-zinc-300" />
+                </button>
+              </div>
+
 
             </div>
           </div>
@@ -330,7 +344,7 @@
 
 <script setup lang="ts">
 defineOptions({ name: 'index' });
-import { Search, UserPlus, UserMinus, Check, X as XIcon, User, Trash2, ChevronDown, CheckSquare, Activity, Star, ChevronLeft, ChevronRight, Flame, Minus, Palmtree } from 'lucide-vue-next';
+import { Search, UserPlus, UserMinus, Check, X as XIcon, User, Trash2, ChevronDown, CheckSquare, Activity, Star, ChevronLeft, ChevronRight, Flame, Minus, Palmtree, MessageCircle } from 'lucide-vue-next';
 import { format, parseISO, isToday, addDays, startOfMonth, endOfMonth, eachDayOfInterval, subDays, isAfter, startOfDay, subMonths, addMonths } from 'date-fns';
 import { useSocial } from '../composables/useSocial';
 import { useToast } from '../composables/useToast';
@@ -535,6 +549,13 @@ const handleMessageClick = (event: MouseEvent) => {
       navigateTo(`/friends/${userId}?from=${activeTab.value}`);
     }
   }
+};
+
+const replyToActivity = (item: any) => {
+  const replyContext = useState<any>('chat-reply-activity-context');
+  // Copy visual feed item state
+  replyContext.value = item;
+  navigateTo(`/inbox?replyToFriend=${item.user.id}`);
 };
 
 const groupedFeed = computed<Record<string, any[]>>(() => {

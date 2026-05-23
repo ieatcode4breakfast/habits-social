@@ -192,8 +192,15 @@
             <div 
               v-for="(msg, index) in messages" 
               :key="msg.id"
-              class="flex items-end gap-2 group/msg max-w-[85%] md:max-w-[70%]"
-              :class="msg.senderId === user?.id ? 'self-end flex-row-reverse' : 'self-start'"
+              class="flex items-end gap-2 group/msg relative"
+              :class="[
+                msg.replyToActivity 
+                  ? 'w-full max-w-full self-stretch' 
+                  : 'max-w-[85%] md:max-w-[70%]',
+                msg.senderId === user?.id 
+                  ? (msg.replyToActivity ? 'flex-row-reverse pl-0 pr-0' : 'self-end flex-row-reverse')
+                  : (msg.replyToActivity ? 'pr-0 pl-0' : 'self-start')
+              ]"
             >
               <!-- Avatar slot keeps grouped message rows aligned, hidden for current user -->
               <div v-if="msg.senderId !== user?.id" class="w-7 h-7 shrink-0">
@@ -215,35 +222,117 @@
 
               <!-- Message Bubble -->
               <div 
-                class="rounded-2xl px-3.5 py-2.5 text-sm shadow-md relative break-words select-text font-normal leading-relaxed"
+                class="rounded-2xl text-sm shadow-md relative break-words select-text font-normal leading-relaxed"
                 :class="[
                   msg.senderId === user?.id
-                    ? 'bg-zinc-100 text-zinc-950 rounded-br-sm'
-                    : 'bg-zinc-900 border border-zinc-800/80 text-zinc-100 rounded-bl-sm'
+                    ? 'bg-zinc-100 text-zinc-950'
+                    : 'bg-zinc-900 border border-zinc-800/80 text-zinc-100',
+                  msg.senderId === user?.id ? 'rounded-br-sm' : 'rounded-bl-sm',
+                  msg.replyToActivity ? 'p-1 w-full flex-1 min-w-[280px] sm:min-w-[320px] flex flex-col' : 'px-3.5 py-2.5 min-w-[50px]'
                 ]"
               >
-                <!-- Tombstone Deleted State -->
-                <span v-if="msg.deletedAt" class="text-zinc-500 italic select-none">This message was deleted.</span>
-                <span v-else class="whitespace-pre-wrap">{{ msg.body }}</span>
-                
-                <!-- Message Timestamp inside bubble -->
-                <span 
-                  class="block text-[10px] mt-1 text-right select-none font-bold tracking-tight shrink-0"
-                  :class="msg.senderId === user?.id ? 'text-zinc-600' : 'text-zinc-500'"
+                <!-- Visual Activity Reply Card (Embedded permanently inside message with permanent dark background) -->
+                <div 
+                  v-if="msg.replyToActivity" 
+                  class="p-3 rounded-xl border border-zinc-800 bg-zinc-950 text-zinc-100 flex flex-col gap-2 select-none w-full"
                 >
-                  {{ formatTime(msg.createdAt) }}
-                </span>
+                  <!-- Card Header: User Avatar + Name + Action Message -->
+                  <div class="flex items-center gap-2 w-full">
+                    <UserAvatar 
+                      :src="msg.replyToActivity.user.photoUrl" 
+                      container-class="w-6 h-6 bg-zinc-900 border border-zinc-805"
+                      icon-class="w-3 h-3 text-zinc-700"
+                    />
+                    <div class="text-[11px] leading-tight min-w-0 break-words text-zinc-300 flex-1">
+                      <span class="font-black text-white mr-1">
+                        {{ msg.replyToActivity.user.name }}
+                      </span>
+                      <span class="text-zinc-500" v-html="formatMessageInline(msg.replyToActivity.message)"></span>
+                    </div>
+                  </div>
+
+                  <!-- Card Body: Weekly status grid if available (Takes up whole width naturally) -->
+                  <HabitLogVisualizer 
+                    v-if="msg.replyToActivity.weeklyStatus"
+                    :title="msg.replyToActivity.habit.title"
+                    :streakCount="msg.replyToActivity.streakCount"
+                    :weeklyStatus="msg.replyToActivity.weeklyStatus"
+                    compact
+                  />
+                </div>
+
+                <div
+                  v-if="msg.replyToActivity"
+                  class="w-fit max-w-[85%] md:max-w-[70%] flex flex-col"
+                  :class="msg.senderId === user?.id ? 'self-end' : 'self-start'"
+                >
+                  <!-- Tombstone Deleted State / Message Body -->
+                  <div 
+                    v-if="msg.deletedAt" 
+                    class="text-zinc-500 italic select-none px-2.5 pt-2 pb-1"
+                  >
+                    This message was deleted.
+                  </div>
+                  <div 
+                    v-else 
+                    class="whitespace-pre-wrap px-2.5 pt-2 pb-1"
+                  >
+                    {{ msg.body }}
+                  </div>
+                  
+                  <!-- Message Actions inside bubble -->
+                  <div class="flex items-center justify-end gap-1 px-2.5 pb-1">
+                    <span 
+                      class="block text-[10px] select-none font-bold tracking-tight shrink-0"
+                      :class="msg.senderId === user?.id ? 'text-zinc-600' : 'text-zinc-500'"
+                    >
+                      {{ formatTime(msg.createdAt) }}
+                    </span>
+                    <button
+                      v-if="canQuickDeleteMessage(msg)"
+                      @click.stop="requestDeleteMessage(msg)"
+                      class="p-0.5 -mr-0.5 text-zinc-500 hover:text-rose-500 transition-colors cursor-pointer rounded"
+                      title="Delete message"
+                    >
+                      <Trash2 class="w-3 h-3" />
+                    </button>
+                  </div>
+                </div>
+                <template v-else>
+                  <!-- Tombstone Deleted State / Message Body -->
+                  <div 
+                    v-if="msg.deletedAt" 
+                    class="text-zinc-500 italic select-none"
+                  >
+                    This message was deleted.
+                  </div>
+                  <div 
+                    v-else 
+                    class="whitespace-pre-wrap"
+                  >
+                    {{ msg.body }}
+                  </div>
+                  
+                  <!-- Message Actions inside bubble -->
+                  <div class="flex items-center justify-end gap-1 mt-1">
+                    <span 
+                      class="block text-[10px] select-none font-bold tracking-tight shrink-0"
+                      :class="msg.senderId === user?.id ? 'text-zinc-600' : 'text-zinc-500'"
+                    >
+                      {{ formatTime(msg.createdAt) }}
+                    </span>
+                    <button
+                      v-if="canQuickDeleteMessage(msg)"
+                      @click.stop="requestDeleteMessage(msg)"
+                      class="p-0.5 -mr-0.5 text-zinc-500 hover:text-rose-500 transition-colors cursor-pointer rounded"
+                      title="Delete message"
+                    >
+                      <Trash2 class="w-3 h-3" />
+                    </button>
+                  </div>
+                </template>
               </div>
 
-              <!-- Delete Button (Only own messages & not deleted already) -->
-              <button 
-                v-if="msg.senderId === user?.id && !msg.deletedAt && !msg.isOptimistic"
-                @click="confirmDeleteMessage(msg.id)"
-                class="opacity-0 group-hover/msg:opacity-100 transition-opacity p-1.5 hover:bg-zinc-850 rounded-lg text-zinc-500 hover:text-rose-500 cursor-pointer duration-200 shrink-0 self-center"
-                title="Delete Message"
-              >
-                <Trash2 class="w-3.5 h-3.5" />
-              </button>
             </div>
 
             <!-- Pagination Indicator: Load More -->
@@ -261,7 +350,45 @@
         </div>
 
         <!-- Input Send Panel -->
-        <div class="z-40 p-2 bg-black md:bg-black shrink-0">
+        <div class="z-40 p-2 bg-black md:bg-black shrink-0 flex flex-col gap-2">
+          <!-- Static Reply Context Card Preview (IG Story style) -->
+          <div 
+            v-if="replyActivityContext" 
+            class="bg-zinc-925 border border-zinc-800 rounded-xl p-3 flex flex-col gap-2 shadow-xl relative select-none"
+          >
+            <!-- Close Button -->
+            <button 
+              @click="clearReplyContext"
+              class="absolute top-2 right-2 p-1 hover:bg-zinc-800 rounded-lg text-zinc-400 hover:text-white transition-colors cursor-pointer"
+              title="Cancel reply"
+            >
+              <X class="w-3.5 h-3.5" />
+            </button>
+
+            <!-- Card Header: User Avatar + Name + Action Message -->
+            <div class="flex items-center gap-2 pr-6">
+              <UserAvatar 
+                :src="replyActivityContext.user.photoUrl" 
+                container-class="w-6 h-6 bg-zinc-950 border border-zinc-800"
+                icon-class="w-3 h-3 text-zinc-700"
+              />
+              <div class="text-[11px] leading-tight min-w-0 truncate text-zinc-300">
+                <span class="font-black text-white mr-1">{{ replyActivityContext.user.name }}</span>
+                <span v-html="formatMessageInline(replyActivityContext.message)"></span>
+              </div>
+            </div>
+
+            <!-- Card Body: Weekly status grid if available -->
+            <HabitLogVisualizer 
+              v-if="replyActivityContext.weeklyStatus"
+              :title="replyActivityContext.habit.title"
+              :streakCount="replyActivityContext.streakCount"
+              :weeklyStatus="replyActivityContext.weeklyStatus"
+              compact
+              class="scale-90 origin-left"
+            />
+          </div>
+
           <div class="flex items-end gap-2 bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 focus-within:border-zinc-700 transition-colors shadow-inner relative">
             <textarea
               ref="messageTextareaRef"
@@ -437,6 +564,58 @@
         </div>
       </Transition>
     </Teleport>
+
+    <!-- Delete Message Confirmation Modal -->
+    <Teleport to="body">
+      <Transition
+        enter-active-class="transition duration-300 ease-out"
+        enter-from-class="opacity-0 scale-95"
+        enter-to-class="opacity-100 scale-100"
+        leave-active-class="transition duration-200 ease-in"
+        leave-from-class="opacity-100 scale-100"
+        leave-to-class="opacity-0 scale-95"
+      >
+        <div v-if="messagePendingDelete" class="fixed inset-0 z-[150] flex flex-col items-center justify-start overflow-y-auto p-4 sm:py-8">
+          <div class="fixed inset-0 bg-black/80 backdrop-blur-md touch-none" @click="messagePendingDelete = null"></div>
+          
+          <div class="relative my-auto w-full max-w-sm bg-zinc-925 border border-zinc-800 rounded-3xl shadow-2xl p-8 text-center select-none">
+            <div class="w-16 h-16 bg-zinc-900 border border-zinc-800/50 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Trash2 class="w-8 h-8 text-zinc-400" />
+            </div>
+            
+            <h2 class="text-xl font-bold text-white mb-2">Delete Message?</h2>
+            
+            <p class="text-zinc-500 mb-8 text-sm">
+              This deletes the message for both you and your friend. Once deleted, it cannot be undone.
+            </p>
+            
+            <div class="flex gap-3 mt-2">
+              <button 
+                @click="messagePendingDelete = null"
+                class="flex-1 px-5 py-3 bg-transparent hover:bg-zinc-900 text-zinc-400 hover:text-zinc-200 font-semibold rounded-xl transition-all cursor-pointer whitespace-nowrap"
+                :disabled="isDeletingMessage"
+              >
+                Cancel
+              </button>
+              <button 
+                @click="deletePendingMessage"
+                class="flex-1 px-5 py-3 bg-rose-500 hover:bg-rose-600 text-white font-semibold rounded-xl transition-all shadow-lg shadow-rose-500/20 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer whitespace-nowrap"
+                :disabled="isDeletingMessage"
+              >
+                <template v-if="isDeletingMessage">
+                  <div class="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>
+                  Deleting...
+                </template>
+                <template v-else>
+                  Delete
+                </template>
+              </button>
+            </div>
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
+
   </div>
 </template>
 
@@ -474,11 +653,28 @@ const {
   updateOptimisticPreview
 } = useChatInbox();
 
+const replyActivityContext = useState<any>('chat-reply-activity-context', () => null);
+const MESSAGE_QUICK_DELETE_MS = 5 * 60 * 1000;
+
+const clearReplyContext = () => {
+  replyActivityContext.value = null;
+};
+
+const formatMessageInline = (msg: string) => {
+  if (!msg) return '';
+  return msg
+    .replace(/\[H\](.*?)\[\/H\]/g, '<strong class="font-bold">$1</strong>')
+    .replace(/\[U:(.*?)\](.*?)\[\/U\]/g, '<span class="font-bold">$2</span>')
+    .replace(/\[U\](.*?)\[\/U\]/g, '<strong class="font-bold">$1</strong>')
+    .replace(/\[S:(\d+)(?::(broken))?\](.*?)\[\/S\]/g, '<strong class="font-bold">$3</strong>');
+};
+
 interface InboxMessage {
   id: string;
   conversationId: string;
   senderId: string | null;
   body: string;
+  replyToActivity?: any;
   deletedAt: string | Date | null;
   createdAt: string | Date;
   isOptimistic?: boolean;
@@ -520,6 +716,8 @@ const showClearChatModal = ref(false);
 const isMobile = ref(false);
 const viewportReady = ref(false);
 const isClearingChat = ref(false);
+const messagePendingDelete = ref<InboxMessage | null>(null);
+const isDeletingMessage = ref(false);
 
 const filteredFriends = computed(() => {
   if (!friendSearchQuery.value.trim()) return friends.value;
@@ -751,12 +949,14 @@ const sendMessage = async () => {
   
   const text = messageBody.value.trim();
   const targetFriendId = activeFriend.value.id;
+  const replyToActivity = replyActivityContext.value ? { ...replyActivityContext.value } : null;
   const optimisticMessageId = createOptimisticMessageId();
   const optimisticMessage: InboxMessage = {
     id: optimisticMessageId,
     conversationId: activeConversationId.value || `pending-${targetFriendId}`,
     senderId: user.value.id,
     body: text,
+    replyToActivity,
     deletedAt: null,
     createdAt: new Date().toISOString(),
     isOptimistic: true
@@ -765,6 +965,7 @@ const sendMessage = async () => {
   messages.value = [optimisticMessage, ...messages.value];
   updateOptimisticPreview(targetFriendId, text, user.value.id, optimisticMessage.createdAt);
   messageBody.value = '';
+  clearReplyContext();
   await nextTick();
   syncMessageTextareaHeight();
   scrollToBottom();
@@ -772,7 +973,10 @@ const sendMessage = async () => {
   try {
     const response = await $fetch<InboxMessage>(`/api/chat/conversations/by-friend/${targetFriendId}/messages`, {
       method: 'POST',
-      body: { body: text }
+      body: { 
+        body: text,
+        replyToActivity: replyToActivity || undefined
+      }
     });
 
     const optimisticIndex = messages.value.findIndex(message => message.id === optimisticMessageId);
@@ -799,6 +1003,9 @@ const sendMessage = async () => {
       messageBody.value = text;
       await nextTick();
       syncMessageTextareaHeight();
+    }
+    if (!replyActivityContext.value && replyToActivity) {
+      replyActivityContext.value = replyToActivity;
     }
 
     console.error('[Inbox] Failed to send message:', error);
@@ -830,8 +1037,34 @@ const clearChat = async () => {
   }
 };
 
+const isWithinQuickDeleteWindow = (msg: InboxMessage): boolean => {
+  const createdAt = new Date(msg.createdAt).getTime();
+  if (!Number.isFinite(createdAt)) return false;
+  return Date.now() - createdAt < MESSAGE_QUICK_DELETE_MS;
+};
+
+const canQuickDeleteMessage = (msg: InboxMessage): boolean => {
+  return msg.senderId === user.value?.id && !msg.deletedAt && !msg.isOptimistic && isWithinQuickDeleteWindow(msg);
+};
+
+const requestDeleteMessage = async (msg: InboxMessage) => {
+  if (!canQuickDeleteMessage(msg)) return;
+  messagePendingDelete.value = msg;
+};
+
+const deletePendingMessage = async () => {
+  if (!messagePendingDelete.value || isDeletingMessage.value) return;
+
+  isDeletingMessage.value = true;
+  const deleted = await confirmDeleteMessage(messagePendingDelete.value.id);
+  if (deleted) {
+    messagePendingDelete.value = null;
+  }
+  isDeletingMessage.value = false;
+};
+
 // Delete a specific message
-const confirmDeleteMessage = async (messageId: string) => {
+const confirmDeleteMessage = async (messageId: string): Promise<boolean> => {
   try {
     await $fetch(`/api/chat/messages/${messageId}`, { method: 'DELETE' });
     
@@ -846,9 +1079,11 @@ const confirmDeleteMessage = async (messageId: string) => {
       };
     }
     showToast('Message deleted', 'completed');
+    return true;
   } catch (error: unknown) {
     console.error('[Inbox] Failed to delete message:', error);
     showToast('Failed to delete message', 'failed');
+    return false;
   }
 };
 
@@ -909,6 +1144,19 @@ onMounted(async () => {
   initSocial();
   
   await loadConversations();
+
+  // Transition into private chat when replying from the activity feed
+  const route = useRoute();
+  const queryFriendId = route.query.replyToFriend as string;
+  if (queryFriendId) {
+    if (friends.value.length === 0) {
+      await refreshSocial();
+    }
+    const targetFriend = friends.value.find(f => f.id === queryFriendId);
+    if (targetFriend) {
+      await selectFriend(targetFriend);
+    }
+  }
 });
 
 onUnmounted(() => {

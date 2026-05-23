@@ -1,9 +1,12 @@
 <template>
-  <div class="w-full flex flex-col items-stretch sm:flex-row sm:items-center sm:justify-between gap-x-4 gap-y-2 bg-zinc-900/50 rounded-xl p-3 mt-1">
+  <div
+    class="w-full flex flex-col items-stretch gap-x-4 gap-y-2 bg-zinc-900/50 rounded-xl p-3 mt-1"
+    :class="compact ? 'lg:flex-row lg:items-center lg:justify-between' : 'sm:flex-row sm:items-center sm:justify-between'"
+  >
     <!-- Left: Title & Streak & Frequency -->
-    <div class="flex flex-col gap-1">
-      <div class="flex items-center gap-2 flex-wrap sm:flex-nowrap">
-        <h3 class="text-sm font-bold text-zinc-200 leading-tight break-all group-hover:text-white transition-colors">
+    <div class="flex flex-col gap-1 flex-1 min-w-0">
+      <div class="flex items-center gap-2 flex-nowrap min-w-0">
+        <h3 class="text-sm font-bold text-zinc-200 leading-tight truncate min-w-0 group-hover:text-white transition-colors">
           {{ title }}
         </h3>
         <!-- Streak Badge -->
@@ -21,7 +24,10 @@
     </div>
 
     <!-- Right: Custom Grid -->
-    <div class="w-full sm:w-[320px] lg:w-[400px] shrink-0">
+    <div 
+      class="w-full shrink-0"
+      :class="compact ? 'lg:w-[320px]' : 'sm:w-[320px] lg:w-[400px]'"
+    >
       <div class="flex items-center w-full">
         <div v-for="(day, index) in weeklyStatus" :key="day.date" class="flex-1 flex flex-col items-center gap-1">
           <!-- Day Name (TUE) -->
@@ -68,6 +74,7 @@ import { format, parseISO } from 'date-fns';
 defineProps<{
   title: string;
   streakCount?: number;
+  compact?: boolean;
 
   weeklyStatus: { date: string, status: string | undefined }[];
 }>();

@@ -53,6 +53,73 @@ describe('Chat Validation', () => {
     });
   });
 
+  describe('replyToActivity Validation', () => {
+    const validFeedItem = {
+      id: 'activity-123',
+      type: 'INITIAL_COMPLETION',
+      user: {
+        id: '550e8400-e29b-41d4-a716-446655440000',
+        name: 'John Doe',
+        photoUrl: 'https://example.com/photo.jpg'
+      },
+      habit: {
+        id: '550e8400-e29b-41d4-a716-446655440001',
+        title: 'Drink Water'
+      },
+      message: 'completed Drink Water for May 23.',
+      date: '2026-05-23',
+      timestamp: '2026-05-23T12:00:00.000Z',
+      streakCount: 5,
+      weeklyStatus: [
+        { date: '2026-05-22', status: 'completed' },
+        { date: '2026-05-23', status: 'completed' }
+      ]
+    };
+
+    it('should accept valid replyToActivity objects', () => {
+      const inputPayload = {
+        body: 'Hype!',
+        replyToActivity: validFeedItem
+      };
+      const expectedPayload = {
+        body: 'Hype!',
+        replyToActivity: {
+          ...validFeedItem,
+          timestamp: new Date(validFeedItem.timestamp)
+        }
+      };
+      expect(chatMessageSchema.parse(inputPayload)).toEqual(expectedPayload);
+    });
+
+    it('should accept messages with no replyToActivity', () => {
+      const payload = { body: 'Hype!' };
+      expect(chatMessageSchema.parse(payload)).toEqual(payload);
+    });
+
+    it('should reject replyToActivity with missing required fields', () => {
+      const invalidFeedItems = [
+        { ...validFeedItem, id: undefined },
+        { ...validFeedItem, type: undefined },
+        { ...validFeedItem, user: undefined },
+        { ...validFeedItem, habit: undefined },
+        { ...validFeedItem, message: undefined },
+        { ...validFeedItem, date: undefined },
+        { ...validFeedItem, timestamp: undefined }
+      ];
+      invalidFeedItems.forEach(card => {
+        expect(() => chatMessageSchema.parse({ body: 'Hi', replyToActivity: card })).toThrow();
+      });
+    });
+
+    it('should reject malformed uuid in replyToActivity user', () => {
+      const card = {
+        ...validFeedItem,
+        user: { ...validFeedItem.user, id: 'invalid-uuid' }
+      };
+      expect(() => chatMessageSchema.parse({ body: 'Hi', replyToActivity: card })).toThrow();
+    });
+  });
+
   describe('ID Validation', () => {
     const validUuid = '550e8400-e29b-41d4-a716-446655440000';
     const invalidIds = ['', 'not-a-uuid', 123, null];
