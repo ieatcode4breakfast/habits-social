@@ -86,7 +86,6 @@ export default defineNuxtConfig({
       'api/v2/_types/**',
     ],
     routeRules: {
-      '/social': { redirect: '/' },
       '/_nuxt/**': { headers: { 'Cache-Control': 'public, max-age=31536000, immutable' } },
       '/**': { 
         headers: { 

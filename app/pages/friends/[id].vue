@@ -259,8 +259,8 @@ const friendship = computed(() => {
 
 const backLink = computed(() => {
   const from = route.query.from as string;
-  if (from) return `/?tab=${from}`;
-  return '/?tab=friends';
+  if (from) return `/social?tab=${from}`;
+  return '/social?tab=friends';
 });
 
 const router = useRouter();
@@ -369,7 +369,7 @@ const executeUnfriend = async () => {
   await $fetch(`/api/friendships/${friendship.value.id}`, { method: 'DELETE' });
   await refreshSocial();
   showUnfriendModal.value = false;
-  navigateTo('/?tab=friends');
+  navigateTo('/social?tab=friends');
 };
 
 const executeCancelRequest = async () => {

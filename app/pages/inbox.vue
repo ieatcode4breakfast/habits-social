@@ -343,7 +343,7 @@
 
             <div class="flex-1 overflow-y-auto p-2 space-y-1">
               <div v-if="friends.length === 0" class="py-12 text-center text-zinc-500 italic text-sm">
-                No active friends yet. Invite them in the Activity section!
+                No active friends yet. Invite them in the Social section!
               </div>
               <div v-else-if="filteredFriends.length === 0" class="py-12 text-center text-zinc-500 italic text-sm">
                 No friends found matching your filter.

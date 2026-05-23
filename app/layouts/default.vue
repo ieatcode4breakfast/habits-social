@@ -2,11 +2,11 @@
   <div class="min-h-[100dvh] text-zinc-100 flex flex-col transition-colors duration-300">
     <header 
       class="sticky top-0 z-50 h-[57px] bg-nav-bg border-b border-white/10"
-      :class="{ 'hidden md:block': $route.path !== '/' }"
+      :class="{ 'hidden md:block': $route.path !== '/social' }"
     >
       <div class="h-full max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between">
         <div class="flex items-center gap-2">
-          <NuxtLink to="/" class="flex items-center gap-2 group">
+          <NuxtLink to="/social" class="flex items-center gap-2 group">
             <div class="w-8 h-8 rounded-full bg-transparent flex items-center justify-center shadow-md shadow-white/10 group-hover:shadow-white/20 transition-shadow overflow-hidden">
               <img src="/icons/icon-192.png" class="w-full h-full object-cover scale-[1.35] transform-gpu" alt="Logo" />
             </div>
@@ -17,8 +17,8 @@
 
           <template v-if="user">
             <nav class="hidden md:flex items-center gap-1 ml-2">
-              <NuxtLink to="/" class="nav-link flex items-center gap-2" :class="{ 'nav-link-active': $route.path === '/' }">
-                Activity
+              <NuxtLink to="/social" class="nav-link flex items-center gap-2" :class="{ 'nav-link-active': $route.path === '/social' }">
+                Social
                 <span v-if="pendingCount > 0" class="flex w-2 h-2 bg-rose-500 rounded-full"></span>
               </NuxtLink>
               <NuxtLink to="/inbox" class="nav-link flex items-center gap-2" :class="{ 'nav-link-active': $route.path === '/inbox' }">
@@ -59,8 +59,8 @@
     <!-- Mobile Bottom Navigation -->
     <nav v-if="user" class="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-nav-bg border-t border-white/5 px-6 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))]">
       <div class="flex items-center justify-around">
-        <NuxtLink to="/" class="flex items-center group transition-colors relative" :class="$route.path === '/' ? 'text-white' : 'text-zinc-500'">
-          <div class="p-2 rounded-xl transition-all duration-300" :class="$route.path === '/' ? 'bg-white/10 scale-110' : 'group-hover:bg-white/5'">
+        <NuxtLink to="/social" class="flex items-center group transition-colors relative" :class="$route.path === '/social' ? 'text-white' : 'text-zinc-500'">
+          <div class="p-2 rounded-xl transition-all duration-300" :class="$route.path === '/social' ? 'bg-white/10 scale-110' : 'group-hover:bg-white/5'">
             <Users class="w-6 h-6" />
           </div>
           <!-- Badge -->

@@ -205,7 +205,7 @@ const handleSubmit = async () => {
     showToast(tab.value === 'login' ? 'Logged in successfully!' : 'Account created successfully!');
     
     // Brief delay for signup success feedback if needed, then navigate
-    await navigateTo('/', { replace: true });
+    await navigateTo('/social', { replace: true });
     }
   } catch (e: any) {
     error.value = e?.data?.statusMessage || e?.statusMessage || 'Something went wrong.';
