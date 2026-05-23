@@ -70,4 +70,14 @@ describe('LogMenu', () => {
 
     wrapper.unmount();
   });
+
+  it('renders circular status buttons', async () => {
+    const wrapper = await mountOpenLogMenu();
+    const rendered = document.body.innerHTML;
+
+    expect(rendered).toContain('rounded-full');
+    expect(rendered).not.toContain('rounded-lg flex items-center justify-center transition-all border-2 cursor-pointer relative');
+
+    wrapper.unmount();
+  });
 });

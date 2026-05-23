@@ -29,9 +29,9 @@
             {{ format(parseISO(String(day.date)), 'EEE') }}
           </span>
           
-          <!-- Box -->
+          <!-- Circle -->
           <div 
-            class="w-8 h-8 rounded-lg flex items-center justify-center transition-all border-2 relative"
+            class="w-8 h-8 rounded-full flex items-center justify-center transition-all border-2 relative"
             :class="[
               day.status === 'completed' ? 'bg-emerald-500 border-emerald-500' :
               day.status === 'failed' ? 'bg-rose-500 border-rose-500' :

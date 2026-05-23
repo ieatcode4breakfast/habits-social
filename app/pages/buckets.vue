@@ -182,6 +182,7 @@
             <TimelineRow
               :days="days"
               :status-map="getBucketStatusMap(bucket.id)"
+              cell-shape="square"
             />
 
             <!-- Mobile Habit Count: below timeline -->

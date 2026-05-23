@@ -101,7 +101,7 @@
                     <!-- Calendar Grid -->
                     <div v-for="(day, i) in calendarDays" :key="i" class="flex flex-col items-center gap-1">
                       <div
-                        class="w-8 h-8 rounded-lg flex items-center justify-center transition-all border-2 relative"
+                        class="w-8 h-8 rounded-full flex items-center justify-center transition-all border-2 relative"
                         :class="[
                           (day.getMonth() !== currentCalendarDate.getMonth() || isFutureDay(day)) ? 'opacity-30 border-transparent' : '',
                           getStatus(day) === 'completed' ? 'bg-emerald-500 border-emerald-500 shadow-md shadow-emerald-500/20' :

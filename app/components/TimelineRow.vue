@@ -12,8 +12,9 @@
             :is="interactive ? 'button' : 'div'"
             type="button"
             @click.stop="interactive ? $emit('click-day', day, $event) : null"
-            class="w-8 h-8 rounded-lg flex items-center justify-center transition-all border-2 relative"
             :class="[
+              'w-8 h-8 flex items-center justify-center transition-all border-2 relative',
+              cellShape === 'square' ? 'rounded-lg' : 'rounded-full',
               interactive && isMarkable(day) ? 'cursor-pointer' : 'cursor-default',
               statusMap[format(day, 'yyyy-MM-dd')] === 'completed' ? 'bg-emerald-500 border-emerald-500 shadow-md shadow-emerald-500/20' :
               statusMap[format(day, 'yyyy-MM-dd')] === 'failed' ? 'bg-rose-500 border-rose-500 shadow-md shadow-rose-500/20' :
@@ -45,6 +46,7 @@ const props = defineProps<{
   days: Date[];
   statusMap: Record<string, string | undefined>;
   interactive?: boolean;
+  cellShape?: 'circle' | 'square';
 }>();
 
 defineEmits(['click-day']);

@@ -174,7 +174,7 @@
                       <button
                         type="button"
                         @click.stop="openLogMenu(day, $event)"
-                        class="w-8 h-8 rounded-lg flex items-center justify-center transition-all border-2 relative cursor-pointer"
+                        class="w-8 h-8 rounded-full flex items-center justify-center transition-all border-2 relative cursor-pointer"
                         :class="[
                           (day.getMonth() !== currentCalendarDate.getMonth()) ? 'opacity-30' : '',
                           getStatusMap()[format(day, 'yyyy-MM-dd')] === 'completed' ? 'bg-emerald-500 border-emerald-500 shadow-md shadow-emerald-500/20' :
