@@ -30,6 +30,15 @@ jobs:
       - name: Build Nuxt app
         run: npm run build
 
+      - name: Run Database Migrations
+        run: |
+          if [ "${{ github.ref }}" = "refs/heads/main" ]; then
+            export DATABASE_URL="${{ secrets.PRODUCTION_DATABASE_URL }}"
+          else
+            export DATABASE_URL="${{ secrets.STAGING_DATABASE_URL }}"
+          fi
+          npx drizzle-kit migrate
+
       - name: Deploy to Cloudflare Workers
         run: |
           if [ "${{ github.ref }}" = "refs/heads/main" ]; then
