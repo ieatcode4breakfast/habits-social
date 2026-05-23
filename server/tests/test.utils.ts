@@ -55,6 +55,7 @@ export const createMockEvent = (userId: string, body: any = {}, cookies: any = {
     _ip: ip,
     method,
     context: {
+      params,
       userId,
       requireAuth: async (event: any) => {
         if (event._cookies?.auth_token === 'invalid') {

@@ -58,7 +58,8 @@ describe('Chat Lifecycle', () => {
 
     it('should NOT list conversation in inbox when unfriended', async () => {
       const f = await createFriendship(userA.id, userB.id, 'accepted');
-      await ChatService.getOrCreateConversationForFriend(db, userA.id, userB.id);
+      const conv = await ChatService.getOrCreateConversationForFriend(db, userA.id, userB.id);
+      await ChatService.sendMessage(db, userA.id, conv!.id, 'Hello');
       
       const inboxBefore = await ChatService.listConversations(db, userA.id);
       expect(inboxBefore.length).toBe(1);

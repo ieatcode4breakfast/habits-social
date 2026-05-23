@@ -1,6 +1,8 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { db, createTestUser, createFriendship, deleteTestUser } from './test.utils';
 import { ChatService } from '../services/chat.service';
+import { chatMessages, chatParticipants } from '../db/schema';
+import { sql, eq, and } from 'drizzle-orm';
 
 describe('Chat Service', () => {
   let userA: any;
@@ -165,6 +167,204 @@ describe('Chat Service', () => {
     it('should reject third-party message listing', async () => {
       const conv = await ChatService.getOrCreateConversationForFriend(db, userA.id, userB.id);
       await expect(ChatService.listMessages(db, userC.id, conv!.id)).rejects.toThrow();
+    });
+  });
+
+  describe('clearConversation', () => {
+    it('should correctly hide pre-clear messages from listMessages for clearer', async () => {
+      const conv = await ChatService.getOrCreateConversationForFriend(db, userA.id, userB.id);
+      await ChatService.sendMessage(db, userA.id, conv!.id, 'msg1');
+      await ChatService.sendMessage(db, userB.id, conv!.id, 'msg2');
+      
+      await ChatService.clearConversation(db, userA.id, conv!.id);
+      
+      const page = await ChatService.listMessages(db, userA.id, conv!.id);
+      expect(page.messages.length).toBe(0);
+    });
+
+    it('should NOT hide messages for the non-clearer', async () => {
+      const conv = await ChatService.getOrCreateConversationForFriend(db, userA.id, userB.id);
+      await ChatService.sendMessage(db, userA.id, conv!.id, 'msg1');
+      await ChatService.sendMessage(db, userB.id, conv!.id, 'msg2');
+      
+      await ChatService.clearConversation(db, userA.id, conv!.id);
+      
+      const page = await ChatService.listMessages(db, userB.id, conv!.id);
+      expect(page.messages.length).toBe(2);
+    });
+
+    it('should throw unauthorized if non-participant tries to clear', async () => {
+      const conv = await ChatService.getOrCreateConversationForFriend(db, userA.id, userB.id);
+      await expect(ChatService.clearConversation(db, userC.id, conv!.id)).rejects.toThrow();
+    });
+
+    it('should remove cleared conversations from listConversations for the clearer', async () => {
+      const conv = await ChatService.getOrCreateConversationForFriend(db, userA.id, userB.id);
+      await ChatService.sendMessage(db, userA.id, conv!.id, 'msg1');
+      await ChatService.clearConversation(db, userA.id, conv!.id);
+      
+      const convs = await ChatService.listConversations(db, userA.id);
+      expect(convs.find(c => c.id === conv!.id)).toBeUndefined();
+    });
+
+    it('should keep cleared conversations in listConversations for the non-clearer', async () => {
+      const conv = await ChatService.getOrCreateConversationForFriend(db, userA.id, userB.id);
+      await ChatService.sendMessage(db, userA.id, conv!.id, 'msg1');
+      await ChatService.clearConversation(db, userA.id, conv!.id);
+      
+      const convs = await ChatService.listConversations(db, userB.id);
+      expect(convs.find(c => c.id === conv!.id)).toBeDefined();
+    });
+
+    it('should make conversation reappear if a new message is sent after clearing', async () => {
+      const conv = await ChatService.getOrCreateConversationForFriend(db, userA.id, userB.id);
+      await ChatService.sendMessage(db, userA.id, conv!.id, 'msg1');
+      
+      await ChatService.clearConversation(db, userA.id, conv!.id);
+      
+      // Send a new message after clear
+      await ChatService.sendMessage(db, userB.id, conv!.id, 'msg2');
+      
+      const convs = await ChatService.listConversations(db, userA.id);
+      const found = convs.find(c => c.id === conv!.id);
+      expect(found).toBeDefined();
+      expect((found as any).lastMessageBody).toBe('msg2');
+    });
+
+    it('should make conversation reappear if a new message is sent and deleted after clearing', async () => {
+      const conv = await ChatService.getOrCreateConversationForFriend(db, userA.id, userB.id);
+      await ChatService.sendMessage(db, userA.id, conv!.id, 'msg1');
+      
+      await ChatService.clearConversation(db, userA.id, conv!.id);
+      
+      // Send a new message after clear and delete it
+      const newMsg = await ChatService.sendMessage(db, userB.id, conv!.id, 'msg2');
+      await ChatService.deleteMessage(db, userB.id, newMsg.id);
+      
+      const convs = await ChatService.listConversations(db, userA.id);
+      const found = convs.find(c => c.id === conv!.id);
+      expect(found).toBeDefined();
+      expect((found as any).lastMessageBody).toBe('');
+      expect((found as any).lastMessageDeletedAt).not.toBeNull();
+    });
+
+    it('Boundary Condition - Negative: createdAt === clearedAt is hidden', async () => {
+      const conv = await ChatService.getOrCreateConversationForFriend(db, userA.id, userB.id);
+      const msgId = crypto.randomUUID();
+      
+      // Insert message and set clearedAt to the exact same database transaction timestamp
+      await db.transaction(async (tx) => {
+        await tx.insert(chatMessages).values({
+          id: msgId,
+          conversationId: conv!.id,
+          senderId: userA.id,
+          body: 'exact time',
+          createdAt: sql`now()`
+        });
+        
+        await tx.update(chatParticipants)
+          .set({ clearedAt: sql`now()` })
+          .where(and(eq(chatParticipants.conversationId, conv!.id), eq(chatParticipants.userId, userA.id)));
+      });
+
+      const page = await ChatService.listMessages(db, userA.id, conv!.id);
+      expect(page.messages.length).toBe(0);
+    });
+
+    it('Boundary Condition - Positive: createdAt > clearedAt is visible', async () => {
+      const conv = await ChatService.getOrCreateConversationForFriend(db, userA.id, userB.id);
+      
+      // Set clearedAt, then insert a message with a timestamp explicitly 1 second in the future
+      await db.transaction(async (tx) => {
+        await tx.update(chatParticipants)
+          .set({ clearedAt: sql`now()` })
+          .where(and(eq(chatParticipants.conversationId, conv!.id), eq(chatParticipants.userId, userA.id)));
+          
+        await tx.insert(chatMessages).values({
+          id: crypto.randomUUID(),
+          conversationId: conv!.id,
+          senderId: userA.id,
+          body: 'future message',
+          createdAt: sql`now() + interval '1 second'`
+        });
+      });
+
+      const page = await ChatService.listMessages(db, userA.id, conv!.id);
+      expect(page.messages.length).toBe(1);
+    });
+
+    it('should only update the clearer\'s participant row', async () => {
+      const conv = await ChatService.getOrCreateConversationForFriend(db, userA.id, userB.id);
+      await ChatService.clearConversation(db, userA.id, conv!.id);
+
+      const [pA] = await db.select().from(chatParticipants).where(and(eq(chatParticipants.conversationId, conv!.id), eq(chatParticipants.userId, userA.id)));
+      const [pB] = await db.select().from(chatParticipants).where(and(eq(chatParticipants.conversationId, conv!.id), eq(chatParticipants.userId, userB.id)));
+
+      expect(pA!.clearedAt).not.toBeNull();
+      expect(pB!.clearedAt).toBeNull();
+    });
+
+    it('should not delete messages from the database', async () => {
+      const conv = await ChatService.getOrCreateConversationForFriend(db, userA.id, userB.id);
+      await ChatService.sendMessage(db, userA.id, conv!.id, 'msg1');
+      await ChatService.sendMessage(db, userB.id, conv!.id, 'msg2');
+
+      const resBefore = await db.select({ count: sql<number>`count(*)` }).from(chatMessages).where(eq(chatMessages.conversationId, conv!.id));
+      const beforeCount = resBefore[0]!.count;
+      
+      await ChatService.clearConversation(db, userA.id, conv!.id);
+
+      const resAfter = await db.select({ count: sql<number>`count(*)` }).from(chatMessages).where(eq(chatMessages.conversationId, conv!.id));
+      const afterCount = resAfter[0]!.count;
+      
+      expect(Number(afterCount)).toBe(Number(beforeCount));
+      expect(Number(afterCount)).toBeGreaterThan(0);
+    });
+
+    it('should handle idempotent double clear safely', async () => {
+      const conv = await ChatService.getOrCreateConversationForFriend(db, userA.id, userB.id);
+      await ChatService.clearConversation(db, userA.id, conv!.id);
+      await ChatService.clearConversation(db, userA.id, conv!.id);
+
+      const [pA] = await db.select().from(chatParticipants).where(and(eq(chatParticipants.conversationId, conv!.id), eq(chatParticipants.userId, userA.id)));
+      expect(pA!.clearedAt).not.toBeNull();
+    });
+
+    it('should show new messages sent by the clearer after clearing', async () => {
+      const conv = await ChatService.getOrCreateConversationForFriend(db, userA.id, userB.id);
+      await ChatService.sendMessage(db, userB.id, conv!.id, 'before clear');
+      
+      await ChatService.clearConversation(db, userA.id, conv!.id);
+      await ChatService.sendMessage(db, userA.id, conv!.id, 'after clear');
+
+      const page = await ChatService.listMessages(db, userA.id, conv!.id);
+      expect(page.messages.length).toBe(1);
+      expect(page.messages[0]!.body).toBe('after clear');
+    });
+
+    it('should exclude cleared messages from unread counts', async () => {
+      const conv = await ChatService.getOrCreateConversationForFriend(db, userA.id, userB.id);
+      // User B sends a message to User A
+      await ChatService.sendMessage(db, userB.id, conv!.id, 'unread message');
+      
+      let convs = await ChatService.listConversations(db, userA.id);
+      expect(convs[0]!.unreadCount).toBe(1);
+
+      await ChatService.clearConversation(db, userA.id, conv!.id);
+
+      // Now A sends a message so it appears again
+      await ChatService.sendMessage(db, userA.id, conv!.id, 'new msg');
+      convs = await ChatService.listConversations(db, userA.id);
+      expect(convs[0]!.unreadCount).toBe(0); // The previous unread is ignored
+    });
+
+    it('should throw structured 500 when participant row is missing', async () => {
+      const conv = await ChatService.getOrCreateConversationForFriend(db, userA.id, userB.id);
+      await db.delete(chatParticipants).where(and(eq(chatParticipants.conversationId, conv!.id), eq(chatParticipants.userId, userA.id)));
+
+      await expect(ChatService.clearConversation(db, userA.id, conv!.id)).rejects.toMatchObject({
+        statusCode: 500
+      });
     });
   });
 });

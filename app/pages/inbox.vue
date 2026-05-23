@@ -1,5 +1,5 @@
 <template>
-  <div class="relative h-[calc(100dvh-57px)] md:h-auto md:min-h-[calc(100dvh-120px)] flex flex-col md:flex-row bg-black/60 backdrop-blur-xl sm:-mx-6 md:mx-0 md:rounded-2xl border border-zinc-800/80 overflow-hidden shadow-2xl md:mt-2 md:mb-2 md:bg-transparent md:backdrop-blur-none md:border-transparent md:overflow-visible md:shadow-none md:gap-2">
+  <div class="relative h-[calc(100dvh-57px)] md:h-[calc(100dvh-80px)] flex flex-col md:flex-row bg-black/60 backdrop-blur-xl sm:-mx-6 md:mx-0 md:rounded-2xl border border-zinc-800/80 overflow-hidden shadow-2xl md:mt-2 md:mb-2 md:bg-transparent md:backdrop-blur-none md:border-transparent md:overflow-visible md:shadow-none md:gap-2">
     
     <!-- Sidebar Pane: Conversations List -->
     <div 
@@ -129,7 +129,7 @@
     <!-- Main Pane: Chat History & Input -->
     <div 
       v-show="activeFriend || (viewportReady && !isMobile)"
-      class="flex-1 flex flex-col min-h-0 md:h-[calc(100dvh-120px)] bg-zinc-950/20 relative md:rounded-2xl md:border md:border-zinc-800/80 md:bg-black/60 md:backdrop-blur-xl md:shadow-2xl md:overflow-hidden"
+      class="flex-1 flex flex-col min-h-0 md:h-full bg-zinc-950/20 relative md:rounded-2xl md:border md:border-zinc-800/80 md:bg-black/60 md:backdrop-blur-xl md:shadow-2xl md:overflow-hidden"
     >
       <!-- Chat Header + Messages + Input (only when a conversation is active) -->
       <template v-if="activeFriend">

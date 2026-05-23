@@ -9,6 +9,7 @@ import type {
   ChatMessage 
 } from '../types/chat';
 import * as realtimeNotifier from '../utils/realtimeNotifier';
+import { createError } from 'h3';
 
 const getErrorCode = (error: unknown): string => {
   if (!error || typeof error !== 'object') return '';
@@ -49,6 +50,8 @@ export class ChatService {
             and(eq(schema.friendships.initiatorId, friendId), eq(schema.friendships.receiverId, userId))
           )
         )
+
+
       );
 
     if (!friendship) throw new Error('Accepted friendship required');
@@ -69,24 +72,22 @@ export class ChatService {
       try {
         const result = await db.transaction(async (tx) => {
           const convId = crypto.randomUUID();
-          const now = new Date();
           const [newConv] = await tx.insert(schema.chatConversations)
             .values({
               id: convId,
               user1Id: u1,
               user2Id: u2,
-              lastMessageAt: now,
-              createdAt: now,
-              updatedAt: now
+              lastMessageAt: sql`now()`,
+              createdAt: sql`now()`,
+              updatedAt: sql`now()`
             })
             .returning();
 
-          // Create participants with lastReadAt slightly in the past to ensure first messages are unread
-          const past = new Date(now.getTime() - 1000); 
+          // Create participants with lastReadAt strictly in the past to ensure first messages are unread
           await tx.insert(schema.chatParticipants)
             .values([
-              { conversationId: convId, userId: u1, lastReadAt: past },
-              { conversationId: convId, userId: u2, lastReadAt: past }
+              { conversationId: convId, userId: u1, lastReadAt: sql`now() - interval '1 second'` },
+              { conversationId: convId, userId: u2, lastReadAt: sql`now() - interval '1 second'` }
             ]);
 
           return newConv;
@@ -179,7 +180,6 @@ export class ChatService {
     const conversation = await this.verifyAccess(db, senderId, conversationId, 'write');
 
     const message = await db.transaction(async (tx) => {
-      const now = new Date();
       // Insert message
       const [message] = await tx.insert(schema.chatMessages)
         .values({
@@ -187,7 +187,7 @@ export class ChatService {
           conversationId,
           senderId,
           body,
-          createdAt: now
+          createdAt: sql`now()`
         })
         .returning();
 
@@ -195,12 +195,12 @@ export class ChatService {
 
       // Update conversation lastMessageAt
       await tx.update(schema.chatConversations)
-        .set({ lastMessageAt: now, updatedAt: now })
+        .set({ lastMessageAt: sql`now()`, updatedAt: sql`now()` })
         .where(eq(schema.chatConversations.id, conversationId));
 
       // Update sender's lastReadAt
       await tx.update(schema.chatParticipants)
-        .set({ lastReadAt: now })
+        .set({ lastReadAt: sql`now()` })
         .where(
           and(
             eq(schema.chatParticipants.conversationId, conversationId),
@@ -213,6 +213,13 @@ export class ChatService {
 
     notifyChatChanged(conversation, senderId);
     return message;
+  }
+
+  static getVisibilityPredicate(messagesTable: any, participantsTable: any): SQL {
+    return or(
+      isNull(participantsTable.clearedAt),
+      sql`${messagesTable.createdAt} > ${participantsTable.clearedAt}`
+    )!;
   }
 
   /**
@@ -233,6 +240,7 @@ export class ChatService {
         SELECT ${m.body}
         FROM ${m}
         WHERE ${m.conversationId} = ${c.id}
+          AND (${this.getVisibilityPredicate(m, p)})
         ORDER BY ${m.createdAt} DESC, ${m.id} DESC
         LIMIT 1
       )`,
@@ -240,6 +248,7 @@ export class ChatService {
         SELECT ${m.deletedAt}
         FROM ${m}
         WHERE ${m.conversationId} = ${c.id}
+          AND (${this.getVisibilityPredicate(m, p)})
         ORDER BY ${m.createdAt} DESC, ${m.id} DESC
         LIMIT 1
       )`,
@@ -247,6 +256,7 @@ export class ChatService {
         SELECT ${m.senderId}
         FROM ${m}
         WHERE ${m.conversationId} = ${c.id}
+          AND (${this.getVisibilityPredicate(m, p)})
         ORDER BY ${m.createdAt} DESC, ${m.id} DESC
         LIMIT 1
       )`,
@@ -256,6 +266,7 @@ export class ChatService {
         SELECT count(*)::int
         FROM ${m}
         WHERE ${m.conversationId} = ${c.id}
+          AND (${this.getVisibilityPredicate(m, p)})
           AND ${m.createdAt} > ${p.lastReadAt}
           AND ${m.senderId} != ${userId}
       )`
@@ -269,6 +280,11 @@ export class ChatService {
       .where(
         and(
           eq(p.userId, userId),
+          sql`EXISTS (
+            SELECT 1 FROM ${m}
+            WHERE ${m.conversationId} = ${c.id}
+              AND (${this.getVisibilityPredicate(m, p)})
+          )`,
           or(
             eq(f.status, 'accepted'),
             isNull(c.user1Id),
@@ -277,6 +293,34 @@ export class ChatService {
         )
       )
       .orderBy(desc(c.lastMessageAt));
+  }
+
+  /**
+   * Clears a conversation for a user.
+   * Only affects the clearer's visibility.
+   */
+  static async clearConversation(db: DBConnection, userId: string, conversationId: string): Promise<void> {
+    const [conv] = await db.select()
+      .from(schema.chatConversations)
+      .where(eq(schema.chatConversations.id, conversationId));
+    
+    if (!conv) throw createError({ statusCode: 404, statusMessage: 'Not Found' });
+    if (conv.user1Id !== userId && conv.user2Id !== userId) {
+       throw createError({ statusCode: 403, statusMessage: 'Forbidden' });
+    }
+
+    const result = await db.update(schema.chatParticipants)
+      .set({ clearedAt: sql`now()`, lastReadAt: sql`now()` })
+      .where(
+        and(
+          eq(schema.chatParticipants.conversationId, conversationId),
+          eq(schema.chatParticipants.userId, userId)
+        )
+      );
+
+    if (result.rowCount === 0) {
+      throw createError({ statusCode: 500, statusMessage: 'Internal Server Error', message: 'Chat participant invariant failed' });
+    }
   }
 
   /**
@@ -305,8 +349,28 @@ export class ChatService {
   static async listMessages(db: DBConnection, userId: string, conversationId: string, options: { limit?: number, cursor?: string } = {}): Promise<PaginatedMessages> {
     await this.verifyAccess(db, userId, conversationId, 'read');
     
+    // Fetch participant row to enforce visibility boundary
+    const [participant] = await db.select()
+      .from(schema.chatParticipants)
+      .where(
+        and(
+          eq(schema.chatParticipants.conversationId, conversationId),
+          eq(schema.chatParticipants.userId, userId)
+        )
+      );
+      
+    if (!participant) {
+      throw createError({ statusCode: 500, statusMessage: 'Internal Server Error', message: 'Chat participant row invariant failed' });
+    }
+
     const { limit = 50, cursor } = options;
     const filters: SQL[] = [eq(schema.chatMessages.conversationId, conversationId)];
+    
+    if (participant.clearedAt) {
+      filters.push(
+        sql`${schema.chatMessages.createdAt} > (SELECT cleared_at FROM chat_participants WHERE conversation_id = ${conversationId} AND user_id = ${userId})`
+      );
+    }
 
     if (cursor) {
       try {

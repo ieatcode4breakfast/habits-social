@@ -1,0 +1,3 @@
+DROP INDEX "chat_conversations_user_pair_idx";--> statement-breakpoint
+ALTER TABLE "chat_participants" ADD COLUMN "cleared_at" timestamp with time zone;--> statement-breakpoint
+CREATE UNIQUE INDEX "chat_conversations_user_pair_idx" ON "chat_conversations" USING btree (LEAST("user1_id", "user2_id"),GREATEST("user1_id", "user2_id")) WHERE "chat_conversations"."user1_id" IS NOT NULL AND "chat_conversations"."user2_id" IS NOT NULL;

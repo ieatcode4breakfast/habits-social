@@ -3,6 +3,7 @@ import type { H3Event } from 'h3';
 const CHAT_IDENTIFIER_LIMIT = 60;
 const CHAT_READ_LIMIT = 100;
 const CHAT_TOKEN_LIMIT = 5;
+const CHAT_CLEAR_LIMIT = 20;
 const CHAT_WINDOW_SECONDS = 60;
 
 interface RateLimitData {
@@ -66,4 +67,9 @@ export const checkChatReadRateLimit = async (event: H3Event, userId: string) => 
 export const checkChatTokenRateLimit = async (event: H3Event, userId: string) => {
   const key = `chat:token:user:${userId}`;
   await checkRateLimit(event, key, CHAT_TOKEN_LIMIT, 'Token generation rate limit exceeded. Please wait a moment.');
+};
+
+export const checkChatClearRateLimit = async (event: H3Event, userId: string) => {
+  const key = `chat:clear:user:${userId}`;
+  await checkRateLimit(event, key, CHAT_CLEAR_LIMIT, 'Clear rate limit exceeded. Please wait a moment.');
 };

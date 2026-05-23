@@ -47,7 +47,7 @@ describe('Chat API', () => {
       const handler = (await import('../api/chat/conversations/by-friend/[friendId]/messages.post')).default;
       const event = createMockEvent(userA.id, { body: 'Stranger danger' }, {}, { friendId: userC.id }, {}, 'POST');
       
-      await expect(handler(event)).rejects.toThrow();
+      await expect(handler(event)).rejects.toMatchObject({ statusCode: 403 });
     });
   });
 
@@ -66,7 +66,7 @@ describe('Chat API', () => {
       const handler = (await import('../api/chat/conversations/[id]/messages.get')).default;
       const event = createMockEvent(userC.id, {}, {}, { id: conv!.id });
       
-      await expect(handler(event)).rejects.toThrow();
+      await expect(handler(event)).rejects.toMatchObject({ statusCode: 403 });
     });
   });
 
@@ -90,6 +90,25 @@ describe('Chat API', () => {
       
       const result: any = await handler(event);
       expect(result?.success).toBe(true);
+    });
+  });
+
+  describe('POST /api/chat/conversations/:id/clear', () => {
+    it('should clear a conversation for the user', async () => {
+      const conv = await ChatService.getOrCreateConversationForFriend(useDB(), userA.id, userB.id);
+      const handler = (await import('../api/chat/conversations/[id]/clear.post')).default;
+      const event = createMockEvent(userA.id, {}, {}, { id: conv!.id }, {}, 'POST');
+      
+      const result: any = await handler(event);
+      expect(result?.success).toBe(true);
+    });
+
+    it('should reject clearing for non-participants', async () => {
+      const conv = await ChatService.getOrCreateConversationForFriend(useDB(), userA.id, userB.id);
+      const handler = (await import('../api/chat/conversations/[id]/clear.post')).default;
+      const event = createMockEvent(userC.id, {}, {}, { id: conv!.id }, {}, 'POST');
+      
+      await expect(handler(event)).rejects.toMatchObject({ statusCode: 403 });
     });
   });
 });

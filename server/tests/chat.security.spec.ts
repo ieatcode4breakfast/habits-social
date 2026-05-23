@@ -60,6 +60,16 @@ describe('Chat Security & Socket Tokens', () => {
       
       await expect(handler(event)).rejects.toMatchObject({ statusCode: 429 });
     }, 15000);
+
+    it('should enforce clear conversation rate limits', async () => {
+      const handler = (await import('../api/chat/conversations/[id]/clear.post')).default;
+      const event = createMockEvent(userA.id, {}, {}, { id: conv.id }, {}, 'POST');
+      
+      // Clear limit is 20 concurrently
+      await Promise.all(Array.from({ length: 20 }).map(() => handler(event)));
+      
+      await expect(handler(event)).rejects.toMatchObject({ statusCode: 429 });
+    }, 15000);
   });
 
   describe('Socket Tokens', () => {
@@ -90,6 +100,21 @@ describe('Chat Security & Socket Tokens', () => {
       const event = createMockEvent(userA.id, { conversationId: conv!.id }, {}, {}, {}, 'POST');
       
       await expect(handler(event)).rejects.toThrow();
+    });
+
+    it('should allow clearing a conversation even after being unfriended', async () => {
+      // Unfriend
+      const [f] = await useDB().select().from(schema.friendships).where(
+        or(eq(schema.friendships.initiatorId, userA.id), eq(schema.friendships.receiverId, userA.id))
+      );
+      const eventMock = createMockEvent(userA.id);
+      await SocialService.removeFriendship(useDB(), userA.id, f!.id, eventMock);
+      
+      const handler = (await import('../api/chat/conversations/[id]/clear.post')).default;
+      const event = createMockEvent(userA.id, {}, {}, { id: conv!.id }, {}, 'POST');
+      
+      const result: any = await handler(event);
+      expect(result.success).toBe(true);
     });
   });
 

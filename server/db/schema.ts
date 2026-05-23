@@ -181,6 +181,7 @@ export const chatParticipants = pgTable('chat_participants', {
   conversationId: uuid('conversation_id').notNull().references(() => chatConversations.id, { onDelete: 'cascade' }),
   userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
   lastReadAt: timestamp('last_read_at', { withTimezone: true, mode: 'date' }).defaultNow(),
+  clearedAt: timestamp('cleared_at', { withTimezone: true, mode: 'date' }),
 }, (table) => {
   return {
     pk: primaryKey({ columns: [table.conversationId, table.userId] }),
