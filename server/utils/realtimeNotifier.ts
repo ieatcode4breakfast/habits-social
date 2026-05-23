@@ -53,9 +53,17 @@ export const notifyUsersRealtime = async (
   event: RealtimeInvalidationEvent
 ): Promise<void> => {
   const config = getRealtimeRuntimeConfig();
+  
+  let currentEvent: any;
+  try {
+    currentEvent = useEvent();
+  } catch (e) {}
+  
+  const cf = currentEvent?.context?.cloudflare;
+  
   const realtimeEnabled = config.public?.realtimeEnabled === true;
   const host = config.public?.partykitHost ? normalizeAndValidateHost(config.public.partykitHost) : '';
-  const secret = config.partykitNotifySecret;
+  const secret = cf?.env?.NUXT_PARTYKIT_NOTIFY_SECRET || cf?.env?.PARTYKIT_NOTIFY_SECRET || config.partykitNotifySecret;
 
   if (!realtimeEnabled || !host || !secret) return;
 

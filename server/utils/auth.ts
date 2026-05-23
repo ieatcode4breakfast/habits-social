@@ -14,7 +14,9 @@ const getSecret = (event?: H3Event) => {
     config = useRuntimeConfig(event);
   } catch (e) {}
   
-  const secret = (config.jwtSecret as string) || process.env.JWT_SECRET;
+  const cf = (event as any)?.context?.cloudflare;
+  const secret = cf?.env?.NUXT_JWT_SECRET || cf?.env?.JWT_SECRET || (config.jwtSecret as string) || process.env.JWT_SECRET;
+  
   if (!secret) {
     throw new Error('FATAL: JWT_SECRET environment variable is missing.');
   }
