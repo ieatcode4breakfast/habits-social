@@ -101,10 +101,10 @@ const { totalUnreadCount, init: initChatInbox, logoutCleanup: chatInboxLogoutCle
 const realtimeInvalidation = useRealtimeInvalidation();
 
 useSeoMeta({
-  title: 'My Habits - HabitsSocial',
-  ogTitle: 'HabitsSocial',
-  description: 'Track and build better habits with your friends on HabitsSocial.',
-  ogDescription: 'Track and build better habits with your friends on HabitsSocial.',
+  title: 'My Habits - Habits Social',
+  ogTitle: 'Habits Social',
+  description: 'Track and build better habits with your friends on Habits Social.',
+  ogDescription: 'Track and build better habits with your friends on Habits Social.',
   ogImage: '/icons/icon-512.png',
   twitterCard: 'summary_large_image',
 })

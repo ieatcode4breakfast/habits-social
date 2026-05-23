@@ -149,10 +149,10 @@ const { showToast } = useToast();
 const router = useRouter();
 
 useSeoMeta({
-  title: 'Log In or Sign Up - HabitsSocial',
-  ogTitle: 'HabitsSocial - Join the Community',
-  description: 'Join HabitsSocial to track your habits, stay accountable with friends, and build a better routine.',
-  ogDescription: 'Join HabitsSocial to track your habits, stay accountable with friends, and build a better routine.',
+  title: 'Log In or Sign Up - Habits Social',
+  ogTitle: 'Habits Social - Join the Community',
+  description: 'Join Habits Social to track your habits, stay accountable with friends, and build a better routine.',
+  ogDescription: 'Join Habits Social to track your habits, stay accountable with friends, and build a better routine.',
 })
 
 const tab = ref<'login' | 'signup'>('login');

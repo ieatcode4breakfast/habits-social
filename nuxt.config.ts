@@ -20,7 +20,7 @@ export default defineNuxtConfig({
     registerType: 'autoUpdate',
     manifest: {
       name: 'Habits Social',
-      short_name: 'HabitsSocial',
+      short_name: 'Habits Social',
       theme_color: '#000000',
       background_color: '#000000',
       display: 'standalone',
@@ -70,7 +70,7 @@ export default defineNuxtConfig({
   },
   site: {
     url: 'https://www.habitssocial.com',
-    name: 'HabitsSocial',
+    name: 'Habits Social',
     description: 'The social platform for building better habits through accountability and community.',
     defaultLocale: 'en',
   },
@@ -87,8 +87,8 @@ export default defineNuxtConfig({
     ],
     routeRules: {
       '/_nuxt/**': { headers: { 'Cache-Control': 'public, max-age=31536000, immutable' } },
-      '/**': { 
-        headers: { 
+      '/**': {
+        headers: {
           'Cache-Control': 'no-cache, no-store, must-revalidate',
           'Vary': 'Cookie',
           'Strict-Transport-Security': 'max-age=63072000; includeSubDomains; preload',
@@ -97,7 +97,7 @@ export default defineNuxtConfig({
           'Referrer-Policy': 'strict-origin-when-cross-origin',
           'Permissions-Policy': 'camera=(), microphone=(), geolocation=()',
           'Content-Security-Policy': contentSecurityPolicy
-        } 
+        }
       }
     },
     storage: {

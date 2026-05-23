@@ -309,8 +309,8 @@ const pullStyle = computed(() => {
 });
 
 useSeoMeta({
-  title: 'Buckets - HabitsSocial',
-  description: 'Organize your habits into custom buckets on HabitsSocial.',
+  title: 'Buckets - Habits Social',
+  description: 'Organize your habits into custom buckets on Habits Social.',
 });
 
 const buckets = ref<Bucket[]>([]);

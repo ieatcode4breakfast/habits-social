@@ -644,8 +644,8 @@ import { autoExpandTextarea } from '~/utils/ui';
 definePageMeta({ middleware: 'auth' });
 
 useSeoMeta({
-  title: 'Inbox - HabitsSocial',
-  description: 'Connect and chat securely with your friends on HabitsSocial.',
+  title: 'Inbox - Habits Social',
+  description: 'Connect and chat securely with your friends on Habits Social.',
 });
 
 const { user } = useAuth();

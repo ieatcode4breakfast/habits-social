@@ -1,6 +1,8 @@
-# HabitsSocial: Your Guide to Better Habits
+# Habits Social: Your Guide to Better Habits
 
-Welcome to **HabitsSocial**! This platform is designed to help you build lasting habits by combining personal tracking with social accountability. Whether you're trying to drink more water, read daily, or hit the gym, HabitsSocial makes it easier to stay on track.
+The live app is already available at [https://www.habitssocial.com/](https://www.habitssocial.com/).
+
+Welcome to **Habits Social**! This platform is designed to help you build lasting habits by combining personal tracking with social accountability. Whether you're trying to drink more water, read daily, or hit the gym, Habits Social makes it easier to stay on track.
 
 Here is a quick guide on how to get the most out of the app.
 
@@ -8,7 +10,7 @@ Here is a quick guide on how to get the most out of the app.
 
 ## 🧭 Navigation
 
-HabitsSocial has four main sections, available from the top nav bar on desktop or the bottom tab bar on mobile:
+Habits Social has four main sections, available from the top nav bar on desktop or the bottom tab bar on mobile:
 
 - **Social** – Your activity feed and friends list.
 - **Inbox** – Private chats with your friends.
@@ -19,7 +21,7 @@ HabitsSocial has four main sections, available from the top nav bar on desktop o
 
 ## 🎯 1. Tracking Your Habits
 
-The core of HabitsSocial is your daily habit list on the **My Habits** page.
+The core of Habits Social is your daily habit list on the **My Habits** page.
 
 **How to create a habit:**
 1. Navigate to **My Habits**.
@@ -86,7 +88,7 @@ A Bucket is a collection of related habits. For example, you might have a "Morni
 
 ## 🤝 3. Social & Activity Feed
 
-Building habits is easier when you do it with friends! The **Social** tab is the social hub of HabitsSocial.
+Building habits is easier when you do it with friends! The **Social** tab is the social hub of Habits Social.
 
 It has two sub-tabs: **Activity** and **Friends**.
 
