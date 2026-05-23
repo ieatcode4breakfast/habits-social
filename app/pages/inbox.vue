@@ -162,7 +162,13 @@
             </div>
           </div>
 
-
+          <button 
+            @click="showClearChatModal = true"
+            class="p-2 hover:bg-zinc-800 text-zinc-400 hover:text-rose-500 rounded-lg transition-all active:scale-95 cursor-pointer flex items-center justify-center shrink-0"
+            title="Delete Chat"
+          >
+            <Trash2 class="w-4 h-4" />
+          </button>
         </div>
 
         <!-- Messages Stream Scroll Area -->
@@ -374,6 +380,57 @@
         </div>
       </Transition>
     </Teleport>
+
+    <!-- Clear Chat Modal -->
+    <Teleport to="body">
+      <Transition
+        enter-active-class="transition duration-300 ease-out"
+        enter-from-class="opacity-0 scale-95"
+        enter-to-class="opacity-100 scale-100"
+        leave-active-class="transition duration-200 ease-in"
+        leave-from-class="opacity-100 scale-100"
+        leave-to-class="opacity-0 scale-95"
+      >
+        <div v-if="showClearChatModal" class="fixed inset-0 z-[150] flex flex-col items-center justify-start overflow-y-auto p-4 sm:py-8">
+          <div class="fixed inset-0 bg-black/80 backdrop-blur-md touch-none" @click="showClearChatModal = false"></div>
+          
+          <div class="relative my-auto w-full max-w-sm bg-zinc-925 border border-zinc-800 rounded-3xl shadow-2xl p-8 text-center select-none">
+            <div class="w-16 h-16 bg-zinc-900 border border-zinc-800/50 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Trash2 class="w-8 h-8 text-zinc-400" />
+            </div>
+            
+            <h2 class="text-xl font-bold text-white mb-2">Delete Chat?</h2>
+            
+            <p class="text-zinc-500 mb-8 text-sm">
+              Your friend will still see the messages. Once your copy is deleted, it can no longer be undone.
+            </p>
+            
+            <div class="flex gap-3 mt-2">
+              <button 
+                @click="showClearChatModal = false"
+                class="flex-1 px-5 py-3 bg-transparent hover:bg-zinc-900 text-zinc-400 hover:text-zinc-200 font-semibold rounded-xl transition-all cursor-pointer whitespace-nowrap"
+                :disabled="isClearingChat"
+              >
+                Cancel
+              </button>
+              <button 
+                @click="clearChat"
+                class="flex-1 px-5 py-3 bg-rose-500 hover:bg-rose-600 text-white font-semibold rounded-xl transition-all shadow-lg shadow-rose-500/20 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer whitespace-nowrap"
+                :disabled="isClearingChat"
+              >
+                <template v-if="isClearingChat">
+                  <div class="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>
+                  Deleting...
+                </template>
+                <template v-else>
+                  Delete Chat
+                </template>
+              </button>
+            </div>
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
   </div>
 </template>
 
@@ -453,8 +510,10 @@ const friendSearchQuery = ref('');
 
 // Modal/Responsive toggles
 const showNewChatModal = ref(false);
+const showClearChatModal = ref(false);
 const isMobile = ref(false);
 const viewportReady = ref(false);
+const isClearingChat = ref(false);
 
 const filteredFriends = computed(() => {
   if (!friendSearchQuery.value.trim()) return friends.value;
@@ -742,6 +801,26 @@ const sendMessage = async () => {
     } else {
       showToast('Failed to send message', 'failed');
     }
+  }
+};
+
+// Clear the entire chat history for the current user
+const clearChat = async () => {
+  if (!activeConversationId.value || isClearingChat.value) return;
+  
+  isClearingChat.value = true;
+  try {
+    await $fetch(`/api/chat/conversations/${activeConversationId.value}/clear`, { method: 'POST' });
+    
+    showToast('Chat history cleared', 'completed');
+    showClearChatModal.value = false;
+    deselectConversation();
+    await loadConversations(true); // Silently refresh inbox list to remove it
+  } catch (error: unknown) {
+    console.error('[Inbox] Failed to clear chat:', error);
+    showToast('Failed to clear chat', 'failed');
+  } finally {
+    isClearingChat.value = false;
   }
 };
 
