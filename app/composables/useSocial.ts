@@ -47,7 +47,7 @@ export const useSocial = () => {
         }
         return null;
       })
-      .filter((p): p is UserProfile & { isFavorite?: boolean } => !!p);
+      .filter((p) => !!p) as (UserProfile & { isFavorite?: boolean })[];
   });
 
   const profilesMap = computed(() => {
