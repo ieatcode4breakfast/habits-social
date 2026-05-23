@@ -30,6 +30,9 @@ jobs:
       - name: Build Nuxt app
         run: npm run build
 
+      - name: Check Database Migrations
+        run: npx drizzle-kit check
+
       - name: Run Database Migrations
         run: |
           if [ "${{ github.ref }}" = "refs/heads/main" ]; then
