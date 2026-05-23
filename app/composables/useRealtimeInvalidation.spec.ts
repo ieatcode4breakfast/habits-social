@@ -68,6 +68,7 @@ vi.stubGlobal('useRuntimeConfig', () => ({
 describe('useRealtimeInvalidation', () => {
   beforeEach(() => {
     vi.useFakeTimers();
+    vi.resetModules();
     fetchMock.mockReset();
     socialRefreshMock.mockReset();
     MockPartySocket.instances = [];
@@ -112,6 +113,44 @@ describe('useRealtimeInvalidation', () => {
 
     await expect(socket?.options.query()).resolves.toEqual({ token: 'token-2' });
     expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it('treats a 503 realtime token failure as temporary and retries after backoff', async () => {
+    const { useRealtimeInvalidation } = await import('./useRealtimeInvalidation');
+    const serviceUnavailable = Object.assign(new Error('service unavailable'), { statusCode: 503 });
+    fetchMock.mockRejectedValueOnce(serviceUnavailable);
+    const realtime = useRealtimeInvalidation({ activeConversationId });
+
+    realtime.start();
+    const socket = MockPartySocket.instances[0];
+
+    await expect(socket?.options.query()).rejects.toThrow('service unavailable');
+    await expect(socket?.options.query()).rejects.toThrow('temporarily paused');
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+
+    await vi.advanceTimersByTimeAsync(30_000);
+    fetchMock.mockResolvedValueOnce({ token: 'token-after-503' });
+
+    await expect(socket?.options.query()).resolves.toEqual({ token: 'token-after-503' });
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it('treats a 404 realtime token response as a page-session kill switch', async () => {
+    const { useRealtimeInvalidation } = await import('./useRealtimeInvalidation');
+    const realtimeDisabled = Object.assign(new Error('realtime disabled'), { statusCode: 404 });
+    fetchMock.mockRejectedValueOnce(realtimeDisabled);
+    const realtime = useRealtimeInvalidation({ activeConversationId });
+
+    realtime.start();
+    const socket = MockPartySocket.instances[0];
+
+    await expect(socket?.options.query()).rejects.toThrow('realtime disabled');
+
+    await vi.advanceTimersByTimeAsync(30_000);
+    fetchMock.mockResolvedValueOnce({ token: 'token-after-404' });
+
+    await expect(socket?.options.query()).rejects.toThrow('Realtime is disabled');
+    expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
   it('debounces chat.changed into shared conversation refresh and active chat sequence', async () => {

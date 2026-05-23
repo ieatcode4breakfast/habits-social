@@ -69,7 +69,7 @@ const fetchRealtimeToken = async (): Promise<string> => {
     const statusCode = typeof error === 'object' && error !== null && 'statusCode' in error
       ? Number((error as { statusCode?: unknown }).statusCode)
       : 0;
-    if (statusCode === 404 || statusCode === 503) {
+    if (statusCode === 404) {
       realtimeDisabled = true;
     }
 

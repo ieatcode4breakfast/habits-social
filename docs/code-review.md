@@ -273,3 +273,9 @@ The 5-minute message delete icon visibility rule is intentionally enforced only 
 - The frontend only shows the inline delete icon for recently sent messages because the age threshold is a UX affordance, not an authorization boundary.
 - **DO NOT FLAG** the absence of backend 5-minute enforcement as a security issue unless product direction changes and the age window becomes a true access-control requirement.
 
+### 10. In-Memory Rate Limiting Trade-off (By Design)
+The application uses Nitro's `memory` storage driver for rate limiting instead of Cloudflare KV bindings.
+- This is a deliberate architectural decision to prevent rate limiting checks from instantly exhausting the Cloudflare KV free tier limits (1,000 writes/day).
+- The accepted trade-off is that rate limit counters are isolate-scoped (residing in the local memory of individual Cloudflare edge servers) rather than synchronized globally.
+- **DO NOT FLAG** this as a vulnerability or push for a distributed rate limiter. This approach is completely sufficient to stop basic brute-force scripts and is an accepted trade-off for the current scale and traffic of the application.
+
