@@ -28,7 +28,18 @@ jobs:
         run: npm run check
 
       - name: Build Nuxt app
-        run: npm run build
+        run: |
+          if [ "${{ github.ref }}" = "refs/heads/main" ]; then
+            export NUXT_PUBLIC_REALTIME_ENABLED="false"
+            export NUXT_PUBLIC_PARTYKIT_HOST=""
+          else
+            export NUXT_PUBLIC_REALTIME_ENABLED="true"
+            export NUXT_PUBLIC_PARTYKIT_HOST="habits-social-realtime-staging.ieatcode4breakfast.partykit.dev"
+          fi
+          npm run build
+          if [ "${{ github.ref }}" != "refs/heads/main" ]; then
+            grep -q "connect-src 'self' https://habits-social-realtime-staging.ieatcode4breakfast.partykit.dev wss://habits-social-realtime-staging.ieatcode4breakfast.partykit.dev" .output/public/_headers
+          fi
 
       - name: Check Database Migrations
         run: npx drizzle-kit check

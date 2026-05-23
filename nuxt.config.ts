@@ -1,13 +1,10 @@
 import tailwindcss from '@tailwindcss/vite';
+import { buildContentSecurityPolicy } from './utils/securityHeaders';
 
-const configuredPartykitHost = process.env.NUXT_PUBLIC_PARTYKIT_HOST?.trim().toLowerCase() || '';
-const partykitHostForCsp = process.env.NUXT_PUBLIC_REALTIME_ENABLED === 'true'
-  && /^[a-z0-9.-]+\.partykit\.dev$/.test(configuredPartykitHost)
-  ? configuredPartykitHost
-  : '';
-const connectSrc = partykitHostForCsp
-  ? `'self' https://${partykitHostForCsp} wss://${partykitHostForCsp}`
-  : "'self'";
+const contentSecurityPolicy = buildContentSecurityPolicy({
+  realtimeEnabled: process.env.NUXT_PUBLIC_REALTIME_ENABLED,
+  partykitHost: process.env.NUXT_PUBLIC_PARTYKIT_HOST,
+});
 
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
@@ -100,7 +97,7 @@ export default defineNuxtConfig({
           'X-Frame-Options': 'DENY',
           'Referrer-Policy': 'strict-origin-when-cross-origin',
           'Permissions-Policy': 'camera=(), microphone=(), geolocation=()',
-          'Content-Security-Policy': `default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://api.dicebear.com; connect-src ${connectSrc}; font-src 'self';`
+          'Content-Security-Policy': contentSecurityPolicy
         } 
       }
     },
