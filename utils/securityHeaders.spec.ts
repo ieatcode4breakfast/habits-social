@@ -54,7 +54,7 @@ describe('security header CSP helpers', () => {
     });
 
     expect(csp).toContain(
-      "connect-src 'self' https://habits-social-realtime-staging.ieatcode4breakfast.partykit.dev wss://habits-social-realtime-staging.ieatcode4breakfast.partykit.dev;"
+      "connect-src 'self' https://habits-social-realtime-staging.ieatcode4breakfast.partykit.dev wss://habits-social-realtime-staging.ieatcode4breakfast.partykit.dev https://cloudflareinsights.com;"
     );
   });
 });
