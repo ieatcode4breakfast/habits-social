@@ -2,7 +2,7 @@
   <div class="min-h-[100dvh] antialiased font-sans select-none">
     <NuxtRouteAnnouncer />
     <NuxtLayout>
-      <NuxtPage :keepalive="{ include: ['index'] }" />
+      <NuxtPage :keepalive="{ include: ['index', 'inbox'] }" />
     </NuxtLayout>
 
     <!-- Global Toast Notification -->

@@ -625,6 +625,7 @@
 </template>
 
 <script setup lang="ts">
+defineOptions({ name: 'inbox' });
 import { 
   MessageCircle, 
   SquarePen, 
@@ -1141,16 +1142,7 @@ const checkViewport = () => {
   viewportReady.value = true;
 };
 
-onMounted(async () => {
-  checkViewport();
-  window.addEventListener('resize', checkViewport);
-  
-  // Hydrate global social profiles first
-  initSocial();
-  
-  await loadConversations();
-
-  // Transition into private chat when replying from the activity feed
+const handleReplyQuery = async () => {
   const route = useRoute();
   const queryFriendId = route.query.replyToFriend as string;
   if (queryFriendId) {
@@ -1161,7 +1153,34 @@ onMounted(async () => {
     if (targetFriend) {
       await selectFriend(targetFriend);
     }
+    // Clear the query parameter so it doesn't re-trigger on back navigation
+    const router = useRouter();
+    const newQuery = { ...route.query };
+    delete newQuery.replyToFriend;
+    router.replace({ query: newQuery });
   }
+};
+
+onMounted(async () => {
+  checkViewport();
+  window.addEventListener('resize', checkViewport);
+  
+  // Hydrate global social profiles first
+  initSocial();
+  
+  await loadConversations();
+  await handleReplyQuery();
+});
+
+onActivated(async () => {
+  if (activeConversationId.value) {
+    sharedActiveConversationId.value = activeConversationId.value;
+  }
+  await handleReplyQuery();
+});
+
+onDeactivated(() => {
+  sharedActiveConversationId.value = null;
 });
 
 onUnmounted(() => {
