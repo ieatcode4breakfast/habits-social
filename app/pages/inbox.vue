@@ -195,7 +195,7 @@
               class="flex items-end gap-2 group/msg relative"
               :class="[
                 msg.replyToActivity 
-                  ? 'w-full max-w-[calc(100%-36px)]' 
+                  ? (msg.senderId === user?.id ? 'w-full max-w-[calc(100%-36px)]' : 'w-full')
                   : 'max-w-[85%] md:max-w-[70%]',
                 msg.senderId === user?.id 
                   ? 'self-end flex-row-reverse'
