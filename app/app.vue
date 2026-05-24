@@ -37,6 +37,7 @@
 import { Check as CheckIcon, X as XIcon, Minus as MinusIcon } from 'lucide-vue-next';
 
 const { isVisible, message, type } = useToast();
+const config = useRuntimeConfig();
 const { sync } = useHabitsApi();
 const { user } = useAuth();
 
@@ -71,16 +72,16 @@ watch(() => user.value?.id, (newId) => {
 useHead({
   htmlAttrs: { class: 'dark', style: 'overscroll-behavior-y: none' },
   bodyAttrs: { style: 'overscroll-behavior-y: none' },
-  title: 'Habits Social',
+  title: config.public.appName as string,
   meta: [
     { name: 'description', content: 'A social habit tracking app.' },
     { name: 'theme-color', content: '#000000' },
     { name: 'mobile-web-app-capable', content: 'yes' },
     { name: 'apple-mobile-web-app-status-bar-style', content: 'black-translucent' },
-    { name: 'apple-mobile-web-app-title', content: 'Habits Social' },
-    { property: 'og:title', content: 'Habits Social' },
+    { name: 'apple-mobile-web-app-title', content: config.public.appName as string },
+    { property: 'og:title', content: config.public.appName as string },
     { property: 'og:description', content: 'A social habit tracking app.' },
-    { name: 'twitter:title', content: 'Habits Social' },
+    { name: 'twitter:title', content: config.public.appName as string },
     { name: 'twitter:description', content: 'A social habit tracking app.' }
   ],
   link: [
