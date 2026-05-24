@@ -19,8 +19,8 @@ export default defineNuxtConfig({
   pwa: {
     registerType: 'autoUpdate',
     manifest: {
-      name: process.env.APP_NAME || 'Habits Social',
-      short_name: process.env.APP_NAME || 'Habits Social',
+      name: 'Habits Social',
+      short_name: 'Habits Social',
       theme_color: '#000000',
       background_color: '#000000',
       display: 'standalone',
@@ -70,7 +70,7 @@ export default defineNuxtConfig({
   },
   site: {
     url: 'https://www.habitssocial.com',
-    name: process.env.APP_NAME || 'Habits Social',
+    name: 'Habits Social',
     description: 'The social platform for building better habits through accountability and community.',
     defaultLocale: 'en',
   },
@@ -115,7 +115,6 @@ export default defineNuxtConfig({
     realtimeJwtSecret: process.env.REALTIME_JWT_SECRET,
     partykitNotifySecret: process.env.PARTYKIT_NOTIFY_SECRET,
     public: {
-      appName: process.env.APP_NAME || 'Habits Social',
       realtimeEnabled: process.env.NUXT_PUBLIC_REALTIME_ENABLED === 'true',
       partykitHost: process.env.NUXT_PUBLIC_PARTYKIT_HOST || '',
     }
