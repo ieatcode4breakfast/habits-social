@@ -115,6 +115,7 @@ export default defineNuxtConfig({
     realtimeJwtSecret: process.env.REALTIME_JWT_SECRET,
     partykitNotifySecret: process.env.PARTYKIT_NOTIFY_SECRET,
     public: {
+      appName: process.env.APP_NAME || 'Habits Social',
       realtimeEnabled: process.env.NUXT_PUBLIC_REALTIME_ENABLED === 'true',
       partykitHost: process.env.NUXT_PUBLIC_PARTYKIT_HOST || '',
     }

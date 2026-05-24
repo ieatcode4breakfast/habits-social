@@ -1,5 +1,6 @@
 export default defineEventHandler((event) => {
-  const appName = process.env.APP_NAME || 'Habits Social';
+  const config = useRuntimeConfig(event);
+  const appName = config.public.appName as string;
   
   return {
     short_name: appName,
