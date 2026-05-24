@@ -76,7 +76,7 @@ useHead({
     { name: 'description', content: 'A social habit tracking app.' },
     { name: 'theme-color', content: '#000000' },
     { name: 'mobile-web-app-capable', content: 'yes' },
-    { name: 'apple-mobile-web-app-status-bar-style', content: 'black' },
+    { name: 'apple-mobile-web-app-status-bar-style', content: 'black-translucent' },
     { name: 'apple-mobile-web-app-title', content: 'Habits Social' },
     { property: 'og:title', content: 'Habits Social' },
     { property: 'og:description', content: 'A social habit tracking app.' },

@@ -1,5 +1,5 @@
 <template>
-  <div class="relative h-[calc(100dvh-57px)] md:h-[calc(100dvh-80px)] flex flex-col md:flex-row bg-black/60 backdrop-blur-xl sm:-mx-6 md:mx-0 md:rounded-2xl border border-zinc-800/80 overflow-hidden shadow-2xl md:mt-2 md:mb-2 md:bg-transparent md:backdrop-blur-none md:border-transparent md:overflow-visible md:shadow-none md:gap-2">
+  <div class="relative h-[calc(100dvh-57px)] md:h-[calc(100dvh-80px)] flex flex-col md:flex-row bg-black/60 backdrop-blur-xl sm:-mx-6 md:mx-0 md:rounded-2xl border border-zinc-800/80 border-x-0 border-t-0 overflow-hidden shadow-2xl md:mt-2 md:mb-2 md:bg-transparent md:backdrop-blur-none md:border-transparent md:overflow-visible md:shadow-none md:gap-2">
     
     <!-- Sidebar Pane: Conversations List -->
     <div 
@@ -195,11 +195,11 @@
               class="flex items-end gap-2 group/msg relative"
               :class="[
                 msg.replyToActivity 
-                  ? 'w-full max-w-full self-stretch' 
+                  ? 'w-full max-w-[calc(100%-36px)]' 
                   : 'max-w-[85%] md:max-w-[70%]',
                 msg.senderId === user?.id 
-                  ? (msg.replyToActivity ? 'flex-row-reverse pl-0 pr-0' : 'self-end flex-row-reverse')
-                  : (msg.replyToActivity ? 'pr-0 pl-0' : 'self-start')
+                  ? 'self-end flex-row-reverse'
+                  : 'self-start'
               ]"
             >
               <!-- Avatar slot keeps grouped message rows aligned, hidden for current user -->
@@ -360,7 +360,7 @@
           <!-- Static Reply Context Card Preview (IG Story style) -->
           <div 
             v-if="replyActivityContext" 
-            class="bg-zinc-925 border border-zinc-800 rounded-xl p-3 flex flex-col gap-2 shadow-xl relative select-none"
+            class="bg-zinc-925 border border-zinc-800 rounded-xl p-3 flex flex-col gap-2 shadow-xl relative select-none ml-[44px] mr-2"
           >
             <!-- Close Button -->
             <button 
@@ -391,7 +391,6 @@
               :streakCount="replyActivityContext.streakCount"
               :weeklyStatus="replyActivityContext.weeklyStatus"
               compact
-              class="scale-90 origin-left"
             />
           </div>
 
