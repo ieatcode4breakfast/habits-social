@@ -27,20 +27,23 @@ describe('GET /api/auth/me - Session & Sliding Renewal', () => {
     expect(response.data.email).toBe(testUser.email);
   });
 
-  it('should throw 401 if unauthorized (invalid token)', async () => {
+  it('should return null data if unauthorized (invalid token)', async () => {
     const event = createMockEvent('', {}, { auth_token: 'invalid' });
-    await expect(handler(event)).rejects.toThrow('Unauthorized');
+    const response = (await handler(event)) as any;
+    expect(response.data).toBeNull();
   });
 
-  it('should throw 401 if no user context is present', async () => {
+  it('should return null data if no user context is present', async () => {
     const event = createMockEvent('');
-    await expect(handler(event)).rejects.toThrow('Unauthorized');
+    const response = (await handler(event)) as any;
+    expect(response.data).toBeNull();
   });
 
-  it('should throw 404 if user not found in DB', async () => {
+  it('should return null data and clear cookie if user not found in DB', async () => {
     const nonExistentId = '00000000-0000-0000-0000-000000000000';
     const event = createMockEvent(nonExistentId);
-    await expect(handler(event)).rejects.toThrow('User not found');
+    const response = (await handler(event)) as any;
+    expect(response.data).toBeNull();
   });
 
   // --- Sliding Session Renewal Tests ---

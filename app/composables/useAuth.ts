@@ -19,8 +19,12 @@ export const useAuth = () => {
       const { data } = await $fetch<{ data: any }>('/api/auth/me', { headers });
       user.value = data;
       // Persist to localStorage for offline hydration
-      if (import.meta.client && data) {
-        localStorage.setItem(AUTH_USER_STORAGE_KEY, JSON.stringify(data));
+      if (import.meta.client) {
+        if (data) {
+          localStorage.setItem(AUTH_USER_STORAGE_KEY, JSON.stringify(data));
+        } else {
+          localStorage.removeItem(AUTH_USER_STORAGE_KEY);
+        }
       }
     } catch (error: any) {
       const status = error?.response?.status || error?.statusCode || error?.status;

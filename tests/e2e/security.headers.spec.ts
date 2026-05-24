@@ -10,5 +10,7 @@ test('Security Headers are present', async ({ page }) => {
   expect(headers['x-content-type-options']).toBe('nosniff');
   expect(headers['x-frame-options']).toBe('DENY');
   expect(headers['referrer-policy']).toBe('strict-origin-when-cross-origin');
-  expect(headers['content-security-policy']).toContain("script-src 'self' 'unsafe-inline'");
+  expect(headers['content-security-policy']).toContain("script-src 'self' 'unsafe-inline' https://static.cloudflareinsights.com");
+  expect(headers['content-security-policy']).toContain("connect-src");
+  expect(headers['content-security-policy']).toContain("https://cloudflareinsights.com");
 });

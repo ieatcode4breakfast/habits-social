@@ -13,7 +13,7 @@ export default defineEventHandler(async (event) => {
   const authResult = await getUserAndPayloadFromEvent(event);
 
   if (!authResult) {
-    throw createError({ statusCode: 401, statusMessage: 'Unauthorized' });
+    return { data: null };
   }
 
   const { userId, payload } = authResult;
@@ -30,7 +30,8 @@ export default defineEventHandler(async (event) => {
   const user = results[0];
 
   if (!user) {
-    throw createError({ statusCode: 404, statusMessage: 'User not found' });
+    deleteCookie(event, 'auth_token');
+    return { data: null };
   }
 
   // Sliding session renewal: only issue a new token if the current one
