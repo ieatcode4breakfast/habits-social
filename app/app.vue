@@ -1,5 +1,6 @@
 <template>
   <div class="min-h-[100dvh] antialiased font-sans select-none">
+    <VitePwaManifest />
     <NuxtRouteAnnouncer />
     <NuxtLayout>
       <NuxtPage :keepalive="{ include: ['index', 'inbox'] }" />
@@ -85,7 +86,6 @@ useHead({
     { name: 'twitter:description', content: 'A social habit tracking app.' }
   ],
   link: [
-    { rel: 'manifest', href: '/manifest.json?v=15' },
     { rel: 'icon', type: 'image/svg+xml', href: '/favicon-rounded.svg?v=15' },
     { rel: 'apple-touch-icon', href: '/favicon-rounded.svg' }
   ]

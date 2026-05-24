@@ -19,8 +19,8 @@ export default defineNuxtConfig({
   pwa: {
     registerType: 'autoUpdate',
     manifest: {
-      name: 'Habits Social',
-      short_name: 'Habits Social',
+      name: process.env.APP_NAME || 'Habits Social',
+      short_name: process.env.APP_NAME || 'Habits Social',
       theme_color: '#000000',
       background_color: '#000000',
       display: 'standalone',
