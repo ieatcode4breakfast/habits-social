@@ -21,7 +21,7 @@
                 Social
                 <span v-if="pendingCount > 0" class="flex w-2 h-2 bg-rose-500 rounded-full"></span>
               </NuxtLink>
-              <NuxtLink to="/inbox" class="nav-link flex items-center gap-2" :class="{ 'nav-link-active': $route.path === '/inbox' }">
+              <NuxtLink to="/inbox" class="nav-link flex items-center gap-2" :class="{ 'nav-link-active': $route.path === '/inbox' }" @click="handleInboxNavClick">
                 Inbox
                 <span v-if="totalUnreadCount > 0" class="flex w-2 h-2 bg-rose-500 rounded-full"></span>
               </NuxtLink>
@@ -66,7 +66,7 @@
           <!-- Badge -->
           <div v-if="pendingCount > 0" class="absolute top-1 right-1 w-2.5 h-2.5 bg-rose-500 rounded-full border-2 border-zinc-950"></div>
         </NuxtLink>
-        <NuxtLink to="/inbox" class="flex items-center group transition-colors relative" :class="$route.path === '/inbox' ? 'text-white' : 'text-zinc-500'">
+        <NuxtLink to="/inbox" class="flex items-center group transition-colors relative" :class="$route.path === '/inbox' ? 'text-white' : 'text-zinc-500'" @click="handleInboxNavClick">
           <div class="p-2 rounded-xl transition-all duration-300" :class="$route.path === '/inbox' ? 'bg-white/10 scale-110' : 'group-hover:bg-white/5'">
             <MessageCircle class="w-6 h-6" />
           </div>
@@ -127,6 +127,12 @@ const route = useRoute();
 
 // Profile Modal State
 const showProfileModal = useState('showProfileModal', () => false);
+
+const handleInboxNavClick = () => {
+  if (route.path === '/inbox' && import.meta.client) {
+    window.dispatchEvent(new Event('reset-inbox'));
+  }
+};
 
 const handleEditProfile = () => {
   if (!isOnline.value) {

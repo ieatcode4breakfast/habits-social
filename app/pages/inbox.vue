@@ -1164,6 +1164,7 @@ const handleReplyQuery = async () => {
 onMounted(async () => {
   checkViewport();
   window.addEventListener('resize', checkViewport);
+  window.addEventListener('reset-inbox', deselectConversation);
   
   // Hydrate global social profiles first
   initSocial();
@@ -1185,6 +1186,7 @@ onDeactivated(() => {
 
 onUnmounted(() => {
   window.removeEventListener('resize', checkViewport);
+  window.removeEventListener('reset-inbox', deselectConversation);
   sharedActiveConversationId.value = null;
 });
 
