@@ -25,4 +25,4 @@ export const buildConnectSrc = ({ realtimeEnabled, partykitHost }: RealtimeCspIn
 };
 
 export const buildContentSecurityPolicy = (input: RealtimeCspInput): string =>
-  `default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://api.dicebear.com; connect-src ${buildConnectSrc(input)}; font-src 'self';`;
+  `default-src 'self'; script-src 'self' 'unsafe-inline' https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://api.dicebear.com; connect-src ${buildConnectSrc(input)} https://cloudflareinsights.com; font-src 'self';`;

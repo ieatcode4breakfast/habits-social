@@ -31,12 +31,6 @@ export default defineNuxtConfig({
           sizes: 'any',
           type: 'image/svg+xml',
           purpose: 'any'
-        },
-        {
-          src: 'favicon-rounded.svg',
-          sizes: '512x512',
-          type: 'image/svg+xml',
-          purpose: 'maskable'
         }
       ],
     },
