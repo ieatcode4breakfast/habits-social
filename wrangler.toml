@@ -13,8 +13,8 @@ routes = [
 [env.production.vars]
 # Production environment variables (public)
 NODE_ENV = "production"
-NUXT_PUBLIC_REALTIME_ENABLED = "false"
-NUXT_PUBLIC_PARTYKIT_HOST = ""
+NUXT_PUBLIC_REALTIME_ENABLED = "true"
+NUXT_PUBLIC_PARTYKIT_HOST = "habits-social-realtime-production.ieatcode4breakfast.partykit.dev"
 
 
 

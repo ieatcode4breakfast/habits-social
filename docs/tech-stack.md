@@ -57,6 +57,8 @@ Required deployment secrets:
 - `CLOUDFLARE_ACCOUNT_ID`
 - `STAGING_DATABASE_URL`
 - `PRODUCTION_DATABASE_URL`
+- `NUXT_REALTIME_JWT_SECRET`
+- `NUXT_PARTYKIT_NOTIFY_SECRET`
 
 ## 6. Realtime and Chat
 
@@ -64,7 +66,11 @@ Required deployment secrets:
 - **PartyKit Package**: `partykit`.
 - **Client Socket Package**: `partysocket`.
 - **Staging PartyKit Host**: `habits-social-realtime-staging.ieatcode4breakfast.partykit.dev`.
+- **Production PartyKit Host**: `habits-social-realtime-production.ieatcode4breakfast.partykit.dev`.
+- **Realtime Public Flags**: `NUXT_PUBLIC_REALTIME_ENABLED=true` and `NUXT_PUBLIC_PARTYKIT_HOST=<environment PartyKit host>` must be set at build time so the generated Cloudflare `_headers` file includes the matching `https://` and `wss://` PartyKit origins in `connect-src`.
 - **Realtime Auth**: JWT-based token flow using server utilities.
+- **Realtime Secrets**: `NUXT_REALTIME_JWT_SECRET` signs Worker-issued websocket tokens, and `NUXT_PARTYKIT_NOTIFY_SECRET` signs Worker-to-PartyKit notification requests. These must be rotated and synced separately for staging and production.
+- **PartyKit Project Names**: staging deploys to `habits-social-realtime-staging`; production deploys to `habits-social-realtime-production`. Because `partykit.json` defaults to the staging project, production deploys must pass `--name habits-social-realtime-production` explicitly.
 - **Chat Persistence**: PostgreSQL tables defined in `server/db/schema.ts`.
 
 ## 7. Frontend and Local Data
@@ -174,4 +180,4 @@ When staging or production schema becomes desynchronized:
 
 ---
 
-Last updated: 2026-05-23
+Last updated: 2026-05-24

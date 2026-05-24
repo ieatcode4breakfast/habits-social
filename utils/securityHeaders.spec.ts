@@ -17,6 +17,17 @@ describe('security header CSP helpers', () => {
     );
   });
 
+  it('allows the configured production PartyKit host when realtime is enabled', () => {
+    const connectSrc = buildConnectSrc({
+      realtimeEnabled: 'true',
+      partykitHost: 'habits-social-realtime-production.ieatcode4breakfast.partykit.dev',
+    });
+
+    expect(connectSrc).toBe(
+      "'self' https://habits-social-realtime-production.ieatcode4breakfast.partykit.dev wss://habits-social-realtime-production.ieatcode4breakfast.partykit.dev"
+    );
+  });
+
   it('normalizes harmless host formatting before validation', () => {
     expect(normalizePartykitHostForCsp(' HTTPS://Habits-Social-Realtime-Staging.IeatCode4Breakfast.PartyKit.Dev/ '))
       .toBe('habits-social-realtime-staging.ieatcode4breakfast.partykit.dev');

@@ -30,11 +30,11 @@ jobs:
       - name: Build Nuxt app
         run: |
           if [ "${{ github.ref }}" = "refs/heads/main" ]; then
-            export NUXT_PUBLIC_REALTIME_ENABLED="false"
-            export NUXT_PUBLIC_PARTYKIT_HOST=""
+            export NUXT_PUBLIC_REALTIME_ENABLED="true"
+            export NUXT_PUBLIC_PARTYKIT_HOST="habits-social-realtime-production.ieatcode4breakfast.partykit.dev"
             npm run build
-            # Verify PartyKit is NOT in CSP for production
-            ! grep -q "partykit.dev" .output/public/_headers
+            # Verify the production PartyKit host is present in CSP for production realtime
+            grep -q "habits-social-realtime-production.ieatcode4breakfast.partykit.dev" .output/public/_headers
           else
             export NUXT_PUBLIC_REALTIME_ENABLED="true"
             export NUXT_PUBLIC_PARTYKIT_HOST="habits-social-realtime-staging.ieatcode4breakfast.partykit.dev"
