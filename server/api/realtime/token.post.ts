@@ -51,9 +51,10 @@ export default defineEventHandler(async (event) => {
   }
 
   const userId = await requireAuth(event);
+  const realtimeJwtSecret = getRealtimeJwtSecret(event);
   await checkRealtimeTokenRateLimit(event, userId);
 
-  const secret = new TextEncoder().encode(getRealtimeJwtSecret(event));
+  const secret = new TextEncoder().encode(realtimeJwtSecret);
   const token = await new SignJWT({ userId, roomId: userId })
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt()

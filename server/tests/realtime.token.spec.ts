@@ -2,6 +2,7 @@ import './setup';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { jwtVerify, SignJWT } from 'jose';
 import { createMockEvent, createTestUser, deleteTestUser } from './test.utils';
+import * as realtimeRateLimit from '../utils/realtimeRateLimit';
 
 describe('POST /api/realtime/token', () => {
   const realtimeSecret = 'realtime-token-test-secret';
@@ -21,6 +22,7 @@ describe('POST /api/realtime/token', () => {
   });
 
   afterEach(() => {
+    vi.restoreAllMocks();
     if (originalRealtimeSecret === undefined) {
       delete process.env.REALTIME_JWT_SECRET;
     } else {
@@ -112,6 +114,21 @@ describe('POST /api/realtime/token', () => {
 
     try {
       await expect(handler(event)).rejects.toMatchObject({ statusCode: 500 });
+    } finally {
+      await deleteTestUser(user.id);
+    }
+  });
+
+  it('fails missing realtime secret before rate limiting authenticated requests', async () => {
+    const rateLimitSpy = vi.spyOn(realtimeRateLimit, 'checkRealtimeTokenRateLimit').mockResolvedValue();
+    const handler = (await import('../api/realtime/token.post')).default;
+    const user = await createTestUser(`rt_secret_order_${Date.now()}`, `rt_secret_order_${Date.now()}@ex.com`);
+    const event = createMockEvent(user.id, {}, {}, {}, {}, 'POST');
+    delete process.env.REALTIME_JWT_SECRET;
+
+    try {
+      await expect(handler(event)).rejects.toMatchObject({ statusCode: 500 });
+      expect(rateLimitSpy).not.toHaveBeenCalled();
     } finally {
       await deleteTestUser(user.id);
     }
