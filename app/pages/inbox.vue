@@ -842,6 +842,9 @@ const selectConversation = async (conv: ChatInboxConversation) => {
     showToast('Cannot chat with inactive users', 'failed');
     return;
   }
+  // Reset input state when switching conversations
+  messageBody.value = '';
+  clearReplyContext();
   activeFriend.value = profile;
   activeConversationId.value = conv.id;
   sharedActiveConversationId.value = conv.id;
@@ -859,6 +862,9 @@ const selectConversation = async (conv: ChatInboxConversation) => {
 // Select a friend from the New Conversation Modal
 const selectFriend = async (friend: UserProfile) => {
   showNewChatModal.value = false;
+  // Reset input state when switching conversations
+  messageBody.value = '';
+  clearReplyContext();
   activeFriend.value = friend;
   activeChatLocked.value = false;
   
@@ -878,6 +884,9 @@ const selectFriend = async (friend: UserProfile) => {
 };
 
 const deselectConversation = () => {
+  // Reset input state when leaving a conversation
+  messageBody.value = '';
+  clearReplyContext();
   activeFriend.value = null;
   activeConversationId.value = null;
   sharedActiveConversationId.value = null;
