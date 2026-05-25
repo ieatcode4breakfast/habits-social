@@ -9,6 +9,7 @@ scratch/
 .claude/
 .rules
 .kilo/
+.opencode/
 
 # Testing
 test-results/
