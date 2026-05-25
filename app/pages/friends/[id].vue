@@ -17,7 +17,7 @@
             />
             <div>
               <div class="flex items-center gap-2 mb-1">
-                <h1 class="text-xl font-bold tracking-tight text-white">{{ profile.username }}</h1>
+                <h1 class="text-base font-bold tracking-tight text-white">{{ profile.username }}</h1>
                 <button 
                   v-if="relationshipStatus === 'friends'"
                   @click="handleToggleFavorite"

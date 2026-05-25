@@ -93,6 +93,7 @@ describe('realtime notifier guardrails', () => {
   afterEach(() => {
     vi.restoreAllMocks();
     vi.unstubAllGlobals();
+    vi.unstubAllEnvs();
   });
 
   it('rejects more than two recipients before making outbound requests', async () => {
@@ -116,6 +117,46 @@ describe('realtime notifier guardrails', () => {
       public: {
         ...runtimeConfig.public,
         partykitHost: 'https://evil.example.com/path',
+      },
+    }));
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+
+    await expect(
+      realtimeNotifier.notifyUsersRealtime([crypto.randomUUID()], { type: 'chat.changed' })
+    ).rejects.toThrow(/host/i);
+
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('allows local PartyKit notifications outside production', async () => {
+    vi.stubEnv('NODE_ENV', 'development');
+    vi.stubGlobal('useRuntimeConfig', () => ({
+      ...runtimeConfig,
+      public: {
+        ...runtimeConfig.public,
+        partykitHost: 'localhost:1999',
+      },
+    }));
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true });
+    vi.stubGlobal('fetch', fetchMock);
+    const userId = crypto.randomUUID();
+
+    await realtimeNotifier.notifyUsersRealtime([userId], { type: 'chat.changed' });
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      `http://localhost:1999/party/${encodeURIComponent(userId)}`,
+      expect.objectContaining({ method: 'POST' })
+    );
+  });
+
+  it('rejects local PartyKit notification hosts in production', async () => {
+    vi.stubEnv('NODE_ENV', 'production');
+    vi.stubGlobal('useRuntimeConfig', () => ({
+      ...runtimeConfig,
+      public: {
+        ...runtimeConfig.public,
+        partykitHost: 'localhost:1999',
       },
     }));
     const fetchMock = vi.fn();

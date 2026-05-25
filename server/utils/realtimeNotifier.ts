@@ -7,6 +7,7 @@ import { z } from 'zod';
 
 const NOTIFY_TIMEOUT_MS = 1500;
 const MAX_REALTIME_RECIPIENTS = 2;
+const LOCAL_PARTYKIT_HOST_PATTERN = /^(localhost|127\.0\.0\.1):([1-9]\d{0,4})$/;
 
 interface RealtimeRuntimeConfig {
   partykitNotifySecret?: string;
@@ -16,15 +17,31 @@ interface RealtimeRuntimeConfig {
   };
 }
 
+interface CloudflareRealtimeEnv {
+  NUXT_PARTYKIT_NOTIFY_SECRET?: string;
+  PARTYKIT_NOTIFY_SECRET?: string;
+}
+
 type RuntimeConfigGetter = () => RealtimeRuntimeConfig;
 
 const realtimeRecipientsSchema = z.array(z.string().uuid()).min(1).max(MAX_REALTIME_RECIPIENTS);
-const partykitHostSchema = z.string()
+const deployedPartykitHostSchema = z.string()
   .trim()
   .min(1)
   .max(253)
   .regex(/^[a-z0-9.-]+$/)
   .refine((host) => host.endsWith('.partykit.dev'), { message: 'PartyKit host must be a partykit.dev hostname' });
+
+const localPartykitHostSchema = z.string()
+  .trim()
+  .regex(LOCAL_PARTYKIT_HOST_PATTERN, { message: 'Local PartyKit host must be localhost or 127.0.0.1 with a port' })
+  .refine((host) => {
+    const match = LOCAL_PARTYKIT_HOST_PATTERN.exec(host);
+    if (!match) return false;
+
+    const port = Number(match[2]);
+    return Number.isInteger(port) && port <= 65535;
+  }, { message: 'Local PartyKit port is invalid' });
 
 const getRealtimeRuntimeConfig = (): RealtimeRuntimeConfig => {
   const maybeGetter = (globalThis as { useRuntimeConfig?: unknown }).useRuntimeConfig;
@@ -45,7 +62,35 @@ const normalizeAndValidateHost = (host: string): string => {
     .toLowerCase()
     .replace(/^https?:\/\//, '')
     .replace(/\/+$/, '');
-  return partykitHostSchema.parse(normalized);
+
+  if (deployedPartykitHostSchema.safeParse(normalized).success) return normalized;
+  if (process.env.NODE_ENV !== 'production') return localPartykitHostSchema.parse(normalized);
+
+  return deployedPartykitHostSchema.parse(normalized);
+};
+
+const buildPartykitOrigin = (host: string): string => (
+  LOCAL_PARTYKIT_HOST_PATTERN.test(host) ? `http://${host}` : `https://${host}`
+);
+
+const isRecord = (value: unknown): value is Record<string, unknown> => (
+  typeof value === 'object' && value !== null
+);
+
+const readCloudflareRealtimeEnv = (context: unknown): CloudflareRealtimeEnv | undefined => {
+  if (!isRecord(context) || !isRecord(context.cloudflare) || !isRecord(context.cloudflare.env)) {
+    return undefined;
+  }
+
+  const env = context.cloudflare.env;
+  return {
+    NUXT_PARTYKIT_NOTIFY_SECRET: typeof env.NUXT_PARTYKIT_NOTIFY_SECRET === 'string'
+      ? env.NUXT_PARTYKIT_NOTIFY_SECRET
+      : undefined,
+    PARTYKIT_NOTIFY_SECRET: typeof env.PARTYKIT_NOTIFY_SECRET === 'string'
+      ? env.PARTYKIT_NOTIFY_SECRET
+      : undefined,
+  };
 };
 
 export const notifyUsersRealtime = async (
@@ -54,16 +99,14 @@ export const notifyUsersRealtime = async (
 ): Promise<void> => {
   const config = getRealtimeRuntimeConfig();
   
-  let currentEvent: any;
+  let cloudflareEnv: CloudflareRealtimeEnv | undefined;
   try {
-    currentEvent = useEvent();
-  } catch (e) {}
-  
-  const cf = currentEvent?.context?.cloudflare;
+    cloudflareEnv = readCloudflareRealtimeEnv(useEvent().context);
+  } catch {}
   
   const realtimeEnabled = config.public?.realtimeEnabled === true;
   const host = config.public?.partykitHost ? normalizeAndValidateHost(config.public.partykitHost) : '';
-  const secret = cf?.env?.NUXT_PARTYKIT_NOTIFY_SECRET || cf?.env?.PARTYKIT_NOTIFY_SECRET || config.partykitNotifySecret;
+  const secret = cloudflareEnv?.NUXT_PARTYKIT_NOTIFY_SECRET || cloudflareEnv?.PARTYKIT_NOTIFY_SECRET || config.partykitNotifySecret;
 
   if (!realtimeEnabled || !host || !secret) return;
 
@@ -83,7 +126,7 @@ export const notifyUsersRealtime = async (
       const timeout = setTimeout(() => controller.abort(), NOTIFY_TIMEOUT_MS);
 
       try {
-        const response = await fetch(`https://${host}/party/${encodeURIComponent(userId)}`, {
+        const response = await fetch(`${buildPartykitOrigin(host)}/party/${encodeURIComponent(userId)}`, {
           method: 'POST',
           headers: {
             'content-type': 'application/json',

@@ -143,6 +143,25 @@ Cause and effect:
 - If the first websocket attempt fails because the network hiccups, realtime should retry and recover. It should not stay dead unless the token endpoint returned `404`.
 - If PartyKit is misconfigured and rejects every websocket, the client backs off token fetches but PartySocket may still retry connections. That is why the token endpoint and PartyKit secrets must be verified before enabling production.
 
+### Local PartyKit Development
+
+For local realtime, set the public PartyKit host in `.env`:
+
+```env
+NUXT_PUBLIC_REALTIME_ENABLED=true
+NUXT_PUBLIC_PARTYKIT_HOST=localhost:1999
+```
+
+Then start the local dev runtime:
+
+```powershell
+npm run dev
+```
+
+`npm run dev` starts Nuxt and, when `NUXT_PUBLIC_PARTYKIT_HOST` is `localhost:<port>` or `127.0.0.1:<port>`, also starts local PartyKit. `REALTIME_JWT_SECRET` and `PARTYKIT_NOTIFY_SECRET` must be present in `.env`. The local PartyKit server reads them through `--with-env`, and Nuxt uses the same values to mint websocket tokens and sign notification POSTs.
+
+Local hosts are accepted only outside `NODE_ENV=production`. Production CSP and notification validation remain restricted to `*.partykit.dev` hosts.
+
 ## 7. Worker-to-PartyKit Notification Flow
 
 The Worker notifies PartyKit through `notifyUsersRealtimeBestEffort`.
@@ -153,7 +172,7 @@ For each recipient:
 2. Serialize the event body as JSON.
 3. Add a millisecond timestamp.
 4. Sign `${timestamp}.${body}` with HMAC-SHA256 using `NUXT_PARTYKIT_NOTIFY_SECRET`.
-5. POST to `https://<PARTYKIT_HOST>/party/<USER_ID>`.
+5. POST to `https://<PARTYKIT_HOST>/party/<USER_ID>` for deployed PartyKit, or `http://localhost:1999/party/<USER_ID>` for local PartyKit.
 6. PartyKit verifies the timestamp, signature, JSON schema, and event size.
 7. PartyKit broadcasts the serialized event to all sockets in that user's room.
 

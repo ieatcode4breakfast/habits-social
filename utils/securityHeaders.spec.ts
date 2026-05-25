@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   buildConnectSrc,
   buildContentSecurityPolicy,
@@ -6,6 +6,10 @@ import {
 } from './securityHeaders';
 
 describe('security header CSP helpers', () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
   it('allows only the configured PartyKit host when realtime is enabled', () => {
     const connectSrc = buildConnectSrc({
       realtimeEnabled: 'true',
@@ -47,6 +51,24 @@ describe('security header CSP helpers', () => {
     })).toBe("'self'");
   });
 
+  it('allows local PartyKit websocket connections outside production', () => {
+    vi.stubEnv('NODE_ENV', 'development');
+
+    expect(buildConnectSrc({
+      realtimeEnabled: true,
+      partykitHost: 'localhost:1999',
+    })).toBe("'self' http://localhost:1999 ws://localhost:1999");
+  });
+
+  it('fails closed for local PartyKit hosts in production', () => {
+    vi.stubEnv('NODE_ENV', 'production');
+
+    expect(buildConnectSrc({
+      realtimeEnabled: true,
+      partykitHost: 'localhost:1999',
+    })).toBe("'self'");
+  });
+
   it('builds the final CSP with the validated connect-src value', () => {
     const csp = buildContentSecurityPolicy({
       realtimeEnabled: true,
@@ -54,7 +76,7 @@ describe('security header CSP helpers', () => {
     });
 
     expect(csp).toContain(
-      "connect-src 'self' https://habits-social-realtime-staging.ieatcode4breakfast.partykit.dev wss://habits-social-realtime-staging.ieatcode4breakfast.partykit.dev https://cloudflareinsights.com;"
+      "connect-src 'self' https://habits-social-realtime-staging.ieatcode4breakfast.partykit.dev wss://habits-social-realtime-staging.ieatcode4breakfast.partykit.dev https://cloudflareinsights.com https://accounts.google.com;"
     );
   });
 });

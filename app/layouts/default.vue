@@ -87,6 +87,9 @@
 
     <!-- Unified Profile Modal Component -->
     <ProfileModal v-model="showProfileModal" />
+
+    <!-- Choose Avatar Modal on Signup -->
+    <ChooseAvatarModal v-model="showChooseAvatarModal" />
   </div>
 </template>
 
@@ -115,6 +118,7 @@ onMounted(() => {
     initChatInbox();
     realtimeInvalidation.start();
   }
+  checkJustSignedUp();
 });
 
 onUnmounted(() => {
@@ -127,6 +131,20 @@ const route = useRoute();
 
 // Profile Modal State
 const showProfileModal = useState('showProfileModal', () => false);
+const showChooseAvatarModal = ref(false);
+
+const checkJustSignedUp = () => {
+  if (import.meta.client && user.value && sessionStorage.getItem('just-signed-up') === 'true') {
+    showChooseAvatarModal.value = true;
+    sessionStorage.removeItem('just-signed-up');
+  }
+};
+
+watch(() => user.value?.id, (newId) => {
+  if (newId) {
+    checkJustSignedUp();
+  }
+});
 
 const handleInboxNavClick = () => {
   if (route.path === '/inbox' && import.meta.client) {

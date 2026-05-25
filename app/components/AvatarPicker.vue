@@ -29,15 +29,14 @@
         leave-from-class="opacity-100 scale-100"
         leave-to-class="opacity-0 scale-95"
       >
-        <div v-if="showAvatarModal" class="fixed inset-0 z-[110] flex items-center justify-center p-4">
+        <div v-if="showAvatarModal" class="fixed inset-0 z-[110] flex items-center justify-center sm:p-4">
           <div class="absolute inset-0 bg-black/90 backdrop-blur-xl" @click="showAvatarModal = false"></div>
           
-          <div class="relative w-full max-w-lg bg-zinc-925 border border-zinc-800 rounded-3xl shadow-2xl p-8">
-            <div class="flex flex-col sm:flex-row sm:items-center justify-between mb-8 gap-4">
+          <div class="relative w-full h-full sm:h-auto max-w-lg bg-zinc-925 sm:border border-zinc-800 sm:rounded-3xl shadow-2xl p-6 sm:p-8 flex flex-col">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between mb-8 gap-4 shrink-0 pt-8 sm:pt-0">
               <div class="flex items-start justify-between w-full sm:w-auto">
                 <div>
                   <h2 class="text-2xl font-bold text-white leading-tight">Choose Avatar</h2>
-                  <p class="text-zinc-500 text-sm">Pick a style that fits you</p>
                 </div>
                 <button @click="showAvatarModal = false" class="p-2 text-zinc-500 hover:text-white hover:bg-zinc-800 rounded-xl transition-all cursor-pointer sm:hidden">
                   <XIcon class="w-5 h-5" />
@@ -58,31 +57,37 @@
               </div>
             </div>
 
-            <div class="grid grid-cols-3 sm:grid-cols-4 gap-4 max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar">
-              <!-- Clear/Default Option -->
-              <button 
-                @click="selectAvatar('')"
-                class="aspect-square rounded-2xl bg-zinc-950 border-2 border-zinc-800 flex flex-col items-center justify-center hover:border-white transition-all cursor-pointer group relative overflow-hidden"
-              >
-                <div class="w-10 h-10 rounded-full bg-zinc-900 flex items-center justify-center mb-1 group-hover:scale-110 transition-transform">
-                  <UserIcon class="w-5 h-5 text-zinc-500" />
-                </div>
-                <span class="text-[10px] font-bold text-zinc-500 uppercase tracking-tighter">Default</span>
-                <div class="absolute inset-0 bg-white/0 group-hover:bg-white/5 transition-colors"></div>
-              </button>
+            <div class="flex-1 overflow-y-auto pr-2 custom-scrollbar sm:max-h-[60vh]">
+              <div class="grid grid-cols-4 sm:grid-cols-5 gap-4 auto-rows-max">
+                <!-- Clear/Default Option -->
+                <button 
+                  @click="selectAvatar('')"
+                  class="w-full aspect-square min-w-0 min-h-0 rounded-full bg-zinc-950 border-2 border-zinc-800 flex flex-col items-center justify-center hover:border-white transition-all cursor-pointer group relative overflow-hidden"
+                >
+                  <div class="w-10 h-10 rounded-full bg-zinc-900 flex items-center justify-center mb-1 group-hover:scale-110 transition-transform">
+                    <UserIcon class="w-5 h-5 text-zinc-500" />
+                  </div>
+                  <span class="text-[10px] font-bold text-zinc-500 uppercase tracking-tighter">Default</span>
+                  <div class="absolute inset-0 bg-white/0 group-hover:bg-white/5 transition-colors"></div>
+                </button>
 
-              <UserAvatar 
-                v-for="(avatar, index) in suggestedAvatars" 
-                :key="index"
-                :src="avatar"
-                container-class="aspect-square rounded-2xl bg-zinc-950 border-2 border-zinc-800 hover:border-white transition-all cursor-pointer group relative"
-                img-class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                @click="selectAvatar(avatar)"
-                @error="handleAvatarError"
-              />
+                <button
+                  v-for="(avatar, index) in suggestedAvatars" 
+                  :key="index"
+                  @click="selectAvatar(avatar)"
+                  class="w-full aspect-square min-w-0 min-h-0 rounded-full bg-zinc-950 border-2 border-zinc-800 hover:border-white transition-all cursor-pointer group relative overflow-hidden"
+                >
+                  <UserAvatar 
+                    :src="avatar"
+                    container-class="w-full h-full !rounded-full border-0"
+                    img-class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                    @error="handleAvatarError"
+                  />
+                </button>
+              </div>
             </div>
 
-            <div class="mt-8">
+            <div class="mt-auto sm:mt-8 pt-6 sm:pt-0 shrink-0 pb-8 sm:pb-0">
               <button 
                 @click="showAvatarModal = false"
                 class="w-full py-4 bg-zinc-900 text-white font-bold rounded-2xl hover:bg-zinc-800 transition-all cursor-pointer whitespace-nowrap"

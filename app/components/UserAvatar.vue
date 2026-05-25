@@ -3,7 +3,7 @@
     <img 
       v-if="src && !hasError" 
       :src="src" 
-      :class="[imgClass || 'w-full h-full object-cover']"
+      :class="[imgClass || 'w-full h-full object-cover', 'min-w-0 min-h-0']"
       @error="handleError"
     />
     <UserIcon v-else :class="iconClass || 'w-1/2 h-1/2 text-zinc-500'" />
