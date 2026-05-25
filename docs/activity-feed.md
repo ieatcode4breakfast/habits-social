@@ -34,7 +34,7 @@ The backend calculates the streak and stamps it directly into the database logs 
 The backend provides "Ready-to-Render" activity events via the `/api/social/feed` endpoint, combining data from three distinct tables: `habitlogs`, `habits` (for commitments), and `share_events`.
 
 * **Query Logic:** The system fetches events belonging to active friends (where `sharedwith` includes the user) **AND** the user's own events, allowing personal activity to appear in the feed.
-* **Hydration & Mapping:** Events are hydrated with user profiles and mapped using a "Narrator" logic to structure the payload into distinct types (`INITIAL_COMPLETION`, `STREAK_STARTED`, `SHARE`, etc.). If an event belongs to the authenticated user, the username is explicitly converted to 'You'.
+* **Hydration & Mapping:** Events are hydrated with user profiles and mapped using a "Narrator" logic to structure the payload into distinct types (`INITIAL_COMPLETION`, `STREAK_STARTED`, `SHARE`, etc.). If an event belongs to the authenticated user, the user's actual username is displayed instead of 'You'.
 * **Multi-Tier Sorting:** Feed events are sorted strictly using `ORDER BY date DESC, updatedat DESC, id DESC`.
 * **Timezone Importance:** To ensure accurate cross-timezone sorting between `habitlogs` and `share_events`, it is critical that timestamps are stored using `TIMESTAMPTZ`.
 

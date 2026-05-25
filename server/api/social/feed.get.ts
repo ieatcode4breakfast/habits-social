@@ -60,6 +60,12 @@ export default defineEventHandler(async (event) => {
   const userId = await requireAuth(event);
   const db = useDB(event);
 
+  // Fetch the current user's actual name for feed display
+  const [currentUser] = await db.select({ username: users.username })
+    .from(users)
+    .where(eq(users.id, userId));
+  const currentUserName = currentUser?.username ?? 'You';
+
   const query = getQuery(event);
   const cursorDate = query.cursorDate as string;
   const cursorTimestamp = query.cursorTimestamp as string;
@@ -269,10 +275,10 @@ export default defineEventHandler(async (event) => {
     const itemWithUser = { ...data, username: row.username, photoUrl: row.photo_url };
 
     if (row.source_type === 'log') {
-      const narrated = SocialNarratorService.narrateLog(itemWithUser, userId);
+      const narrated = SocialNarratorService.narrateLog(itemWithUser, userId, currentUserName);
       if (narrated) narratedFeed.push(narrated);
     } else if (row.source_type === 'habit') {
-      narratedFeed.push(SocialNarratorService.narrateCommitment(itemWithUser, userId));
+      narratedFeed.push(SocialNarratorService.narrateCommitment(itemWithUser, userId, currentUserName));
     } else if (row.source_type === 'share') {
       const isOwner = row.owner_id === userId;
       if (isOwner) {
@@ -282,7 +288,7 @@ export default defineEventHandler(async (event) => {
         if (!shareGroups.has(groupKey)) shareGroups.set(groupKey, []);
         shareGroups.get(groupKey)!.push({ ...itemWithUser, recipientUsername: recipientNames[row.raw_data.recipientId] });
       } else {
-        narratedFeed.push(SocialNarratorService.narrateShare({ ...itemWithUser, recipientUsername: recipientNames[row.raw_data.recipientId] }, userId, shareHabitTitles));
+        narratedFeed.push(SocialNarratorService.narrateShare({ ...itemWithUser, recipientUsername: recipientNames[row.raw_data.recipientId] }, userId, currentUserName, shareHabitTitles));
       }
     }
   }
@@ -290,14 +296,14 @@ export default defineEventHandler(async (event) => {
   // Grouped Share Processing
   for (const group of shareGroups.values()) {
     if (group.length === 1) {
-      narratedFeed.push(SocialNarratorService.narrateShare(group[0], userId, shareHabitTitles));
+      narratedFeed.push(SocialNarratorService.narrateShare(group[0], userId, currentUserName, shareHabitTitles));
     } else {
       const first = group[0];
       narratedFeed.push(SocialNarratorService.narrateShare({
         ...first,
         recipientCount: group.length,
         isGroupedAction: true
-      }, userId, shareHabitTitles));
+      }, userId, currentUserName, shareHabitTitles));
     }
   }
 

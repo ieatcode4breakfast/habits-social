@@ -51,7 +51,7 @@ export class SocialNarratorService {
     return `[S:${days}]${yt} and ${dt} (${days} days)[/S]`;
   }
 
-  static narrateLog(log: any, currentUserId: string): FeedItem | null {
+  static narrateLog(log: any, currentUserId: string, currentUserName: string): FeedItem | null {
     let type = '';
     let message = '';
     const dateFormatted = format(parseISO(log.date), 'MMM d');
@@ -117,7 +117,7 @@ export class SocialNarratorService {
         type,
         user: {
           id: log.ownerId,
-          name: log.ownerId === currentUserId ? 'You' : log.username,
+          name: log.ownerId === currentUserId ? currentUserName : log.username,
           photoUrl: log.photoUrl
         },
         habit: {
@@ -133,14 +133,14 @@ export class SocialNarratorService {
     return null;
   }
 
-  static narrateCommitment(c: any, currentUserId: string): FeedItem {
+  static narrateCommitment(c: any, currentUserId: string, currentUserName: string): FeedItem {
     const dateFormatted = format(parseISO(c.date), 'MMM d');
     return {
       id: `commitment-${c.id}`,
       type: 'COMMITMENT',
       user: {
         id: c.ownerId,
-        name: c.ownerId === currentUserId ? 'You' : c.username,
+        name: c.ownerId === currentUserId ? currentUserName : c.username,
         photoUrl: c.photoUrl
       },
       habit: {
@@ -153,7 +153,7 @@ export class SocialNarratorService {
     };
   }
 
-  static narrateShare(se: any, currentUserId: string, habitTitles: Record<string, string>): FeedItem {
+  static narrateShare(se: any, currentUserId: string, currentUserName: string, habitTitles: Record<string, string>): FeedItem {
     const dateFormatted = format(parseISO(se.date), 'MMM d');
     const habitIds = (se.habitIds || []).map(String);
     const habits = habitIds.map((hid: string) => ({
@@ -179,7 +179,7 @@ export class SocialNarratorService {
       type: 'SHARE',
       user: {
         id: se.ownerId,
-        name: isOwner ? 'You' : se.username,
+        name: isOwner ? currentUserName : se.username,
         photoUrl: se.photoUrl
       },
       habit: habits.length === 1 ? habits[0] : { id: null, title: habits.map((h: any) => h.title).join(', ') },
