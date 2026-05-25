@@ -61,7 +61,7 @@
           <button
             v-for="conv in conversations" 
             :key="conv.id"
-            @click="selectConversation(conv)"
+            @click="switchToConversation(conv)"
             class="w-full text-left p-3 rounded-xl transition-all duration-200 flex items-center gap-3 group relative cursor-pointer outline-none border border-transparent"
             :class="[
               activeConversationId === conv.id 
@@ -713,6 +713,35 @@ const loadingMore = ref(false);
 // Input states
 const messageBody = ref('');
 const hasMore = ref(false);
+
+// Per-conversation draft storage (keyed by friend ID) — preserves unsent messages
+// and activity reply context when switching conversations or leaving and returning
+const conversationDrafts = ref<Record<string, { body: string; replyActivity: any }>>({});
+
+const saveCurrentDraft = () => {
+  if (!activeFriend.value?.id) return;
+  conversationDrafts.value[activeFriend.value.id] = {
+    body: messageBody.value,
+    replyActivity: replyActivityContext.value ? { ...replyActivityContext.value } : null
+  };
+};
+
+const loadDraft = (friendId: string) => {
+  const draft = conversationDrafts.value[friendId];
+  if (draft) {
+    messageBody.value = draft.body;
+    replyActivityContext.value = draft.replyActivity ? { ...draft.replyActivity } : null;
+  } else {
+    messageBody.value = '';
+    replyActivityContext.value = null;
+  }
+};
+
+const clearCurrentDraft = () => {
+  if (!activeFriend.value?.id) return;
+  delete conversationDrafts.value[activeFriend.value.id];
+};
+
 const nextCursor = ref<string | null>(null);
 const friendSearchQuery = ref('');
 
@@ -835,15 +864,13 @@ const markConversationRead = async (conversationId: string) => {
   }
 };
 
-// Select a specific conversation from list
+// Pure conversation setup (no draft management — callers handle drafts)
 const selectConversation = async (conv: ChatInboxConversation) => {
   const profile = getFriendProfile(conv);
   if (!profile) {
     showToast('Cannot chat with inactive users', 'failed');
     return;
   }
-  // Reset message text when switching conversations
-  messageBody.value = '';
   activeFriend.value = profile;
   activeConversationId.value = conv.id;
   sharedActiveConversationId.value = conv.id;
@@ -858,11 +885,18 @@ const selectConversation = async (conv: ChatInboxConversation) => {
   }
 };
 
-// Select a friend from the New Conversation Modal
+// Draft-aware conversation switch (used by sidebar click)
+const switchToConversation = async (conv: ChatInboxConversation) => {
+  saveCurrentDraft();
+  await selectConversation(conv);
+  loadDraft(activeFriend.value?.id || '');
+};
+
+// Select a friend from the New Conversation Modal (draft-aware)
 const selectFriend = async (friend: UserProfile) => {
   showNewChatModal.value = false;
-  // Reset message text when switching conversations
-  messageBody.value = '';
+  saveCurrentDraft();
+  
   activeFriend.value = friend;
   activeChatLocked.value = false;
   
@@ -874,17 +908,18 @@ const selectFriend = async (friend: UserProfile) => {
 
   if (existingConv) {
     await selectConversation(existingConv);
+    loadDraft(friend.id);
   } else {
     activeConversationId.value = null;
     messages.value = [];
     sharedActiveConversationId.value = null;
+    loadDraft(friend.id);
   }
 };
 
 const deselectConversation = () => {
-  // Reset input state when leaving a conversation
-  messageBody.value = '';
-  clearReplyContext();
+  // Save draft before leaving so it's restored when returning
+  saveCurrentDraft();
   activeFriend.value = null;
   activeConversationId.value = null;
   sharedActiveConversationId.value = null;
@@ -1009,6 +1044,8 @@ const sendMessage = async () => {
 
     // Refresh conversations list silently
     await loadConversations(true);
+    // Clear the draft for this conversation after successful send
+    clearCurrentDraft();
   } catch (error: unknown) {
     messages.value = messages.value.filter(message => message.id !== optimisticMessageId);
     await loadConversations(true);
@@ -1158,6 +1195,16 @@ const handleReplyQuery = async () => {
     }
     const targetFriend = friends.value.find(f => f.id === queryFriendId);
     if (targetFriend) {
+      // If there's an externally-set reply context (from social.vue's "Chat about this activity"),
+      // pre-save it as a draft for the target friend so it survives through selectFriend's
+      // saveCurrentDraft / loadDraft cycle and is not lost.
+      if (replyActivityContext.value) {
+        const existingDraft = conversationDrafts.value[targetFriend.id] || { body: '', replyActivity: null };
+        conversationDrafts.value[targetFriend.id] = {
+          body: existingDraft.body,
+          replyActivity: { ...replyActivityContext.value }
+        };
+      }
       await selectFriend(targetFriend);
     }
     // Clear the query parameter so it doesn't re-trigger on back navigation
