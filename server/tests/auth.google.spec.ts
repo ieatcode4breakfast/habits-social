@@ -148,3 +148,20 @@ describe('Google Authentication and Registration Flow', () => {
     await expect(registerGoogleHandler(registerEvent)).rejects.toThrow(/signup token has expired or is invalid/i);
   });
 });
+
+describe('Google Client ID Endpoint', () => {
+  let clientIdHandler: any;
+
+  beforeAll(async () => {
+    clientIdHandler = (await import('../api/auth/google-client-id.get')).default;
+  });
+
+  it('should return the configured Google client ID from server runtime', async () => {
+    const event = createMockEvent('');
+    const response = await clientIdHandler(event);
+    expect(response).toHaveProperty('clientId');
+    expect(response.clientId).toBe(
+      process.env.GOOGLE_CLIENT_ID || 'mock-google-client-id'
+    );
+  });
+});

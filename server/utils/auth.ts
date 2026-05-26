@@ -23,6 +23,22 @@ const getSecret = (event?: H3Event) => {
   return new TextEncoder().encode(secret);
 };
 
+export const getGoogleClientId = (event?: H3Event): string => {
+  let config: any = {};
+  try {
+    config = useRuntimeConfig(event);
+  } catch (e) {}
+
+  const cf = (event as any)?.context?.cloudflare;
+  const clientId = cf?.env?.NUXT_GOOGLE_CLIENT_ID || cf?.env?.GOOGLE_CLIENT_ID || (config.googleClientId as string) || process.env.GOOGLE_CLIENT_ID;
+
+  if (!clientId) {
+    throw new Error('FATAL: GOOGLE_CLIENT_ID environment variable is missing.');
+  }
+
+  return clientId;
+};
+
 export const generateToken = async (userId: string | number, event: H3Event): Promise<string> => {
   const secret = getSecret(event);
   return await new SignJWT({ userId })
@@ -80,17 +96,7 @@ const GOOGLE_JWKS_URL = 'https://www.googleapis.com/oauth2/v3/certs';
 let jwksClient: any = null;
 
 export const verifyGoogleIdToken = async (token: string, event: H3Event): Promise<{ email: string; picture?: string; sub: string }> => {
-  let config: any = {};
-  try {
-    config = useRuntimeConfig(event);
-  } catch (e) {}
-  
-  const cf = (event as any)?.context?.cloudflare;
-  const clientId = cf?.env?.NUXT_GOOGLE_CLIENT_ID || cf?.env?.GOOGLE_CLIENT_ID || (config.googleClientId as string) || process.env.GOOGLE_CLIENT_ID;
-
-  if (!clientId) {
-    throw new Error('FATAL: GOOGLE_CLIENT_ID environment variable is missing.');
-  }
+  const clientId = getGoogleClientId(event);
 
   // Support local offline testing of Google JWT verification
   if (process.env.NODE_ENV === 'test') {

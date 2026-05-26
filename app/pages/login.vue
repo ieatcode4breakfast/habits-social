@@ -392,33 +392,41 @@ const handleGoogleSignupSubmit = async () => {
   }
 };
 
-// Initialize GIS on mount
-onMounted(() => {
-  const initGoogle = () => {
-    if (typeof window !== 'undefined' && (window as any).google) {
-      (window as any).google.accounts.id.initialize({
-        client_id: useRuntimeConfig().public.googleClientId,
-        callback: handleGoogleCallback,
-      });
+// Initialize GIS on mount — fetches the Google client ID from the server at runtime
+// so each environment (dev/staging/production) uses the correct credential from
+// its own Cloudflare vars, without relying on build-time configuration.
+onMounted(async () => {
+  try {
+    const { clientId } = await $fetch<{ clientId: string }>('/api/auth/google-client-id');
 
-      const btnEl = document.getElementById('google-btn');
-      if (btnEl) {
-        const parentWidth = btnEl.parentElement?.clientWidth || 320;
-        const responsiveWidth = Math.min(320, Math.max(200, parentWidth));
-        
-        (window as any).google.accounts.id.renderButton(btnEl, {
-          theme: 'outline',
-          size: 'large',
-          width: responsiveWidth,
-          logo_alignment: 'left',
-          text: 'signin_with',
-          shape: 'rectangular',
+    const initGoogle = () => {
+      if (typeof window !== 'undefined' && (window as any).google) {
+        (window as any).google.accounts.id.initialize({
+          client_id: clientId,
+          callback: handleGoogleCallback,
         });
+
+        const btnEl = document.getElementById('google-btn');
+        if (btnEl) {
+          const parentWidth = btnEl.parentElement?.clientWidth || 320;
+          const responsiveWidth = Math.min(320, Math.max(200, parentWidth));
+          
+          (window as any).google.accounts.id.renderButton(btnEl, {
+            theme: 'outline',
+            size: 'large',
+            width: responsiveWidth,
+            logo_alignment: 'left',
+            text: 'signin_with',
+            shape: 'rectangular',
+          });
+        }
+      } else {
+        setTimeout(initGoogle, 100);
       }
-    } else {
-      setTimeout(initGoogle, 100);
-    }
-  };
-  initGoogle();
+    };
+    initGoogle();
+  } catch (e) {
+    error.value = 'Google Sign-In is not configured for this environment.';
+  }
 });
 </script>

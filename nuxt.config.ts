@@ -112,7 +112,7 @@ export default defineNuxtConfig({
       appName: process.env.APP_NAME || 'Habits Social',
       realtimeEnabled: process.env.NUXT_PUBLIC_REALTIME_ENABLED === 'true',
       partykitHost: process.env.NUXT_PUBLIC_PARTYKIT_HOST || '',
-      googleClientId: process.env.NUXT_PUBLIC_GOOGLE_CLIENT_ID || process.env.GOOGLE_CLIENT_ID || '809315534720-i9k4b8h2uqqh35v1oc5pl664q3j4jklg.apps.googleusercontent.com',
+      googleClientId: process.env.NUXT_PUBLIC_GOOGLE_CLIENT_ID || process.env.GOOGLE_CLIENT_ID || '',
     }
   },
 

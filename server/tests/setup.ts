@@ -97,6 +97,9 @@ vi.mock('../utils/auth', () => ({
     // Track that a cookie was set for test assertions
     event._cookieWasRefreshed = true;
   },
+  getGoogleClientId: (event?: any) => {
+    return process.env.GOOGLE_CLIENT_ID || '';
+  },
   verifyGoogleIdToken: async (token: string, event: any) => {
     const { jwtVerify } = require('jose');
     const secret = new TextEncoder().encode(process.env.JWT_SECRET || 'test-secret');
