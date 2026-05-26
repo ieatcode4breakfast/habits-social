@@ -179,7 +179,7 @@
         <!-- Messages Stream Scroll Area -->
         <div 
           ref="scrollContainer"
-          class="flex-1 min-h-0 overflow-y-auto p-4 flex flex-col-reverse gap-2"
+          class="flex-1 min-h-0 overflow-y-auto p-4 flex flex-col gap-2"
           @scroll="handleScroll"
         >
           <!-- Loading Indicator -->
@@ -190,7 +190,7 @@
           <template v-else>
             <!-- Message Bubbles -->
             <div 
-              v-for="(msg, index) in messages" 
+              v-for="(msg, index) in reversedMessages" 
               :key="msg.id"
               class="flex items-end gap-2 group/msg relative"
               :class="[
@@ -701,6 +701,7 @@ const getErrorStatus = (error: unknown): number | undefined => {
 const activeConversationId = ref<string | null>(null);
 const activeFriend = ref<UserProfile | null>(null);
 const messages = ref<InboxMessage[]>([]);
+const reversedMessages = computed(() => [...messages.value].reverse());
 const conversationsScrollContainer = ref<HTMLElement | null>(null);
 const sharedActiveConversationId = useState<string | null>('realtime-active-conversation-id', () => null);
 const activeChatLocked = useState<boolean>('realtime-active-chat-locked', () => false);
@@ -954,7 +955,7 @@ const deselectConversation = () => {
 };
 
 // Load messages in the active conversation
-const loadMessages = async (cursor: string | null = null) => {
+const loadMessages = async (cursor: string | null = null, autoScroll = true) => {
   if (!activeConversationId.value) return;
   
   const isPaginating = !!cursor;
@@ -971,13 +972,20 @@ const loadMessages = async (cursor: string | null = null) => {
     const data = await $fetch<PaginatedMessagesResponse>(`/api/chat/conversations/${activeConversationId.value}/messages`, { query });
     
     if (isPaginating) {
-      messages.value = [...messages.value, ...(data.messages || [])];
+      // Prepend older messages — they go at the start of the array so they appear at the visual top
+      const prevScrollHeight = scrollContainer.value?.scrollHeight ?? 0;
+      messages.value = [...(data.messages || []), ...messages.value];
+      // Preserve scroll position after prepending: the new content pushes existing content down
+      await nextTick();
+      if (scrollContainer.value) {
+        scrollContainer.value.scrollTop = scrollContainer.value.scrollHeight - prevScrollHeight;
+      }
     } else {
       messages.value = data.messages || [];
-      // Scroll to bottom
-      nextTick(() => {
-        scrollToBottom();
-      });
+      if (autoScroll) {
+        // Scroll to bottom after layout settles (async images, visualizers, etc.)
+        await scrollToBottomSettled();
+      }
     }
 
     hasMore.value = data.hasMore;
@@ -992,16 +1000,18 @@ const loadMessages = async (cursor: string | null = null) => {
 };
 
 // Load older messages (pagination)
-const loadOlderMessages = () => {
+const loadOlderMessages = async () => {
   if (hasMore.value && nextCursor.value && !loadingMore.value) {
-    loadMessages(nextCursor.value);
+    await loadMessages(nextCursor.value);
   }
 };
 
 const shouldShowMessageAvatar = (msg: InboxMessage, index: number) => {
   if (!msg.senderId) return false;
 
-  const newerMessage = messages.value[index - 1];
+  // reversedMessages iterates oldest-first (top of scroll) to newest (bottom).
+  // The "newer" message (visually below) is at the next index in reversedMessages.
+  const newerMessage = reversedMessages.value[index + 1];
   return !newerMessage || newerMessage.senderId !== msg.senderId;
 };
 
@@ -1040,9 +1050,8 @@ const sendMessage = async () => {
   updateOptimisticPreview(targetFriendId, text, user.value.id, optimisticMessage.createdAt);
   messageBody.value = '';
   clearReplyContext();
-  await nextTick();
   syncMessageTextareaHeight();
-  scrollToBottom();
+  await scrollToBottomSettled();
 
   try {
     const response = await $fetch<InboxMessage>(`/api/chat/conversations/by-friend/${targetFriendId}/messages`, {
@@ -1064,9 +1073,7 @@ const sendMessage = async () => {
       sharedActiveConversationId.value = response.conversationId;
     }
 
-    nextTick(() => {
-      scrollToBottom();
-    });
+    await scrollToBottomSettled();
 
     // Refresh conversations list silently
     await loadConversations(true);
@@ -1191,16 +1198,27 @@ const formatTime = (dateStr: string | Date) => {
 // Scroll layout helpers
 const scrollToBottom = () => {
   if (scrollContainer.value) {
-    scrollContainer.value.scrollTop = 0; // Since flex-col-reverse keeps bottom as scrollTop = 0
+    scrollContainer.value.scrollTop = scrollContainer.value.scrollHeight;
+  }
+};
+
+// Scroll to bottom after layout settles (waits for async content like images to render)
+const scrollToBottomSettled = async () => {
+  if (!scrollContainer.value) return;
+  scrollContainer.value.scrollTop = scrollContainer.value.scrollHeight;
+  // Wait two frames for async content (avatars, HabitLogVisualizer) to load and settle
+  await new Promise(resolve => requestAnimationFrame(resolve));
+  await new Promise(resolve => requestAnimationFrame(resolve));
+  if (scrollContainer.value) {
+    scrollContainer.value.scrollTop = scrollContainer.value.scrollHeight;
   }
 };
 
 const handleScroll = (event: Event) => {
   const target = event.target as HTMLElement;
-  // In flex-col-reverse, scrollTop starts at 0 (bottom) and decreases to negative values as you scroll UP.
-  // Or in some browsers it goes positive from 0 to scrollHeight - clientHeight.
-  // Let's check scroll progress for infinite scroll:
-  const isAtTop = Math.abs(target.scrollTop) + target.clientHeight >= target.scrollHeight - 10;
+  // flex-col layout: scrollTop starts at 0 (top/oldest) and increases to scrollHeight - clientHeight (bottom/newest).
+  // Detect when user has scrolled near the top to load older messages.
+  const isAtTop = target.scrollTop <= 10;
   if (isAtTop && hasMore.value && !loadingMore.value) {
     loadOlderMessages();
   }
@@ -1273,12 +1291,19 @@ onUnmounted(() => {
 });
 
 watch(chatRefreshSequence, async () => {
-  if (activeConversationId.value) {
-    await loadMessages();
-    const activeConversation = conversations.value.find((conversation) => conversation.id === activeConversationId.value);
-    if (activeConversation && activeConversation.unreadCount > 0) {
-      await markConversationRead(activeConversation.id);
-    }
+  if (!activeConversationId.value) return;
+
+  // Only auto-scroll to bottom if user was already near the bottom before refresh
+  const container = scrollContainer.value;
+  const wasNearBottom = container
+    ? container.scrollTop + container.clientHeight >= container.scrollHeight - 50
+    : true;
+
+  await loadMessages(null, wasNearBottom);
+
+  const activeConversation = conversations.value.find((conversation) => conversation.id === activeConversationId.value);
+  if (activeConversation && activeConversation.unreadCount > 0) {
+    await markConversationRead(activeConversation.id);
   }
 });
 </script>
