@@ -2,7 +2,7 @@ import { eq, and, ne, or, sql } from 'drizzle-orm';
 import { users } from '~~/server/db/schema';
 import { useDB as _useDB } from '~~/server/utils/db';
 import { requireAuth as _requireAuth } from '~~/server/utils/auth';
-import { hash } from 'bcrypt-ts';
+import { hash, compare } from 'bcrypt-ts';
 import { updateProfileSchema, throwZodError } from '~~/server/utils/validation';
 
 export default defineEventHandler(async (event) => {
@@ -20,7 +20,7 @@ export default defineEventHandler(async (event) => {
     return throwZodError(validation.error);
   }
 
-  const { username, email, password, photoUrl } = validation.data;
+  const { username, email, password, currentPassword, photoUrl } = validation.data;
 
 
   // 2. Fetch current user
@@ -59,7 +59,11 @@ export default defineEventHandler(async (event) => {
 
   // 4. Prepare update values
   let newPasswordHash = user.passwordHash;
-  if (password) {
+  if (password && currentPassword) {
+    const isMatch = await compare(currentPassword, user.passwordHash);
+    if (!isMatch) {
+      throw createError({ statusCode: 403, statusMessage: 'Current password is incorrect' });
+    }
     newPasswordHash = await hash(password, 10);
   }
 

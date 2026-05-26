@@ -10,26 +10,7 @@
 ## 🟡 WARNINGS (Highly recommended to address)
 *UX failures, data integrity issues, scalability issues, and technical debt.*
 
-### 4. No Current Password Required to Change Password
-- **Location:** `server/api/users/me.put.ts:23,62-64`
-- **Issue:** The `password` field in the update body is hashed and saved with no verification of the current password. An attacker with a stolen session token (valid for 7 days with no revocation mechanism) can silently change the victim's password, permanently locking them out.
-- **Fix:** Add a `currentPassword` field to `updateProfileSchema` (required when `password` is provided), fetch the existing hash, and `compare()` before allowing the change:
-  ```ts
-  // In me.put.ts — add before the hash call at line 62
-  if (password) {
-    if (!currentPassword) {
-      throw createError({ statusCode: 400, statusMessage: 'Current password is required to set a new password' });
-    }
-    const isMatch = await compare(currentPassword, user.passwordHash);
-    if (!isMatch) {
-      throw createError({ statusCode: 403, statusMessage: 'Current password is incorrect' });
-    }
-    newPasswordHash = await hash(password, BCRYPT_COST_FACTOR);
-  }
-  ```
-  Update `updateProfileSchema` in `validation.ts` to add `currentPassword: z.string().min(1).optional()`.
-
-### 5. `friend-data.get.ts` Fetches ALL Friend Logs, Filters in JavaScript
+### 1. `friend-data.get.ts` Fetches ALL Friend Logs, Filters in JavaScript
 - **Location:** `server/api/social/friend-data.get.ts:45-51,65-80`
 - **Issue:** Lines 65-68 fetch **all** habit logs for a friend from the database. The shared-habit filter (line 80) only runs in JavaScript after the full result set is loaded. Unshared log data crosses the DB boundary into memory. Additionally, `db.select()` on line 45 returns all habit columns including `sharedWith`, exposing other users' IDs.
 - **Fix:** Filter logs at the DB level and add column projection to habits:
@@ -52,7 +33,7 @@
   ```
   Also add column projection to the habits query to exclude `sharedWith`.
 
-### 6. IP-Based Rate Limiting Bypassable via `X-Forwarded-For` Spoofing
+### 2. IP-Based Rate Limiting Bypassable via `X-Forwarded-For` Spoofing
 - **Location:** `server/utils/rateLimit.ts:15`
 - **Issue:** `getRequestIP(event, { xForwardedFor: true })` trusts the `X-Forwarded-For` header. Unless Cloudflare always strips/overwrites this before the worker, attackers can rotate their apparent IP per request and bypass the 50-request IP limit entirely.
 - **Fix:** On Cloudflare Workers, use the `CF-Connecting-IP` header instead, which Cloudflare controls and cannot be spoofed:
@@ -60,12 +41,12 @@
   const ip = getHeader(event, 'cf-connecting-ip') || getRequestIP(event) || 'unknown';
   ```
 
-### 7. Rate Limit Check-Then-Increment Is Non-Atomic
+### 3. Rate Limit Check-Then-Increment Is Non-Atomic
 - **Location:** `server/utils/rateLimit.ts:24-37`
 - **Issue:** The pattern reads `count`, checks it, then writes `count + 1` in separate storage calls. Under concurrent burst requests, multiple requests read the same count before any write lands, allowing the 5-request limit to be exceeded.
 - **Fix:** If using Cloudflare KV (eventually consistent), this is inherent and somewhat mitigated by KV's caching. For stronger protection, consider using Cloudflare Durable Objects or an atomic increment pattern. At minimum, document this as a known limitation.
 
-### 8. No Rate Limiting on Sensitive Non-Auth Endpoints
+### 4. No Rate Limiting on Sensitive Non-Auth Endpoints
 - **Location:** Various API routes
 - **Issue:** `checkRateLimit` is only on `auth/register.post.ts` and `auth/login.post.ts`. Unprotected:
   - `users/search.get.ts` — username enumeration via brute force
@@ -74,12 +55,12 @@
   - `social/feed.get.ts` — complex LATERAL join queries
 - **Fix:** Apply a general-purpose rate limiter middleware or add per-route rate limiting to the above endpoints.
 
-### 9. JWT Tokens Cannot Be Revoked on Logout
+### 5. JWT Tokens Cannot Be Revoked on Logout
 - **Location:** `server/api/auth/logout.post.ts:4-6`
 - **Issue:** Logout only deletes the cookie. JWTs are stateless — a captured token remains valid for up to 7 days. No server-side blacklist exists.
 - **Fix:** For immediate mitigation, reduce JWT lifetime from 7 days to a shorter window (e.g., 1 hour) with aggressive sliding renewal. For full revocation, implement a server-side token blacklist in KV checked on each `requireAuth` call.
 
-### 10. `zColor` Accepts Arbitrary 50-Character Strings — XSS Vector
+### 6. `zColor` Accepts Arbitrary 50-Character Strings — XSS Vector
 - **Location:** `server/utils/schemaPrimitives.ts:6`
 - **Issue:** `z.string().max(50)` has no format constraint. A color field could contain `"><script>alert(1)` (25 chars). If ever rendered in an HTML attribute or unescaped context, it's an injection vector.
 - **Fix:**
@@ -88,11 +69,11 @@
   export const zColor = z.string().regex(/^#[0-9a-fA-F]{3,8}$/)
   ```
 
-### 11. [RESOLVED] Pusher Calls Are Fire-and-Forget Without `.catch()`
+### 7. [RESOLVED] Pusher Calls Are Fire-and-Forget Without `.catch()`
 - **Issue:** Every `pusher.trigger(...)` was not awaited and had no `.catch()`.
 - **Resolution:** Resolved by removing Pusher entirely from the codebase.
 
-### 12. friendships/index.ts GET Returns Full Friendship Records
+### 8. friendships/index.ts GET Returns Full Friendship Records
 - **Location:** `server/api/friendships/index.ts:18-39`
 - **Issue:** `db.select().from(friendshipsTable)` returns all columns (both user IDs, timestamps, internal status, favorites). Exposes internal structure of every friendship to the client.
 - **Fix:** Add column projection to return only what the client needs:
@@ -109,7 +90,7 @@
     .where(or(eq(friendshipsTable.initiatorId, userId), eq(friendshipsTable.receiverId, userId)));
   ```
 
-### 13. Route Param `id` Not Validated as UUID Before DB Query
+### 9. Route Param `id` Not Validated as UUID Before DB Query
 - **Location:** `server/api/friendships/[id].ts:13`, `server/api/habits/[id].ts`, `server/api/buckets/[id].ts`
 - **Issue:** Route parameters are passed directly to DB queries without validating UUID format. Malformed IDs cause raw Postgres errors (22P02 invalid_text_representation) rather than clean 400 responses.
 - **Fix:** Add a UUID format check at the top of each handler:
@@ -121,7 +102,7 @@
   }
   ```
 
-### 14. `loginSchema.identifier` Has No Max Length
+### 10. `loginSchema.identifier` Has No Max Length
 - **Location:** `server/utils/validation.ts:54`
 - **Issue:** `z.string().min(1)` with no `.max()` allows a multi-megabyte identifier string to be sent to a Postgres `WHERE` clause.
 - **Fix:**
@@ -130,17 +111,17 @@
   identifier: z.string().min(1).max(255),
   ```
 
-### 15. `N+1` Queries in `UserService.deleteUser` Friendship Cleanup
+### 11. `N+1` Queries in `UserService.deleteUser` Friendship Cleanup
 - **Location:** `server/services/user.service.ts:27-29`
 - **Issue:** For every friendship the user has, `cleanupFriendshipData` is called individually (5 DB queries each). A user with 50 friends triggers 250 queries in a single transaction.
 - **Fix:** Refactor `cleanupFriendshipData` to accept an array of friend pairs and batch all operations.
 
-### 16. `SyncService.getPaginatedDeltas` Uses 3 Separate Transactions
+### 12. `SyncService.getPaginatedDeltas` Uses 3 Separate Transactions
 - **Location:** `server/services/sync.service.ts:242-358`
 - **Issue:** Paginated sync uses 3 independent `db.transaction()` calls. Data can change between them, producing inconsistent snapshots (e.g., a bucket deleted between fetching IDs and details).
 - **Fix:** Consolidate into a single transaction with `REPEATABLE READ` isolation, or document this as a known limitation of the eventually-consistent sync model.
 
-### 17. Bcrypt Cost Factor Hardcoded in `me.put.ts`, Diverges from Constant
+### 13. Bcrypt Cost Factor Hardcoded in `me.put.ts`, Diverges from Constant
 - **Location:** `server/api/users/me.put.ts:63`
 - **Issue:** Uses `hash(password, 10)` instead of the shared `BCRYPT_COST_FACTOR` from `auth.ts`. If the constant changes, password updates will use a different cost factor.
 - **Fix:**
@@ -151,12 +132,12 @@
   newPasswordHash = await hash(password, BCRYPT_COST_FACTOR);
   ```
 
-### 18. Broken Shared Bucket Sync - DEFERRED
+### 14. Broken Shared Bucket Sync - DEFERRED
 - **Location:** `server/services/sync.service.ts`
 - **Issue:** The sync engine doesn't fetch metadata for habits owned by friends, even if they are in a shared bucket.
 - **Fix:** Expand sync queries to include habits where the user is an accepted bucket member.
 
-### 19. Missing API for Accepting Shared Habits - DEFERRED
+### 15. Missing API for Accepting Shared Habits - DEFERRED
 - **Location:** `server/services/bucket.service.ts`
 - **Issue:** No endpoint exists for a user to accept a friend's habit invitation into their bucket.
 - **Fix:** Create a member status update endpoint.
@@ -165,17 +146,17 @@
 
 ## 🔵 NITPICKS & BEST PRACTICES
 
-### 20. `zDateString` Doesn't Validate Real Dates
+### 16. `zDateString` Doesn't Validate Real Dates
 - **Location:** `server/utils/schemaPrimitives.ts:7`
 - **Issue:** `/^\d{4}-\d{2}-\d{2}$/` accepts `"2024-13-45"`.
 - **Fix:** Add a refinement: `.refine(val => !isNaN(Date.parse(val)), { message: 'Invalid date' })`.
 
-### 21. `DUMMY_HASH` Is Exported Publicly
+### 17. `DUMMY_HASH` Is Exported Publicly
 - **Location:** `server/utils/auth.ts:5`
 - **Issue:** Used for constant-time comparison on non-existent users (good practice), but `export` makes it importable elsewhere and visible in the module graph.
 - **Fix:** Change to `const DUMMY_HASH = ...` (remove `export`). Ensure it's only used within `auth.ts`.
 
-### 22. Missing Indexes on Heavily Queried Columns
+### 18. Missing Indexes on Heavily Queried Columns
 - **Location:** `server/db/schema.ts`
 - **Note:** These are fine for low user counts but will cause sequential scans at scale:
   - `habitLogs` — needs index on `(habitId)` or `(habitId, date)` (11+ query sites filter by `habitId`)
@@ -183,43 +164,43 @@
   - `shareEvents` — needs index on `recipientId`
   - `sharedBucketMembers` — needs indexes on `bucketId` and `userId` (39+ references)
 
-### 23. status Columns Are Untyped `text` — No DB-Level Constraint
+### 19. status Columns Are Untyped `text` — No DB-Level Constraint
 - **Location:** `friendships.status`, `habitLogs.status`, `bucketLogs.status`, `sharedBucketMembers.status`, `bucketHabits.approvalStatus`
 - **Note:** Any arbitrary string can be persisted. Consider Postgres enums or CHECK constraints for data integrity.
 
-### 24. API Route Handlers Lack HTTP Method Guards
+### 20. API Route Handlers Lack HTTP Method Guards
 - **Location:** `bucketlogs/index.ts`, `buckets/index.ts`, `habits/index.ts`, `habitlogs/index.ts`, `friendships/index.ts`
 - **Note:** Unsupported methods (PATCH, OPTIONS, etc.) silently return `undefined` / `200 OK`. Should return 405 Method Not Allowed.
 
-### 25. SESSION_MAX_AGE_SECONDS and SESSION_EXPIRATION_JWT Are Semantically Duplicated
+### 21. SESSION_MAX_AGE_SECONDS and SESSION_EXPIRATION_JWT Are Semantically Duplicated
 - **Location:** `server/utils/auth.ts:8-9`
 - **Note:** Two constants represent 7 days in different formats. If one changes without the other, cookie and JWT lifetimes diverge. Derive one from the other.
 
-### 26. CI Uses wrangler@latest — Unpinned Dependency
+### 22. CI Uses wrangler@latest — Unpinned Dependency
 - **Location:** `.github/workflows/deploy.yml:33`
 - **Note:** A breaking Wrangler release could silently break deployments. Pin to a specific version.
 
-### 27. habitLogSchema.id Uses z.string() While All Other IDs Use z.string().uuid()
+### 23. habitLogSchema.id Uses z.string() While All Other IDs Use z.string().uuid()
 - **Location:** `server/utils/validation.ts:84`
 - **Note:** Log IDs accept any arbitrary string from the client, while other IDs enforce UUID format. This is presumably intentional (composite IDs like `{habitId}_{date}`), but worth noting.
 
-### 28. SocialNarratorService Throws on Malformed Date From DB
+### 24. SocialNarratorService Throws on Malformed Date From DB
 - **Location:** `server/services/social-narrator.service.ts:49,128,148`
 - **Note:** `format(parseISO(log.date), 'MMM d')` throws `RangeError` on malformed dates. A single corrupt row crashes the entire feed. Wrap in try-catch.
 
-### 29. viewport Disables User Zoom — Accessibility Violation
+### 25. viewport Disables User Zoom — Accessibility Violation
 - **Location:** `nuxt.config.ts:62`
 - **Note:** `maximum-scale=1, user-scalable=0` prevents zooming, violating WCAG 1.4.4. Remove these restrictions.
 
-### 30. Dexie IndexedDB Shared Across All Users on Same Browser
+### 26. Dexie IndexedDB Shared Across All Users on Same Browser
 - **Location:** `app/utils/db.ts:34`
 - **Note:** Database name `HabitsSocialDB` is hardcoded. On logout, IndexedDB is not wiped. User A's data remains accessible via dev tools after User B logs in. Consider wiping on logout or namespacing per user.
 
-### 31. SQL Performance (LATERAL join) - DEFERRED
+### 27. SQL Performance (LATERAL join) - DEFERRED
 - **Location:** `server/api/social/feed.get.ts`
 - **Note:** Fine for small groups, but will bottleneck at scale.
 
-### 32. Magic Strings for Defaults - DEFERRED
+### 28. Magic Strings for Defaults - DEFERRED
 - **Location:** `server/utils/validation.ts`
 - **Note:** Hardcoded hex colors and limits.
 - **Fix:** Extract to a shared `constants.ts`.

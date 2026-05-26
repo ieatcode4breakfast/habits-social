@@ -83,6 +83,45 @@
                   </div>
                 </div>
 
+                <Transition
+                  enter-active-class="transition duration-300 ease-out"
+                  enter-from-class="opacity-0 -translate-y-2 max-h-0"
+                  enter-to-class="opacity-100 translate-y-0 max-h-32"
+                  leave-active-class="transition duration-200 ease-in"
+                  leave-from-class="opacity-100 translate-y-0 max-h-32"
+                  leave-to-class="opacity-0 -translate-y-2 max-h-0"
+                >
+                  <div v-if="profileForm.password.length > 0" class="space-y-1.5 overflow-hidden">
+                    <label class="text-xs font-bold text-amber-500 uppercase tracking-widest ml-1 flex items-center gap-1.5">
+                      <Lock class="w-3 h-3" />
+                      Current Password Required
+                    </label>
+                    <div class="relative group">
+                      <Lock class="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-600 group-focus-within:text-white transition-colors" />
+                      <input 
+                        v-model="profileForm.currentPassword"
+                        :type="showPassword ? 'text' : 'password'"
+                        placeholder="Enter current password to authorize change"
+                        @input="profileError = ''"
+                        class="w-full bg-black border border-amber-500/30 rounded-xl py-3 pl-10 pr-12 text-white placeholder-zinc-700 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all text-sm"
+                        :class="[
+                          profileError && profileError.toLowerCase().includes('current password')
+                            ? 'border-rose-500/50 focus:ring-rose-500/10 focus:border-rose-500' 
+                            : ''
+                        ]"
+                      />
+                      <button 
+                        type="button"
+                        @click="showPassword = !showPassword"
+                        class="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-zinc-600 hover:text-white transition-colors cursor-pointer"
+                      >
+                        <Eye v-if="!showPassword" class="w-4 h-4" />
+                        <EyeOff v-else class="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                </Transition>
+
                 <div class="space-y-1.5">
                   <label class="text-xs font-bold text-zinc-500 uppercase tracking-widest ml-1">New Password (Optional)</label>
                   <div class="relative group">
@@ -290,6 +329,7 @@ const profileError = ref('');
 const profileForm = reactive({
   username: '',
   email: '',
+  currentPassword: '',
   password: '',
   confirmPassword: '',
   photoUrl: ''
@@ -330,6 +370,7 @@ watch(() => props.modelValue, (open) => {
     if (!user.value) return;
     profileForm.username = user.value.username || '';
     profileForm.email = user.value.email || '';
+    profileForm.currentPassword = '';
     profileForm.password = '';
     profileForm.confirmPassword = '';
     profileForm.photoUrl = user.value.photoUrl || '';
@@ -354,6 +395,10 @@ const triggerProfileUpdate = () => {
 
   // Password validation (only if provided)
   if (profileForm.password) {
+    if (!profileForm.currentPassword) {
+      profileError.value = 'Current password is required to set a new password';
+      return;
+    }
     if (profileForm.password.length < 8) {
       profileError.value = 'Password must be at least 8 characters long';
       return;
@@ -382,6 +427,7 @@ const handleUpdateProfile = async () => {
       body: {
         username: profileForm.username,
         email: profileForm.email,
+        currentPassword: profileForm.currentPassword || undefined,
         password: profileForm.password || undefined,
         photoUrl: profileForm.photoUrl
       }

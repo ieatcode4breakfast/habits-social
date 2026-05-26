@@ -86,5 +86,27 @@ describe('PUT /api/users/me', () => {
 
     await expect(handler(event)).rejects.toThrow(/At least one field must be provided/i);
   });
-});
 
+  it('should reject password update if currentPassword is missing', async () => {
+    const event = createMockEvent(testUser.id, { password: 'newpassword123' });
+    event.context.userId = testUser.id;
+
+    await expect(handler(event)).rejects.toThrow(/Current password is required/i);
+  });
+
+  it('should reject password update if currentPassword is incorrect', async () => {
+    const event = createMockEvent(testUser.id, { password: 'newpassword123', currentPassword: 'wrongpassword' });
+    event.context.userId = testUser.id;
+
+    await expect(handler(event)).rejects.toThrow(/Current password is incorrect/i);
+  });
+
+  it('should successfully update password if currentPassword is correct', async () => {
+    const event = createMockEvent(testUser.id, { password: 'newpassword123', currentPassword: 'password123' });
+    event.context.userId = testUser.id;
+
+    const response = (await handler(event)) as any;
+    expect(response.data!).not.toHaveProperty('passwordHash');
+    // We assume test framework resets db or creates new users per run, so changing password here is fine.
+  });
+});

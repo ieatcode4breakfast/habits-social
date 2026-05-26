@@ -86,6 +86,19 @@ describe('User Validation Schemas', () => {
       const result = updateProfileSchema.safeParse({ photoUrl: null });
       expect(result.success).toBe(true);
     });
+
+    it('should reject password update if currentPassword is missing', () => {
+      const result = updateProfileSchema.safeParse({ password: 'newpassword123' });
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error.issues[0].message).toContain('Current password is required');
+      }
+    });
+
+    it('should accept password update if currentPassword is provided', () => {
+      const result = updateProfileSchema.safeParse({ password: 'newpassword123', currentPassword: 'oldpassword123' });
+      expect(result.success).toBe(true);
+    });
   });
 
   describe('loginSchema', () => {

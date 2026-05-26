@@ -60,9 +60,13 @@ export const updateProfileSchema = z.object({
   username: z.string().min(3).max(20).optional(),
   email: z.string().email().optional(),
   password: z.string().min(8).max(72).optional(),
+  currentPassword: z.string().min(1).optional(),
   photoUrl: z.string().url().max(2048).or(z.literal('')).nullable().optional()
 }).refine(data => Object.keys(data).length > 0, {
   message: "At least one field must be provided"
+}).refine(data => !(data.password && !data.currentPassword), {
+  message: "Current password is required to set a new password",
+  path: ["currentPassword"]
 });
 
 export const habitSchema = createInsertSchema(schema.habits, {
