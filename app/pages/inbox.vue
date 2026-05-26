@@ -742,6 +742,25 @@ const clearCurrentDraft = () => {
   delete conversationDrafts.value[activeFriend.value.id];
 };
 
+// Intercept browser/mobile back while a chat is open → go to conversation list instead
+const handlePopState = (event: PopStateEvent) => {
+  if (activeFriend.value) {
+    deselectConversation();
+  }
+};
+
+// Push a history state entry so the browser's back button
+// navigates to a "conversation list" state rather than leaving /inbox entirely
+const pushChatHistory = () => {
+  if (activeFriend.value?.id) {
+    history.pushState({
+      inboxChat: true,
+      friendId: activeFriend.value.id,
+      conversationId: activeConversationId.value
+    }, '');
+  }
+};
+
 const nextCursor = ref<string | null>(null);
 const friendSearchQuery = ref('');
 
@@ -890,6 +909,7 @@ const switchToConversation = async (conv: ChatInboxConversation) => {
   saveCurrentDraft();
   await selectConversation(conv);
   loadDraft(activeFriend.value?.id || '');
+  pushChatHistory();
 };
 
 // Select a friend from the New Conversation Modal (draft-aware)
@@ -915,16 +935,22 @@ const selectFriend = async (friend: UserProfile) => {
     sharedActiveConversationId.value = null;
     loadDraft(friend.id);
   }
+  pushChatHistory();
 };
 
 const deselectConversation = () => {
   // Save draft before leaving so it's restored when returning
   saveCurrentDraft();
+  const hadActiveFriend = !!activeFriend.value;
   activeFriend.value = null;
   activeConversationId.value = null;
   sharedActiveConversationId.value = null;
   activeChatLocked.value = false;
   messages.value = [];
+  // If called from the UI (not popstate), clean up the history state we pushed
+  if (hadActiveFriend && window.history.state?.inboxChat) {
+    window.history.back();
+  }
 };
 
 // Load messages in the active conversation
@@ -1218,6 +1244,7 @@ const handleReplyQuery = async () => {
 onMounted(async () => {
   checkViewport();
   window.addEventListener('resize', checkViewport);
+  window.addEventListener('popstate', handlePopState);
   window.addEventListener('reset-inbox', deselectConversation);
   
   // Hydrate global social profiles first
@@ -1240,6 +1267,7 @@ onDeactivated(() => {
 
 onUnmounted(() => {
   window.removeEventListener('resize', checkViewport);
+  window.removeEventListener('popstate', handlePopState);
   window.removeEventListener('reset-inbox', deselectConversation);
   sharedActiveConversationId.value = null;
 });
