@@ -67,9 +67,10 @@ describe('User Validation Schemas', () => {
       expect(result.success).toBe(true);
     });
 
-    it('should accept partial update (email only)', () => {
+    // Email update without password shouldn't be accepted anymore
+    it('should reject partial update (email only) without current password', () => {
       const result = updateProfileSchema.safeParse({ email: 'new@ex.com' });
-      expect(result.success).toBe(true);
+      expect(result.success).toBe(false);
     });
 
     it('should reject invalid username in update', () => {
@@ -95,8 +96,21 @@ describe('User Validation Schemas', () => {
       }
     });
 
+    it('should reject email update if currentPassword is missing', () => {
+      const result = updateProfileSchema.safeParse({ email: 'new@ex.com' });
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error.issues[0]?.message).toContain('Current password is required');
+      }
+    });
+
     it('should accept password update if currentPassword is provided', () => {
       const result = updateProfileSchema.safeParse({ password: 'newpassword123', currentPassword: 'oldpassword123' });
+      expect(result.success).toBe(true);
+    });
+
+    it('should accept email update if currentPassword is provided', () => {
+      const result = updateProfileSchema.safeParse({ email: 'new@ex.com', currentPassword: 'oldpassword123' });
       expect(result.success).toBe(true);
     });
   });

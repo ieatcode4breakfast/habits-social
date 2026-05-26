@@ -57,13 +57,21 @@ export default defineEventHandler(async (event) => {
     }
   }
 
-  // 4. Prepare update values
-  let newPasswordHash = user.passwordHash;
-  if (password && currentPassword) {
+  // 4. Verify current password if changing sensitive fields
+  const isChangingSensitiveFields = password !== undefined || (email !== undefined && email !== user.email);
+  if (isChangingSensitiveFields) {
+    if (!currentPassword) {
+      throw createError({ statusCode: 403, statusMessage: 'Current password is required' });
+    }
     const isMatch = await compare(currentPassword, user.passwordHash);
     if (!isMatch) {
       throw createError({ statusCode: 403, statusMessage: 'Current password is incorrect' });
     }
+  }
+
+  // 5. Prepare update values
+  let newPasswordHash = user.passwordHash;
+  if (password) {
     newPasswordHash = await hash(password, 10);
   }
 

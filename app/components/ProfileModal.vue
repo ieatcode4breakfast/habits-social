@@ -91,7 +91,7 @@
                   leave-from-class="opacity-100 translate-y-0 max-h-32"
                   leave-to-class="opacity-0 -translate-y-2 max-h-0"
                 >
-                  <div v-if="profileForm.password.length > 0" class="space-y-1.5 overflow-hidden">
+                  <div v-if="profileForm.password.length > 0 || (initialProfileSnapshot && profileForm.email !== initialProfileSnapshot.email)" class="space-y-1.5 overflow-hidden">
                     <label class="text-xs font-bold text-amber-500 uppercase tracking-widest ml-1 flex items-center gap-1.5">
                       <Lock class="w-3 h-3" />
                       Current Password Required
@@ -101,7 +101,7 @@
                       <input 
                         v-model="profileForm.currentPassword"
                         :type="showPassword ? 'text' : 'password'"
-                        placeholder="Enter current password to authorize change"
+                        placeholder="Enter current password"
                         @input="profileError = ''"
                         class="w-full bg-black border border-amber-500/30 rounded-xl py-3 pl-10 pr-12 text-white placeholder-zinc-700 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all text-sm"
                         :class="[
@@ -393,12 +393,17 @@ const triggerProfileUpdate = () => {
     return;
   }
 
-  // Password validation (only if provided)
-  if (profileForm.password) {
+  const isEmailChanged = initialProfileSnapshot.value && profileForm.email !== initialProfileSnapshot.value.email;
+  
+  if (profileForm.password || isEmailChanged) {
     if (!profileForm.currentPassword) {
-      profileError.value = 'Current password is required to set a new password';
+      profileError.value = 'Current password is required to update sensitive profile information';
       return;
     }
+  }
+
+  // Password validation (only if provided)
+  if (profileForm.password) {
     if (profileForm.password.length < 8) {
       profileError.value = 'Password must be at least 8 characters long';
       return;
@@ -422,14 +427,18 @@ const handleUpdateProfile = async () => {
   isUpdating.value = true;
   profileError.value = '';
   try {
+    const isUsernameChanged = initialProfileSnapshot.value && profileForm.username !== initialProfileSnapshot.value.username;
+    const isEmailChanged = initialProfileSnapshot.value && profileForm.email !== initialProfileSnapshot.value.email;
+    const isPhotoChanged = initialProfileSnapshot.value && profileForm.photoUrl !== initialProfileSnapshot.value.photoUrl;
+
     await $fetch('/api/users/me', {
       method: 'PUT',
       body: {
-        username: profileForm.username,
-        email: profileForm.email,
+        username: isUsernameChanged ? profileForm.username : undefined,
+        email: isEmailChanged ? profileForm.email : undefined,
         currentPassword: profileForm.currentPassword || undefined,
         password: profileForm.password || undefined,
-        photoUrl: profileForm.photoUrl
+        photoUrl: isPhotoChanged ? profileForm.photoUrl : undefined
       }
     });
     await fetchUser();

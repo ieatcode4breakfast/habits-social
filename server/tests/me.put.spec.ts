@@ -31,7 +31,7 @@ describe('PUT /api/users/me', () => {
 
   it('should update email and reset emailVerifiedAt', async () => {
     const newEmail = `n${Date.now()}@ex.com`;
-    const event = createMockEvent(testUser.id, { email: newEmail });
+    const event = createMockEvent(testUser.id, { email: newEmail, currentPassword: 'password123' });
     event.context.userId = testUser.id;
 
     const response = (await handler(event)) as any;
@@ -94,8 +94,22 @@ describe('PUT /api/users/me', () => {
     await expect(handler(event)).rejects.toThrow(/Current password is required/i);
   });
 
+  it('should reject email update if currentPassword is missing', async () => {
+    const event = createMockEvent(testUser.id, { email: 'newemail@ex.com' });
+    event.context.userId = testUser.id;
+
+    await expect(handler(event)).rejects.toThrow(/Current password is required/i);
+  });
+
   it('should reject password update if currentPassword is incorrect', async () => {
     const event = createMockEvent(testUser.id, { password: 'newpassword123', currentPassword: 'wrongpassword' });
+    event.context.userId = testUser.id;
+
+    await expect(handler(event)).rejects.toThrow(/Current password is incorrect/i);
+  });
+
+  it('should reject email update if currentPassword is incorrect', async () => {
+    const event = createMockEvent(testUser.id, { email: 'newemail@ex.com', currentPassword: 'wrongpassword' });
     event.context.userId = testUser.id;
 
     await expect(handler(event)).rejects.toThrow(/Current password is incorrect/i);

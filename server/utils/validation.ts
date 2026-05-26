@@ -64,8 +64,8 @@ export const updateProfileSchema = z.object({
   photoUrl: z.string().url().max(2048).or(z.literal('')).nullable().optional()
 }).refine(data => Object.keys(data).length > 0, {
   message: "At least one field must be provided"
-}).refine(data => !(data.password && !data.currentPassword), {
-  message: "Current password is required to set a new password",
+}).refine(data => !((data.password || data.email) && !data.currentPassword), {
+  message: "Current password is required to update sensitive information (password or email)",
   path: ["currentPassword"]
 });
 
