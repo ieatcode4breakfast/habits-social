@@ -188,6 +188,11 @@
           </div>
 
           <template v-else>
+            <!-- Infinite Scroll Loading Indicator -->
+            <div v-if="loadingMore" class="w-full flex justify-center py-4 shrink-0 transition-all duration-300">
+              <div class="h-5 w-5 rounded-full border-b-2 border-zinc-500 animate-spin"></div>
+            </div>
+
             <!-- Message Bubbles -->
             <div 
               v-for="(msg, index) in reversedMessages" 
@@ -341,17 +346,6 @@
 
             </div>
 
-            <!-- Pagination Indicator: Load More -->
-            <div v-if="hasMore" class="w-full flex justify-center py-2 shrink-0">
-              <button 
-                @click="loadOlderMessages" 
-                class="px-3 py-1.5 bg-zinc-900 hover:bg-zinc-850 text-[10px] font-bold text-zinc-400 hover:text-white rounded-lg transition-all border border-zinc-800/60 active:scale-95 cursor-pointer flex items-center gap-1.5"
-                :disabled="loadingMore"
-              >
-                <div v-if="loadingMore" class="h-3 w-3 rounded-full border-b-2 border-white animate-spin"></div>
-                <span>Load older messages</span>
-              </button>
-            </div>
           </template>
         </div>
 
@@ -504,7 +498,10 @@
                 </div>
                 
                 <div class="flex-1 min-w-0">
-                  <div class="text-sm font-bold text-white truncate">{{ friend.username }}</div>
+                  <div class="flex items-center gap-1.5">
+                    <div class="text-sm font-bold text-white truncate">{{ friend.username }}</div>
+                    <Star v-if="friend.isFavorite" class="w-3 h-3 text-amber-400 fill-amber-400 shrink-0" />
+                  </div>
                 </div>
               </button>
             </div>
@@ -626,7 +623,8 @@ import {
   Trash2, 
   Send, 
   X, 
-  ChevronLeft
+  ChevronLeft,
+  Star
 } from 'lucide-vue-next';
 import { formatDistanceToNow, parseISO } from 'date-fns';
 import { useSocial, type UserProfile } from '~/composables/useSocial';
@@ -771,9 +769,16 @@ const messagePendingDelete = ref<InboxMessage | null>(null);
 const isDeletingMessage = ref(false);
 
 const filteredFriends = computed(() => {
-  if (!friendSearchQuery.value.trim()) return friends.value;
-  const q = friendSearchQuery.value.toLowerCase().trim();
-  return friends.value.filter(friend => friend.username.toLowerCase().includes(q));
+  let list = friends.value;
+  if (friendSearchQuery.value.trim()) {
+    const q = friendSearchQuery.value.toLowerCase().trim();
+    list = friends.value.filter(friend => friend.username.toLowerCase().includes(q));
+  }
+  return [...list].sort((a, b) => {
+    if (a.isFavorite && !b.isFavorite) return -1;
+    if (!a.isFavorite && b.isFavorite) return 1;
+    return (a.username || '').localeCompare(b.username || '');
+  });
 });
 
 watch(showNewChatModal, (val) => {
@@ -987,9 +992,9 @@ const loadMessages = async (cursor: string | null = null, autoScroll = true) => 
     const data = await $fetch<PaginatedMessagesResponse>(`/api/chat/conversations/${activeConversationId.value}/messages`, { query });
     
     if (isPaginating) {
-      // Prepend older messages — they go at the start of the array so they appear at the visual top
+      // Append older messages — they go to the end of the array so they appear at the visual top when reversed
       const prevScrollHeight = scrollContainer.value?.scrollHeight ?? 0;
-      messages.value = [...(data.messages || []), ...messages.value];
+      messages.value = [...messages.value, ...(data.messages || [])];
       // Preserve scroll position after prepending: the new content pushes existing content down
       await nextTick();
       if (scrollContainer.value) {

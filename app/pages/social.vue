@@ -380,7 +380,10 @@
                 />
                 
                 <div class="flex-1 min-w-0">
-                  <div class="text-sm font-bold text-white truncate">{{ profilesMap[getFriendId(friend)]?.username || 'Unknown' }}</div>
+                  <div class="flex items-center gap-1.5">
+                    <div class="text-sm font-bold text-white truncate">{{ profilesMap[getFriendId(friend)]?.username || 'Unknown' }}</div>
+                    <Star v-if="isFriendshipFavorite(friend)" class="w-3 h-3 text-amber-400 fill-amber-400 shrink-0" />
+                  </div>
                 </div>
               </button>
             </div>
@@ -767,11 +770,23 @@ const acceptedFriends = computed(() => {
 });
 
 const filteredReplyFriends = computed(() => {
-  if (!replyFriendSearchQuery.value.trim()) return acceptedFriends.value;
-  const q = replyFriendSearchQuery.value.toLowerCase().trim();
-  return acceptedFriends.value.filter((f: any) => {
-    const username = profilesMap.value[getFriendId(f)]?.username.toLowerCase() || '';
-    return username.includes(q);
+  let list = acceptedFriends.value;
+  if (replyFriendSearchQuery.value.trim()) {
+    const q = replyFriendSearchQuery.value.toLowerCase().trim();
+    list = acceptedFriends.value.filter((f: any) => {
+      const username = profilesMap.value[getFriendId(f)]?.username.toLowerCase() || '';
+      return username.includes(q);
+    });
+  }
+  return [...list].sort((a, b) => {
+    const aFav = isFriendshipFavorite(a);
+    const bFav = isFriendshipFavorite(b);
+    if (aFav && !bFav) return -1;
+    if (!aFav && bFav) return 1;
+    
+    const aName = profilesMap.value[getFriendId(a)]?.username || '';
+    const bName = profilesMap.value[getFriendId(b)]?.username || '';
+    return aName.localeCompare(bName);
   });
 });
 
