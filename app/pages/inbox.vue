@@ -199,9 +199,9 @@
               :key="msg.id"
               class="flex items-end gap-2 group/msg relative"
               :class="[
-                msg.replyToActivity && !msg.deletedAt 
-                  ? (msg.senderId === user?.id ? 'w-full max-w-[calc(100%-36px)]' : 'w-full')
-                  : 'max-w-[85%] md:max-w-[70%]',
+                msg.senderId === user?.id
+                  ? 'w-full max-w-[calc(100%-36px)]'
+                  : (msg.replyToActivity && !msg.deletedAt ? 'w-full' : 'max-w-[85%] md:max-w-[70%]'),
                 msg.senderId === user?.id 
                   ? 'self-end flex-row-reverse'
                   : 'self-start'
@@ -233,7 +233,9 @@
                     ? 'bg-zinc-100 text-zinc-950'
                     : 'bg-zinc-900 border border-zinc-800/80 text-zinc-100',
                   msg.senderId === user?.id ? 'rounded-br-sm' : 'rounded-bl-sm',
-                  msg.replyToActivity && !msg.deletedAt ? 'p-1 w-full flex-1 min-w-[280px] sm:min-w-[320px] flex flex-col' : 'px-3.5 py-2.5 min-w-[50px]'
+                  msg.replyToActivity && !msg.deletedAt 
+                    ? 'p-1 w-full flex-1 min-w-[280px] sm:min-w-[320px] flex flex-col' 
+                    : (msg.senderId === user?.id ? 'px-3.5 py-2.5 min-w-[50px] max-w-[85%] md:max-w-[70%]' : 'px-3.5 py-2.5 min-w-[50px]')
                 ]"
               >
                 <!-- Visual Activity Reply Card (Embedded permanently inside message with permanent dark background) -->
@@ -1070,6 +1072,7 @@ const sendMessage = async () => {
   updateOptimisticPreview(targetFriendId, text, user.value.id, optimisticMessage.createdAt);
   messageBody.value = '';
   clearReplyContext();
+  await nextTick();
   syncMessageTextareaHeight();
   await scrollToBottomSettled();
 
