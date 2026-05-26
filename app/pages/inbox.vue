@@ -1197,20 +1197,25 @@ const formatTime = (dateStr: string | Date) => {
 
 // Scroll layout helpers
 const scrollToBottom = () => {
-  if (scrollContainer.value) {
-    scrollContainer.value.scrollTop = scrollContainer.value.scrollHeight;
-  }
+  if (!scrollContainer.value) return;
+  // Maximum valid scrollTop is scrollHeight - clientHeight.
+  // Setting a value beyond this triggers an overscroll bounce on iOS Safari,
+  // which blocks new scroll gestures for 300-600ms.
+  scrollContainer.value.scrollTop = scrollContainer.value.scrollHeight - scrollContainer.value.clientHeight;
 };
 
 // Scroll to bottom after layout settles (waits for async content like images to render)
 const scrollToBottomSettled = async () => {
   if (!scrollContainer.value) return;
-  scrollContainer.value.scrollTop = scrollContainer.value.scrollHeight;
-  // Wait two frames for async content (avatars, HabitLogVisualizer) to load and settle
+  // First wait for Vue to finish DOM mutations (messages must be in the DOM)
+  await nextTick();
+  // Set correct scroll position (no overshoot — avoids triggering browser rubber-band)
+  scrollToBottom();
+  // Wait one frame for async content (avatars, HabitLogVisualizer) to (mostly) settle
   await new Promise(resolve => requestAnimationFrame(resolve));
-  await new Promise(resolve => requestAnimationFrame(resolve));
+  // Re-evaluate in case scrollHeight changed due to async image loads
   if (scrollContainer.value) {
-    scrollContainer.value.scrollTop = scrollContainer.value.scrollHeight;
+    scrollToBottom();
   }
 };
 
