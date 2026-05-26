@@ -17,15 +17,20 @@ export const useModalHistory = (isOpen: Ref<boolean>, onClose?: () => boolean | 
   let modalStatePushed = false;
 
   const updateScrollLock = (open: boolean) => {
+    const htmlEl = document.documentElement;
+    const bodyEl = document.body;
+
     if (open) {
       activeModalCount.value++;
       if (activeModalCount.value === 1) {
-        document.body.classList.add('overflow-hidden');
+        bodyEl.classList.add('overflow-hidden');
+        htmlEl.classList.add('overflow-hidden');
       }
     } else {
       activeModalCount.value = Math.max(0, activeModalCount.value - 1);
       if (activeModalCount.value === 0) {
-        document.body.classList.remove('overflow-hidden');
+        bodyEl.classList.remove('overflow-hidden');
+        htmlEl.classList.remove('overflow-hidden');
       }
     }
   };

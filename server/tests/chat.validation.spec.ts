@@ -7,7 +7,7 @@ describe('Chat Validation', () => {
       const validMessages = [
         { body: 'Hello!' },
         { body: '👋 How are you?' },
-        { body: 'A'.repeat(1000) }
+        { body: 'A'.repeat(5000) }
       ];
       validMessages.forEach(msg => {
         expect(chatMessageSchema.parse(msg)).toEqual(msg);
@@ -25,8 +25,8 @@ describe('Chat Validation', () => {
       });
     });
 
-    it('should reject messages exceeding 1000 characters', () => {
-      const longMessage = { body: 'A'.repeat(1001) };
+    it('should reject messages exceeding 5000 characters', () => {
+      const longMessage = { body: 'A'.repeat(5001) };
       expect(() => chatMessageSchema.parse(longMessage)).toThrow();
     });
 

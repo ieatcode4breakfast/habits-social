@@ -401,20 +401,14 @@
               placeholder="Type your message..."
               class="flex-1 bg-transparent text-sm text-white placeholder-zinc-500 outline-none resize-none max-h-28 min-h-[20px] overflow-y-auto font-normal leading-normal self-center align-middle"
               rows="1"
-              maxlength="1000"
+              maxlength="5000"
               @input="syncMessageTextareaHeight"
               @keydown.enter.exact.prevent="handleEnterKey"
+              @paste="handleMessagePaste"
+              @keydown="handleMessageKeydown"
             ></textarea>
 
             <div class="flex items-center gap-3 shrink-0 self-end">
-              <!-- Character Counter -->
-              <span 
-                class="text-[9px] font-bold tracking-tight select-none"
-                :class="messageBody.length >= 900 ? 'text-rose-400' : 'text-zinc-500'"
-              >
-                {{ messageBody.length }}/1000
-              </span>
-
               <button 
                 @click="sendMessage"
                 class="p-2 bg-white hover:bg-zinc-200 text-black rounded-lg transition-all shadow-md active:scale-95 disabled:opacity-40 disabled:hover:bg-white disabled:active:scale-100 cursor-pointer flex items-center justify-center"
@@ -649,6 +643,8 @@ useSeoMeta({
 });
 
 const { user } = useAuth();
+const route = useRoute();
+const router = useRouter();
 const { friends, profilesMap, init: initSocial, refresh: refreshSocial } = useSocial();
 const { showToast } = useToast();
 const {
@@ -799,6 +795,25 @@ const canSend = computed(() => {
 const syncMessageTextareaHeight = () => {
   if (messageTextareaRef.value) {
     autoExpandTextarea(messageTextareaRef.value);
+  }
+};
+
+const handleMessagePaste = (event: ClipboardEvent) => {
+  const pastedText = event.clipboardData?.getData('text') || '';
+  const currentLength = messageBody.value.length;
+  // Account for any selected text that will be replaced
+  const selectionLength = window.getSelection()?.toString().length || 0;
+  
+  if (currentLength - selectionLength + pastedText.length > 5000) {
+    showToast('You cannot exceed 5000 characters.', 'failed');
+  }
+};
+
+const handleMessageKeydown = (event: KeyboardEvent) => {
+  // Allow backspace, delete, arrows, and other control keys
+  const isControlKey = event.key.length > 1 || event.ctrlKey || event.metaKey || event.altKey;
+  if (!isControlKey && messageBody.value.length >= 5000) {
+    showToast('You cannot exceed 5000 characters.', 'failed');
   }
 };
 
@@ -1236,7 +1251,6 @@ const checkViewport = () => {
 };
 
 const handleReplyQuery = async () => {
-  const route = useRoute();
   const queryFriendId = route.query.replyToFriend as string;
   if (queryFriendId) {
     if (friends.value.length === 0) {
@@ -1257,7 +1271,6 @@ const handleReplyQuery = async () => {
       await selectFriend(targetFriend);
     }
     // Clear the query parameter so it doesn't re-trigger on back navigation
-    const router = useRouter();
     const newQuery = { ...route.query };
     delete newQuery.replyToFriend;
     router.replace({ query: newQuery });

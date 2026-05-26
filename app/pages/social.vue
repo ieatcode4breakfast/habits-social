@@ -103,10 +103,7 @@
               />
 
               <!-- Row 3: Action Bar (Subtle Chat Reply Button) -->
-              <div 
-                v-if="String(item.user.id) !== String(user?.id)" 
-                class="flex items-center justify-end w-full"
-              >
+              <div class="flex items-center justify-end w-full">
                 <button
                   @click.stop="replyToActivity(item)"
                   class="p-1 text-zinc-500 hover:text-zinc-300 transition-all active:scale-95 cursor-pointer flex items-center justify-center gap-1.5"
@@ -321,6 +318,77 @@
       </Transition>
     </Teleport>
 
+    <!-- Reply to Own Activity Friend Select Modal -->
+    <Teleport to="body">
+      <Transition
+        enter-active-class="transition duration-300 ease-out"
+        enter-from-class="opacity-0 scale-95"
+        enter-to-class="opacity-100 scale-100"
+        leave-active-class="transition duration-200 ease-in"
+        leave-from-class="opacity-100 scale-100"
+        leave-to-class="opacity-0 scale-95"
+      >
+        <div 
+          v-if="showActivityReplyFriendSelectModal"
+          class="fixed inset-0 z-[150] flex items-center justify-center p-4"
+        >
+          <!-- Dedicated Sibling Backdrop with touch-none to prevent background scrolling -->
+          <div class="fixed inset-0 bg-black/80 backdrop-blur-sm touch-none" @click="showActivityReplyFriendSelectModal = false"></div>
+          
+          <!-- Sibling Modal Card -->
+          <div class="relative w-full max-w-sm bg-zinc-925 border border-zinc-800 rounded-2xl shadow-2xl flex flex-col max-h-[80vh] overflow-hidden select-none">
+            
+            <!-- Modal Header -->
+            <div class="p-4 border-b border-zinc-800/60 flex items-center justify-between">
+              <h3 class="text-sm font-bold text-white">Chat about this activity with</h3>
+              <button 
+                @click="showActivityReplyFriendSelectModal = false"
+                class="p-1 hover:bg-zinc-850 rounded-lg text-zinc-400 hover:text-white transition-colors cursor-pointer"
+              >
+                <XIcon class="w-4 h-4" />
+              </button>
+            </div>
+
+            <!-- Modal Content/Friends List -->
+            <div class="px-3 pt-2 pb-1">
+              <input
+                v-model="replyFriendSearchQuery"
+                type="text"
+                placeholder="Filter friends..."
+                class="w-full bg-zinc-900 border border-zinc-800 text-white text-sm rounded-xl px-4 py-2 focus:outline-none focus:border-zinc-700 transition-colors"
+              />
+            </div>
+
+            <div class="flex-1 overflow-y-auto p-2 space-y-1">
+              <div v-if="acceptedFriends.length === 0" class="py-12 text-center text-zinc-500 italic text-sm">
+                No active friends yet. Invite them in the Social section!
+              </div>
+              <div v-else-if="filteredReplyFriends.length === 0" class="py-12 text-center text-zinc-500 italic text-sm">
+                No friends found matching your filter.
+              </div>
+              
+              <button
+                v-for="friend in filteredReplyFriends"
+                :key="friend.id"
+                @click="selectFriendForReply(friend)"
+                class="w-full text-left p-3 rounded-xl hover:bg-zinc-900/60 transition-colors flex items-center gap-3 cursor-pointer outline-none border border-transparent"
+              >
+                <UserAvatar 
+                  :src="profilesMap[getFriendId(friend)]?.photoUrl" 
+                  container-class="w-9 h-9 bg-zinc-900"
+                  icon-class="w-5 h-5 text-zinc-600"
+                />
+                
+                <div class="flex-1 min-w-0">
+                  <div class="text-sm font-bold text-white truncate">{{ profilesMap[getFriendId(friend)]?.username || 'Unknown' }}</div>
+                </div>
+              </button>
+            </div>
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
+
 
 
     <!-- Share Habits Modal (Post-Request) -->
@@ -421,6 +489,10 @@ const myHabits = ref<any[]>([]);
 const selectedHabitIds = ref<string[]>([]);
 const userBeingSharedWith = ref<UserProfile | null>(null);
 const shareModalTitle = ref('Request Sent!');
+
+const showActivityReplyFriendSelectModal = ref(false);
+const pendingReplyActivity = ref<any>(null);
+const replyFriendSearchQuery = ref('');
 
 const favoritedAtStart = ref<Set<string>>(new Set());
 
@@ -553,10 +625,15 @@ const handleMessageClick = (event: MouseEvent) => {
 };
 
 const replyToActivity = (item: any) => {
-  const replyContext = useState<any>('chat-reply-activity-context');
-  // Copy visual feed item state
-  replyContext.value = item;
-  navigateTo(`/inbox?replyToFriend=${item.user.id}`);
+  if (String(item.user.id) === String(user.value?.id)) {
+    pendingReplyActivity.value = item;
+    showActivityReplyFriendSelectModal.value = true;
+  } else {
+    const replyContext = useState<any>('chat-reply-activity-context');
+    // Copy visual feed item state (clone to avoid memory reference mutation)
+    replyContext.value = item ? { ...item } : null;
+    navigateTo(`/inbox?replyToFriend=${item.user.id}`);
+  }
 };
 
 const groupedFeed = computed<Record<string, any[]>>(() => {
@@ -665,11 +742,12 @@ const handleSocialMonthChanged = async (newDate: Date) => {
 // ----------------------------
 
 const isLocalModalOpen = computed(() => 
-  showUnfriendModal.value
+  showUnfriendModal.value || showActivityReplyFriendSelectModal.value
 );
 
 useModalHistory(isLocalModalOpen, () => {
   showUnfriendModal.value = false;
+  showActivityReplyFriendSelectModal.value = false;
 });
 
 const pendingIncoming = computed(() => {
@@ -686,6 +764,34 @@ const pendingOutgoing = computed(() => {
 
 const acceptedFriends = computed(() => {
   return friendships.value.filter((f: any) => f.status === 'accepted');
+});
+
+const filteredReplyFriends = computed(() => {
+  if (!replyFriendSearchQuery.value.trim()) return acceptedFriends.value;
+  const q = replyFriendSearchQuery.value.toLowerCase().trim();
+  return acceptedFriends.value.filter((f: any) => {
+    const username = profilesMap.value[getFriendId(f)]?.username.toLowerCase() || '';
+    return username.includes(q);
+  });
+});
+
+const selectFriendForReply = (friendship: Friendship) => {
+  const friendId = getFriendId(friendship);
+  const replyContext = useState<any>('chat-reply-activity-context');
+  // Copy visual feed item state (clone to avoid memory reference mutation)
+  replyContext.value = pendingReplyActivity.value ? { ...pendingReplyActivity.value } : null;
+  showActivityReplyFriendSelectModal.value = false;
+  // Defer navigation to allow the window.history.back() triggered by closing the modal to complete
+  setTimeout(() => {
+    navigateTo(`/inbox?replyToFriend=${friendId}`);
+  }, 50);
+};
+
+watch(showActivityReplyFriendSelectModal, (val) => {
+  if (!val) {
+    replyFriendSearchQuery.value = '';
+    pendingReplyActivity.value = null;
+  }
 });
 
 const displayFriends = computed(() => {

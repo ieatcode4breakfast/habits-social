@@ -20,6 +20,10 @@ html, body {
   color: #F8FAFC;
   touch-action: manipulation;
   overflow-x: clip;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
 }
 
 ::-webkit-scrollbar {
@@ -49,13 +53,6 @@ html, body {
     -ms-overflow-style: none;
     scrollbar-width: none;
   }
-}
-
-* {
-  -webkit-user-select: none;
-  -moz-user-select: none;
-  -ms-user-select: none;
-  user-select: none;
 }
 
 input, textarea {

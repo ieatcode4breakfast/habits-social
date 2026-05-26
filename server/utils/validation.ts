@@ -167,7 +167,7 @@ export const feedItemSchema = z.object({
 });
 
 export const chatMessageSchema = z.object({
-  body: z.string().min(1).max(1000).refine(s => s.trim().length > 0, { message: "Message cannot be empty or only whitespace" }),
+  body: z.string().min(1).max(5000).refine(s => s.trim().length > 0, { message: "Message cannot be empty or only whitespace" }),
   replyToActivity: feedItemSchema.optional()
 }).strict();
 
