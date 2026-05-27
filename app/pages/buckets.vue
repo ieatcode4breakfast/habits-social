@@ -283,10 +283,12 @@
 <script setup lang="ts">
 import { Plus, Trash2, Check, X as XIcon, Minus, ChevronLeft, ChevronRight, Flame, PaintBucket, Palmtree, Edit2, ChevronDown, ChevronUp, ArrowUpDown, GripVertical, CheckSquare } from 'lucide-vue-next';
 import { format, subDays, startOfMonth, endOfMonth, eachDayOfInterval, addMonths, subMonths, isAfter, startOfDay, parseISO, isToday, startOfWeek, addDays, isSameDay, isSameWeek, isSameMonth, differenceInDays } from 'date-fns';
-import type { Bucket, BucketLog, Habit } from '~/composables/useHabitsApi';
+import type { Bucket, BucketLog, Habit, HabitLog } from '~/composables/useHabitsApi';
 import { getStreakTheme, isStreakFaded as isFaded, autoExpandTextarea as autoExpand } from '~/utils/ui';
 import { useSortableList } from '~/composables/useSortableList';
 import { useCalendar } from '~/composables/useCalendar';
+
+type LogMenuStatus = Exclude<HabitLog['status'], 'cleared'> | null;
 
 definePageMeta({ middleware: 'auth' });
 
@@ -425,10 +427,14 @@ const openLogMenu = (habit: Habit, day: Date, event: MouseEvent) => {
 
 const closeLogMenu = () => {
   activeLogMenu.value = null;
+  referenceRef.value = null;
 };
 
-const setLogStatus = async (habit: Habit, day: Date, status: any) => {
+const setLogStatus = async (habit: Habit, day: Date, status: LogMenuStatus) => {
   const dateStr = format(day, 'yyyy-MM-dd');
+  activeLogMenu.value = null;
+  referenceRef.value = null;
+
   try {
     if (status === null) {
       await api.deleteLog(habit.id, dateStr);
@@ -448,7 +454,6 @@ const setLogStatus = async (habit: Habit, day: Date, status: any) => {
     ]);
     habitLogs.value = newL;
     bucketLogs.value = newBL;
-    activeLogMenu.value = null;
   } catch (error) {
     console.error('[Buckets] Failed to update log:', error);
     showToast('Failed to update log', 'failed');

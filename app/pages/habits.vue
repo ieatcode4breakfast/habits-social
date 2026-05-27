@@ -187,6 +187,13 @@ import { getStreakTheme, isStreakFaded as isFaded, autoExpandTextarea as autoExp
 import { useSortableList } from '~/composables/useSortableList';
 import { useCalendar } from '~/composables/useCalendar';
 
+type EditableLogStatus = Exclude<HabitLog['status'], 'cleared'>;
+type LogMenuStatus = EditableLogStatus | null;
+type LogMenuOpenOptions = {
+  skipsPeriod?: Habit['skipsPeriod'];
+  skipsCount?: number;
+};
+
 definePageMeta({ middleware: 'auth' });
 import { useSocial } from '../composables/useSocial';
 
@@ -377,7 +384,7 @@ const activeHabitForMenu = computed(() => {
   if (!activeLogMenu.value) return null;
   return habits.value.find(h => h.id === activeLogMenu.value?.habitId) || (editingHabit.value?.id === activeLogMenu.value?.habitId ? editingHabit.value : null);
 });
-const openLogMenu = (habit: Habit, day: Date, event: MouseEvent, options?: { skipsPeriod?: any, skipsCount?: number }) => {
+const openLogMenu = (habit: Habit, day: Date, event: MouseEvent, options?: LogMenuOpenOptions) => {
   if (!isMarkable(day)) {
     showToast('You can only update habits for the last 14 days', 'failed');
     return;
@@ -406,10 +413,11 @@ const openLogMenu = (habit: Habit, day: Date, event: MouseEvent, options?: { ski
 
 const closeLogMenu = () => {
   activeLogMenu.value = null;
+  referenceRef.value = null;
 };
 
 
-const setLogStatus = async (habit: Habit, day: Date, nextStatus: 'completed' | 'failed' | 'skipped' | 'vacation' | null) => {
+const setLogStatus = async (habit: Habit, day: Date, nextStatus: LogMenuStatus) => {
   const dateStr = format(day, 'yyyy-MM-dd');
   const originalLogs = JSON.parse(JSON.stringify(logs.value));
   const originalHabits = JSON.parse(JSON.stringify(habits.value));
@@ -441,6 +449,7 @@ const setLogStatus = async (habit: Habit, day: Date, nextStatus: 'completed' | '
   }
 
   activeLogMenu.value = null;
+  referenceRef.value = null;
 
   // 2. Background Sync
   try {

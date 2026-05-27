@@ -12,14 +12,14 @@
         v-if="habit && date && referenceEl"
         class="fixed inset-0 z-[190] touch-none"
         @click.stop="emit('close')"
-        @wheel.prevent
-        @touchmove.prevent
+        @wheel.stop.prevent
+        @touchmove.stop.prevent
       >
         <div
           class="fixed inset-0 bg-transparent touch-none"
           @click.stop="emit('close')"
-          @wheel.prevent
-          @touchmove.prevent
+          @wheel.stop.prevent
+          @touchmove.stop.prevent
         ></div>
         <div 
           ref="floatingRef"
@@ -55,12 +55,21 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { ref, computed, type Component } from 'vue';
 import { Check, X as XIcon, Minus, Trash2, Palmtree } from 'lucide-vue-next';
 import { useFloating, offset, flip, shift, arrow, autoUpdate } from '@floating-ui/vue';
 import { format, isSameWeek, isSameMonth } from 'date-fns';
 import type { Habit, HabitLog } from '~/composables/useHabitsApi';
-import { useModalHistory } from '~/composables/useModalHistory';
+
+type SelectableLogStatus = Exclude<HabitLog['status'], 'cleared'> | null;
+
+interface LogMenuOption {
+  label: string;
+  status: SelectableLogStatus;
+  icon: Component;
+  color: string;
+  bgColor: string;
+}
 
 const props = defineProps<{
   habit: Habit | null;
@@ -72,18 +81,17 @@ const props = defineProps<{
   skipsCount?: number;
 }>();
 
-const emit = defineEmits(['select', 'close']);
-
-const isOpen = computed(() => !!(props.habit && props.date && props.referenceEl));
-useModalHistory(isOpen, () => {
-  emit('close');
-});
+const emit = defineEmits<{
+  select: [habit: Habit, date: Date, status: SelectableLogStatus];
+  close: [];
+}>();
 
 const floatingRef = ref<HTMLElement | null>(null);
 const arrowRef = ref<HTMLElement | null>(null);
 
 const { floatingStyles, middlewareData } = useFloating(computed(() => props.referenceEl), floatingRef, {
   placement: 'top',
+  strategy: 'fixed',
   middleware: [
     offset(12),
     flip(),
@@ -93,15 +101,17 @@ const { floatingStyles, middlewareData } = useFloating(computed(() => props.refe
   whileElementsMounted: autoUpdate
 });
 
-const options = computed(() => {
-  if (!props.habit || !props.date) return [];
+const options = computed<LogMenuOption[]>(() => {
+  const habit = props.habit;
+  const selectedDate = props.date;
+  if (!habit || !selectedDate) return [];
 
-  const dateStr = format(props.date, 'yyyy-MM-dd');
-  const currentStatus = props.logs.find(l => l.habitId === props.habit?.id && l.date === dateStr)?.status;
+  const dateStr = format(selectedDate, 'yyyy-MM-dd');
+  const currentStatus = props.logs.find(l => l.habitId === habit.id && l.date === dateStr)?.status;
   
   // Use effective settings if provided, otherwise fallback to habit's own settings
-  const skipsPeriod = props.skipsPeriod || props.habit.skipsPeriod;
-  const skipsCount = props.skipsCount ?? (props.habit.skipsCount ?? 2);
+  const skipsPeriod = props.skipsPeriod || habit.skipsPeriod;
+  const skipsCount = props.skipsCount ?? (habit.skipsCount ?? 2);
 
   let maxSkips = 0;
   let usedSkips = 0;
@@ -112,20 +122,20 @@ const options = computed(() => {
   } else if (skipsPeriod === 'weekly') {
     maxSkips = skipsCount || 0;
     usedSkips = props.logs.filter(l => 
-      l.habitId === props.habit?.id && 
+      l.habitId === habit.id && 
       l.status === 'skipped' && 
-      isSameWeek(new Date(l.date), props.date!, { weekStartsOn: 0 })
+      isSameWeek(new Date(l.date), selectedDate, { weekStartsOn: 0 })
     ).length;
   } else if (skipsPeriod === 'monthly') {
     maxSkips = skipsCount || 0;
     usedSkips = props.logs.filter(l => 
-      l.habitId === props.habit?.id && 
+      l.habitId === habit.id && 
       l.status === 'skipped' && 
-      isSameMonth(new Date(l.date), props.date!)
+      isSameMonth(new Date(l.date), selectedDate)
     ).length;
   }
 
-  const opts: any[] = [];
+  const opts: LogMenuOption[] = [];
   const canSkip = usedSkips < maxSkips;
 
   if (currentStatus !== 'completed') {
@@ -181,7 +191,8 @@ const options = computed(() => {
   return opts;
 });
 
-const handleSelect = (status: string | null) => {
+const handleSelect = (status: SelectableLogStatus) => {
+  if (!props.habit || !props.date) return;
   // Pass all context back to the handler
   emit('select', props.habit, props.date, status);
   emit('close');

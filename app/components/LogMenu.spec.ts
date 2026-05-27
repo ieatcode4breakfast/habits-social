@@ -2,11 +2,15 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { mount } from '@vue/test-utils';
 import LogMenu from './LogMenu.vue';
 
-vi.mock('@floating-ui/vue', () => ({
-  useFloating: () => ({
+const floatingMocks = vi.hoisted(() => ({
+  useFloating: vi.fn(() => ({
     floatingStyles: { position: 'fixed', top: '10px', left: '10px' },
     middlewareData: { arrow: { x: 12 } }
-  }),
+  }))
+}));
+
+vi.mock('@floating-ui/vue', () => ({
+  useFloating: floatingMocks.useFloating,
   offset: vi.fn(),
   flip: vi.fn(),
   shift: vi.fn(),
@@ -47,15 +51,19 @@ describe('LogMenu', () => {
   beforeEach(() => {
     document.body.innerHTML = '';
     document.body.className = '';
+    document.documentElement.className = '';
+    floatingMocks.useFloating.mockClear();
   });
 
-  it('locks body scrolling when opened', async () => {
+  it('does not lock document scrolling when opened', async () => {
     const wrapper = await mountOpenLogMenu();
 
-    expect(document.body.classList.contains('overflow-hidden')).toBe(true);
+    expect(document.body.classList.contains('overflow-hidden')).toBe(false);
+    expect(document.documentElement.classList.contains('overflow-hidden')).toBe(false);
 
     wrapper.unmount();
     expect(document.body.classList.contains('overflow-hidden')).toBe(false);
+    expect(document.documentElement.classList.contains('overflow-hidden')).toBe(false);
   });
 
   it('prevents scroll gestures on its local overlay', async () => {
@@ -71,12 +79,70 @@ describe('LogMenu', () => {
     wrapper.unmount();
   });
 
+  it('prevents touch gestures from reaching the page behind it', async () => {
+    const wrapper = await mountOpenLogMenu();
+    const overlay = document.body.querySelector('.touch-none');
+    expect(overlay).toBeTruthy();
+
+    const event = new TouchEvent('touchmove', { cancelable: true });
+    overlay!.dispatchEvent(event);
+
+    expect(event.defaultPrevented).toBe(true);
+
+    wrapper.unmount();
+  });
+
+  it('allows outside clicks to close the menu', async () => {
+    const wrapper = await mountOpenLogMenu();
+    const overlay = document.body.querySelector('.touch-none');
+    expect(overlay).toBeTruthy();
+
+    overlay!.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+
+    expect(wrapper.emitted('close')).toHaveLength(1);
+
+    wrapper.unmount();
+  });
+
+  it('allows status option clicks to select without closing through the backdrop', async () => {
+    const wrapper = await mountOpenLogMenu();
+    const option = document.body.querySelector('button[title="Complete"]');
+    expect(option).toBeTruthy();
+
+    option!.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+
+    expect(wrapper.emitted('select')).toEqual([
+      [
+        expect.objectContaining({ id: 'habit-1' }),
+        new Date('2026-05-20T00:00:00'),
+        'completed'
+      ]
+    ]);
+    expect(wrapper.emitted('close')).toHaveLength(1);
+
+    wrapper.unmount();
+  });
+
   it('renders circular status buttons', async () => {
     const wrapper = await mountOpenLogMenu();
     const rendered = document.body.innerHTML;
 
     expect(rendered).toContain('rounded-full');
     expect(rendered).not.toContain('rounded-lg flex items-center justify-center transition-all border-2 cursor-pointer relative');
+
+    wrapper.unmount();
+  });
+
+  it('uses fixed positioning for body-teleported menus', async () => {
+    const wrapper = await mountOpenLogMenu();
+
+    expect(floatingMocks.useFloating).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.anything(),
+      expect.objectContaining({
+        strategy: 'fixed'
+      })
+    );
 
     wrapper.unmount();
   });
