@@ -371,7 +371,8 @@
                 v-for="friend in filteredReplyFriends"
                 :key="friend.id"
                 @click="selectFriendForReply(friend)"
-                class="w-full text-left p-3 rounded-xl hover:bg-zinc-900/60 transition-colors flex items-center gap-3 cursor-pointer outline-none border border-transparent"
+                :disabled="replyFriendActionId === getFriendId(friend)"
+                class="w-full text-left p-3 rounded-xl hover:bg-zinc-900/60 transition-colors flex items-center gap-3 cursor-pointer outline-none border border-transparent disabled:opacity-60 disabled:cursor-wait"
               >
                 <UserAvatar 
                   :src="profilesMap[getFriendId(friend)]?.photoUrl" 
@@ -383,8 +384,56 @@
                   <div class="flex items-center gap-1.5">
                     <div class="text-sm font-bold text-white truncate">{{ profilesMap[getFriendId(friend)]?.username || 'Unknown' }}</div>
                     <Star v-if="isFriendshipFavorite(friend)" class="w-3 h-3 text-amber-400 fill-amber-400 shrink-0" />
+                    <div v-if="replyFriendActionId === getFriendId(friend)" class="w-3 h-3 border-2 border-zinc-500/30 border-t-zinc-300 rounded-full animate-spin shrink-0"></div>
                   </div>
                 </div>
+              </button>
+            </div>
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
+
+    <!-- Share Before Reply Confirmation Modal -->
+    <Teleport to="body">
+      <Transition
+        enter-active-class="transition duration-300 ease-out"
+        enter-from-class="opacity-0 scale-95"
+        enter-to-class="opacity-100 scale-100"
+        leave-active-class="transition duration-200 ease-in"
+        leave-from-class="opacity-100 scale-100"
+        leave-to-class="opacity-0 scale-95"
+      >
+        <div v-if="showShareBeforeReplyModal" class="fixed inset-0 z-[160] flex items-center justify-center p-4">
+          <div class="absolute inset-0 bg-black/80 backdrop-blur-md touch-none" @click="closeShareBeforeReplyModal"></div>
+          <div class="relative w-full max-w-sm bg-zinc-925 border border-zinc-800 rounded-3xl shadow-2xl p-8 text-center">
+            <div class="w-16 h-16 bg-zinc-925 rounded-full flex items-center justify-center mx-auto mb-4">
+              <UserPlus class="w-8 h-8 text-zinc-200" />
+            </div>
+            <h2 class="text-xl font-bold text-white mb-2">Share habit with {{ pendingShareFriendName }}?</h2>
+            <p class="text-zinc-500 mb-8 text-sm">
+              This habit is not currently shared with <span class="text-zinc-200 font-medium">{{ pendingShareFriendName }}</span>.
+            </p>
+            <div class="flex gap-3 mt-2">
+              <button
+                @click="closeShareBeforeReplyModal"
+                :disabled="shareReplyLoading"
+                class="flex-1 px-5 py-3 bg-transparent hover:bg-zinc-800 text-zinc-400 hover:text-zinc-200 font-semibold rounded-xl transition-all cursor-pointer whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Cancel
+              </button>
+              <button
+                @click="executeShareBeforeReply"
+                :disabled="shareReplyLoading"
+                class="flex-1 px-5 py-3 bg-white hover:bg-zinc-200 text-black font-semibold rounded-xl transition-all shadow-lg shadow-white/5 cursor-pointer whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              >
+                <template v-if="shareReplyLoading">
+                  <div class="w-4 h-4 border-2 border-black/20 border-t-black rounded-full animate-spin"></div>
+                  Sharing...
+                </template>
+                <template v-else>
+                  Share
+                </template>
               </button>
             </div>
           </div>
@@ -460,6 +509,25 @@ const activeTab = computed({
 });
 
 interface UserProfile { id: string; email: string; username: string; photoUrl?: string; }
+interface SocialHabit { id: string; title: string; sharedWith?: string[] | null; }
+interface ActivityFeedItem {
+  id: string;
+  type: string;
+  user: {
+    id: string;
+    name: string;
+    photoUrl?: string | null;
+  };
+  habit?: {
+    id: string | null;
+    title: string;
+  };
+  message: string;
+  date: string;
+  timestamp: string | Date;
+  weeklyStatus?: { date: string; status?: string }[];
+  streakCount?: number;
+}
 interface Friendship { 
   id: string; 
   participants: string[]; 
@@ -488,14 +556,18 @@ const friendshipToUnfriend = ref<Friendship | null>(null);
 const unfriendDisplayName = ref('');
 const addingFriendId = ref<string | null>(null);
 const showShareModal = ref(false);
-const myHabits = ref<any[]>([]);
+const myHabits = ref<SocialHabit[]>([]);
 const selectedHabitIds = ref<string[]>([]);
 const userBeingSharedWith = ref<UserProfile | null>(null);
 const shareModalTitle = ref('Request Sent!');
 
 const showActivityReplyFriendSelectModal = ref(false);
-const pendingReplyActivity = ref<any>(null);
+const showShareBeforeReplyModal = ref(false);
+const pendingReplyActivity = ref<ActivityFeedItem | null>(null);
+const pendingShareFriendship = ref<Friendship | null>(null);
 const replyFriendSearchQuery = ref('');
+const replyFriendActionId = ref<string | null>(null);
+const shareReplyLoading = ref(false);
 
 const favoritedAtStart = ref<Set<string>>(new Set());
 
@@ -627,12 +699,12 @@ const handleMessageClick = (event: MouseEvent) => {
   }
 };
 
-const replyToActivity = (item: any) => {
+const replyToActivity = (item: ActivityFeedItem) => {
   if (String(item.user.id) === String(user.value?.id)) {
     pendingReplyActivity.value = item;
     showActivityReplyFriendSelectModal.value = true;
   } else {
-    const replyContext = useState<any>('chat-reply-activity-context');
+    const replyContext = useState<ActivityFeedItem | null>('chat-reply-activity-context');
     // Copy visual feed item state (clone to avoid memory reference mutation)
     replyContext.value = item ? { ...item } : null;
     navigateTo(`/inbox?replyToFriend=${item.user.id}`);
@@ -769,11 +841,20 @@ const acceptedFriends = computed(() => {
   return friendships.value.filter((f: any) => f.status === 'accepted');
 });
 
+const pendingShareFriendId = computed(() => {
+  return pendingShareFriendship.value ? getFriendId(pendingShareFriendship.value) : '';
+});
+
+const pendingShareFriendName = computed(() => {
+  return pendingShareFriendId.value ? profilesMap.value[pendingShareFriendId.value]?.username || 'Unknown' : 'Unknown';
+});
+
 const filteredReplyFriends = computed(() => {
   let list = acceptedFriends.value;
+
   if (replyFriendSearchQuery.value.trim()) {
     const q = replyFriendSearchQuery.value.toLowerCase().trim();
-    list = acceptedFriends.value.filter((f: any) => {
+    list = list.filter((f: any) => {
       const username = profilesMap.value[getFriendId(f)]?.username.toLowerCase() || '';
       return username.includes(q);
     });
@@ -790,22 +871,111 @@ const filteredReplyFriends = computed(() => {
   });
 });
 
-const selectFriendForReply = (friendship: Friendship) => {
-  const friendId = getFriendId(friendship);
-  const replyContext = useState<any>('chat-reply-activity-context');
-  // Copy visual feed item state (clone to avoid memory reference mutation)
+const closeShareBeforeReplyModal = () => {
+  if (shareReplyLoading.value) return false;
+  showShareBeforeReplyModal.value = false;
+  pendingShareFriendship.value = null;
+  return true;
+};
+
+useModalHistory(showShareBeforeReplyModal, closeShareBeforeReplyModal);
+
+const navigateToReplyFriend = (friendId: string) => {
+  const replyContext = useState<ActivityFeedItem | null>('chat-reply-activity-context');
   replyContext.value = pendingReplyActivity.value ? { ...pendingReplyActivity.value } : null;
   showActivityReplyFriendSelectModal.value = false;
-  // Defer navigation to allow the window.history.back() triggered by closing the modal to complete
   setTimeout(() => {
     navigateTo(`/inbox?replyToFriend=${friendId}`);
   }, 50);
+};
+
+const loadOwnedReplyHabit = async () => {
+  const habitId = pendingReplyActivity.value?.habit?.id;
+  if (!habitId) return null;
+
+  const { data } = await $fetch<{ data: SocialHabit[] }>('/api/habits');
+  myHabits.value = data;
+  return data.find((habit) => String(habit.id) === String(habitId)) ?? null;
+};
+
+const selectFriendForReply = async (friendship: Friendship) => {
+  const friendId = getFriendId(friendship);
+  if (!friendId) return;
+
+  const habitId = pendingReplyActivity.value?.habit?.id;
+  if (!habitId) {
+    navigateToReplyFriend(friendId);
+    return;
+  }
+
+  replyFriendActionId.value = friendId;
+  try {
+    const habit = await loadOwnedReplyHabit();
+    if (!habit) {
+      showToast('This habit is no longer available to share', 'failed');
+      return;
+    }
+
+    const sharedWith = (habit.sharedWith ?? []).map(String);
+    if (sharedWith.includes(friendId)) {
+      navigateToReplyFriend(friendId);
+      return;
+    }
+
+    pendingShareFriendship.value = friendship;
+    showShareBeforeReplyModal.value = true;
+  } catch (err) {
+    console.error('Failed to check habit sharing before reply:', err);
+    showToast('Could not check habit sharing. Try again.', 'failed');
+  } finally {
+    replyFriendActionId.value = null;
+  }
+};
+
+const executeShareBeforeReply = async () => {
+  const friendship = pendingShareFriendship.value;
+  const habitId = pendingReplyActivity.value?.habit?.id;
+  if (!friendship || !habitId) return;
+
+  const friendId = getFriendId(friendship);
+  if (!friendId) return;
+
+  shareReplyLoading.value = true;
+  try {
+    await $fetch<{ data: { success: boolean; alreadyShared: boolean } }>('/api/social/share-habit', {
+      method: 'POST',
+      body: {
+        targetUserId: friendId,
+        habitId,
+        userDate: format(new Date(), 'yyyy-MM-dd')
+      }
+    });
+
+    myHabits.value = myHabits.value.map((habit) => {
+      if (String(habit.id) !== String(habitId)) return habit;
+      return {
+        ...habit,
+        sharedWith: Array.from(new Set([...(habit.sharedWith ?? []).map(String), friendId]))
+      };
+    });
+
+    showShareBeforeReplyModal.value = false;
+    pendingShareFriendship.value = null;
+    navigateToReplyFriend(friendId);
+  } catch (err) {
+    console.error('Failed to share habit before reply:', err);
+    showToast('Could not share this habit. Try again.', 'failed');
+  } finally {
+    shareReplyLoading.value = false;
+  }
 };
 
 watch(showActivityReplyFriendSelectModal, (val) => {
   if (!val) {
     replyFriendSearchQuery.value = '';
     pendingReplyActivity.value = null;
+    pendingShareFriendship.value = null;
+    showShareBeforeReplyModal.value = false;
   }
 });
 

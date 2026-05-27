@@ -59,6 +59,7 @@ describe('GET /api/social/feed', () => {
     );
     expect(foundLog).toBeDefined();
     expect(foundLog.user.id).toBe(userA.id);
+    expect('sharedWith' in foundLog.habit).toBe(false);
     
     // Data Contract Validation for 7-day visualizer
     expect(foundLog.weeklyStatus).toBeDefined();

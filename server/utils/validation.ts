@@ -133,6 +133,12 @@ export const shareHabitsSchema = z.object({
   userDate: zDateString.optional()
 });
 
+export const shareHabitSchema = z.object({
+  targetUserId: zId,
+  habitId: zId,
+  userDate: zDateString.optional()
+});
+
 export const habitReorderSchema = z.object({
   ids: zStandardArray(zId).min(1).max(30)
 });
