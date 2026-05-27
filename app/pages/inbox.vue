@@ -760,8 +760,14 @@ const clearCurrentDraft = () => {
 
 // Intercept browser/mobile back while a chat is open → go to conversation list instead
 const handlePopState = (event: PopStateEvent) => {
-  if (activeFriend.value) {
-    deselectConversation();
+  if (event.state?.inboxChat && event.state?.friendId) {
+    if (!activeFriend.value || activeFriend.value.id !== event.state.friendId) {
+      restoreConversationFromHistory(event.state.friendId);
+    }
+  } else {
+    if (activeFriend.value) {
+      deselectConversation();
+    }
   }
 };
 
@@ -770,6 +776,7 @@ const handlePopState = (event: PopStateEvent) => {
 const pushChatHistory = () => {
   if (activeFriend.value?.id) {
     history.pushState({
+      ...history.state,
       inboxChat: true,
       friendId: activeFriend.value.id,
       conversationId: activeConversationId.value
@@ -816,6 +823,7 @@ const goToFriendsSection = async () => {
 // Refs
 const scrollContainer = ref<HTMLElement | null>(null);
 const messageTextareaRef = ref<HTMLTextAreaElement | null>(null);
+const savedScrollTop = ref<number | null>(null);
 
 // Computed validators
 const canSend = computed(() => {
@@ -942,6 +950,7 @@ const selectConversation = async (conv: ChatInboxConversation) => {
   sharedActiveConversationId.value = conv.id;
   activeChatLocked.value = false;
   messages.value = [];
+  savedScrollTop.value = null; // Clear scroll memory for new conversation
   
   await loadMessages();
   
@@ -959,6 +968,37 @@ const switchToConversation = async (conv: ChatInboxConversation) => {
   pushChatHistory();
 };
 
+const restoreConversationFromHistory = async (friendId: string) => {
+  if (friends.value.length === 0) {
+    await refreshSocial();
+  }
+  const friend = friends.value.find(f => f.id === friendId);
+  if (!friend) return;
+  
+  showNewChatModal.value = false;
+  saveCurrentDraft();
+  
+  activeFriend.value = friend;
+  activeChatLocked.value = false;
+  
+  const existingConv = conversations.value.find(conv => {
+    const otherId = conv.user1Id === user.value?.id ? conv.user2Id : conv.user1Id;
+    return otherId === friend.id;
+  });
+
+  if (existingConv) {
+    savedScrollTop.value = null; // Clear scroll memory
+    await selectConversation(existingConv);
+    loadDraft(friend.id);
+  } else {
+    activeConversationId.value = null;
+    messages.value = [];
+    sharedActiveConversationId.value = null;
+    savedScrollTop.value = null; // Clear scroll memory
+    loadDraft(friend.id);
+  }
+};
+
 // Select a friend from the New Conversation Modal (draft-aware)
 const selectFriend = async (friend: UserProfile) => {
   showNewChatModal.value = false;
@@ -974,12 +1014,14 @@ const selectFriend = async (friend: UserProfile) => {
   });
 
   if (existingConv) {
+    savedScrollTop.value = null; // Clear scroll memory
     await selectConversation(existingConv);
     loadDraft(friend.id);
   } else {
     activeConversationId.value = null;
     messages.value = [];
     sharedActiveConversationId.value = null;
+    savedScrollTop.value = null; // Clear scroll memory
     loadDraft(friend.id);
   }
   pushChatHistory();
@@ -994,6 +1036,7 @@ const deselectConversation = () => {
   sharedActiveConversationId.value = null;
   activeChatLocked.value = false;
   messages.value = [];
+  savedScrollTop.value = null; // Clear scroll memory
   // If called from the UI (not popstate), clean up the history state we pushed
   if (hadActiveFriend && window.history.state?.inboxChat) {
     window.history.back();
@@ -1268,6 +1311,12 @@ const scrollToBottomSettled = async () => {
 
 const handleScroll = (event: Event) => {
   const target = event.target as HTMLElement;
+  
+  // Save the scroll position in real time
+  if (activeConversationId.value) {
+    savedScrollTop.value = target.scrollTop;
+  }
+
   // flex-col layout: scrollTop starts at 0 (top/oldest) and increases to scrollHeight - clientHeight (bottom/newest).
   // Detect when user has scrolled near the top to load older messages.
   const isAtTop = target.scrollTop <= 10;
@@ -1319,12 +1368,34 @@ onMounted(async () => {
   initSocial();
   
   await loadConversations();
+  
+  if (window.history.state?.inboxChat && window.history.state?.friendId) {
+    if (!activeFriend.value || activeFriend.value.id !== window.history.state.friendId) {
+      await restoreConversationFromHistory(window.history.state.friendId);
+    }
+  }
+  
   await handleReplyQuery();
 });
 
 onActivated(async () => {
   if (activeConversationId.value) {
     sharedActiveConversationId.value = activeConversationId.value;
+    
+    // Restore the saved scroll position or scroll to bottom if none exists
+    await nextTick();
+    if (scrollContainer.value) {
+      if (savedScrollTop.value !== null) {
+        scrollContainer.value.scrollTop = savedScrollTop.value;
+        // Wait one paint frame to handle slow-rendering visualizers or avatars
+        await new Promise(resolve => requestAnimationFrame(resolve));
+        if (scrollContainer.value && savedScrollTop.value !== null) {
+          scrollContainer.value.scrollTop = savedScrollTop.value;
+        }
+      } else {
+        await scrollToBottomSettled();
+      }
+    }
   }
   await handleReplyQuery();
 });
