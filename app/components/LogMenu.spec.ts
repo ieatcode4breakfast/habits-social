@@ -1,11 +1,16 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { mount } from '@vue/test-utils';
+import { nextTick } from 'vue';
 import LogMenu from './LogMenu.vue';
 
 const floatingMocks = vi.hoisted(() => ({
+  placement: { value: 'top' },
+  update: vi.fn(),
   useFloating: vi.fn(() => ({
     floatingStyles: { position: 'fixed', top: '10px', left: '10px' },
-    middlewareData: { arrow: { x: 12 } }
+    middlewareData: { value: { arrow: { x: 12 } } },
+    placement: floatingMocks.placement,
+    update: floatingMocks.update
   }))
 }));
 
@@ -53,6 +58,8 @@ describe('LogMenu', () => {
     document.body.className = '';
     document.documentElement.className = '';
     floatingMocks.useFloating.mockClear();
+    floatingMocks.update.mockClear();
+    floatingMocks.placement.value = 'top';
   });
 
   it('does not lock document scrolling when opened', async () => {
@@ -140,9 +147,38 @@ describe('LogMenu', () => {
       expect.anything(),
       expect.anything(),
       expect.objectContaining({
-        strategy: 'fixed'
+        strategy: 'fixed',
+        transform: false,
+        open: expect.anything()
       })
     );
+
+    wrapper.unmount();
+  });
+
+  it('updates its Floating UI position when the reference element changes', async () => {
+    const wrapper = await mountOpenLogMenu();
+    floatingMocks.update.mockClear();
+
+    const nextReferenceEl = document.createElement('button');
+    document.body.appendChild(nextReferenceEl);
+
+    await wrapper.setProps({ referenceEl: nextReferenceEl });
+    await nextTick();
+    await nextTick();
+
+    expect(floatingMocks.update).toHaveBeenCalled();
+
+    wrapper.unmount();
+  });
+
+  it('places the arrow on the opposite side of the resolved placement', async () => {
+    floatingMocks.placement.value = 'bottom';
+    const wrapper = await mountOpenLogMenu();
+
+    const arrow = document.body.querySelector('.rotate-45');
+    expect(arrow?.getAttribute('style')).toContain('top: -6px');
+    expect(arrow?.getAttribute('style')).not.toContain('bottom: -6px');
 
     wrapper.unmount();
   });

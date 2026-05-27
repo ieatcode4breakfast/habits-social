@@ -2,11 +2,11 @@
   <Teleport to="body">
     <Transition
       enter-active-class="transition duration-200 ease-out"
-      enter-from-class="opacity-0 scale-95 -translate-y-2"
-      enter-to-class="opacity-100 scale-100 translate-y-0"
+      enter-from-class="opacity-0"
+      enter-to-class="opacity-100"
       leave-active-class="transition duration-150 ease-in"
-      leave-from-class="opacity-100 scale-100 translate-y-0"
-      leave-to-class="opacity-0 scale-95 -translate-y-2"
+      leave-from-class="opacity-100"
+      leave-to-class="opacity-0"
     >
       <div
         v-if="habit && date && referenceEl"
@@ -23,7 +23,7 @@
         ></div>
         <div 
           ref="floatingRef"
-          class="fixed z-[200] bg-zinc-900/95 backdrop-blur-xl border border-zinc-800 rounded-2xl shadow-2xl p-1.5 flex flex-row gap-1.5"
+          class="fixed z-[200] w-max max-w-[calc(100vw-1.25rem)] bg-zinc-900/95 backdrop-blur-xl border border-zinc-800 rounded-2xl shadow-2xl p-1.5 flex flex-row gap-1.5"
           :style="floatingStyles"
           @click.stop
         >
@@ -42,11 +42,7 @@
           <div 
             ref="arrowRef"
             class="absolute w-3 h-3 bg-zinc-900 border-r border-b border-zinc-800 rotate-45"
-            :style="{
-              left: middlewareData.arrow?.x != null ? `${middlewareData.arrow.x}px` : '',
-              top: middlewareData.arrow?.y != null ? `${middlewareData.arrow.y}px` : '',
-              bottom: '-6px'
-            }"
+            :style="arrowStyles"
           ></div>
         </div>
       </div>
@@ -55,7 +51,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, type Component } from 'vue';
+import { ref, computed, watch, nextTick, type Component } from 'vue';
 import { Check, X as XIcon, Minus, Trash2, Palmtree } from 'lucide-vue-next';
 import { useFloating, offset, flip, shift, arrow, autoUpdate } from '@floating-ui/vue';
 import { format, isSameWeek, isSameMonth } from 'date-fns';
@@ -88,10 +84,13 @@ const emit = defineEmits<{
 
 const floatingRef = ref<HTMLElement | null>(null);
 const arrowRef = ref<HTMLElement | null>(null);
+const isOpen = computed(() => Boolean(props.habit && props.date && props.referenceEl));
 
-const { floatingStyles, middlewareData } = useFloating(computed(() => props.referenceEl), floatingRef, {
+const { floatingStyles, middlewareData, placement, update } = useFloating(computed(() => props.referenceEl), floatingRef, {
   placement: 'top',
   strategy: 'fixed',
+  transform: false,
+  open: isOpen,
   middleware: [
     offset(12),
     flip(),
@@ -99,6 +98,26 @@ const { floatingStyles, middlewareData } = useFloating(computed(() => props.refe
     arrow({ element: arrowRef })
   ],
   whileElementsMounted: autoUpdate
+});
+
+const arrowStaticSide = computed(() => {
+  const basePlacement = placement.value.split('-')[0];
+  if (basePlacement === 'bottom') return 'top';
+  if (basePlacement === 'left') return 'right';
+  if (basePlacement === 'right') return 'left';
+  return 'bottom';
+});
+
+const arrowStyles = computed<Record<string, string>>(() => {
+  const styles: Record<string, string> = {};
+  if (middlewareData.value.arrow?.x != null) {
+    styles.left = `${middlewareData.value.arrow.x}px`;
+  }
+  if (middlewareData.value.arrow?.y != null) {
+    styles.top = `${middlewareData.value.arrow.y}px`;
+  }
+  styles[arrowStaticSide.value] = '-6px';
+  return styles;
 });
 
 const options = computed<LogMenuOption[]>(() => {
@@ -190,6 +209,21 @@ const options = computed<LogMenuOption[]>(() => {
 
   return opts;
 });
+
+watch(
+  () => [
+    props.referenceEl,
+    props.habit?.id,
+    props.date?.getTime(),
+    options.value.length
+  ] as const,
+  async () => {
+    if (!isOpen.value) return;
+    await nextTick();
+    update();
+  },
+  { flush: 'post' }
+);
 
 const handleSelect = (status: SelectableLogStatus) => {
   if (!props.habit || !props.date) return;
