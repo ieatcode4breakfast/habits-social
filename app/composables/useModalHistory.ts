@@ -11,7 +11,7 @@ const activeModalCount = ref(0);
  * Uses history.pushState to create a dummy entry that can be popped.
  */
 export const useModalHistory = (isOpen: Ref<boolean>, onClose?: () => boolean | void) => {
-  if (import.meta.server) return;
+  if (import.meta.server) return { suppressNextHistoryBack: () => {} };
 
   const modalKey = `modal-${Math.random().toString(36).substring(2, 9)}`;
   let modalStatePushed = false;
@@ -59,6 +59,18 @@ export const useModalHistory = (isOpen: Ref<boolean>, onClose?: () => boolean | 
     }
   };
 
+  const suppressNextHistoryBack = () => {
+    if (!modalStatePushed) return;
+    modalStatePushed = false;
+
+    const currentState = window.history.state || {};
+    if (currentState?.[modalKey]) {
+      const nextState = { ...currentState };
+      delete nextState[modalKey];
+      window.history.replaceState(nextState, '', window.location.href);
+    }
+  };
+
   // Dedicated watcher for scroll lock
   watch(isOpen, (open, wasOpen) => {
     if (open && !wasOpen) {
@@ -100,4 +112,6 @@ export const useModalHistory = (isOpen: Ref<boolean>, onClose?: () => boolean | 
       updateScrollLock(false);
     }
   });
+
+  return { suppressNextHistoryBack };
 };

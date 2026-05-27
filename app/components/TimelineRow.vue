@@ -11,7 +11,7 @@
           <component
             :is="interactive ? 'button' : 'div'"
             type="button"
-            @click.stop="interactive ? $emit('click-day', day, $event) : null"
+            @click="handleDayClick(day, $event)"
             :class="[
               'w-8 h-8 flex items-center justify-center transition-all border-2 relative',
               cellShape === 'square' ? 'rounded-lg' : 'rounded-full',
@@ -49,6 +49,14 @@ const props = defineProps<{
   cellShape?: 'circle' | 'square';
 }>();
 
-defineEmits(['click-day']);
+const emit = defineEmits<{
+  'click-day': [day: Date, event: MouseEvent];
+}>();
+
+const handleDayClick = (day: Date, event: MouseEvent) => {
+  if (!props.interactive) return;
+  event.stopPropagation();
+  emit('click-day', day, event);
+};
 
 </script>

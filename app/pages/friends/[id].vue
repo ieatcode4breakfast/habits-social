@@ -118,7 +118,7 @@
       
       <div v-for="habit in habits" :key="habit.id" 
            @click="openHabitDetails(habit)"
-           class="relative py-3 group transition-all flex flex-col items-stretch sm:flex-row sm:items-center sm:justify-between gap-x-4 gap-y-2 cursor-pointer hover:bg-zinc-800/40 sm:px-4">
+           class="relative py-3 group transition-all flex flex-col items-stretch sm:flex-row sm:flex-wrap sm:items-center sm:justify-between gap-x-4 gap-y-2 cursor-pointer hover:bg-zinc-800/40 sm:px-4">
         
         <!-- Title Section -->
         <div class="w-full px-4 sm:px-0 sm:flex-1 sm:min-w-[200px] flex flex-col gap-1 pr-0 sm:pr-2">
@@ -160,6 +160,17 @@
           :days="days"
           :status-map="getHabitStatusMap(habit.id)"
         />
+
+        <div class="w-full flex items-center justify-end px-4 sm:px-0">
+          <button
+            @click.stop="chatAboutHabit(habit)"
+            class="p-1 text-zinc-500 hover:text-zinc-300 transition-all active:scale-95 cursor-pointer flex items-center justify-center gap-1.5"
+            title="Chat about this habit"
+          >
+            <span class="text-xs font-medium">Chat about this habit</span>
+            <MessageCircle class="w-5 h-5" />
+          </button>
+        </div>
       </div>
       </template>
     </div>
@@ -251,12 +262,42 @@
 </template>
 
 <script setup lang="ts">
-import { ChevronLeft, User, Flame, X as XIcon, ChevronRight, Check, Minus, UserPlus, CheckSquare, Share2, UserMinus, Star } from 'lucide-vue-next';
+import { ChevronLeft, User, Flame, X as XIcon, ChevronRight, Check, Minus, UserPlus, CheckSquare, Share2, UserMinus, Star, MessageCircle } from 'lucide-vue-next';
 import { format, subDays, isToday, startOfMonth, endOfMonth, eachDayOfInterval, addMonths, subMonths, isAfter, startOfDay, addDays, isSameWeek, isSameMonth, getDaysInMonth, parseISO, startOfWeek } from 'date-fns';
 import type { Habit, HabitLog } from '~/composables/useHabitsApi';
 import { useSocial } from '~/composables/useSocial';
 
 definePageMeta({ middleware: 'auth' });
+
+type FriendProfile = {
+  id: string;
+  username: string;
+  photoUrl?: string | null;
+};
+type HabitReplyStatus = Exclude<HabitLog['status'], 'cleared'>;
+type HabitReplyWeeklyStatus = {
+  date: string;
+  status?: HabitReplyStatus;
+};
+type HabitReplyCard = {
+  id: string;
+  type: 'HABIT_REPLY';
+  user: {
+    id: string;
+    name: string;
+    photoUrl: string | null;
+  };
+  habit: {
+    id: string;
+    title: string;
+  };
+  message: string;
+  date: string;
+  timestamp: Date;
+  weeklyStatus: HabitReplyWeeklyStatus[];
+  streakCount?: number;
+  frequencyText: string;
+};
 
 const route = useRoute();
 const friendId = route.params.id as string;
@@ -403,7 +444,7 @@ const executeCancelRequest = async () => {
   showCancelRequestModal.value = false;
 };
 
-const profile = ref<any>(null);
+const profile = ref<FriendProfile | null>(null);
 const habits = ref<Habit[]>([]);
 const logs = ref<HabitLog[]>([]);
 const loading = ref(true);
@@ -485,6 +526,49 @@ const getHabitStatusMap = (habitId: string) => {
   return map;
 };
 
+const buildHabitReplyCard = (habit: Habit): HabitReplyCard | null => {
+  if (!profile.value) return null;
+
+  const weeklyStatus = days.map((day) => {
+    const date = format(day, 'yyyy-MM-dd');
+    const log = logs.value.find(l => l.habitId === habit.id && l.date === date);
+    const status = log?.status === 'cleared' ? undefined : log?.status;
+    return { date, status };
+  });
+
+  const latestDate = weeklyStatus[weeklyStatus.length - 1]?.date;
+  if (!latestDate) return null;
+
+  return {
+    id: `habit-reply-${habit.id}-${latestDate}`,
+    type: 'HABIT_REPLY',
+    user: {
+      id: friendId,
+      name: profile.value.username,
+      photoUrl: profile.value.photoUrl || null
+    },
+    habit: {
+      id: habit.id,
+      title: habit.title
+    },
+    message: `as of ${format(parseISO(latestDate), 'MMMM d, yyyy')}.`,
+    date: latestDate,
+    timestamp: new Date(),
+    weeklyStatus,
+    streakCount: habit.currentStreak,
+    frequencyText: getFrequencyText(habit)
+  };
+};
+
+const chatAboutHabit = (habit: Habit) => {
+  const card = buildHabitReplyCard(habit);
+  if (!card) return;
+
+  const replyContext = useState<HabitReplyCard | null>('chat-reply-activity-context');
+  replyContext.value = { ...card };
+  navigateTo(`/inbox?replyToFriend=${friendId}`);
+};
+
 const getStatus = (habitId: string, day: Date) => {
   const dateStr = format(day, 'yyyy-MM-dd');
   return logs.value.find(l => l.habitId === habitId && l.date === dateStr)?.status;
@@ -497,7 +581,7 @@ const load = async () => {
     // 2. Fetch shared habits (handles 403 or empty data gracefully)
     // 3. Ensure social state is refreshed to get current relationshipStatus
     const [profileDataResponse, sharedDataResponse] = await Promise.all([
-      $fetch<{ data: any }>(`/api/users/${friendId}/profile`),
+      $fetch<{ data: FriendProfile }>(`/api/users/${friendId}/profile`),
       $fetch<{ data: any }>('/api/social/friend-data', { query: { friendId } }).catch(err => {
         console.warn('Could not fetch shared habits:', err.message);
         return { data: { habits: [], logs: [] } };

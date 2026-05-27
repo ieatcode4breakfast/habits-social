@@ -20,6 +20,9 @@
           </span>
         </div>
       </div>
+      <div v-if="frequencyText" class="text-[10px] font-semibold tracking-tight text-zinc-500">
+        {{ frequencyText }}
+      </div>
 
     </div>
 
@@ -75,6 +78,7 @@ defineProps<{
   title: string;
   streakCount?: number;
   compact?: boolean;
+  frequencyText?: string;
 
   weeklyStatus: { date: string, status: string | undefined }[];
 }>();

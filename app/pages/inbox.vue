@@ -245,15 +245,21 @@
                 >
                   <!-- Card Header: User Avatar + Name + Action Message -->
                   <div class="flex items-center gap-2 w-full">
-                    <UserAvatar 
-                      :src="msg.replyToActivity.user.photoUrl" 
-                      container-class="w-6 h-6 bg-zinc-900 border border-zinc-805"
-                      icon-class="w-3 h-3 text-zinc-700"
-                    />
-                    <div class="text-[11px] leading-tight min-w-0 break-words text-zinc-300 flex-1">
-                      <span class="font-black text-white mr-1">
+                    <div class="flex items-center gap-2 min-w-0">
+                      <UserAvatar 
+                        :src="msg.replyToActivity.user.photoUrl" 
+                        container-class="w-6 h-6 bg-zinc-900 border border-zinc-805"
+                        icon-class="w-3 h-3 text-zinc-700"
+                      />
+                      <span class="text-[11px] leading-tight font-black text-white truncate">
                         {{ msg.replyToActivity.user.name }}
                       </span>
+                    </div>
+                    <div
+                      class="text-[11px] leading-tight min-w-0 break-words text-zinc-300 flex-1"
+                      :class="msg.replyToActivity.type === 'HABIT_REPLY' ? 'text-right' : ''"
+                    >
+                      <span v-if="msg.replyToActivity.type !== 'HABIT_REPLY'" class="font-black text-white mr-1"></span>
                       <span class="text-zinc-500" v-html="formatMessageInline(msg.replyToActivity.message)"></span>
                     </div>
                   </div>
@@ -263,6 +269,7 @@
                     v-if="msg.replyToActivity.weeklyStatus"
                     :title="msg.replyToActivity.habit.title"
                     :streakCount="msg.replyToActivity.streakCount"
+                    :frequency-text="msg.replyToActivity.frequencyText"
                     :weeklyStatus="msg.replyToActivity.weeklyStatus"
                     compact
                   />
@@ -369,13 +376,20 @@
 
             <!-- Card Header: User Avatar + Name + Action Message -->
             <div class="flex items-center gap-2 pr-6">
-              <UserAvatar 
-                :src="replyActivityContext.user.photoUrl" 
-                container-class="w-6 h-6 bg-zinc-950 border border-zinc-800"
-                icon-class="w-3 h-3 text-zinc-700"
-              />
-              <div class="text-[11px] leading-tight min-w-0 truncate text-zinc-300">
-                <span class="font-black text-white mr-1">{{ replyActivityContext.user.name }}</span>
+              <div class="flex items-center gap-2 min-w-0">
+                <UserAvatar 
+                  :src="replyActivityContext.user.photoUrl" 
+                  container-class="w-6 h-6 bg-zinc-950 border border-zinc-800"
+                  icon-class="w-3 h-3 text-zinc-700"
+                />
+                <span class="text-[11px] leading-tight font-black text-white truncate">
+                  {{ replyActivityContext.user.name }}
+                </span>
+              </div>
+              <div
+                class="text-[11px] leading-tight min-w-0 truncate text-zinc-300 flex-1"
+                :class="replyActivityContext.type === 'HABIT_REPLY' ? 'text-right' : ''"
+              >
                 <span v-html="formatMessageInline(replyActivityContext.message)"></span>
               </div>
             </div>
@@ -385,6 +399,7 @@
               v-if="replyActivityContext.weeklyStatus"
               :title="replyActivityContext.habit.title"
               :streakCount="replyActivityContext.streakCount"
+              :frequency-text="replyActivityContext.frequencyText"
               :weeklyStatus="replyActivityContext.weeklyStatus"
               compact
             />
@@ -477,7 +492,11 @@
 
             <div class="flex-1 overflow-y-auto p-2 space-y-1">
               <div v-if="friends.length === 0" class="py-12 text-center text-zinc-500 italic text-sm">
-                No active friends yet. Invite them in the Social section!
+                You don't have any friends yet. Go to the
+                <button type="button" @click="goToFriendsSection" class="text-zinc-200 hover:text-white underline underline-offset-2 transition-colors cursor-pointer">
+                  Friends
+                </button>
+                section to add them.
               </div>
               <div v-else-if="filteredFriends.length === 0" class="py-12 text-center text-zinc-500 italic text-sm">
                 No friends found matching your filter.
@@ -788,6 +807,11 @@ watch(showNewChatModal, (val) => {
     friendSearchQuery.value = '';
   }
 });
+
+const goToFriendsSection = async () => {
+  showNewChatModal.value = false;
+  await navigateTo({ path: '/social', query: { tab: 'friends' } }, { replace: true });
+};
 
 // Refs
 const scrollContainer = ref<HTMLElement | null>(null);

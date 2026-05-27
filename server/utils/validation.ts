@@ -173,7 +173,8 @@ export const feedItemSchema = z.object({
     date: z.string(),
     status: z.string().nullable().optional().transform(v => v === null ? undefined : v)
   })).optional(),
-  streakCount: z.number().int().optional()
+  streakCount: z.number().int().optional(),
+  frequencyText: z.string().max(120).optional()
 });
 
 export const chatMessageSchema = z.object({

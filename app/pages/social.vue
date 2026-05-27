@@ -361,7 +361,11 @@
 
             <div class="flex-1 overflow-y-auto p-2 space-y-1">
               <div v-if="acceptedFriends.length === 0" class="py-12 text-center text-zinc-500 italic text-sm">
-                No active friends yet. Invite them in the Social section!
+                You don't have any friends yet. Go to the
+                <button type="button" @click="goToFriendsSection" class="text-zinc-200 hover:text-white underline underline-offset-2 transition-colors cursor-pointer">
+                  Friends
+                </button>
+                section to add them.
               </div>
               <div v-else-if="filteredReplyFriends.length === 0" class="py-12 text-center text-zinc-500 italic text-sm">
                 No friends found matching your filter.
@@ -820,7 +824,7 @@ const isLocalModalOpen = computed(() =>
   showUnfriendModal.value || showActivityReplyFriendSelectModal.value
 );
 
-useModalHistory(isLocalModalOpen, () => {
+const localModalHistory = useModalHistory(isLocalModalOpen, () => {
   showUnfriendModal.value = false;
   showActivityReplyFriendSelectModal.value = false;
 });
@@ -879,6 +883,12 @@ const closeShareBeforeReplyModal = () => {
 };
 
 useModalHistory(showShareBeforeReplyModal, closeShareBeforeReplyModal);
+
+const goToFriendsSection = async () => {
+  localModalHistory.suppressNextHistoryBack();
+  showActivityReplyFriendSelectModal.value = false;
+  await navigateTo({ path: '/social', query: { tab: 'friends' } }, { replace: true });
+};
 
 const navigateToReplyFriend = (friendId: string) => {
   const replyContext = useState<ActivityFeedItem | null>('chat-reply-activity-context');

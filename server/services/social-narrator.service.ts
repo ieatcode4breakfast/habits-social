@@ -22,6 +22,7 @@ export interface FeedItem {
   timestamp: Date;
   weeklyStatus?: { date: string, status: string | undefined }[];
   streakCount?: number;
+  frequencyText?: string;
 }
 
 export interface HabitLogSummary {
