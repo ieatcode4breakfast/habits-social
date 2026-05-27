@@ -402,6 +402,7 @@ const sortedFriendsForEdit = computed(() => {
 });
 const { showToast } = useToast();
 
+let lastLoadSequence = 0;
 const habits = ref<Habit[]>([]);
 const logs = ref<HabitLog[]>([]);
 const loading = ref(true);
@@ -514,22 +515,30 @@ const getFrequencyText = (habit: Habit) => {
 };
 
 const load = async (silent = false) => {
-
+  const currentSequence = ++lastLoadSequence;
   if (!silent) loading.value = true;
   try {
-    const [h, l] = await Promise.all([
+    const promises: Promise<any>[] = [
       api.getHabits(), 
       api.getLogs(startDate, endDate),
-      refreshSocial(),
-      new Promise(resolve => setTimeout(resolve, 500))
-    ]);
+      refreshSocial()
+    ];
+    if (!silent) {
+      promises.push(new Promise(resolve => setTimeout(resolve, 500)));
+    }
+    const [h, l] = await Promise.all(promises);
+
+    if (currentSequence !== lastLoadSequence) return;
+
     habits.value = h;
     logs.value = l;
 
   } catch (error) {
     console.error('[My Habits] load() failed:', error);
   } finally {
-    loading.value = false;
+    if (currentSequence === lastLoadSequence) {
+      loading.value = false;
+    }
   }
 };
 

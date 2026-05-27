@@ -315,6 +315,7 @@ useSeoMeta({
   description: 'Organize your habits into custom buckets on Habits Social.',
 });
 
+let lastLoadSequence = 0;
 const buckets = ref<Bucket[]>([]);
 const habitLogs = ref<HabitLog[]>([]);
 const bucketLogs = ref<BucketLog[]>([]);
@@ -487,15 +488,22 @@ const currentBucketStatusMap = computed(() => {
 });
 
 const load = async (silent = false) => {
+  const currentSequence = ++lastLoadSequence;
   if (!silent) loading.value = true;
   try {
-    const [b, l, bl, h] = await Promise.all([
+    const promises: Promise<any>[] = [
       api.getBuckets(), 
       api.getLogs(startDate, endDate),
       api.getBucketLogs(startDate, endDate),
-      api.getHabits(),
-      new Promise(resolve => setTimeout(resolve, 500))
-    ]);
+      api.getHabits()
+    ];
+    if (!silent) {
+      promises.push(new Promise(resolve => setTimeout(resolve, 500)));
+    }
+    const [b, l, bl, h] = await Promise.all(promises);
+
+    if (currentSequence !== lastLoadSequence) return;
+
     buckets.value = b;
     habitLogs.value = l;
     bucketLogs.value = bl;
@@ -503,7 +511,9 @@ const load = async (silent = false) => {
   } catch (error) {
     console.error('[Buckets] load() failed:', error);
   } finally {
-    loading.value = false;
+    if (currentSequence === lastLoadSequence) {
+      loading.value = false;
+    }
   }
 };
 
