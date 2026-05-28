@@ -79,5 +79,4 @@ button:disabled, select:disabled, [disabled] {
 html.overflow-hidden,
 body.overflow-hidden {
   overflow: hidden !important;
-  height: 100% !important;
 }

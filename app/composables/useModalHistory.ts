@@ -6,6 +6,86 @@ import { ref, watch, onMounted, onUnmounted, isReadonly, type Ref } from 'vue';
  */
 const activeModalCount = ref(0);
 
+interface ScrollLockSnapshot {
+  scrollY: number;
+  body: {
+    position: string;
+    top: string;
+    left: string;
+    right: string;
+    width: string;
+    overflow: string;
+    paddingRight: string;
+  };
+  html: {
+    overflow: string;
+  };
+}
+
+let scrollLockSnapshot: ScrollLockSnapshot | null = null;
+
+const getScrollbarWidth = () => {
+  const documentWidth = document.documentElement.clientWidth;
+  if (documentWidth <= 0) return 0;
+  return Math.max(0, window.innerWidth - documentWidth);
+};
+
+const lockDocumentScroll = () => {
+  const htmlEl = document.documentElement;
+  const bodyEl = document.body;
+  const scrollbarWidth = getScrollbarWidth();
+
+  scrollLockSnapshot = {
+    scrollY: window.scrollY,
+    body: {
+      position: bodyEl.style.position,
+      top: bodyEl.style.top,
+      left: bodyEl.style.left,
+      right: bodyEl.style.right,
+      width: bodyEl.style.width,
+      overflow: bodyEl.style.overflow,
+      paddingRight: bodyEl.style.paddingRight,
+    },
+    html: {
+      overflow: htmlEl.style.overflow,
+    },
+  };
+
+  bodyEl.style.position = 'fixed';
+  bodyEl.style.top = `-${scrollLockSnapshot.scrollY}px`;
+  bodyEl.style.left = '0';
+  bodyEl.style.right = '0';
+  bodyEl.style.width = '100%';
+  bodyEl.style.overflow = 'hidden';
+
+  if (scrollbarWidth > 0) {
+    const currentPaddingRight = Number.parseFloat(window.getComputedStyle(bodyEl).paddingRight) || 0;
+    bodyEl.style.paddingRight = `${currentPaddingRight + scrollbarWidth}px`;
+  }
+
+  htmlEl.style.overflow = 'hidden';
+};
+
+const unlockDocumentScroll = () => {
+  if (!scrollLockSnapshot) return;
+
+  const htmlEl = document.documentElement;
+  const bodyEl = document.body;
+  const { scrollY, body, html } = scrollLockSnapshot;
+  scrollLockSnapshot = null;
+
+  bodyEl.style.position = body.position;
+  bodyEl.style.top = body.top;
+  bodyEl.style.left = body.left;
+  bodyEl.style.right = body.right;
+  bodyEl.style.width = body.width;
+  bodyEl.style.overflow = body.overflow;
+  bodyEl.style.paddingRight = body.paddingRight;
+  htmlEl.style.overflow = html.overflow;
+
+  window.scrollTo(0, scrollY);
+};
+
 /**
  * Intercepts the browser back button to close a modal instead of navigating away.
  * Uses history.pushState to create a dummy entry that can be popped.
@@ -25,12 +105,14 @@ export const useModalHistory = (isOpen: Ref<boolean>, onClose?: () => boolean | 
       if (activeModalCount.value === 1) {
         bodyEl.classList.add('overflow-hidden');
         htmlEl.classList.add('overflow-hidden');
+        lockDocumentScroll();
       }
     } else {
       activeModalCount.value = Math.max(0, activeModalCount.value - 1);
       if (activeModalCount.value === 0) {
         bodyEl.classList.remove('overflow-hidden');
         htmlEl.classList.remove('overflow-hidden');
+        unlockDocumentScroll();
       }
     }
   };
