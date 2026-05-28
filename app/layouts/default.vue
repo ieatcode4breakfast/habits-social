@@ -4,8 +4,8 @@
       <div class="h-full max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between">
         <div class="flex items-center gap-2">
           <NuxtLink to="/habits" class="flex items-center gap-2 group">
-            <div class="w-8 h-8 rounded-full bg-transparent flex items-center justify-center shadow-md shadow-white/10 group-hover:shadow-white/20 transition-shadow overflow-hidden">
-              <img src="/icons/icon-192.png" class="w-full h-full object-cover scale-[1.35] transform-gpu" alt="Logo" />
+            <div class="w-8 h-8 rounded-lg bg-transparent flex items-center justify-center transition-shadow">
+              <img src="/icons/icon-192.png" class="w-full h-full object-contain" alt="Logo" />
             </div>
             <span class="font-bold text-lg tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-zinc-200 to-zinc-400">
               Habits Social
@@ -104,8 +104,8 @@
             <div class="p-4 border-b border-zinc-800 flex flex-col items-center gap-4">
               <div class="w-full flex items-center justify-between">
                 <div class="flex items-center gap-3">
-                  <div class="w-10 h-10 rounded-full bg-transparent flex items-center justify-center shadow-md shadow-white/10 overflow-hidden">
-                    <img src="/icons/icon-192.png" class="w-full h-full object-cover scale-[1.35] transform-gpu" alt="Logo" />
+                  <div class="w-10 h-10 rounded-lg bg-transparent flex items-center justify-center">
+                    <img src="/icons/icon-192.png" class="w-full h-full object-contain" alt="Logo" />
                   </div>
                   <span class="font-bold text-lg tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-zinc-200 to-zinc-400">
                     Habits Social
