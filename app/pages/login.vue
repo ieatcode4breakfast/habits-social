@@ -315,7 +315,7 @@ const handleSubmit = async () => {
         }
       }
       showToast(tab.value === 'login' ? 'Logged in successfully!' : 'Account created successfully!');
-      await navigateTo('/social', { replace: true });
+      await navigateTo('/habits', { replace: true });
     }
   } catch (e: any) {
     error.value = e?.data?.statusMessage || e?.statusMessage || 'Something went wrong.';
@@ -342,7 +342,7 @@ const handleGoogleCallback = async (response: any) => {
     } else {
       user.value = res.data;
       showToast('Logged in successfully!');
-      await navigateTo('/social', { replace: true });
+      await navigateTo('/habits', { replace: true });
     }
   } catch (e: any) {
     error.value = e?.data?.statusMessage || e?.statusMessage || 'Google Sign-In failed.';
@@ -384,7 +384,7 @@ const handleGoogleSignupSubmit = async () => {
       sessionStorage.setItem('just-signed-up', 'true');
     }
     showToast('Account completed successfully!');
-    await navigateTo('/social', { replace: true });
+    await navigateTo('/habits', { replace: true });
   } catch (e: any) {
     error.value = e?.data?.statusMessage || e?.statusMessage || 'Profile finalization failed.';
   } finally {

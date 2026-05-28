@@ -12,10 +12,10 @@ Here is a quick guide on how to get the most out of the app.
 
 Habits Social has four main sections, available from the top nav bar on desktop or the bottom tab bar on mobile:
 
-- **Social** – Your activity feed and friends list.
-- **Inbox** – Private chats with your friends.
 - **My Habits** – Your personal habit dashboard.
 - **Buckets** – Group related habits together.
+- **Social** – Your activity feed and friends list.
+- **Inbox** – Private chats with your friends.
 
 ---
 
