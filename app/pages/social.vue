@@ -481,7 +481,7 @@
 </template>
 
 <script setup lang="ts">
-defineOptions({ name: 'index' });
+defineOptions({ name: 'social' });
 import { Search, UserPlus, UserMinus, Check, X as XIcon, User, Users, Trash2, ChevronDown, CheckSquare, Activity, Star, ChevronLeft, ChevronRight, Flame, Minus, Palmtree, MessageCircle } from 'lucide-vue-next';
 import { format, parseISO, isToday, addDays, startOfMonth, endOfMonth, eachDayOfInterval, subDays, isAfter, startOfDay, subMonths, addMonths } from 'date-fns';
 import { useSocial } from '../composables/useSocial';

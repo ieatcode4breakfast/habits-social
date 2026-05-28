@@ -3,7 +3,7 @@
     <VitePwaManifest />
     <NuxtRouteAnnouncer />
     <NuxtLayout>
-      <NuxtPage :keepalive="{ include: ['index', 'inbox'] }" />
+      <NuxtPage :keepalive="{ include: ['social', 'inbox'] }" />
     </NuxtLayout>
 
     <!-- Global Toast Notification -->
