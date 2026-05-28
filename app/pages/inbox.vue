@@ -8,7 +8,7 @@
       :class="{ 'h-full': isMobile }"
     >
       <!-- Sidebar Header -->
-      <div class="px-4 pt-2 py-2 flex items-end justify-between gap-4 bg-zinc-925/40 backdrop-blur-md shrink-0">
+      <div class="px-4 pt-2 py-2 flex items-end justify-between gap-4 bg-black shrink-0 md:bg-zinc-925/40 md:backdrop-blur-md md:border-b md:border-zinc-800/80">
         <div class="flex items-center gap-3">
           <MessageCircle class="w-7 h-7 text-zinc-400 shrink-0" />
           <div>
