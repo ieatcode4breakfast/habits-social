@@ -4,7 +4,9 @@ import { resolveStartupRoute } from '~/utils/startupRoute';
 definePageMeta({
   middleware: [
     function () {
-      if (import.meta.server) return;
+      if (import.meta.server) {
+        return navigateTo('/social', { replace: true });
+      }
 
       return navigateTo(resolveStartupRoute(navigator.onLine), { replace: true });
     }
