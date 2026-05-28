@@ -242,19 +242,13 @@ It is a deliberate design decision to allow sharing habit data with users in `pe
 It is a deliberate decision to stick with the current precise `OR` conditions for the weekly logs look-ahead in `server/api/social/feed.get.ts` to protect Node.js memory from loading large date ranges, despite the O(N) query expansion.
 - **DO NOT FLAG** this query pattern in future audits unless database CPU usage becomes a proven bottleneck.
 
-### 8. Habit Log Pull-After-Push Feedback (Known Behavior, Accepted For Now)
-Habit-log updates currently trigger the full sync path, which pushes local changes and then pulls remote state. During rapid repeated edits, the UI may briefly revert if the pull returns older server state before the newest local change is fully reconciled.
-- This is accepted for now because the immediate pull gives users direct feedback when the server did not accept or persist a change, allowing them to notice and correct the habit log immediately.
-- We are intentionally not switching habit-log updates to push-only at this time. Push-only would reduce visible flicker, but it could hide failed or stale same-row writes until a later pull, making the user believe a local edit synced when the server still has the previous value.
-- **DO NOT FLAG** this behavior as a required fix unless product direction changes toward fully stable optimistic UI over immediate server-confirmation feedback.
-
-### 9. Chat Message Delete Visibility Window (By Design)
+### 8. Chat Message Delete Visibility Window (By Design)
 The 5-minute message delete icon visibility rule is intentionally enforced only in the frontend.
 - Messages can be deleted by their sender through the backend tombstone endpoint regardless of age.
 - The frontend only shows the inline delete icon for recently sent messages because the age threshold is a UX affordance, not an authorization boundary.
 - **DO NOT FLAG** the absence of backend 5-minute enforcement as a security issue unless product direction changes and the age window becomes a true access-control requirement.
 
-### 10. In-Memory Rate Limiting Trade-off (By Design)
+### 9. In-Memory Rate Limiting Trade-off (By Design)
 The application uses Nitro's `memory` storage driver for rate limiting instead of Cloudflare KV bindings.
 - This is a deliberate architectural decision to prevent rate limiting checks from instantly exhausting the Cloudflare KV free tier limits (1,000 writes/day).
 - The accepted trade-off is that rate limit counters are isolate-scoped (residing in the local memory of individual Cloudflare edge servers) rather than synchronized globally.

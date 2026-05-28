@@ -63,8 +63,23 @@ export interface BucketLog {
 const _testSyncState = {
   isSyncing: ref(false),
   syncNeeded: ref(false),
+  skipPullAfterHabitLogPush: ref(false),
   retryCount: ref(0),
   retryTimer: ref<any>(null),
+};
+
+type SyncOptions = {
+  skipPullAfterSuccessfulHabitLogPush?: boolean;
+};
+
+type PushPhaseOptions = {
+  toastHabitLogFailures?: boolean;
+};
+
+type PushPhaseResult = {
+  usedBulkSync: boolean;
+  attemptedIndividualHabitLogPush: boolean;
+  individualHabitLogPushFailed: boolean;
 };
 
 const isConflictError = (e: any) => {
@@ -76,6 +91,7 @@ export const _resetSyncState = () => {
   try {
     useState('h_isSyncing').value = false;
     useState('h_syncNeeded').value = false;
+    useState('h_skipPullAfterHabitLogPush').value = false;
     useState('h_retryCount').value = 0;
     const timer = useState<any>('h_retryTimer');
     if (timer.value) {
@@ -86,6 +102,7 @@ export const _resetSyncState = () => {
     // Fallback for tests where useState is not defined
     _testSyncState.isSyncing.value = false;
     _testSyncState.syncNeeded.value = false;
+    _testSyncState.skipPullAfterHabitLogPush.value = false;
     _testSyncState.retryCount.value = 0;
     if (_testSyncState.retryTimer.value) {
       clearTimeout(_testSyncState.retryTimer.value);
@@ -104,17 +121,20 @@ export const useHabitsApi = () => {
   // Sync Engine State (SSR-Safe)
   let isSyncing: Ref<boolean>;
   let syncNeeded: Ref<boolean>;
+  let skipPullAfterHabitLogPush: Ref<boolean>;
   let retryCount: Ref<number>;
   let retryTimer: Ref<any>;
 
   try {
     isSyncing = useState('h_isSyncing', () => false);
     syncNeeded = useState('h_syncNeeded', () => false);
+    skipPullAfterHabitLogPush = useState('h_skipPullAfterHabitLogPush', () => false);
     retryCount = useState('h_retryCount', () => 0);
     retryTimer = useState<any>('h_retryTimer', () => null);
   } catch {
     isSyncing = _testSyncState.isSyncing;
     syncNeeded = _testSyncState.syncNeeded;
+    skipPullAfterHabitLogPush = _testSyncState.skipPullAfterHabitLogPush;
     retryCount = _testSyncState.retryCount;
     retryTimer = _testSyncState.retryTimer;
   }
@@ -126,14 +146,14 @@ export const useHabitsApi = () => {
     lastSyncTime = ref(0);
   }
 
-  const triggerSync = () => {
+  const triggerSync = (options: SyncOptions = {}) => {
     // Reset backoff on manual/explicit actions
     retryCount.value = 0;
     if (retryTimer.value) {
       clearTimeout(retryTimer.value);
       retryTimer.value = null;
     }
-    sync().catch(err => console.error('[Sync] Background sync failed:', err));
+    sync(options).catch(err => console.error('[Sync] Background sync failed:', err));
   };
 
   // --- Reactive State (Facade Layer) ---
@@ -223,7 +243,7 @@ export const useHabitsApi = () => {
     const habit = await db.habits.get(data.habitId);
     await store.syncLocalBucketLogs(data.habitId, data.date);
 
-    triggerSync();
+    triggerSync(isOnline.value ? { skipPullAfterSuccessfulHabitLogPush: true } : {});
     return { log: newLog, habit: habit! };
   };
 
@@ -288,8 +308,12 @@ export const useHabitsApi = () => {
   };
 
   // --- The Core Sync Engine (Reconciliation) ---
-  const sync = async () => {
+  const sync = async (options: SyncOptions = {}) => {
     if (!user.value || !process.client) return;
+
+    if (options.skipPullAfterSuccessfulHabitLogPush) {
+      skipPullAfterHabitLogPush.value = true;
+    }
     
     // Atomic Concurrency Lock
     if (isSyncing.value) {
@@ -304,9 +328,23 @@ export const useHabitsApi = () => {
     try {
       do {
         syncNeeded.value = false;
+        const skipPullForSuccessfulHabitLogPush = skipPullAfterHabitLogPush.value;
+        skipPullAfterHabitLogPush.value = false;
 
         // 0. Process Action Queue & Unsynced Changes (Push Phase)
-        await processPushPhase();
+        const pushResult = await processPushPhase({
+          toastHabitLogFailures: skipPullForSuccessfulHabitLogPush
+        });
+
+        const shouldSkipPull =
+          skipPullForSuccessfulHabitLogPush &&
+          pushResult.attemptedIndividualHabitLogPush &&
+          !pushResult.individualHabitLogPushFailed &&
+          !pushResult.usedBulkSync;
+
+        if (shouldSkipPull) {
+          continue;
+        }
 
         // 1. Check for stored cursors to resume
         const state = await db.syncState.get('current');
@@ -429,7 +467,13 @@ export const useHabitsApi = () => {
     }
   };
 
-  const processPushPhase = async () => {
+  const processPushPhase = async (options: PushPhaseOptions = {}): Promise<PushPhaseResult> => {
+    const result: PushPhaseResult = {
+      usedBulkSync: false,
+      attemptedIndividualHabitLogPush: false,
+      individualHabitLogPushFailed: false
+    };
+
     // 0. Process Action Queue (Deletions & Reorders)
     const queuedActions = await db.syncQueue.toArray();
     for (const d of queuedActions) {
@@ -463,7 +507,7 @@ export const useHabitsApi = () => {
     // 1. Push local changes (Habits, Logs, Buckets)
     // Defense-in-depth: only push data belonging to the current user
     const currentUserId = user.value?.id;
-    if (!currentUserId) return;
+    if (!currentUserId) return result;
 
     const unsyncedHabits = await db.habits.where('synced').notEqual(1).filter(h => h.ownerId === currentUserId).toArray();
     const unsyncedLogs = await db.habitLogs.where('synced').equals(0).filter(l => l.ownerId === currentUserId).toArray();
@@ -473,6 +517,7 @@ export const useHabitsApi = () => {
     const totalUnsynced = unsyncedHabits.length + unsyncedLogs.length + unsyncedBuckets.length + unsyncedBucketLogs.length;
 
     if (totalUnsynced > 1) {
+      result.usedBulkSync = true;
       const operations: any[] = [];
 
       // Habits first
@@ -542,14 +587,23 @@ export const useHabitsApi = () => {
       }
 
       for (const l of unsyncedLogs) {
+        result.attemptedIndividualHabitLogPush = true;
         try {
           const { streakCount, brokenStreakCount, ...logPayload } = l;
           await client.postHabitLog(logPayload);
           await db.habitLogs.update(l.id, { synced: 1 });
         } catch (e: any) {
-          if (isConflictError(e)) { await db.habitLogs.update(l.id, { synced: 1 }); continue; }
+          result.individualHabitLogPushFailed = true;
+          if (isConflictError(e)) {
+            await db.habitLogs.update(l.id, { synced: 1 });
+            if (options.toastHabitLogFailures) showToast("Habit log update failed", "failed");
+            continue;
+          }
           const status = e.statusCode || e.response?.status;
-          if (status >= 400 && status < 500 && status !== 429) { await db.habitLogs.delete(l.id); showToast("A habit log could not be saved.", "failed"); }
+          if (status >= 400 && status < 500 && status !== 429) {
+            await db.habitLogs.delete(l.id);
+            showToast(options.toastHabitLogFailures ? "Habit log update failed" : "A habit log could not be saved.", "failed");
+          }
           else throw e;
         }
       }
@@ -590,7 +644,7 @@ export const useHabitsApi = () => {
       }
     }
 
-
+    return result;
   };
 
   const handleSyncError = (error: any) => {

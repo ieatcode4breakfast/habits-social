@@ -244,6 +244,98 @@ describe('useHabitsApi - Payload Minimization', () => {
     expect(callArgs.status).toBe('completed');
   });
 
+  it('sync() skips the pull after a successful targeted individual habit log push', async () => {
+    const unsyncedLog = {
+      id: 'local-l1',
+      habitId: 'h1',
+      synced: 0,
+      ownerId: 'test-user-id',
+      status: 'completed'
+    };
+
+    (db.habitLogs.where as any).mockReturnValue({
+      equals: vi.fn().mockReturnValue({
+        filter: vi.fn().mockReturnValue({
+          toArray: vi.fn().mockResolvedValue([unsyncedLog])
+        })
+      })
+    });
+
+    mockClient.postHabitLog.mockResolvedValue({});
+    mockClient.fetchSync.mockResolvedValue({ serverTime: 10000, habits: [], buckets: [], habitLogs: [], bucketLogs: [] });
+
+    const api = useHabitsApi();
+    await api.sync({ skipPullAfterSuccessfulHabitLogPush: true });
+
+    expect(mockClient.postHabitLog).toHaveBeenCalledWith(unsyncedLog);
+    expect(db.habitLogs.update).toHaveBeenCalledWith('local-l1', { synced: 1 });
+    expect(mockClient.fetchSync).not.toHaveBeenCalled();
+  });
+
+  it('sync() pulls server data after a failed targeted individual habit log push', async () => {
+    const unsyncedLog = {
+      id: 'local-l1',
+      habitId: 'h1',
+      synced: 0,
+      ownerId: 'test-user-id',
+      status: 'completed'
+    };
+    const validationError = new Error('Invalid habit log');
+    Object.assign(validationError, { statusCode: 400 });
+
+    (db.habitLogs.where as any).mockReturnValue({
+      equals: vi.fn().mockReturnValue({
+        filter: vi.fn().mockReturnValue({
+          toArray: vi.fn().mockResolvedValue([unsyncedLog])
+        })
+      })
+    });
+
+    mockClient.postHabitLog.mockRejectedValue(validationError);
+    mockClient.fetchSync.mockResolvedValue({ serverTime: 10000, habits: [], buckets: [], habitLogs: [], bucketLogs: [] });
+
+    const api = useHabitsApi();
+    await api.sync({ skipPullAfterSuccessfulHabitLogPush: true });
+
+    expect(mockShowToast).toHaveBeenCalledWith('Habit log update failed', 'failed');
+    expect(db.habitLogs.delete).toHaveBeenCalledWith('local-l1');
+    expect(mockClient.fetchSync).toHaveBeenCalled();
+  });
+
+  it('sync() keeps the normal pull after targeted mode falls back to bulk sync', async () => {
+    const unsyncedLogA = {
+      id: 'local-l1',
+      habitId: 'h1',
+      synced: 0,
+      ownerId: 'test-user-id',
+      status: 'completed'
+    };
+    const unsyncedLogB = {
+      id: 'local-l2',
+      habitId: 'h2',
+      synced: 0,
+      ownerId: 'test-user-id',
+      status: 'failed'
+    };
+
+    (db.habitLogs.where as any).mockReturnValue({
+      equals: vi.fn().mockReturnValue({
+        filter: vi.fn().mockReturnValue({
+          toArray: vi.fn().mockResolvedValue([unsyncedLogA, unsyncedLogB])
+        })
+      })
+    });
+
+    mockClient.postBulkSync.mockResolvedValue({ success: ['local-l1', 'local-l2'], failed: [] });
+    mockClient.fetchSync.mockResolvedValue({ serverTime: 10000, habits: [], buckets: [], habitLogs: [], bucketLogs: [] });
+
+    const api = useHabitsApi();
+    await api.sync({ skipPullAfterSuccessfulHabitLogPush: true });
+
+    expect(mockClient.postBulkSync).toHaveBeenCalled();
+    expect(mockClient.fetchSync).toHaveBeenCalled();
+  });
+
   it('sync() strips derived fields from bucket logs before pushing', async () => {
     const unsyncedBucketLog = { 
       id: 'local-bl1', 
@@ -324,4 +416,3 @@ describe('useHabitsApi - Payload Minimization', () => {
     expect(mockShowToast).toHaveBeenCalledWith("Bucket limit of 50 reached on the server. Some buckets may not sync.", "failed");
   });
 });
-
