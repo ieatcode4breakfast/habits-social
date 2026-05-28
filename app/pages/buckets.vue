@@ -3,10 +3,8 @@
     <!-- Sticky Header + Date Row -->
     <div class="sticky top-0 md:top-[57px] z-40 bg-black">
     <div class="px-4 sm:px-0 flex items-end justify-between gap-4 bg-black pt-2 pb-2 sm:pt-4">
-      <div class="flex items-center gap-4">
-        <div class="w-10 h-10 bg-zinc-925 rounded-xl shadow-lg flex items-center justify-center border border-zinc-800">
-          <PaintBucket class="w-6 h-6 text-zinc-400" />
-        </div>
+      <div class="flex items-center gap-3">
+        <PaintBucket class="w-7 h-7 text-zinc-400 shrink-0" />
         <div>
           <h1 class="text-base font-bold tracking-tight text-white">Buckets</h1>
           <p class="text-zinc-400 text-xs">{{ buckets.length }} bucket{{ buckets.length === 1 ? '' : 's' }}</p>

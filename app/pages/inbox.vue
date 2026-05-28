@@ -8,11 +8,9 @@
       :class="{ 'h-full': isMobile }"
     >
       <!-- Sidebar Header -->
-      <div class="px-4 pt-2 py-2 border-b border-zinc-800/80 flex items-end justify-between gap-4 bg-zinc-925/40 backdrop-blur-md shrink-0">
-        <div class="flex items-center gap-4">
-          <div class="w-10 h-10 bg-zinc-925 rounded-xl shadow-lg flex items-center justify-center border border-zinc-800">
-            <MessageCircle class="w-6 h-6 text-zinc-400" />
-          </div>
+      <div class="px-4 pt-2 py-2 flex items-end justify-between gap-4 bg-zinc-925/40 backdrop-blur-md shrink-0">
+        <div class="flex items-center gap-3">
+          <MessageCircle class="w-7 h-7 text-zinc-400 shrink-0" />
           <div>
             <h1 class="text-base font-bold tracking-tight text-white">Inbox</h1>
             <p class="text-zinc-400 text-xs">{{ conversations.length }} chat{{ conversations.length === 1 ? '' : 's' }}</p>

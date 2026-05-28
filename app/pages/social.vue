@@ -1,9 +1,21 @@
 <template>
   <div class="relative">
-    <!-- Tab Navigation -->
-    <div class="px-4 sm:px-0 sticky top-[57px] z-40 bg-black pt-2 pb-2 sm:pt-4">
-      <div class="flex p-1 bg-zinc-925 border border-zinc-800 rounded-xl relative">
-        <button 
+    <!-- Sticky Header + Tabs -->
+    <div class="sticky top-0 md:top-[57px] z-40 bg-black">
+      <div class="px-4 sm:px-0 flex items-end justify-between gap-4 pt-2 pb-2 sm:pt-4">
+        <div class="flex items-center gap-3">
+          <Users class="w-7 h-7 text-zinc-400 shrink-0" />
+          <div>
+            <h1 class="text-base font-bold tracking-tight text-white">Social</h1>
+            <p class="text-zinc-400 text-xs">{{ displayFriends.length }} friend{{ displayFriends.length === 1 ? '' : 's' }}</p>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Tab Navigation -->
+      <div class="px-4 sm:px-0 py-2">
+        <div class="flex p-1 bg-zinc-925 border border-zinc-800 rounded-xl relative">
+          <button 
           @click="activeTab = 'activity'"
           class="flex-1 py-2.5 text-[11px] font-bold tracking-widest uppercase rounded-lg transition-all relative z-10 cursor-pointer"
           :class="activeTab === 'activity' ? 'text-white' : 'text-zinc-500 hover:text-zinc-300'"
@@ -24,6 +36,7 @@
           :class="activeTab === 'activity' ? 'left-1' : 'left-[calc(50%+2px)]'"
         ></div>
       </div>
+    </div>
     </div>
 
     <div :style="pullStyle" class="will-change-transform">
@@ -469,7 +482,7 @@
 
 <script setup lang="ts">
 defineOptions({ name: 'index' });
-import { Search, UserPlus, UserMinus, Check, X as XIcon, User, Trash2, ChevronDown, CheckSquare, Activity, Star, ChevronLeft, ChevronRight, Flame, Minus, Palmtree, MessageCircle } from 'lucide-vue-next';
+import { Search, UserPlus, UserMinus, Check, X as XIcon, User, Users, Trash2, ChevronDown, CheckSquare, Activity, Star, ChevronLeft, ChevronRight, Flame, Minus, Palmtree, MessageCircle } from 'lucide-vue-next';
 import { format, parseISO, isToday, addDays, startOfMonth, endOfMonth, eachDayOfInterval, subDays, isAfter, startOfDay, subMonths, addMonths } from 'date-fns';
 import { useSocial } from '../composables/useSocial';
 import { useToast } from '../composables/useToast';
