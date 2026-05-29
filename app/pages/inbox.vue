@@ -240,6 +240,13 @@
                 <div 
                   v-if="msg.replyToActivity && !msg.deletedAt" 
                   class="p-3 rounded-xl border border-zinc-800 bg-zinc-950 text-zinc-100 flex flex-col gap-2 select-none w-full"
+                  :class="hasReplyActivityHabit(msg.replyToActivity) ? 'cursor-pointer hover:bg-zinc-900/80 transition-colors active:scale-[0.99]' : ''"
+                  :role="hasReplyActivityHabit(msg.replyToActivity) ? 'button' : undefined"
+                  :tabindex="hasReplyActivityHabit(msg.replyToActivity) ? 0 : undefined"
+                  :title="hasReplyActivityHabit(msg.replyToActivity) ? 'View habit details' : undefined"
+                  @click="openReplyActivityHabit(msg.replyToActivity)"
+                  @keydown.enter.prevent="openReplyActivityHabit(msg.replyToActivity)"
+                  @keydown.space.prevent="openReplyActivityHabit(msg.replyToActivity)"
                 >
                   <!-- Card Header: User Avatar + Name + Action Message -->
                   <div class="flex items-center gap-2 w-full">
@@ -258,7 +265,7 @@
                       :class="msg.replyToActivity.type === 'HABIT_REPLY' ? 'text-right' : ''"
                     >
                       <span v-if="msg.replyToActivity.type !== 'HABIT_REPLY'" class="font-black text-white mr-1"></span>
-                      <span class="text-zinc-500" v-html="formatMessageInline(msg.replyToActivity.message)"></span>
+                      <span class="text-zinc-500" v-html="formatActivityMessageInline(msg.replyToActivity.message)"></span>
                     </div>
                   </div>
 
@@ -388,7 +395,7 @@
                 class="text-[11px] leading-tight min-w-0 truncate text-zinc-300 flex-1"
                 :class="replyActivityContext.type === 'HABIT_REPLY' ? 'text-right' : ''"
               >
-                <span v-html="formatMessageInline(replyActivityContext.message)"></span>
+                <span v-html="formatActivityMessageInline(replyActivityContext.message)"></span>
               </div>
             </div>
 
@@ -631,6 +638,14 @@
       </Transition>
     </Teleport>
 
+    <HabitDetailsModal
+      v-model="showHabitModal"
+      :habit="selectedHabit"
+      :logs="selectedHabitLogs"
+      :loading="calendarLoading"
+      @month-changed="handleInboxHabitMonthChanged"
+    />
+
   </div>
 </template>
 
@@ -645,12 +660,13 @@ import {
   ChevronLeft,
   Star
 } from 'lucide-vue-next';
-import { formatDistanceToNow, parseISO } from 'date-fns';
+import { format, formatDistanceToNow, parseISO, startOfMonth, endOfMonth } from 'date-fns';
 import { useSocial, type UserProfile } from '~/composables/useSocial';
 import { useAuth } from '~/composables/useAuth';
 import { useToast } from '~/composables/useToast';
 import { useChatInbox, type ChatInboxConversation } from '~/composables/useChatInbox';
 import { autoExpandTextarea } from '~/utils/ui';
+import { formatActivityMessageInline } from '~/utils/feed';
 
 definePageMeta({ middleware: 'auth' });
 
@@ -672,20 +688,63 @@ const {
   updateOptimisticPreview
 } = useChatInbox();
 
-const replyActivityContext = useState<any>('chat-reply-activity-context', () => null);
+interface ActivityReplyCard {
+  id: string;
+  type: string;
+  user: {
+    id: string;
+    name: string;
+    photoUrl?: string | null;
+  };
+  habit: {
+    id?: string | null;
+    title: string;
+  };
+  habits?: {
+    id?: string | null;
+    title: string;
+  }[];
+  message: string;
+  date: string;
+  timestamp: string | Date;
+  weeklyStatus?: {
+    date: string;
+    status: string | undefined;
+  }[];
+  streakCount?: number;
+  frequencyText?: string;
+}
+
+interface InboxHabit {
+  id: string;
+  title: string;
+  description?: string | null;
+  currentStreak?: number | null;
+  skipsPeriod?: string | null;
+  skipsCount?: number | null;
+  [key: string]: unknown;
+}
+
+interface InboxHabitLog {
+  id: string;
+  habitId: string;
+  date: string;
+  status?: string | null;
+  [key: string]: unknown;
+}
+
+interface HabitDetailsResponse {
+  data: {
+    habit: InboxHabit;
+    logs: InboxHabitLog[];
+  };
+}
+
+const replyActivityContext = useState<ActivityReplyCard | null>('chat-reply-activity-context', () => null);
 const MESSAGE_QUICK_DELETE_MS = 5 * 60 * 1000;
 
 const clearReplyContext = () => {
   replyActivityContext.value = null;
-};
-
-const formatMessageInline = (msg: string) => {
-  if (!msg) return '';
-  return msg
-    .replace(/\[H\](.*?)\[\/H\]/g, '<strong class="font-bold">$1</strong>')
-    .replace(/\[U:(.*?)\](.*?)\[\/U\]/g, '<span class="font-bold">$2</span>')
-    .replace(/\[U\](.*?)\[\/U\]/g, '<strong class="font-bold">$1</strong>')
-    .replace(/\[S:(\d+)(?::(broken))?\](.*?)\[\/S\]/g, '<strong class="font-bold">$3</strong>');
 };
 
 interface InboxMessage {
@@ -693,7 +752,7 @@ interface InboxMessage {
   conversationId: string;
   senderId: string | null;
   body: string;
-  replyToActivity?: any;
+  replyToActivity?: ActivityReplyCard | null;
   deletedAt: string | Date | null;
   createdAt: string | Date;
   isOptimistic?: boolean;
@@ -719,6 +778,78 @@ const conversationsScrollContainer = ref<HTMLElement | null>(null);
 const sharedActiveConversationId = useState<string | null>('realtime-active-conversation-id', () => null);
 const activeChatLocked = useState<boolean>('realtime-active-chat-locked', () => false);
 const chatRefreshSequence = useState<number>('realtime-chat-refresh-sequence', () => 0);
+const showHabitModal = ref(false);
+const selectedHabit = ref<InboxHabit | null>(null);
+const selectedHabitLogs = ref<InboxHabitLog[]>([]);
+const calendarLoading = ref(false);
+
+const getReplyActivityHabitId = (activity: ActivityReplyCard | null | undefined): string | null => {
+  const habitId = activity?.habit?.id;
+  return typeof habitId === 'string' && habitId.length > 0 ? habitId : null;
+};
+
+const hasReplyActivityHabit = (activity: ActivityReplyCard | null | undefined): boolean => {
+  return getReplyActivityHabitId(activity) !== null;
+};
+
+const openReplyActivityHabit = async (activity: ActivityReplyCard | null | undefined) => {
+  const habitId = getReplyActivityHabitId(activity);
+  if (!habitId) return;
+
+  calendarLoading.value = true;
+  showHabitModal.value = false;
+  selectedHabit.value = null;
+  selectedHabitLogs.value = [];
+
+  try {
+    const { data } = await $fetch<HabitDetailsResponse>('/api/social/habit-details', { query: { habitId } });
+    selectedHabit.value = data.habit;
+    selectedHabitLogs.value = data.logs;
+    showHabitModal.value = true;
+  } catch (error: unknown) {
+    console.error('[Inbox] Failed to fetch reply habit details:', error);
+    if (getErrorStatus(error) === 404) {
+      showToast('This habit is no longer shared with you', 'failed');
+    }
+  } finally {
+    calendarLoading.value = false;
+  }
+};
+
+const handleInboxHabitMonthChanged = async (newDate: Date) => {
+  if (!selectedHabit.value) return;
+
+  const start = format(startOfMonth(newDate), 'yyyy-MM-dd');
+  const end = format(endOfMonth(newDate), 'yyyy-MM-dd');
+  calendarLoading.value = true;
+
+  try {
+    const { data } = await $fetch<HabitDetailsResponse>('/api/social/habit-details', {
+      query: {
+        habitId: selectedHabit.value.id,
+        startDate: start,
+        endDate: end
+      }
+    });
+
+    data.logs.forEach((newLog) => {
+      const existingIndex = selectedHabitLogs.value.findIndex((log) => log.id === newLog.id);
+      if (existingIndex >= 0) {
+        selectedHabitLogs.value[existingIndex] = newLog;
+      } else {
+        selectedHabitLogs.value.push(newLog);
+      }
+    });
+  } catch (error: unknown) {
+    console.error('[Inbox] Failed to fetch reply habit month:', error);
+    if (getErrorStatus(error) === 404) {
+      showToast('This habit is no longer shared with you', 'failed');
+      showHabitModal.value = false;
+    }
+  } finally {
+    calendarLoading.value = false;
+  }
+};
 
 // Loading states
 const messagesLoading = ref(false);
@@ -730,7 +861,7 @@ const hasMore = ref(false);
 
 // Per-conversation draft storage (keyed by friend ID) — preserves unsent messages
 // and activity reply context when switching conversations or leaving and returning
-const conversationDrafts = ref<Record<string, { body: string; replyActivity: any }>>({});
+const conversationDrafts = ref<Record<string, { body: string; replyActivity: ActivityReplyCard | null }>>({});
 
 const saveCurrentDraft = () => {
   if (!activeFriend.value?.id) return;

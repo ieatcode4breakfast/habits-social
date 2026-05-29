@@ -1,6 +1,8 @@
 import './setup';
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import { createTestUser, deleteTestUser, createMockEvent, createTestHabit, deleteTestHabit } from './test.utils';
+import { eq } from 'drizzle-orm';
+import { habits as habitsTable } from '../db/schema';
+import { createTestUser, deleteTestUser, createMockEvent, createTestHabit, deleteTestHabit, shareHabitWithUser, db } from './test.utils';
 
 describe('GET /api/social/habit-details', () => {
   let handler: any;
@@ -39,5 +41,39 @@ describe('GET /api/social/habit-details', () => {
     });
 
     await expect(handler(event)).rejects.toThrow(/Invalid endDate format/i);
+  });
+
+  it('should allow the owner to fetch their own current habit details', async () => {
+    const event = createMockEvent(targetUser.id, {}, {}, {}, { habitId: habit.id });
+
+    const response = await handler(event);
+
+    expect(response.data.habit.id).toBe(habit.id);
+    expect(response.data.habit.ownerId).toBe(targetUser.id);
+  });
+
+  it('should allow a currently shared viewer to fetch live habit details', async () => {
+    await shareHabitWithUser(habit.id, testUser.id);
+
+    const liveTitle = `Live Target Habit ${Date.now()}`;
+    await db.update(habitsTable)
+      .set({ title: liveTitle, updatedAt: new Date() })
+      .where(eq(habitsTable.id, habit.id));
+
+    const event = createMockEvent(testUser.id, {}, {}, {}, { habitId: habit.id });
+    const response = await handler(event);
+
+    expect(response.data.habit.id).toBe(habit.id);
+    expect(response.data.habit.title).toBe(liveTitle);
+  });
+
+  it('should reject a viewer after the habit is no longer shared with them', async () => {
+    await db.update(habitsTable)
+      .set({ sharedWith: [], updatedAt: new Date() })
+      .where(eq(habitsTable.id, habit.id));
+
+    const event = createMockEvent(testUser.id, {}, {}, {}, { habitId: habit.id });
+
+    await expect(handler(event)).rejects.toThrow(/Habit not found or not shared with you/i);
   });
 });
