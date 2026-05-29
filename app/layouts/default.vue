@@ -56,24 +56,24 @@
     <!-- Mobile Bottom Navigation -->
     <nav v-if="user" class="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-nav-bg border-t border-white/5 px-6 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))]">
       <div class="flex items-center justify-around">
-        <NuxtLink to="/habits" class="flex items-center group transition-colors" :class="($route.path === '/habits' && !showMobileMenu) ? 'text-white' : 'text-zinc-500'">
+        <NuxtLink to="/habits" class="flex items-center group transition-colors" :class="($route.path === '/habits' && !showMobileMenu) ? 'text-white' : 'text-zinc-500'" @click="showMobileMenu = false">
           <div class="p-2 rounded-xl transition-all duration-300" :class="($route.path === '/habits' && !showMobileMenu) ? 'bg-white/10 scale-110' : 'group-hover:bg-white/5'">
             <ListChecks class="w-6 h-6" />
           </div>
         </NuxtLink>
-        <NuxtLink to="/buckets" class="flex items-center group transition-colors" :class="($route.path === '/buckets' && !showMobileMenu) ? 'text-white' : 'text-zinc-500'">
+        <NuxtLink to="/buckets" class="flex items-center group transition-colors" :class="($route.path === '/buckets' && !showMobileMenu) ? 'text-white' : 'text-zinc-500'" @click="showMobileMenu = false">
           <div class="p-2 rounded-xl transition-all duration-300" :class="($route.path === '/buckets' && !showMobileMenu) ? 'bg-white/10 scale-110' : 'group-hover:bg-white/5'">
             <PaintBucket class="w-6 h-6" />
           </div>
         </NuxtLink>
-        <NuxtLink to="/social" class="flex items-center group transition-colors relative" :class="($route.path === '/social' && !showMobileMenu) ? 'text-white' : 'text-zinc-500'">
+        <NuxtLink to="/social" class="flex items-center group transition-colors relative" :class="($route.path === '/social' && !showMobileMenu) ? 'text-white' : 'text-zinc-500'" @click="showMobileMenu = false">
           <div class="p-2 rounded-xl transition-all duration-300" :class="($route.path === '/social' && !showMobileMenu) ? 'bg-white/10 scale-110' : 'group-hover:bg-white/5'">
             <Users class="w-6 h-6" />
           </div>
           <!-- Badge -->
           <div v-if="pendingCount > 0" class="absolute top-1 right-1 w-2.5 h-2.5 bg-rose-500 rounded-full border-2 border-zinc-950"></div>
         </NuxtLink>
-        <NuxtLink to="/inbox" class="flex items-center group transition-colors relative" :class="($route.path === '/inbox' && !showMobileMenu) ? 'text-white' : 'text-zinc-500'" @click="handleInboxNavClick">
+        <NuxtLink to="/inbox" class="flex items-center group transition-colors relative" :class="($route.path === '/inbox' && !showMobileMenu) ? 'text-white' : 'text-zinc-500'" @click="() => { showMobileMenu = false; handleInboxNavClick(); }">
           <div class="p-2 rounded-xl transition-all duration-300" :class="($route.path === '/inbox' && !showMobileMenu) ? 'bg-white/10 scale-110' : 'group-hover:bg-white/5'">
             <MessageCircle class="w-6 h-6" />
           </div>
@@ -97,7 +97,7 @@
         leave-from-class="opacity-100 translate-y-0"
         leave-to-class="opacity-0 translate-y-full"
       >
-        <div v-if="showMobileMenu" class="fixed inset-x-0 top-0 bottom-[calc(4rem+1px+env(safe-area-inset-bottom,0px))] z-[100] flex flex-col justify-end md:hidden">
+        <div v-if="showMobileMenu" class="fixed inset-x-0 top-0 bottom-[calc(4rem-6px+env(safe-area-inset-bottom,0px))] z-[45] flex flex-col justify-end md:hidden">
           <div class="absolute inset-0 bg-black/80 backdrop-blur-sm touch-none" @click="showMobileMenu = false"></div>
           
           <div class="relative w-full bg-zinc-950 border-t border-zinc-800 rounded-t-3xl shadow-2xl overflow-hidden">
@@ -119,7 +119,7 @@
 
             <div class="p-2 flex flex-col gap-1 bg-black">
               <button 
-                @click="() => { handleEditProfile(); }"
+                @click="() => { showMobileMenu = false; handleEditProfile(); }"
                 class="w-full p-2 flex items-center gap-3 text-zinc-300 hover:bg-zinc-900 rounded-xl transition-colors cursor-pointer"
               >
                 <UserIcon class="w-5 h-5 text-zinc-400" />
