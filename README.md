@@ -41,7 +41,7 @@ Every day, tap a day cell on a habit's timeline row to open the **Log Menu**. Th
 - 🌴 **Vacation** – Mark the day as vacation to protect your streak (appears when no skips are left). Vacation works just like a skip—there are no penalties or downsides to using it, and your streak stays fully intact. That said, we rely on your honesty here: please reserve Vacation for times you're genuinely away or unable to follow your routine, not as a loophole to avoid a fail.
 - 🗑️ **Clear** – Undo a previous log entry.
 
-You can update logs for the **last 14 days**, including today.
+You can update logs for the **last 7 days**, including today.
 
 **Streaks:**
 When you've completed a habit for 2 or more consecutive days, a streak badge appears next to the habit name. Streaks are color-coded by length:

@@ -34,7 +34,7 @@ This daily-only logic is **intentional and immutable**. While habits have skip b
 > - **Forgiving:** Users can retroactively log missed days to "save" a streak.
 > - **Strict:** A "Missing Day" (gap > 1 day) always breaks the chain.
 > - **Future Boundary:** Logs cannot be created for future dates to prevent "anchoring" streaks in the future.
-> - **Historical Sync:** While the frontend limits manual entries to a 14-day window for UX consistency, the backend permits unbounded historical synchronization to support long-term offline reconciliation.
+> - **Historical Sync:** While the frontend limits manual entries to a 7-day window for UX consistency, the backend permits unbounded historical synchronization to support long-term offline reconciliation.
 
 Streaks are recalculated automatically whenever:
 

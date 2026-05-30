@@ -6,6 +6,7 @@ import HabitEditModal from './HabitEditModal.vue';
 const mockUpdateHabit = vi.fn();
 const mockGetLogs = vi.fn();
 const mockShowToast = vi.fn();
+const mockIsMarkable = vi.hoisted(() => vi.fn(() => true));
 
 vi.mock('#imports', () => ({
   useHabitsApi: () => ({
@@ -41,7 +42,7 @@ vi.mock('~/utils/ui', () => ({
   }),
   isStreakFaded: () => false,
   autoExpandTextarea: vi.fn(),
-  isMarkable: () => true
+  isMarkable: mockIsMarkable
 }));
 
 const mountModal = () =>
@@ -79,6 +80,7 @@ describe('HabitEditModal sharing', () => {
     mockUpdateHabit.mockReset();
     mockGetLogs.mockReset().mockResolvedValue([]);
     mockShowToast.mockReset();
+    mockIsMarkable.mockReset().mockReturnValue(true);
     mockUpdateHabit.mockResolvedValue({ id: 'habit-1', sharedWith: ['friend-1'] });
   });
 
@@ -112,5 +114,20 @@ describe('HabitEditModal sharing', () => {
 
     await firstCheckbox.setValue(true);
     expect((firstCheckbox.element as HTMLInputElement).checked).toBe(true);
+  });
+
+  it('does not show the pointer cursor for locked calendar days', async () => {
+    mockIsMarkable.mockReturnValue(false);
+
+    const wrapper = mountModal();
+
+    await flushPromises();
+    await nextTick();
+
+    const dayButton = wrapper.find('button.w-8.h-8.rounded-full');
+
+    expect(dayButton.exists()).toBe(true);
+    expect(dayButton.classes()).toContain('cursor-default');
+    expect(dayButton.classes()).not.toContain('cursor-pointer');
   });
 });

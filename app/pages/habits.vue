@@ -314,9 +314,9 @@
 
 <script setup lang="ts">
 import { Plus, Trash2, Check, X as XIcon, Minus, ChevronLeft, ChevronRight, User, ChevronUp, ChevronDown, Edit2, Save, CheckSquare, GripVertical, ArrowUpDown, Flame, Palmtree, MessageCircle, UserPlus, Star } from 'lucide-vue-next';
-import { format, subDays, isToday, startOfMonth, endOfMonth, eachDayOfInterval, addMonths, subMonths, isAfter, startOfDay, addDays, isSameWeek, isSameMonth, parseISO, startOfWeek, isBefore, isSameDay } from 'date-fns';
+import { format, subDays, isToday, startOfMonth, endOfMonth, eachDayOfInterval, addMonths, subMonths, isAfter, startOfDay, addDays, isSameWeek, isSameMonth, parseISO, startOfWeek, isSameDay } from 'date-fns';
 import type { Habit, HabitLog } from '~/composables/useHabitsApi';
-import { getStreakTheme, isStreakFaded as isFaded, autoExpandTextarea as autoExpand } from '~/utils/ui';
+import { getStreakTheme, isStreakFaded as isFaded, autoExpandTextarea as autoExpand, isMarkable } from '~/utils/ui';
 import { useSortableList } from '~/composables/useSortableList';
 import { useCalendar } from '~/composables/useCalendar';
 
@@ -474,12 +474,6 @@ const openAddModal = () => {
 
 const today = new Date();
 const isFutureDay = (day: Date) => isAfter(startOfDay(day), startOfDay(today));
-const isMarkable = (day: Date) => {
-  const d = startOfDay(day);
-  const t = startOfDay(today);
-  const limit = subDays(t, 13); // Last 14 days including today
-  return !isBefore(d, limit) && !isAfter(d, t);
-};
 const days = Array.from({ length: 7 }, (_, i) => subDays(new Date(), 6 - i));
 const startDate = format(startOfMonth(subMonths(today, 1)), 'yyyy-MM-dd');
 const endDate = format(endOfMonth(addMonths(today, 1)), 'yyyy-MM-dd');
@@ -706,7 +700,7 @@ const activeHabitForMenu = computed(() => {
 });
 const openLogMenu = (habit: Habit, day: Date, event: MouseEvent, options?: LogMenuOpenOptions) => {
   if (!isMarkable(day)) {
-    showToast('You can only update habits for the last 14 days', 'failed');
+    showToast('You can only update habits for the last 7 days', 'failed');
     return;
   }
   

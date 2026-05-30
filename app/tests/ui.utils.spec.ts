@@ -1,6 +1,6 @@
-import { describe, it, expect } from 'vitest';
-import { autoExpandTextarea, isStreakFaded } from '../utils/ui';
-import { subDays, formatISO } from 'date-fns';
+import { afterEach, beforeEach, describe, it, expect, vi } from 'vitest';
+import { autoExpandTextarea, isMarkable, isStreakFaded } from '../utils/ui';
+import { addDays, subDays, formatISO } from 'date-fns';
 
 describe('isStreakFaded', () => {
   const today = new Date();
@@ -37,5 +37,34 @@ describe('autoExpandTextarea', () => {
     autoExpandTextarea(textarea);
 
     expect(textarea.style.height).toBe('160px');
+  });
+});
+
+describe('isMarkable', () => {
+  const today = new Date('2026-05-30T12:00:00.000Z');
+
+  beforeEach(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(today);
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('allows today', () => {
+    expect(isMarkable(today)).toBe(true);
+  });
+
+  it('allows 6 days ago', () => {
+    expect(isMarkable(subDays(today, 6))).toBe(true);
+  });
+
+  it('blocks 7 days ago', () => {
+    expect(isMarkable(subDays(today, 7))).toBe(false);
+  });
+
+  it('blocks tomorrow', () => {
+    expect(isMarkable(addDays(today, 1))).toBe(false);
   });
 });

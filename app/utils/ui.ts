@@ -1,12 +1,14 @@
 import { subDays, startOfDay, parseISO, isAfter, differenceInDays } from 'date-fns';
 
 /**
- * Determines if a date is within the 14-day markable window.
+ * Determines if a date is within the markable window.
  */
+export const MARKABLE_DAY_WINDOW = 7;
+
 export const isMarkable = (day: Date) => {
   const today = new Date();
   const diff = differenceInDays(startOfDay(today), startOfDay(day));
-  return diff >= 0 && diff < 14;
+  return diff >= 0 && diff < MARKABLE_DAY_WINDOW;
 };
 
 /**

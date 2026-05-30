@@ -280,9 +280,9 @@
 
 <script setup lang="ts">
 import { Plus, Trash2, Check, X as XIcon, Minus, ChevronLeft, ChevronRight, Flame, PaintBucket, Palmtree, Edit2, ChevronDown, ChevronUp, ArrowUpDown, GripVertical, CheckSquare } from 'lucide-vue-next';
-import { format, subDays, startOfMonth, endOfMonth, eachDayOfInterval, addMonths, subMonths, isAfter, startOfDay, parseISO, isToday, startOfWeek, addDays, isSameDay, isSameWeek, isSameMonth, differenceInDays } from 'date-fns';
+import { format, subDays, startOfMonth, endOfMonth, eachDayOfInterval, addMonths, subMonths, isAfter, startOfDay, parseISO, isToday, startOfWeek, addDays, isSameDay, isSameWeek, isSameMonth } from 'date-fns';
 import type { Bucket, BucketLog, Habit, HabitLog } from '~/composables/useHabitsApi';
-import { getStreakTheme, isStreakFaded as isFaded, autoExpandTextarea as autoExpand } from '~/utils/ui';
+import { getStreakTheme, isStreakFaded as isFaded, autoExpandTextarea as autoExpand, isMarkable } from '~/utils/ui';
 import { useSortableList } from '~/composables/useSortableList';
 import { useCalendar } from '~/composables/useCalendar';
 
@@ -409,7 +409,7 @@ const activeHabitForMenu = computed(() => {
 
 const openLogMenu = (habit: Habit, day: Date, event: MouseEvent) => {
   if (!isMarkable(day)) {
-    showToast('You can only update habits for the last 14 days', 'failed');
+    showToast('You can only update habits for the last 7 days', 'failed');
     return;
   }
   if (activeLogMenu.value && activeLogMenu.value.habitId === habit.id && isSameDay(activeLogMenu.value.date, day)) {
@@ -457,11 +457,6 @@ const setLogStatus = async (habit: Habit, day: Date, status: LogMenuStatus) => {
     console.error('[Buckets] Failed to update log:', error);
     showToast('Failed to update log', 'failed');
   }
-};
-
-const isMarkable = (day: Date) => {
-  const diff = differenceInDays(startOfDay(today), startOfDay(day));
-  return diff >= 0 && diff < 14;
 };
 
 const getBucketStatusMap = (bucketId: string) => {
