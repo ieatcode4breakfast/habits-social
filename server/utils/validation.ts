@@ -189,6 +189,8 @@ export const messageIdSchema = zId;
 
 export const syncQuerySchema = z.object({
   lastSynced: z.coerce.number().min(0).default(0),
+  startDate: zDateString.optional(),
+  endDate: zDateString.optional(),
   limit: z.coerce.number().int().min(0).max(5000).default(50),
   cursors: z.preprocess((val) => {
     if (typeof val === 'string') {

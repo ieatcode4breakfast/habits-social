@@ -85,6 +85,10 @@ vi.mock('~/utils/db', () => ({
       put: vi.fn(),
       get: vi.fn()
     },
+    habitStreakBaselines: {
+      put: vi.fn(),
+      clear: vi.fn()
+    },
     syncState: (() => {
       let _state: any = {};
       return {

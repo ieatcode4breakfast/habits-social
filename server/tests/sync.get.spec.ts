@@ -76,4 +76,39 @@ describe('API: GET /api/sync', () => {
     // We expect the server to catch the decoding failure and ask for a reset
     expect(res).toHaveProperty('forceUpdateRequired', true);
   });
+
+  it('should return habit streak baselines for windowed partial history sync', async () => {
+    const { db } = await import('./test.utils');
+    const { habitLogs } = await import('../db/schema');
+    const habit = await createTestHabit(testUser.id, 'Baseline Habit');
+
+    await db.insert(habitLogs).values({
+      id: `${habit.id}_2026-03-30`,
+      ownerId: testUser.id,
+      habitId: habit.id,
+      date: '2026-03-30',
+      status: 'completed',
+      streakCount: 39,
+      brokenStreakCount: 0,
+      sharedWith: [],
+      updatedAt: new Date()
+    });
+
+    const event = createMockEvent(testUser.id, {}, {}, {}, {
+      startDate: '2026-03-31',
+      endDate: '2026-05-30'
+    });
+    const res = await syncGet(event);
+
+    expect(res.habitStreakBaselines).toContainEqual(expect.objectContaining({
+      habitId: habit.id,
+      ownerId: testUser.id,
+      startDate: '2026-03-31',
+      endDate: '2026-05-30',
+      baselineDate: '2026-03-30',
+      baselineCurrentStreak: 39,
+      baselineLongestStreak: 39,
+      baselineStreakAnchorDate: '2026-03-30'
+    }));
+  });
 });

@@ -9,10 +9,7 @@ export const recalculateLocalHabitStreak = async (habitId: string, ownerId: stri
   const habit = await db.habits.get(habitId);
   if (!habit) return;
 
-  let runningStreak = 0;
-  let lastDate: Date | null = null;
-  let maxStreak = 0;
-  let baselineAnchor: string | null = null;
+  const baseline = await db.habitStreakBaselines.get(habitId);
 
   // Fetch all logs from IndexedDB
   const logs = await db.habitLogs
@@ -24,24 +21,38 @@ export const recalculateLocalHabitStreak = async (habitId: string, ownerId: stri
 
   if (logs.length === 0) {
     if (habit.currentStreak !== 0 || habit.streakAnchorDate !== null) {
-      await db.habits.update(habitId, {
-        currentStreak: 0,
-        streakAnchorDate: null,
-        updatedAt: Date.now()
-      });
-      return await db.habits.get(habitId);
+      return habit;
     }
     return habit;
   }
 
-  // 3. Use shared logic for calculation from the beginning of time
-  let { currentStreak, longestStreak, streakAnchorDate, logUpdates } = calculateStreakFromLogs(
-    logs,
-    runningStreak,
-    lastDate,
-    maxStreak,
-    baselineAnchor
+  const logsToCalculate = baseline
+    ? logs.filter((log) => log.date >= baseline.startDate)
+    : logs;
+
+  if (logsToCalculate.length === 0) {
+    return habit;
+  }
+
+  const initialRunningStreak = baseline?.baselineCurrentStreak ?? 0;
+  const initialLastDate = baseline?.baselineStreakAnchorDate
+    ? startOfDay(parseISO(baseline.baselineStreakAnchorDate))
+    : null;
+  const initialMaxStreak = baseline?.baselineLongestStreak ?? 0;
+  const initialStreakAnchorDate = baseline?.baselineStreakAnchorDate ?? null;
+
+  // 3. Use shared logic with a trusted server baseline when local history is partial.
+  const { currentStreak, longestStreak, streakAnchorDate, logUpdates } = calculateStreakFromLogs(
+    logsToCalculate,
+    initialRunningStreak,
+    initialLastDate,
+    initialMaxStreak,
+    initialStreakAnchorDate
   );
+
+  if (!baseline && habit.currentStreak && currentStreak < habit.currentStreak) {
+    return habit;
+  }
 
   // 4. Update child logs (already diffed in calculateStreakFromLogs)
   if (logUpdates.length > 0) {

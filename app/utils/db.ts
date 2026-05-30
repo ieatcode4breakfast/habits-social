@@ -1,5 +1,6 @@
 import Dexie, { type Table } from 'dexie';
 import type { Habit, HabitLog, Bucket, BucketLog } from '../composables/useHabitsApi';
+import type { HabitStreakBaseline } from '../../server/types/sync';
 
 // Extend the types to include local sync metadata
 export interface LocalHabit extends Habit {
@@ -22,11 +23,16 @@ export interface LocalBucketLog extends BucketLog {
   updatedAt: number;
 }
 
+export interface LocalHabitStreakBaseline extends HabitStreakBaseline {
+  updatedAt: number;
+}
+
 export class MyDatabase extends Dexie {
   habits!: Table<LocalHabit>;
   habitLogs!: Table<LocalHabitLog>;
   buckets!: Table<LocalBucket>;
   bucketLogs!: Table<LocalBucketLog>;
+  habitStreakBaselines!: Table<LocalHabitStreakBaseline, string>;
   syncQueue!: Table<{ id?: number, type: string, action: string, payload: any }>;
   syncState!: Table<{ id: string, lastSynced: number, cursors: any, status?: string }>;
 
@@ -37,6 +43,15 @@ export class MyDatabase extends Dexie {
       habitLogs: 'id, habitId, ownerId, date, synced, updatedAt',
       buckets: 'id, ownerId, synced, updatedAt',
       bucketLogs: 'id, bucketId, ownerId, date, synced, updatedAt',
+      syncQueue: '++id, type, action',
+      syncState: 'id'
+    });
+    this.version(6).stores({
+      habits: 'id, ownerId, synced, updatedAt',
+      habitLogs: 'id, habitId, ownerId, date, synced, updatedAt',
+      buckets: 'id, ownerId, synced, updatedAt',
+      bucketLogs: 'id, bucketId, ownerId, date, synced, updatedAt',
+      habitStreakBaselines: 'habitId, ownerId, startDate, endDate',
       syncQueue: '++id, type, action',
       syncState: 'id'
     });

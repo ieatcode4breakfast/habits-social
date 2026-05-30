@@ -234,6 +234,7 @@ const logout = async () => {
     db.habitLogs.clear(),
     db.buckets.clear(),
     db.bucketLogs.clear(),
+    db.habitStreakBaselines.clear(),
     db.syncQueue.clear(),
     db.syncState.clear(),
   ]);

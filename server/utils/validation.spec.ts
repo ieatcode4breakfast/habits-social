@@ -48,6 +48,25 @@ describe('validation schemas boundaries', () => {
       });
       expect(result.success).toBe(false);
     });
+
+    it('should preserve valid partial-history date windows', () => {
+      const result = syncQuerySchema.parse({
+        startDate: '2026-03-31',
+        endDate: '2026-05-30'
+      });
+
+      expect(result.startDate).toBe('2026-03-31');
+      expect(result.endDate).toBe('2026-05-30');
+    });
+
+    it('should reject invalid partial-history date windows', () => {
+      const result = syncQuerySchema.safeParse({
+        startDate: 'not-a-date',
+        endDate: '2026-05-30'
+      });
+
+      expect(result.success).toBe(false);
+    });
   });
 
   describe('photoUrl limits', () => {

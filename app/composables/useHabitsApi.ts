@@ -367,12 +367,13 @@ export const useHabitsApi = () => {
           
           if (response.forceUpdateRequired) {
             // Safe Force Reset: We already pushed changes above, now we can safely wipe and reset
-            await db.transaction('rw', [db.habits, db.buckets, db.habitLogs, db.bucketLogs, db.syncState], async () => {
+            await db.transaction('rw', [db.habits, db.buckets, db.habitLogs, db.bucketLogs, db.habitStreakBaselines, db.syncState], async () => {
               // Delete all local data that has been synced (preserve unsynced local changes)
               await db.habits.where('synced').equals(1).delete();
               await db.buckets.where('synced').equals(1).delete();
               await db.habitLogs.where('synced').equals(1).delete();
               await db.bucketLogs.where('synced').equals(1).delete();
+              await db.habitStreakBaselines.clear();
               await db.syncState.clear();
             });
 
@@ -387,13 +388,14 @@ export const useHabitsApi = () => {
             habitLogs: remoteLogs, 
             bucketLogs: remoteBucketLogs, 
             deletions: remoteDeletions, 
+            habitStreakBaselines: remoteHabitStreakBaselines = [],
             serverTime, 
             nextCursors, 
             hasMore: remoteHasMore 
           } = response;
 
           // Atomic Transaction for the current page
-          await db.transaction('rw', [db.habits, db.buckets, db.habitLogs, db.bucketLogs, db.syncState], async () => {
+          await db.transaction('rw', [db.habits, db.buckets, db.habitLogs, db.bucketLogs, db.habitStreakBaselines, db.syncState], async () => {
             if (remoteDeletions) {
               for (const d of remoteDeletions) {
                 if (d.type === 'habit') {
@@ -427,6 +429,13 @@ export const useHabitsApi = () => {
               const local = await db.bucketLogs.get(bl.id);
               if (local && (local as any).synced !== 1) continue;
               await db.bucketLogs.put({ ...bl, synced: 1, updatedAt: Date.now() } as any);
+            }
+
+            for (const baseline of remoteHabitStreakBaselines) {
+              await db.habitStreakBaselines.put({
+                ...baseline,
+                updatedAt: Date.now()
+              });
             }
 
             // Save state for resume-ability
@@ -668,9 +677,15 @@ export const useHabitsApi = () => {
     if (!user.value || !process.client) return;
     try {
       const response = await client.fetchSync({ startDate, endDate });
-      const { habits: remoteHabits, buckets: remoteBuckets, habitLogs: remoteLogs, bucketLogs: remoteBucketLogs } = response;
+      const {
+        habits: remoteHabits,
+        buckets: remoteBuckets,
+        habitLogs: remoteLogs,
+        bucketLogs: remoteBucketLogs,
+        habitStreakBaselines: remoteHabitStreakBaselines = []
+      } = response;
 
-      await db.transaction('rw', [db.habits, db.buckets, db.habitLogs, db.bucketLogs], async () => {
+      await db.transaction('rw', [db.habits, db.buckets, db.habitLogs, db.bucketLogs, db.habitStreakBaselines], async () => {
         for (const h of remoteHabits) {
           await db.habits.put({ ...h, synced: 1, updatedAt: Date.now() } as any);
         }
@@ -682,6 +697,12 @@ export const useHabitsApi = () => {
         }
         for (const bl of remoteBucketLogs) {
           await db.bucketLogs.put({ ...bl, synced: 1, updatedAt: Date.now() } as any);
+        }
+        for (const baseline of remoteHabitStreakBaselines) {
+          await db.habitStreakBaselines.put({
+            ...baseline,
+            updatedAt: Date.now()
+          });
         }
       });
     } catch (error) {
