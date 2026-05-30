@@ -426,6 +426,11 @@ const {
   nextMonth
 } = useCalendar();
 
+watch(currentCalendarDate, (newDate) => {
+  const targetDateStr = format(startOfMonth(newDate), 'yyyy-MM-dd');
+  api.ensureHistoryLoadedForDate(targetDateStr);
+});
+
 const calendarLoading = ref(false);
 const isAddingHabit = ref(false);
 const showHabitReplyFriendSelectModal = ref(false);

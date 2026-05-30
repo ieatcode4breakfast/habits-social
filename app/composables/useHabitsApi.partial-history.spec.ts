@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { ref } from 'vue';
 import { db } from '~/utils/db';
 import { useHabitsApi, _resetSyncState, type Bucket, type BucketLog, type Habit, type HabitLog } from './useHabitsApi';
@@ -137,6 +137,7 @@ describe('useHabitsApi - partial habit history sync', () => {
     vi.stubGlobal('process', { client: true });
     _resetSyncState();
 
+    await db.close();
     await db.delete();
     await db.open();
 
@@ -206,5 +207,59 @@ describe('useHabitsApi - partial habit history sync', () => {
     expect(updatedBucket?.currentStreak).toBe(100);
     expect(updatedBucket?.longestStreak).toBe(100);
     expect(updatedBucket?.streakAnchorDate).toBe(TODAY);
+  });
+
+  describe('ensureHistoryLoadedForDate', () => {
+    it('fetches exactly 90 days preceding earliestFetchedDate when targetDate is just outside window', async () => {
+      mockClient.fetchSync.mockResolvedValue({
+        habits: [], buckets: [], habitLogs: [], bucketLogs: [], serverTime: 10000, nextCursors: {}, hasMore: false
+      });
+      const api = useHabitsApi();
+      api.earliestFetchedDate.value = d(-90);
+      
+      // Target is 95 days ago, earliest is 90 days ago.
+      await api.ensureHistoryLoadedForDate(d(-95));
+      
+      expect(mockClient.fetchSync).toHaveBeenCalledWith(expect.objectContaining({
+        startDate: d(-180),
+        endDate: d(-90)
+      }));
+      expect(mockClient.fetchSync).toHaveBeenCalledTimes(1);
+    });
+
+    it('batches multiple 90-day fetches if the target date is far in the past', async () => {
+      mockClient.fetchSync.mockResolvedValue({
+        habits: [], buckets: [], habitLogs: [], bucketLogs: [], serverTime: 10000, nextCursors: {}, hasMore: false
+      });
+      const api = useHabitsApi();
+      api.earliestFetchedDate.value = d(-90);
+      
+      // Target is 200 days ago.
+      // Loop 1: fetch (-180, -90). earliest becomes -180.
+      // Loop 2: fetch (-270, -180). earliest becomes -270.
+      await api.ensureHistoryLoadedForDate(d(-200));
+      
+      expect(mockClient.fetchSync).toHaveBeenCalledTimes(2);
+      expect(mockClient.fetchSync).toHaveBeenNthCalledWith(1, expect.objectContaining({
+        startDate: d(-180),
+        endDate: d(-90)
+      }));
+      expect(mockClient.fetchSync).toHaveBeenNthCalledWith(2, expect.objectContaining({
+        startDate: d(-270),
+        endDate: d(-180)
+      }));
+    });
+
+    it('exits immediately without network calls if the requested date is already covered', async () => {
+      mockClient.fetchSync.mockResolvedValue({
+        habits: [], buckets: [], habitLogs: [], bucketLogs: [], serverTime: 10000, nextCursors: {}, hasMore: false
+      });
+      const api = useHabitsApi();
+      api.earliestFetchedDate.value = d(-90);
+      
+      // Requesting -50 days ago, which is > -90 days ago.
+      await api.ensureHistoryLoadedForDate(d(-50));
+      expect(mockClient.fetchSync).not.toHaveBeenCalled();
+    });
   });
 });

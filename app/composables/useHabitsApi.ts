@@ -100,6 +100,7 @@ export const _resetSyncState = () => {
       clearTimeout(timer.value);
       timer.value = null;
     }
+    useState('h_earliestFetchedDate').value = format(subDays(new Date(), INITIAL_SYNC_HISTORY_DAYS), 'yyyy-MM-dd');
   } catch {
     // Fallback for tests where useState is not defined
     _testSyncState.isSyncing.value = false;
@@ -146,6 +147,13 @@ export const useHabitsApi = () => {
     lastSyncTime = useState('last-sync-time', () => 0);
   } catch {
     lastSyncTime = ref(0);
+  }
+
+  let earliestFetchedDate: Ref<string>;
+  try {
+    earliestFetchedDate = useState('h_earliestFetchedDate', () => format(subDays(new Date(), INITIAL_SYNC_HISTORY_DAYS), 'yyyy-MM-dd'));
+  } catch {
+    earliestFetchedDate = ref(format(subDays(new Date(), INITIAL_SYNC_HISTORY_DAYS), 'yyyy-MM-dd'));
   }
 
   const triggerSync = (options: SyncOptions = {}) => {
@@ -729,10 +737,21 @@ export const useHabitsApi = () => {
     }
   };
 
+  const ensureHistoryLoadedForDate = async (targetDateStr: string) => {
+    if (!user.value || !process.client) return;
+    
+    while (targetDateStr < earliestFetchedDate.value) {
+      const end = earliestFetchedDate.value;
+      const start = format(subDays(new Date(`${end}T00:00:00.000Z`), 90), 'yyyy-MM-dd');
+      await fetchHistory(start, end);
+      earliestFetchedDate.value = start;
+    }
+  };
+
   return {
     getHabits, createHabit, updateHabit, deleteHabit, getLogs, upsertLog, deleteLog, reorderHabits,
     getBuckets, createBucket, updateBucket, deleteBucket, getBucketLogs, reorderBuckets,
-    sync, lastSyncTime, fetchHistory,
+    sync, lastSyncTime, fetchHistory, ensureHistoryLoadedForDate, earliestFetchedDate,
     habits, buckets
   };
 };

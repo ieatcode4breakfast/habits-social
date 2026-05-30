@@ -337,6 +337,11 @@ const {
   nextMonth 
 } = useCalendar();
 
+watch(currentCalendarDate, (newDate) => {
+  const targetDateStr = format(startOfMonth(newDate), 'yyyy-MM-dd');
+  api.ensureHistoryLoadedForDate(targetDateStr);
+});
+
 const calendarLoading = ref(false);
 const expandedBucketId = ref<string | null>(null);
 const activeLogMenu = ref<{ habitId: string, date: Date } | null>(null);
