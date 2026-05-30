@@ -19,12 +19,12 @@
           </NuxtLink>
 
           <div v-if="submitted" class="space-y-5" aria-live="polite">
-            <div class="flex items-center justify-center w-12 h-12 rounded-full bg-emerald-500/10 border border-emerald-500/30">
+            <div class="flex items-center justify-center w-12 h-12 rounded-full bg-emerald-500/10 border border-emerald-500/30 mx-auto">
               <CheckCircle2 class="w-6 h-6 text-emerald-400" />
             </div>
             <div>
-              <h2 class="text-xl font-bold text-white mb-2">Check your email</h2>
-              <p class="text-sm text-zinc-500 leading-6">
+              <h2 class="text-xl font-bold text-white mb-2 text-center">Check your email</h2>
+              <p class="text-sm text-zinc-500 leading-6 text-left mt-2">
                 If an account exists for that email, password reset instructions have been sent.
               </p>
             </div>
@@ -39,9 +39,9 @@
 
           <form v-else class="space-y-4" @submit.prevent="handleSubmit">
             <div>
-              <h2 class="text-xl font-bold text-white mb-1">Forgot password?</h2>
-              <p class="text-sm text-zinc-500 mb-6">
-                Enter your email and we'll send reset instructions.
+              <h2 class="text-xl font-bold text-white mb-1 text-center">Forgot password?</h2>
+              <p class="text-sm text-zinc-500 text-left mt-1">
+                Enter your email address and we'll send reset instructions.
               </p>
             </div>
 

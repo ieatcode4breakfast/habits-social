@@ -40,7 +40,7 @@
             <h2 class="text-xl font-bold text-white mb-1">
               {{ tab === 'login' ? 'Log In' : 'Create Account' }}
             </h2>
-            <p class="text-sm text-zinc-500 mb-6">
+            <p class="text-sm text-zinc-500">
               {{ tab === 'login' ? 'Enter your credentials to continue.' : 'Sign up to start tracking your habits.' }}
             </p>
 
