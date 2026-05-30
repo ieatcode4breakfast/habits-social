@@ -351,7 +351,7 @@ export class ChatService {
     await this.verifyAccess(db, userId, conversationId, 'read');
 
     const result = await db.update(schema.chatParticipants)
-      .set({ lastReadAt: new Date() })
+      .set({ lastReadAt: sql`now()` })
       .where(
         and(
           eq(schema.chatParticipants.conversationId, conversationId),
