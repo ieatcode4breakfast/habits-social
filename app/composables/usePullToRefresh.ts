@@ -19,6 +19,7 @@ export const usePullToRefresh = (
   let currentY = 0;
   let rafId: number | null = null;
   let activeTarget: Window | HTMLElement | null = null;
+  let holdTimeout: ReturnType<typeof setTimeout> | null = null;
 
   const resolveTarget = (): Window | HTMLElement => {
     const target = options.scrollContainer;
@@ -48,6 +49,11 @@ export const usePullToRefresh = (
       cancelAnimationFrame(rafId);
       rafId = null;
     }
+
+    if (holdTimeout) {
+      clearTimeout(holdTimeout);
+      holdTimeout = null;
+    }
   };
 
   const onTouchStart = (e: TouchEvent) => {
@@ -57,6 +63,13 @@ export const usePullToRefresh = (
     if (!touch) return;
     startY = touch.clientY;
     isPulling.value = true;
+
+    if (holdTimeout) clearTimeout(holdTimeout);
+    holdTimeout = setTimeout(() => {
+      if (isPulling.value && pullDistance.value < 15) {
+        isPulling.value = false;
+      }
+    }, 200);
   };
 
   const onTouchMove = (e: TouchEvent) => {
@@ -92,6 +105,11 @@ export const usePullToRefresh = (
   };
 
   const onTouchEnd = async () => {
+    if (holdTimeout) {
+      clearTimeout(holdTimeout);
+      holdTimeout = null;
+    }
+
     if (!isPulling.value || isRefreshing.value) return;
 
     isPulling.value = false;

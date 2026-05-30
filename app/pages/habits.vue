@@ -66,31 +66,25 @@
     </div>
 
     <!-- Habit List (Single Card) -->
-    <div v-motion-fade :style="pullStyle" class="backdrop-blur-md sm:rounded-b-2xl rounded-none border-b border-x-0 sm:border-x sm:border-b divide-y divide-zinc-800/80 relative will-change-transform transition-colors duration-300" :class="loading ? 'bg-transparent border-transparent shadow-none' : 'bg-zinc-925/80 border-zinc-800/80 shadow-2xl'">
+    <div v-motion-fade :style="pullStyle" 
+         class="sm:rounded-b-2xl rounded-none overflow-hidden border-b border-x-0 sm:border-x sm:border-b relative will-change-transform transition-colors duration-300"
+         :class="!loading ? 'backdrop-blur-md bg-zinc-925/80 border-zinc-800/80 shadow-2xl' : 'border-transparent'">
 
-      <div v-if="loading" class="flex justify-center p-12">
-        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
-      </div>
-      <template v-else>
-        <div v-if="habits.length === 0" class="p-10 text-center text-zinc-500 italic text-sm">
+      <div class="w-full relative min-h-[100px]">
+        <div v-if="loading" class="flex justify-center items-center p-12 min-h-[150px] w-full">
+          <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
+        </div>
+        <div v-else-if="habits.length === 0" class="flex justify-center items-center p-10 text-center text-zinc-500 italic text-sm w-full min-h-[150px]">
           No habits yet. Add one above!
         </div>
       
-      <div 
-        v-for="habit in habits" :key="habit.id"
-        :data-habit-id="habit.id"
-        draggable="true"
-        @dragstart="onDragStart($event, habit.id)"
-        @dragover.prevent="onDragOver($event, habit.id)"
-        @drop.prevent="onDrop($event, habit.id)"
-        @dragend="onDragEnd"
-        @click="openEditModal(habit)"
-        class="relative py-3 group transition-all flex flex-col items-stretch sm:flex-row sm:flex-wrap sm:items-center sm:justify-between gap-x-4 gap-y-2 cursor-pointer hover:bg-zinc-800/40 sm:px-4"
-        :class="[
-          draggingId === habit.id ? 'opacity-30' : 'opacity-100',
-          dragOverId === habit.id ? 'ring-2 ring-inset ring-white/20 bg-zinc-800/50' : ''
-        ]"
-      >
+        <div v-else ref="sortableContainer" class="divide-y divide-zinc-800/80 w-full">
+          <div 
+            v-for="habit in habits" :key="habit.id"
+            :data-habit-id="habit.id"
+            @click="openEditModal(habit)"
+            class="relative py-3 group transition-colors flex flex-col items-stretch sm:flex-row sm:flex-wrap sm:items-center sm:justify-between gap-x-4 gap-y-2 cursor-pointer hover:bg-zinc-800/40 sm:px-4 bg-zinc-925/80 sortable-item"
+          >
         <div class="w-full px-4 sm:px-0 sm:flex-1 sm:min-w-[200px] flex flex-col gap-1 pr-0 sm:pr-2">
           <div class="flex items-center gap-2 flex-wrap sm:flex-nowrap">
             <h3 class="text-sm font-bold text-zinc-200 leading-tight break-all group-hover:text-white transition-colors">{{ habit.title }}</h3>
@@ -144,8 +138,9 @@
           </button>
         </div>
 
+          </div>
+        </div>
       </div>
-      </template>
     </div>
 
 
@@ -317,7 +312,7 @@ import { Plus, Trash2, Check, X as XIcon, Minus, ChevronLeft, ChevronRight, User
 import { format, subDays, isToday, startOfMonth, endOfMonth, eachDayOfInterval, addMonths, subMonths, isAfter, startOfDay, addDays, isSameWeek, isSameMonth, parseISO, startOfWeek, isSameDay } from 'date-fns';
 import type { Habit, HabitLog } from '~/composables/useHabitsApi';
 import { getStreakTheme, isStreakFaded as isFaded, autoExpandTextarea as autoExpand, isMarkable } from '~/utils/ui';
-import { useSortableList } from '~/composables/useSortableList';
+import { useSortable } from '@vueuse/integrations/useSortable';
 import { useCalendar } from '~/composables/useCalendar';
 
 type EditableLogStatus = Exclude<HabitLog['status'], 'cleared'>;
@@ -438,28 +433,34 @@ const replyFriendSearchQuery = ref('');
 const replyFriendActionId = ref<string | null>(null);
 const shareReplyLoading = ref(false);
 
-const {
-  draggingId,
-  dragOverId,
-  isDragging,
-  onDragStart,
-  onDragOver,
-  onDrop,
-  onDragEnd,
-  onGripTouchStart: onGripTouchStartRaw
-} = useSortableList(habits, (newOrderIds) => {
-  api.reorderHabits(newOrderIds).catch(err => {
-    console.error('[My Habits] Failed to save reorder:', err);
-    showToast('Failed to save order', 'failed');
-  });
+const sortableContainer = ref<HTMLElement | null>(null);
+
+useSortable(sortableContainer, habits, {
+  draggable: '.sortable-item',
+  animation: 250,
+  delay: 200, // delay on mobile to prevent accidental drags when scrolling
+  delayOnTouchOnly: true,
+  ghostClass: 'opacity-0',
+  dragClass: 'scale-[1.02]',
+  forceFallback: true,
+  fallbackClass: 'sortable-fallback-opaque',
+  fallbackOnBody: true,
+  onEnd: () => {
+    api.reorderHabits(habits.value.map(h => h.id)).catch(err => {
+      console.error('[My Habits] Failed to save reorder:', err);
+      showToast('Failed to save order', 'failed');
+    });
+  }
 });
 
 const onHabitsReordered = (newOrderIds: string[]) => {
+  const newHabits = [];
+  for (const id of newOrderIds) {
+    const habit = habits.value.find(h => h.id === id);
+    if (habit) newHabits.push(habit);
+  }
+  habits.value = newHabits;
   api.reorderHabits(newOrderIds);
-};
-
-const onGripTouchStart = (e: TouchEvent, id: string) => {
-  onGripTouchStartRaw(e, id, '[data-habit-id]');
 };
 
 const openAddModal = () => {

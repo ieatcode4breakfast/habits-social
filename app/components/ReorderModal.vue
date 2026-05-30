@@ -1,4 +1,5 @@
 <template>
+  <ClientOnly>
   <Teleport to="body">
     <Transition
       enter-active-class="transition duration-300 ease-out"
@@ -28,27 +29,14 @@
           </div>
 
           <!-- List -->
-          <div class="overflow-y-auto flex-1 p-2">
+          <div class="overflow-y-auto flex-1 p-2" ref="sortableContainer">
             <div
               v-for="item in internalItems"
               :key="item.id"
               :data-id="item.id"
-              draggable="true"
-              @dragstart="onDragStart($event, item.id)"
-              @dragover.prevent="onDragOver($event, item.id)"
-              @drop.prevent="onDrop($event, item.id)"
-              @dragend="onDragEnd"
-              class="flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all select-none"
-              :class="[
-                draggingId === item.id ? 'opacity-30' : 'opacity-100',
-                dragOverId === item.id ? 'bg-zinc-700/60 ring-1 ring-white/20' : 'hover:bg-zinc-800/60'
-              ]"
+              class="flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors select-none hover:bg-zinc-800/60 bg-zinc-925 sortable-item cursor-grab active:cursor-grabbing"
             >
-              <div
-                class="touch-none shrink-0 text-zinc-500 hover:text-zinc-300 transition-colors"
-                :class="isDragging ? 'cursor-grabbing' : 'cursor-grab'"
-                @touchstart.prevent="onGripTouchStart($event, item.id, '[data-id]')"
-              >
+              <div class="shrink-0 text-zinc-500 transition-colors">
                 <GripVertical class="w-4 h-4" />
               </div>
               <span class="text-sm font-semibold text-zinc-200 truncate flex-1">{{ item.title }}</span>
@@ -58,12 +46,13 @@
       </div>
     </Transition>
   </Teleport>
+  </ClientOnly>
 </template>
 
 <script setup lang="ts">
 import { ref, watch } from 'vue';
 import { GripVertical } from 'lucide-vue-next';
-import { useSortableList } from '~/composables/useSortableList';
+import { useSortable } from '@vueuse/integrations/useSortable';
 
 const props = defineProps<{
   modelValue: boolean;
@@ -75,20 +64,40 @@ const emit = defineEmits(['update:modelValue', 'reorder']);
 
 // Local state for immediate UI feedback before parent updates
 const internalItems = ref([...props.items]);
-watch(() => props.items, (newItems) => {
-  internalItems.value = [...newItems];
-}, { deep: true });
 
-const {
-  draggingId,
-  dragOverId,
-  isDragging,
-  onDragStart,
-  onDragOver,
-  onDrop,
-  onDragEnd,
-  onGripTouchStart
-} = useSortableList(internalItems, (newOrderIds) => {
-  emit('reorder', newOrderIds);
+// Only pull fresh data from the parent when the modal is opened
+watch(() => props.modelValue, (isOpen) => {
+  if (isOpen) {
+    internalItems.value = [...props.items];
+  }
+});
+
+const sortableContainer = ref<HTMLElement | null>(null);
+
+useSortable(sortableContainer, internalItems, {
+  watchElement: true,
+  draggable: '.sortable-item',
+  animation: 250,
+  delay: 200,
+  delayOnTouchOnly: true,
+  touchStartThreshold: 5,
+  ghostClass: 'opacity-0',
+  dragClass: 'scale-105',
+  forceFallback: true,
+  fallbackClass: 'sortable-fallback-opaque',
+  fallbackOnBody: true,
+  onEnd: () => {
+    emit('reorder', internalItems.value.map(i => i.id));
+  }
 });
 </script>
+
+<style>
+.sortable-fallback-opaque {
+  opacity: 1 !important;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25) !important;
+  cursor: grabbing !important;
+  z-index: 9999 !important;
+  scale: 1.02 !important;
+}
+</style>

@@ -100,30 +100,24 @@
     />
 
     <!-- Bucket List -->
-    <div v-motion-fade :style="pullStyle" class="backdrop-blur-md sm:rounded-b-2xl rounded-none border-b border-x-0 sm:border-x sm:border-b divide-y divide-zinc-800/80 relative will-change-transform transition-colors duration-300" :class="loading ? 'bg-transparent border-transparent shadow-none' : 'bg-zinc-925/80 border-zinc-800/80 shadow-2xl'">
+    <div v-motion-fade :style="pullStyle" 
+         class="sm:rounded-b-2xl rounded-none overflow-hidden border-b border-x-0 sm:border-x sm:border-b relative will-change-transform transition-colors duration-300"
+         :class="!loading ? 'backdrop-blur-md bg-zinc-925/80 border-zinc-800/80 shadow-2xl' : 'border-transparent'">
 
-      <div v-if="loading" class="flex justify-center p-12">
-        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
-      </div>
-      <template v-else>
-        <div v-if="buckets.length === 0" class="p-10 text-center text-zinc-500 italic text-sm">
+      <div class="w-full relative min-h-[100px]">
+        <div v-if="loading" class="flex justify-center items-center p-12 min-h-[150px] w-full">
+          <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
+        </div>
+        <div v-else-if="buckets.length === 0" class="flex justify-center items-center p-10 text-center text-zinc-500 italic text-sm w-full min-h-[150px]">
           No buckets yet. Add one above!
         </div>
       
-        <div 
-          v-for="bucket in buckets" :key="bucket.id"
-          :data-bucket-id="bucket.id"
-          draggable="true"
-          @dragstart="onDragStart($event, bucket.id)"
-          @dragover.prevent="onDragOver($event, bucket.id)"
-          @drop.prevent="onDrop($event, bucket.id)"
-          @dragend="onDragEnd"
-          class="relative transition-all border-b border-zinc-800/50 last:border-0"
-          :class="[
-            draggingId === bucket.id ? 'opacity-30' : 'opacity-100',
-            dragOverId === bucket.id ? 'ring-2 ring-inset ring-white/20 bg-zinc-800/50' : ''
-          ]"
-        >
+        <div v-else ref="sortableContainer" class="w-full divide-y divide-zinc-800/80">
+          <div 
+            v-for="bucket in buckets" :key="bucket.id"
+            :data-bucket-id="bucket.id"
+            class="relative transition-colors bg-zinc-925/80 sortable-item"
+          >
           <!-- Bucket Header Row -->
           <div 
             @click="toggleExpand(bucket.id)"
@@ -263,7 +257,8 @@
             </div>
           </Transition>
         </div>
-      </template>
+        </div>
+      </div>
     </div>
 
     <!-- Global Log Menu -->
@@ -283,7 +278,7 @@ import { Plus, Trash2, Check, X as XIcon, Minus, ChevronLeft, ChevronRight, Flam
 import { format, subDays, startOfMonth, endOfMonth, eachDayOfInterval, addMonths, subMonths, isAfter, startOfDay, parseISO, isToday, startOfWeek, addDays, isSameDay, isSameWeek, isSameMonth } from 'date-fns';
 import type { Bucket, BucketLog, Habit, HabitLog } from '~/composables/useHabitsApi';
 import { getStreakTheme, isStreakFaded as isFaded, autoExpandTextarea as autoExpand, isMarkable } from '~/utils/ui';
-import { useSortableList } from '~/composables/useSortableList';
+import { useSortable } from '@vueuse/integrations/useSortable';
 import { useCalendar } from '~/composables/useCalendar';
 
 type LogMenuStatus = Exclude<HabitLog['status'], 'cleared'> | null;
@@ -591,25 +586,31 @@ const handleDelete = async () => {
 };
 
 // --- Drag-and-drop reorder ---
-const {
-  draggingId,
-  dragOverId,
-  isDragging,
-  onDragStart,
-  onDragOver,
-  onDrop,
-  onDragEnd,
-  onGripTouchStart: onGripTouchStartRaw
-} = useSortableList(buckets, (newOrderIds) => {
-  api.reorderBuckets(newOrderIds);
+const sortableContainer = ref<HTMLElement | null>(null);
+
+useSortable(sortableContainer, buckets, {
+  draggable: '.sortable-item',
+  animation: 250,
+  delay: 200, // delay on mobile to prevent accidental drags when scrolling
+  delayOnTouchOnly: true,
+  ghostClass: 'opacity-0',
+  dragClass: 'scale-[1.02]',
+  forceFallback: true,
+  fallbackClass: 'sortable-fallback-opaque',
+  fallbackOnBody: true,
+  onEnd: () => {
+    api.reorderBuckets(buckets.value.map(b => b.id));
+  }
 });
 
 const onBucketsReordered = (newOrderIds: string[]) => {
+  const newBuckets = [];
+  for (const id of newOrderIds) {
+    const bucket = buckets.value.find(b => b.id === id);
+    if (bucket) newBuckets.push(bucket);
+  }
+  buckets.value = newBuckets;
   api.reorderBuckets(newOrderIds);
-};
-
-const onGripTouchStart = (e: TouchEvent, id: string) => {
-  onGripTouchStartRaw(e, id, '[data-bucket-id]');
 };
 
 const isAnyModalOpen = computed(() => 
