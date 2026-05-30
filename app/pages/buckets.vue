@@ -589,10 +589,12 @@ const handleDelete = async () => {
 const sortableContainer = ref<HTMLElement | null>(null);
 
 useSortable(sortableContainer, buckets, {
+  watchElement: true,
   draggable: '.sortable-item',
   animation: 250,
   delay: 200, // delay on mobile to prevent accidental drags when scrolling
   delayOnTouchOnly: true,
+  touchStartThreshold: 5,
   ghostClass: 'opacity-0',
   dragClass: 'scale-[1.02]',
   forceFallback: true,
