@@ -895,7 +895,7 @@ const closeShareBeforeReplyModal = () => {
   return true;
 };
 
-useModalHistory(showShareBeforeReplyModal, closeShareBeforeReplyModal);
+const shareBeforeReplyModalHistory = useModalHistory(showShareBeforeReplyModal, closeShareBeforeReplyModal);
 
 const goToFriendsSection = async () => {
   localModalHistory.suppressNextHistoryBack();
@@ -906,10 +906,9 @@ const goToFriendsSection = async () => {
 const navigateToReplyFriend = (friendId: string) => {
   const replyContext = useState<ActivityFeedItem | null>('chat-reply-activity-context');
   replyContext.value = pendingReplyActivity.value ? { ...pendingReplyActivity.value } : null;
+  localModalHistory.suppressNextHistoryBack();
   showActivityReplyFriendSelectModal.value = false;
-  setTimeout(() => {
-    navigateTo(`/inbox?replyToFriend=${friendId}`);
-  }, 50);
+  navigateTo(`/inbox?replyToFriend=${friendId}`);
 };
 
 const loadOwnedReplyHabit = async () => {
@@ -982,6 +981,7 @@ const executeShareBeforeReply = async () => {
       };
     });
 
+    shareBeforeReplyModalHistory.suppressNextHistoryBack();
     showShareBeforeReplyModal.value = false;
     pendingShareFriendship.value = null;
     navigateToReplyFriend(friendId);
