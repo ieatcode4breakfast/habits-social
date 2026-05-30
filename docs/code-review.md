@@ -48,7 +48,7 @@
 
 ### 4. No Rate Limiting on Sensitive Non-Auth Endpoints
 - **Location:** Various API routes
-- **Issue:** `checkRateLimit` is only on `auth/register.post.ts` and `auth/login.post.ts`. Unprotected:
+- **Issue:** Auth endpoints have rate limiting, but several sensitive non-auth endpoints remain unprotected:
   - `users/search.get.ts` — username enumeration via brute force
   - `friendships/index.ts POST` — spam friend requests
   - `sync/bulk.post.ts` — expensive bulk operations
@@ -69,28 +69,7 @@
   export const zColor = z.string().regex(/^#[0-9a-fA-F]{3,8}$/)
   ```
 
-### 7. [RESOLVED] Pusher Calls Are Fire-and-Forget Without `.catch()`
-- **Issue:** Every `pusher.trigger(...)` was not awaited and had no `.catch()`.
-- **Resolution:** Resolved by removing Pusher entirely from the codebase.
-
-### 8. friendships/index.ts GET Returns Full Friendship Records
-- **Location:** `server/api/friendships/index.ts:18-39`
-- **Issue:** `db.select().from(friendshipsTable)` returns all columns (both user IDs, timestamps, internal status, favorites). Exposes internal structure of every friendship to the client.
-- **Fix:** Add column projection to return only what the client needs:
-  ```ts
-  const userFriendships = await db.select({
-    id: friendshipsTable.id,
-    initiatorId: friendshipsTable.initiatorId,
-    receiverId: friendshipsTable.receiverId,
-    status: friendshipsTable.status,
-    initiatorFavorite: friendshipsTable.initiatorFavorite,
-    receiverFavorite: friendshipsTable.receiverFavorite
-  })
-    .from(friendshipsTable)
-    .where(or(eq(friendshipsTable.initiatorId, userId), eq(friendshipsTable.receiverId, userId)));
-  ```
-
-### 9. Route Param `id` Not Validated as UUID Before DB Query
+### 7. Route Param `id` Not Validated as UUID Before DB Query
 - **Location:** `server/api/friendships/[id].ts:13`, `server/api/habits/[id].ts`, `server/api/buckets/[id].ts`
 - **Issue:** Route parameters are passed directly to DB queries without validating UUID format. Malformed IDs cause raw Postgres errors (22P02 invalid_text_representation) rather than clean 400 responses.
 - **Fix:** Add a UUID format check at the top of each handler:
@@ -102,7 +81,7 @@
   }
   ```
 
-### 10. `loginSchema.identifier` Has No Max Length
+### 8. `loginSchema.identifier` Has No Max Length
 - **Location:** `server/utils/validation.ts:54`
 - **Issue:** `z.string().min(1)` with no `.max()` allows a multi-megabyte identifier string to be sent to a Postgres `WHERE` clause.
 - **Fix:**
@@ -111,17 +90,17 @@
   identifier: z.string().min(1).max(255),
   ```
 
-### 11. `N+1` Queries in `UserService.deleteUser` Friendship Cleanup
+### 9. `N+1` Queries in `UserService.deleteUser` Friendship Cleanup
 - **Location:** `server/services/user.service.ts:27-29`
 - **Issue:** For every friendship the user has, `cleanupFriendshipData` is called individually (5 DB queries each). A user with 50 friends triggers 250 queries in a single transaction.
 - **Fix:** Refactor `cleanupFriendshipData` to accept an array of friend pairs and batch all operations.
 
-### 12. `SyncService.getPaginatedDeltas` Uses 3 Separate Transactions
+### 10. `SyncService.getPaginatedDeltas` Uses 3 Separate Transactions
 - **Location:** `server/services/sync.service.ts:242-358`
 - **Issue:** Paginated sync uses 3 independent `db.transaction()` calls. Data can change between them, producing inconsistent snapshots (e.g., a bucket deleted between fetching IDs and details).
 - **Fix:** Consolidate into a single transaction with `REPEATABLE READ` isolation, or document this as a known limitation of the eventually-consistent sync model.
 
-### 13. Bcrypt Cost Factor Hardcoded in `me.put.ts`, Diverges from Constant
+### 11. Bcrypt Cost Factor Hardcoded in `me.put.ts`, Diverges from Constant
 - **Location:** `server/api/users/me.put.ts:63`
 - **Issue:** Uses `hash(password, 10)` instead of the shared `BCRYPT_COST_FACTOR` from `auth.ts`. If the constant changes, password updates will use a different cost factor.
 - **Fix:**
@@ -132,75 +111,55 @@
   newPasswordHash = await hash(password, BCRYPT_COST_FACTOR);
   ```
 
-### 14. Broken Shared Bucket Sync - DEFERRED
-- **Location:** `server/services/sync.service.ts`
-- **Issue:** The sync engine doesn't fetch metadata for habits owned by friends, even if they are in a shared bucket.
-- **Fix:** Expand sync queries to include habits where the user is an accepted bucket member.
-
-### 15. Missing API for Accepting Shared Habits - DEFERRED
-- **Location:** `server/services/bucket.service.ts`
-- **Issue:** No endpoint exists for a user to accept a friend's habit invitation into their bucket.
-- **Fix:** Create a member status update endpoint.
-
 ---
 
 ## 🔵 NITPICKS & BEST PRACTICES
 
-### 16. `zDateString` Doesn't Validate Real Dates
+### 12. `zDateString` Doesn't Validate Real Dates
 - **Location:** `server/utils/schemaPrimitives.ts:7`
 - **Issue:** `/^\d{4}-\d{2}-\d{2}$/` accepts `"2024-13-45"`.
 - **Fix:** Add a refinement: `.refine(val => !isNaN(Date.parse(val)), { message: 'Invalid date' })`.
 
-### 17. `DUMMY_HASH` Is Exported Publicly
-- **Location:** `server/utils/auth.ts:5`
-- **Issue:** Used for constant-time comparison on non-existent users (good practice), but `export` makes it importable elsewhere and visible in the module graph.
-- **Fix:** Change to `const DUMMY_HASH = ...` (remove `export`). Ensure it's only used within `auth.ts`.
-
-### 18. Missing Indexes on Heavily Queried Columns
+### 13. Missing Indexes on Heavily Queried Columns
 - **Location:** `server/db/schema.ts`
 - **Note:** These are fine for low user counts but will cause sequential scans at scale:
-  - `habitLogs` — needs index on `(habitId)` or `(habitId, date)` (11+ query sites filter by `habitId`)
   - `friendships` — needs indexes on `initiatorId` and `receiverId` (every lookup is a seq scan)
   - `shareEvents` — needs index on `recipientId`
-  - `sharedBucketMembers` — needs indexes on `bucketId` and `userId` (39+ references)
+  - `sharedBucketMembers` — needs index on `userId` for membership lookups
 
-### 19. status Columns Are Untyped `text` — No DB-Level Constraint
+### 14. status Columns Are Untyped `text` — No DB-Level Constraint
 - **Location:** `friendships.status`, `habitLogs.status`, `bucketLogs.status`, `sharedBucketMembers.status`, `bucketHabits.approvalStatus`
 - **Note:** Any arbitrary string can be persisted. Consider Postgres enums or CHECK constraints for data integrity.
 
-### 20. API Route Handlers Lack HTTP Method Guards
+### 15. API Route Handlers Lack HTTP Method Guards
 - **Location:** `bucketlogs/index.ts`, `buckets/index.ts`, `habits/index.ts`, `habitlogs/index.ts`, `friendships/index.ts`
 - **Note:** Unsupported methods (PATCH, OPTIONS, etc.) silently return `undefined` / `200 OK`. Should return 405 Method Not Allowed.
 
-### 21. SESSION_MAX_AGE_SECONDS and SESSION_EXPIRATION_JWT Are Semantically Duplicated
+### 16. SESSION_MAX_AGE_SECONDS and SESSION_EXPIRATION_JWT Are Semantically Duplicated
 - **Location:** `server/utils/auth.ts:8-9`
 - **Note:** Two constants represent 7 days in different formats. If one changes without the other, cookie and JWT lifetimes diverge. Derive one from the other.
 
-### 22. CI Uses wrangler@latest — Unpinned Dependency
+### 17. CI Uses wrangler@latest — Unpinned Dependency
 - **Location:** `.github/workflows/deploy.yml:33`
 - **Note:** A breaking Wrangler release could silently break deployments. Pin to a specific version.
 
-### 23. habitLogSchema.id Uses z.string() While All Other IDs Use z.string().uuid()
+### 18. habitLogSchema.id Uses z.string() While All Other IDs Use z.string().uuid()
 - **Location:** `server/utils/validation.ts:84`
 - **Note:** Log IDs accept any arbitrary string from the client, while other IDs enforce UUID format. This is presumably intentional (composite IDs like `{habitId}_{date}`), but worth noting.
 
-### 24. SocialNarratorService Throws on Malformed Date From DB
+### 19. SocialNarratorService Throws on Malformed Date From DB
 - **Location:** `server/services/social-narrator.service.ts:49,128,148`
 - **Note:** `format(parseISO(log.date), 'MMM d')` throws `RangeError` on malformed dates. A single corrupt row crashes the entire feed. Wrap in try-catch.
 
-### 25. viewport Disables User Zoom — Accessibility Violation
+### 20. viewport Disables User Zoom — Accessibility Violation
 - **Location:** `nuxt.config.ts:62`
 - **Note:** `maximum-scale=1, user-scalable=0` prevents zooming, violating WCAG 1.4.4. Remove these restrictions.
 
-### 26. Dexie IndexedDB Shared Across All Users on Same Browser
-- **Location:** `app/utils/db.ts:34`
-- **Note:** Database name `HabitsSocialDB` is hardcoded. On logout, IndexedDB is not wiped. User A's data remains accessible via dev tools after User B logs in. Consider wiping on logout or namespacing per user.
-
-### 27. SQL Performance (LATERAL join) - DEFERRED
+### 21. SQL Performance (LATERAL join) - DEFERRED
 - **Location:** `server/api/social/feed.get.ts`
 - **Note:** Fine for small groups, but will bottleneck at scale.
 
-### 28. Magic Strings for Defaults - DEFERRED
+### 22. Magic Strings for Defaults - DEFERRED
 - **Location:** `server/utils/validation.ts`
 - **Note:** Hardcoded hex colors and limits.
 - **Fix:** Extract to a shared `constants.ts`.
