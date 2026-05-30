@@ -50,6 +50,7 @@ export default defineEventHandler(async (event) => {
     username: users.username,
     photoUrl: users.photoUrl,
     emailVerifiedAt: users.emailVerifiedAt,
+    sessionVersion: users.sessionVersion,
   })
   .from(users)
   .where(eq(sql`lower(${users.email})`, email.toLowerCase()))
@@ -66,7 +67,7 @@ export default defineEventHandler(async (event) => {
     }
 
     // User already exists - log them in immediately
-    const token = await generateToken(user.id, event);
+    const token = await generateToken(user.id, event, user.sessionVersion);
     await resetRateLimit(event, email);
     setAuthCookie(event, token);
 

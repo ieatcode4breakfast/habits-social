@@ -89,6 +89,11 @@
                   <EyeOff v-else class="w-4 h-4" />
                 </button>
               </div>
+              <div v-if="tab === 'login'" class="flex justify-end -mt-1">
+                <NuxtLink to="/forgot-password" class="text-xs font-semibold text-zinc-500 hover:text-zinc-300 transition-colors">
+                  Forgot password?
+                </NuxtLink>
+              </div>
 
               <!-- Confirm Password -->
               <div v-if="tab === 'signup'" class="relative" v-motion-slide-top>

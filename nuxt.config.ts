@@ -120,6 +120,9 @@ export default defineNuxtConfig({
     jwtSecret: process.env.JWT_SECRET,
     realtimeJwtSecret: process.env.REALTIME_JWT_SECRET,
     partykitNotifySecret: process.env.PARTYKIT_NOTIFY_SECRET,
+    resendApiKey: process.env.RESEND_API_KEY,
+    resendFromEmail: process.env.RESEND_FROM_EMAIL || 'Habits Social <noreply@habitssocial.com>',
+    appUrl: process.env.APP_URL || process.env.NUXT_PUBLIC_APP_URL || 'https://www.habitssocial.com',
     public: {
       appName: process.env.APP_NAME || 'Habits Social',
       realtimeEnabled: process.env.NUXT_PUBLIC_REALTIME_ENABLED === 'true',

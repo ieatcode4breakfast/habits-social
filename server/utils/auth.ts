@@ -39,9 +39,9 @@ export const getGoogleClientId = (event?: H3Event): string => {
   return clientId;
 };
 
-export const generateToken = async (userId: string | number, event: H3Event): Promise<string> => {
+export const generateToken = async (userId: string | number, event: H3Event, sessionVersion = 1): Promise<string> => {
   const secret = getSecret(event);
-  return await new SignJWT({ userId })
+  return await new SignJWT({ userId, sessionVersion })
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt()
     .setExpirationTime(SESSION_EXPIRATION_JWT)

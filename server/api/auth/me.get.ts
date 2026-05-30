@@ -1,7 +1,7 @@
 import { eq } from 'drizzle-orm';
 import { users } from '~~/server/db/schema';
 import { useDB as _useDB } from '~~/server/utils/db';
-import { getUserAndPayloadFromEvent as _getUserAndPayloadFromEvent, generateToken as _generateToken, setAuthCookie as _setAuthCookie } from '~~/server/utils/auth';
+import { AUTH_COOKIE_NAME, getUserAndPayloadFromEvent as _getUserAndPayloadFromEvent, generateToken as _generateToken, setAuthCookie as _setAuthCookie } from '~~/server/utils/auth';
 
 export default defineEventHandler(async (event) => {
   const useDB = (event.context as any).useDB || _useDB;
@@ -22,7 +22,8 @@ export default defineEventHandler(async (event) => {
     id: users.id,
     email: users.email,
     username: users.username,
-    photoUrl: users.photoUrl
+    photoUrl: users.photoUrl,
+    sessionVersion: users.sessionVersion
   })
   .from(users)
   .where(eq(users.id, userId));
@@ -30,7 +31,13 @@ export default defineEventHandler(async (event) => {
   const user = results[0];
 
   if (!user) {
-    deleteCookie(event, 'auth_token');
+    deleteCookie(event, AUTH_COOKIE_NAME);
+    return { data: null };
+  }
+
+  const tokenSessionVersion = typeof payload.sessionVersion === 'number' ? payload.sessionVersion : 1;
+  if (tokenSessionVersion !== user.sessionVersion) {
+    deleteCookie(event, AUTH_COOKIE_NAME);
     return { data: null };
   }
 
@@ -44,10 +51,17 @@ export default defineEventHandler(async (event) => {
     const elapsed = now - issuedAt;
 
     if (elapsed > totalLifetime / 2) {
-      const newToken = await generateToken(userId, event);
+      const newToken = await generateToken(userId, event, user.sessionVersion);
       setAuthCookie(event, newToken);
     }
   }
 
-  return { data: user };
+  return {
+    data: {
+      id: user.id,
+      email: user.email,
+      username: user.username,
+      photoUrl: user.photoUrl
+    }
+  };
 });

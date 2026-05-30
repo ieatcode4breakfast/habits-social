@@ -1,6 +1,23 @@
 import './setup';
 import { describe, it, expect, beforeAll, afterAll, vi, beforeEach, afterEach } from 'vitest';
-import { createTestUser, deleteTestUser, createMockEvent } from './test.utils';
+import { eq } from 'drizzle-orm';
+import { users } from '../db/schema';
+import { createTestUser, deleteTestUser, createMockEvent, db } from './test.utils';
+
+interface StaleSessionEvent {
+  _cookies: Record<string, string>;
+  context: {
+    getUserAndPayloadFromEvent?: () => Promise<{
+      userId: string;
+      payload: {
+        userId: string;
+        iat: number;
+        exp: number;
+        sessionVersion: number;
+      };
+    }>;
+  };
+}
 
 describe('GET /api/auth/me - Session & Sliding Renewal', () => {
   let testUser: any;
@@ -44,6 +61,34 @@ describe('GET /api/auth/me - Session & Sliding Renewal', () => {
     const event = createMockEvent(nonExistentId);
     const response = (await handler(event)) as any;
     expect(response.data).toBeNull();
+  });
+
+  it('should reject a session token issued before the latest password reset', async () => {
+    await db.update(users)
+      .set({ sessionVersion: 2 })
+      .where(eq(users.id, testUser.id));
+
+    try {
+      const event = createMockEvent(testUser.id) as unknown as StaleSessionEvent;
+      event.context.getUserAndPayloadFromEvent = async () => ({
+        userId: testUser.id,
+        payload: {
+          userId: testUser.id,
+          iat: Math.floor(Date.now() / 1000) - 60,
+          exp: Math.floor(Date.now() / 1000) + 60 * 60,
+          sessionVersion: 1
+        }
+      });
+
+      const response = (await handler(event)) as { data: unknown };
+
+      expect(response.data).toBeNull();
+      expect(event._cookies.auth_token).toBeUndefined();
+    } finally {
+      await db.update(users)
+        .set({ sessionVersion: 1 })
+        .where(eq(users.id, testUser.id));
+    }
   });
 
   // --- Sliding Session Renewal Tests ---

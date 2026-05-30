@@ -8,12 +8,27 @@ export const users = pgTable('users', {
   passwordHash: text('password_hash').notNull(),
   photoUrl: text('photo_url'),
   emailVerifiedAt: timestamp('email_verified_at', { withTimezone: true, mode: 'date' }),
+  sessionVersion: integer('session_version').notNull().default(1),
   createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' }).defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true, mode: 'date' }).defaultNow(),
 }, (table) => {
   return {
     usersEmailUniqueIdx: uniqueIndex('users_email_unique_idx').on(sql`lower(${table.email})`),
     usersUsernameUniqueIdx: uniqueIndex('users_username_unique_idx').on(sql`lower(${table.username})`),
+  };
+});
+
+export const passwordResetTokens = pgTable('password_reset_tokens', {
+  id: uuid('id').primaryKey(),
+  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  tokenHash: text('token_hash').notNull(),
+  expiresAt: timestamp('expires_at', { withTimezone: true, mode: 'date' }).notNull(),
+  usedAt: timestamp('used_at', { withTimezone: true, mode: 'date' }),
+  createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' }).defaultNow(),
+}, (table) => {
+  return {
+    passwordResetTokensHashIdx: uniqueIndex('password_reset_tokens_hash_idx').on(table.tokenHash),
+    passwordResetTokensUserCreatedAtIdx: index('password_reset_tokens_user_created_at_idx').on(table.userId, table.createdAt),
   };
 });
 

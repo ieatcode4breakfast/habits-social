@@ -119,7 +119,7 @@
 
             <div class="p-2 flex flex-col gap-1 bg-black">
               <button 
-                @click="() => { showMobileMenu = false; handleEditProfile(); }"
+                @click="() => { suppressNextHistoryBack(); showMobileMenu = false; handleEditProfile(); }"
                 class="w-full p-2 flex items-center gap-3 text-zinc-300 hover:bg-zinc-900 rounded-xl transition-colors cursor-pointer"
               >
                 <UserIcon class="w-5 h-5 text-zinc-400" />

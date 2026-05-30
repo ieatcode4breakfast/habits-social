@@ -1,6 +1,21 @@
 import { describe, it, expect } from 'vitest';
 import { registerSchema, updateProfileSchema, loginSchema, habitSchema, habitUpdateSchema, habitLogSchema, bucketSchema, bucketLogSchema } from '../utils/validation';
 
+interface SafeParseSchema {
+  safeParse: (input: unknown) => { success: boolean };
+}
+
+const getFutureSchema = async (name: string): Promise<SafeParseSchema> => {
+  const validationModule = await import('../utils/validation') as Record<string, unknown>;
+  const schema = validationModule[name];
+
+  if (!schema || typeof schema !== 'object' || !('safeParse' in schema) || typeof schema.safeParse !== 'function') {
+    throw new Error(`${name} must be exported from server/utils/validation`);
+  }
+
+  return schema as SafeParseSchema;
+};
+
 
 describe('User Validation Schemas', () => {
   describe('registerSchema', () => {
@@ -118,6 +133,43 @@ describe('User Validation Schemas', () => {
   describe('loginSchema', () => {
     it('should reject password > 72 chars', () => {
       const result = loginSchema.safeParse({ identifier: 'user', password: 'p'.repeat(73) });
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe('password reset schemas', () => {
+    it('should accept a valid forgot-password email', async () => {
+      const forgotPasswordSchema = await getFutureSchema('forgotPasswordSchema');
+      const result = forgotPasswordSchema.safeParse({ email: 'person@example.com' });
+
+      expect(result.success).toBe(true);
+    });
+
+    it('should reject an invalid forgot-password email', async () => {
+      const forgotPasswordSchema = await getFutureSchema('forgotPasswordSchema');
+      const result = forgotPasswordSchema.safeParse({ email: 'not-an-email' });
+
+      expect(result.success).toBe(false);
+    });
+
+    it('should reject a reset-password request with a missing token', async () => {
+      const resetPasswordSchema = await getFutureSchema('resetPasswordSchema');
+      const result = resetPasswordSchema.safeParse({ password: 'newpassword123' });
+
+      expect(result.success).toBe(false);
+    });
+
+    it('should reject reset-password requests with short passwords', async () => {
+      const resetPasswordSchema = await getFutureSchema('resetPasswordSchema');
+      const result = resetPasswordSchema.safeParse({ token: 'valid-token-value', password: '1234567' });
+
+      expect(result.success).toBe(false);
+    });
+
+    it('should reject reset-password requests with passwords longer than bcrypt can safely handle', async () => {
+      const resetPasswordSchema = await getFutureSchema('resetPasswordSchema');
+      const result = resetPasswordSchema.safeParse({ token: 'valid-token-value', password: 'p'.repeat(73) });
+
       expect(result.success).toBe(false);
     });
   });

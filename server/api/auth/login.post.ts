@@ -29,7 +29,8 @@ export default defineEventHandler(async (event) => {
     email: users.email,
     username: users.username,
     photoUrl: users.photoUrl,
-    passwordHash: users.passwordHash
+    passwordHash: users.passwordHash,
+    sessionVersion: users.sessionVersion
   })
   .from(users)
   .where(or(
@@ -51,7 +52,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: 'Invalid username, email or password' });
   }
 
-  const token = await generateToken(user.id, event);
+  const token = await generateToken(user.id, event, user.sessionVersion);
 
   // Success: Reset identifier rate limit
   await resetRateLimit(event, identifier);
