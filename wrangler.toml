@@ -15,6 +15,7 @@ routes = [
 NODE_ENV = "production"
 NUXT_PUBLIC_REALTIME_ENABLED = "true"
 NUXT_PUBLIC_PARTYKIT_HOST = "habits-social-realtime-production.ieatcode4breakfast.partykit.dev"
+APP_URL = "https://www.habitssocial.com"
 
 
 
@@ -29,5 +30,6 @@ invocation_logs = true
 [vars]
 NUXT_PUBLIC_REALTIME_ENABLED = "true"
 NUXT_PUBLIC_PARTYKIT_HOST = "habits-social-realtime-staging.ieatcode4breakfast.partykit.dev"
+APP_URL = "https://habits-social-staging.mycooltools.workers.dev"
 # DATABASE_URL = "your_connection_string_here"
 # Note: For production, use 'wrangler secret put DATABASE_URL' instead.
