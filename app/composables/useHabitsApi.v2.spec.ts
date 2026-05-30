@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { ref } from 'vue';
-import { useHabitsApi, _resetSyncState } from './useHabitsApi';
+import { INITIAL_SYNC_HISTORY_DAYS, useHabitsApi, _resetSyncState } from './useHabitsApi';
 
 // Mock dependencies
 const mockClient = {
@@ -52,6 +52,8 @@ const mockWhere = {
   anyOf: vi.fn(() => mockCollection),
 };
 
+let mockSyncStateRecords: Record<string, Record<string, unknown>> = {};
+
 vi.mock('~/utils/db', () => ({
   db: {
     syncQueue: { 
@@ -90,12 +92,11 @@ vi.mock('~/utils/db', () => ({
       clear: vi.fn()
     },
     syncState: (() => {
-      let _state: any = {};
       return {
-        get: vi.fn(id => Promise.resolve(_state[id])),
-        put: vi.fn(val => { _state[val.id] = val; }),
-        update: vi.fn((id, val) => { _state[id] = { ..._state[id], ...val }; }),
-        clear: vi.fn(() => { _state = {}; })
+        get: vi.fn(id => Promise.resolve(mockSyncStateRecords[id])),
+        put: vi.fn(val => { mockSyncStateRecords[val.id] = val; }),
+        update: vi.fn((id, val) => { mockSyncStateRecords[id] = { ...(mockSyncStateRecords[id] ?? {}), ...val }; }),
+        clear: vi.fn(() => { mockSyncStateRecords = {}; })
       };
     })(),
     transaction: vi.fn((mode, tables, callback) => callback())
@@ -110,6 +111,7 @@ describe('useHabitsApi - V2 Resilience & Pagination', () => {
     
     mockClient.fetchSync.mockReset();
     mockClient.postHabit.mockReset();
+    mockSyncStateRecords = {};
     _resetSyncState();
   });
 
@@ -145,6 +147,28 @@ describe('useHabitsApi - V2 Resilience & Pagination', () => {
     expect(db.syncState.put).toHaveBeenCalledWith(expect.objectContaining({
       id: 'current',
       cursors: { habits: 'c1' }
+    }));
+  });
+
+  it('should request a 90-day bounded window on initial sync', async () => {
+    vi.setSystemTime(new Date('2026-05-30T12:00:00.000Z'));
+    mockClient.fetchSync.mockResolvedValue({
+      habits: [],
+      buckets: [],
+      habitLogs: [],
+      bucketLogs: [],
+      serverTime: 1000,
+      nextCursors: {},
+      hasMore: false
+    });
+
+    const api = useHabitsApi();
+    await api.sync();
+
+    expect(INITIAL_SYNC_HISTORY_DAYS).toBe(90);
+    expect(mockClient.fetchSync).toHaveBeenCalledWith(expect.objectContaining({
+      startDate: '2026-03-01',
+      endDate: '2026-06-29'
     }));
   });
 

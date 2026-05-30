@@ -82,6 +82,8 @@ type PushPhaseResult = {
   individualHabitLogPushFailed: boolean;
 };
 
+export const INITIAL_SYNC_HISTORY_DAYS = 90;
+
 const isConflictError = (e: any) => {
   return (e.statusCode || e.response?.status) === 409;
 };
@@ -358,8 +360,8 @@ export const useHabitsApi = () => {
           if (state?.lastSynced) {
             queryParams.lastSynced = state.lastSynced;
           } else {
-            // Initial Sync Window: Strictly 60 days
-            queryParams.startDate = format(subDays(new Date(), 60), 'yyyy-MM-dd');
+            // Initial Sync Window: Strictly bounded for battery/data while keeping enough recent history.
+            queryParams.startDate = format(subDays(new Date(), INITIAL_SYNC_HISTORY_DAYS), 'yyyy-MM-dd');
             queryParams.endDate = format(addDays(new Date(), 30), 'yyyy-MM-dd');
           }
 
