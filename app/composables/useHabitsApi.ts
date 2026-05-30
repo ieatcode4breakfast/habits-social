@@ -114,6 +114,8 @@ export const _resetSyncState = () => {
   }
 };
 
+let historyFetchPromise: Promise<void> | null = null;
+
 export const useHabitsApi = () => {
   const client = useHabitsClient();
   const store = useHabitsStore();
@@ -234,7 +236,12 @@ export const useHabitsApi = () => {
   };
 
   // --- Habit Logs ---
-  const getLogs = (startDate: string, endDate: string) => store.getLogs(startDate, endDate);
+  const getLogs = async (startDate: string, endDate: string) => {
+    if (process.client) {
+      await ensureHistoryLoadedForDate(startDate);
+    }
+    return store.getLogs(startDate, endDate);
+  };
 
   const upsertLog = async (data: { habitId: string; date: string; status: string; sharedWith?: string[] }) => {
     const logId = `${data.habitId}_${data.date}`;
@@ -303,7 +310,12 @@ export const useHabitsApi = () => {
     triggerSync();
   };
 
-  const getBucketLogs = (startDate: string, endDate: string) => store.getBucketLogs(startDate, endDate);
+  const getBucketLogs = async (startDate: string, endDate: string) => {
+    if (process.client) {
+      await ensureHistoryLoadedForDate(startDate);
+    }
+    return store.getBucketLogs(startDate, endDate);
+  };
 
   const reorderBuckets = async (ids: string[]) => {
     const updates = ids.map(async (id, index) => {
@@ -741,10 +753,23 @@ export const useHabitsApi = () => {
     if (!user.value || !process.client) return;
     
     while (targetDateStr < earliestFetchedDate.value) {
-      const end = earliestFetchedDate.value;
-      const start = format(subDays(new Date(`${end}T00:00:00.000Z`), 90), 'yyyy-MM-dd');
-      await fetchHistory(start, end);
-      earliestFetchedDate.value = start;
+      if (historyFetchPromise) {
+        await historyFetchPromise;
+        continue;
+      }
+
+      historyFetchPromise = (async () => {
+        const end = earliestFetchedDate.value;
+        const start = format(subDays(new Date(`${end}T00:00:00.000Z`), 90), 'yyyy-MM-dd');
+        await fetchHistory(start, end);
+        earliestFetchedDate.value = start;
+      })();
+
+      try {
+        await historyFetchPromise;
+      } finally {
+        historyFetchPromise = null;
+      }
     }
   };
 
