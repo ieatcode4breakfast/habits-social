@@ -88,10 +88,7 @@ export const recalculateLocalBucketStreak = async (bucketId: string, ownerId: st
   const bucket = await db.buckets.get(bucketId);
   if (!bucket) return;
 
-  let runningStreak = 0;
-  let lastDate: Date | null = null;
-  let maxStreak = 0;
-  let baselineAnchor: string | null = null;
+  const baseline = await db.bucketStreakBaselines.get(bucketId);
 
   // Fetch all logs from IndexedDB
   const logs = await db.bucketLogs
@@ -103,24 +100,38 @@ export const recalculateLocalBucketStreak = async (bucketId: string, ownerId: st
 
   if (logs.length === 0) {
     if (bucket.currentStreak !== 0 || bucket.streakAnchorDate !== null) {
-      await db.buckets.update(bucketId, {
-        currentStreak: 0,
-        streakAnchorDate: null,
-        updatedAt: Date.now()
-      });
-      return await db.buckets.get(bucketId);
+      return bucket;
     }
     return bucket;
   }
 
-  // 3. Use shared logic for calculation from the beginning of time
+  const logsToCalculate = baseline
+    ? logs.filter((log) => log.date >= baseline.startDate)
+    : logs;
+
+  if (logsToCalculate.length === 0) {
+    return bucket;
+  }
+
+  const initialRunningStreak = baseline?.baselineCurrentStreak ?? 0;
+  const initialLastDate = baseline?.baselineStreakAnchorDate
+    ? startOfDay(parseISO(baseline.baselineStreakAnchorDate))
+    : null;
+  const initialMaxStreak = baseline?.baselineLongestStreak ?? 0;
+  const initialStreakAnchorDate = baseline?.baselineStreakAnchorDate ?? null;
+
+  // 3. Use shared logic with a trusted server baseline when local history is partial.
   const { currentStreak, longestStreak, streakAnchorDate, logUpdates } = calculateStreakFromLogs(
-    logs,
-    runningStreak,
-    lastDate,
-    maxStreak,
-    baselineAnchor
+    logsToCalculate,
+    initialRunningStreak,
+    initialLastDate,
+    initialMaxStreak,
+    initialStreakAnchorDate
   );
+
+  if (!baseline && bucket.currentStreak && currentStreak < bucket.currentStreak) {
+    return bucket;
+  }
 
   // 4. Update child logs (already diffed in calculateStreakFromLogs)
   if (logUpdates.length > 0) {

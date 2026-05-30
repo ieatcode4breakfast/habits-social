@@ -111,4 +111,49 @@ describe('API: GET /api/sync', () => {
       baselineStreakAnchorDate: '2026-03-30'
     }));
   });
+
+  it('should return bucket streak baselines for windowed partial history sync', async () => {
+    const { db } = await import('./test.utils');
+    const { bucketLogs, buckets: bucketsTable } = await import('../db/schema');
+    const bucketId = crypto.randomUUID();
+
+    await db.insert(bucketsTable).values({
+      id: bucketId,
+      ownerId: testUser.id,
+      title: 'Baseline Bucket',
+      description: '',
+      color: '#6366f1',
+      sortOrder: 0,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    });
+
+    await db.insert(bucketLogs).values({
+      id: `${bucketId}_2026-03-30_${testUser.id}`,
+      ownerId: testUser.id,
+      bucketId,
+      date: '2026-03-30',
+      status: 'completed',
+      streakCount: 39,
+      brokenStreakCount: 0,
+      updatedAt: new Date()
+    });
+
+    const event = createMockEvent(testUser.id, {}, {}, {}, {
+      startDate: '2026-03-31',
+      endDate: '2026-05-30'
+    });
+    const res = await syncGet(event);
+
+    expect(res.bucketStreakBaselines).toContainEqual(expect.objectContaining({
+      bucketId,
+      ownerId: testUser.id,
+      startDate: '2026-03-31',
+      endDate: '2026-05-30',
+      baselineDate: '2026-03-30',
+      baselineCurrentStreak: 39,
+      baselineLongestStreak: 39,
+      baselineStreakAnchorDate: '2026-03-30'
+    }));
+  });
 });

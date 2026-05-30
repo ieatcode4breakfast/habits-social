@@ -91,6 +91,10 @@ vi.mock('~/utils/db', () => ({
       put: vi.fn(),
       clear: vi.fn()
     },
+    bucketStreakBaselines: {
+      put: vi.fn(),
+      clear: vi.fn()
+    },
     syncState: (() => {
       return {
         get: vi.fn(id => Promise.resolve(mockSyncStateRecords[id])),

@@ -17,6 +17,17 @@ export interface HabitStreakBaseline {
   baselineStreakAnchorDate: string | null;
 }
 
+export interface BucketStreakBaseline {
+  bucketId: string;
+  ownerId: string;
+  startDate: string;
+  endDate: string;
+  baselineDate: string;
+  baselineCurrentStreak: number;
+  baselineLongestStreak: number;
+  baselineStreakAnchorDate: string | null;
+}
+
 export interface SyncResponse {
   habits: any[];
   buckets: any[];
@@ -24,6 +35,7 @@ export interface SyncResponse {
   bucketLogs: any[];
   deletions: Array<{ id: string; type: string }>;
   habitStreakBaselines?: HabitStreakBaseline[];
+  bucketStreakBaselines?: BucketStreakBaseline[];
   serverTime: number;
   nextCursors?: Record<string, string>;
   hasMore?: boolean;

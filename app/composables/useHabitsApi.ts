@@ -369,13 +369,14 @@ export const useHabitsApi = () => {
           
           if (response.forceUpdateRequired) {
             // Safe Force Reset: We already pushed changes above, now we can safely wipe and reset
-            await db.transaction('rw', [db.habits, db.buckets, db.habitLogs, db.bucketLogs, db.habitStreakBaselines, db.syncState], async () => {
+            await db.transaction('rw', [db.habits, db.buckets, db.habitLogs, db.bucketLogs, db.habitStreakBaselines, db.bucketStreakBaselines, db.syncState], async () => {
               // Delete all local data that has been synced (preserve unsynced local changes)
               await db.habits.where('synced').equals(1).delete();
               await db.buckets.where('synced').equals(1).delete();
               await db.habitLogs.where('synced').equals(1).delete();
               await db.bucketLogs.where('synced').equals(1).delete();
               await db.habitStreakBaselines.clear();
+              await db.bucketStreakBaselines.clear();
               await db.syncState.clear();
             });
 
@@ -391,13 +392,14 @@ export const useHabitsApi = () => {
             bucketLogs: remoteBucketLogs, 
             deletions: remoteDeletions, 
             habitStreakBaselines: remoteHabitStreakBaselines = [],
+            bucketStreakBaselines: remoteBucketStreakBaselines = [],
             serverTime, 
             nextCursors, 
             hasMore: remoteHasMore 
           } = response;
 
           // Atomic Transaction for the current page
-          await db.transaction('rw', [db.habits, db.buckets, db.habitLogs, db.bucketLogs, db.habitStreakBaselines, db.syncState], async () => {
+          await db.transaction('rw', [db.habits, db.buckets, db.habitLogs, db.bucketLogs, db.habitStreakBaselines, db.bucketStreakBaselines, db.syncState], async () => {
             if (remoteDeletions) {
               for (const d of remoteDeletions) {
                 if (d.type === 'habit') {
@@ -435,6 +437,13 @@ export const useHabitsApi = () => {
 
             for (const baseline of remoteHabitStreakBaselines) {
               await db.habitStreakBaselines.put({
+                ...baseline,
+                updatedAt: Date.now()
+              });
+            }
+
+            for (const baseline of remoteBucketStreakBaselines) {
+              await db.bucketStreakBaselines.put({
                 ...baseline,
                 updatedAt: Date.now()
               });
@@ -684,10 +693,11 @@ export const useHabitsApi = () => {
         buckets: remoteBuckets,
         habitLogs: remoteLogs,
         bucketLogs: remoteBucketLogs,
-        habitStreakBaselines: remoteHabitStreakBaselines = []
+        habitStreakBaselines: remoteHabitStreakBaselines = [],
+        bucketStreakBaselines: remoteBucketStreakBaselines = []
       } = response;
 
-      await db.transaction('rw', [db.habits, db.buckets, db.habitLogs, db.bucketLogs, db.habitStreakBaselines], async () => {
+      await db.transaction('rw', [db.habits, db.buckets, db.habitLogs, db.bucketLogs, db.habitStreakBaselines, db.bucketStreakBaselines], async () => {
         for (const h of remoteHabits) {
           await db.habits.put({ ...h, synced: 1, updatedAt: Date.now() } as any);
         }
@@ -702,6 +712,12 @@ export const useHabitsApi = () => {
         }
         for (const baseline of remoteHabitStreakBaselines) {
           await db.habitStreakBaselines.put({
+            ...baseline,
+            updatedAt: Date.now()
+          });
+        }
+        for (const baseline of remoteBucketStreakBaselines) {
+          await db.bucketStreakBaselines.put({
             ...baseline,
             updatedAt: Date.now()
           });

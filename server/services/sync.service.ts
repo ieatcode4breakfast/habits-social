@@ -10,7 +10,7 @@ import {
   users 
 } from '~~/server/db/schema';
 import { getServerTime } from '~~/server/utils/db';
-import type { HabitStreakBaseline, SyncParams, SyncResponse } from '~~/server/types/sync';
+import type { BucketStreakBaseline, HabitStreakBaseline, SyncParams, SyncResponse } from '~~/server/types/sync';
 import type { DBConnection } from '../types/db';
 
 const V1_SAFETY_THRESHOLD = 5000;
@@ -19,8 +19,19 @@ interface HabitIdRow {
   id: string;
 }
 
+interface BucketIdRow {
+  id: string;
+}
+
 interface HabitBaselineRow {
   habitId: string;
+  baselineCurrentStreak: number | null;
+  baselineLongestStreak: number | null;
+  baselineStreakAnchorDate: string | null;
+}
+
+interface BucketBaselineRow {
+  bucketId: string;
   baselineCurrentStreak: number | null;
   baselineLongestStreak: number | null;
   baselineStreakAnchorDate: string | null;
@@ -287,6 +298,84 @@ export const SyncService = {
     });
   },
 
+  async getBucketStreakBaselines(
+    db: DBConnection,
+    userId: string,
+    startDate: string,
+    endDate: string
+  ): Promise<BucketStreakBaseline[]> {
+    const bucketIdsSubquery = db.select({ id: bucketsTable.id })
+      .from(bucketsTable)
+      .leftJoin(sharedBucketMembers, eq(bucketsTable.id, sharedBucketMembers.bucketId))
+      .where(or(
+        eq(bucketsTable.ownerId, userId),
+        and(
+          eq(sharedBucketMembers.userId, userId),
+          eq(sharedBucketMembers.status, 'accepted')
+        )
+      ));
+
+    const bucketRows: BucketIdRow[] = await db.select({ id: bucketsTable.id })
+      .from(bucketsTable)
+      .where(inArray(bucketsTable.id, bucketIdsSubquery));
+
+    if (bucketRows.length === 0) return [];
+
+    const bucketIds = bucketRows.map((bucket) => bucket.id);
+    const bucketIdSql = sql.join(bucketIds.map((id) => sql`${id}::uuid`), sql`, `);
+
+    const baselineResult = await db.execute(sql`
+      SELECT
+        bucket_id AS "bucketId",
+        streak_count AS "baselineCurrentStreak",
+        max_streak AS "baselineLongestStreak",
+        date AS "baselineStreakAnchorDate"
+      FROM (
+        SELECT
+          bucket_id,
+          date,
+          streak_count,
+          MAX(streak_count) OVER (PARTITION BY bucket_id) AS max_streak,
+          ROW_NUMBER() OVER (PARTITION BY bucket_id ORDER BY date DESC, updated_at DESC, id DESC) AS row_number
+        FROM bucket_logs
+        WHERE owner_id = ${userId}::uuid
+          AND bucket_id IN (${bucketIdSql})
+          AND date < ${startDate}
+          AND status <> 'cleared'
+      ) AS prior_logs
+      WHERE row_number = 1
+    `);
+
+    const baselineByBucketId = new Map<string, BucketBaselineRow>();
+    for (const row of baselineResult.rows) {
+      const bucketId = toOptionalString(row.bucketId);
+      if (!bucketId) continue;
+
+      baselineByBucketId.set(bucketId, {
+        bucketId,
+        baselineCurrentStreak: toOptionalNumber(row.baselineCurrentStreak),
+        baselineLongestStreak: toOptionalNumber(row.baselineLongestStreak),
+        baselineStreakAnchorDate: toOptionalString(row.baselineStreakAnchorDate)
+      });
+    }
+
+    const baselineDate = addDaysToDateString(startDate, -1);
+
+    return bucketIds.map((bucketId) => {
+      const baseline = baselineByBucketId.get(bucketId);
+      return {
+        bucketId,
+        ownerId: userId,
+        startDate,
+        endDate,
+        baselineDate,
+        baselineCurrentStreak: baseline?.baselineCurrentStreak ?? 0,
+        baselineLongestStreak: baseline?.baselineLongestStreak ?? 0,
+        baselineStreakAnchorDate: baseline?.baselineStreakAnchorDate ?? null
+      };
+    });
+  },
+
   async getPaginatedDeltas(db: DBConnection, userId: string, params: SyncParams): Promise<SyncResponse> {
     const { lastSynced = 0, limit = 50, cursors = {}, startDate, endDate } = params;
     const serverTime = await getServerTime(db);
@@ -387,6 +476,7 @@ export const SyncService = {
     let deletionsHasMore = false;
 
     let habitStreakBaselines: HabitStreakBaseline[] = [];
+    let bucketStreakBaselines: BucketStreakBaseline[] = [];
 
     if (!suppressChildren) {
       const habitLogFilters = [eq(habitLogs.ownerId, userId)];
@@ -440,6 +530,7 @@ export const SyncService = {
 
       if (isWindowedInitialSync && startDate && endDate) {
         habitStreakBaselines = await this.getHabitStreakBaselines(db, userId, startDate, endDate);
+        bucketStreakBaselines = await this.getBucketStreakBaselines(db, userId, startDate, endDate);
       }
     }
 
@@ -520,6 +611,7 @@ export const SyncService = {
       bucketLogs: bucketLogsRes,
       deletions: deletionsRes.map((d: any) => ({ id: d.entityId, type: d.entityType })),
       habitStreakBaselines,
+      bucketStreakBaselines,
       serverTime,
       nextCursors,
       hasMore: habitsHasMore || bucketsHasMore || logsHasMore || deletionsHasMore

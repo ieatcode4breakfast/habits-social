@@ -127,4 +127,53 @@ describe('recalculateLocalBucketStreak - Alignment with Habit Streak Logic', () 
     expect(result?.currentStreak).toBe(3);
     expect(result?.streakAnchorDate).toBe(d(2));
   });
+
+  it('should preserve a server-provided 99-day bucket streak when only 90 local history days exist before logging today', async () => {
+    await db.buckets.update(BUCKET_ID, {
+      currentStreak: 99,
+      longestStreak: 99,
+      streakAnchorDate: d(98)
+    });
+    await db.bucketStreakBaselines.put({
+      bucketId: BUCKET_ID,
+      ownerId: OWNER_ID,
+      startDate: d(9),
+      endDate: d(99),
+      baselineDate: d(8),
+      baselineCurrentStreak: 9,
+      baselineLongestStreak: 9,
+      baselineStreakAnchorDate: d(8),
+      updatedAt: Date.now()
+    });
+
+    for (let offset = 9; offset <= 98; offset++) {
+      await seedBucketLog(offset, 'completed', offset + 1);
+    }
+    await seedBucketLog(99, 'completed', 100);
+
+    const result = await recalculateLocalBucketStreak(BUCKET_ID, OWNER_ID, d(99));
+
+    expect(result?.currentStreak).toBe(100);
+    expect(result?.longestStreak).toBe(100);
+    expect(result?.streakAnchorDate).toBe(d(99));
+  });
+
+  it('should not overwrite a server-provided bucket streak when partial local history has no baseline', async () => {
+    await db.buckets.update(BUCKET_ID, {
+      currentStreak: 99,
+      longestStreak: 99,
+      streakAnchorDate: d(98)
+    });
+
+    for (let offset = 9; offset <= 98; offset++) {
+      await seedBucketLog(offset, 'completed', offset + 1);
+    }
+    await seedBucketLog(99, 'completed', 100);
+
+    const result = await recalculateLocalBucketStreak(BUCKET_ID, OWNER_ID, d(99));
+
+    expect(result?.currentStreak).toBe(99);
+    expect(result?.longestStreak).toBe(99);
+    expect(result?.streakAnchorDate).toBe(d(98));
+  });
 });
