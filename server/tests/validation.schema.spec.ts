@@ -182,6 +182,22 @@ describe('User Validation Schemas', () => {
       });
       expect(result.success).toBe(false);
     });
+
+    it('should accept no skips allowed and cap raw skip counts at 27', () => {
+      const noSkipsResult = habitSchema.safeParse({
+        title: 'Habit',
+        skipsPeriod: 'disabled',
+        skipsCount: 0
+      });
+      expect(noSkipsResult.success).toBe(true);
+
+      const tooManySkipsResult = habitSchema.safeParse({
+        title: 'Habit',
+        skipsPeriod: 'monthly',
+        skipsCount: 28
+      });
+      expect(tooManySkipsResult.success).toBe(false);
+    });
   });
 
   describe('habitSchema - Payload Minimization', () => {

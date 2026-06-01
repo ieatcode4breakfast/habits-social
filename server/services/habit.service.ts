@@ -56,12 +56,12 @@ export const HabitService = {
     
     let skipsCount = data.skipsCount ?? 2;
     const skipsPeriod = data.skipsPeriod ?? 'weekly';
-    if (skipsPeriod === 'none') {
+    if (skipsPeriod === 'disabled' || skipsPeriod === 'none') {
       skipsCount = 0;
     } else if (skipsPeriod === 'weekly') {
-      skipsCount = Math.max(0, Math.min(6, skipsCount));
+      skipsCount = Math.max(1, Math.min(6, skipsCount));
     } else if (skipsPeriod === 'monthly') {
-      skipsCount = Math.max(0, Math.min(28, skipsCount));
+      skipsCount = Math.max(1, Math.min(27, skipsCount));
     }
 
     const habitId = data.id || crypto.randomUUID();
@@ -176,12 +176,12 @@ export const HabitService = {
   async updateHabit(db: DBConnection, userId: string, id: string, data: any, habit: any, event: any) {
     let skipsPeriod = data.skipsPeriod !== undefined ? data.skipsPeriod : habit.skipsPeriod;
     let skipsCount = data.skipsCount !== undefined ? data.skipsCount : habit.skipsCount;
-    if (skipsPeriod === 'none') {
+    if (skipsPeriod === 'disabled' || skipsPeriod === 'none') {
       skipsCount = 0;
     } else if (skipsPeriod === 'weekly') {
-      skipsCount = Math.max(0, Math.min(6, skipsCount || 0));
+      skipsCount = Math.max(1, Math.min(6, skipsCount || 0));
     } else if (skipsPeriod === 'monthly') {
-      skipsCount = Math.max(0, Math.min(28, skipsCount || 0));
+      skipsCount = Math.max(1, Math.min(27, skipsCount || 0));
     }
 
     const updatedHabit = await db.transaction(async (tx: any) => {

@@ -82,8 +82,8 @@ export const habitSchema = createInsertSchema(schema.habits, {
   title: zShortText.min(1),
 
   description: zLongText.optional().default(''),
-  skipsCount: z.number().int().min(0).max(28).optional().default(0),
-  skipsPeriod: z.enum(['none', 'weekly', 'monthly']).optional().default('weekly'),
+  skipsCount: z.number().int().min(0).max(27).optional().default(2),
+  skipsPeriod: z.enum(['disabled', 'none', 'weekly', 'monthly']).optional().default('weekly'),
   color: zColor.optional().default('#6366f1'),
   sharedWith: zStandardArray(zId).optional().default([]),
   sortOrder: z.number().int().optional().default(0)

@@ -11,7 +11,7 @@ export interface Habit {
   title: string;
   description: string;
   skipsCount: number;
-  skipsPeriod: 'none' | 'weekly' | 'monthly';
+  skipsPeriod: 'disabled' | 'none' | 'weekly' | 'monthly';
   color: string;
   sharedWith: string[];
   sortOrder?: number;

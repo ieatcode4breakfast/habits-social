@@ -45,7 +45,7 @@ vi.mock('~/utils/ui', () => ({
   isMarkable: mockIsMarkable
 }));
 
-const mountModal = () =>
+const mountModal = (habitOverrides: Record<string, unknown> = {}) =>
   mount(HabitEditModal, {
     attachTo: document.body,
     props: {
@@ -58,7 +58,8 @@ const mountModal = () =>
         skipsPeriod: 'weekly',
         color: '#6366f1',
         sharedWith: [],
-        currentStreak: 0
+        currentStreak: 0,
+        ...habitOverrides
       } as any,
       friends: [
         { id: 'friend-1', username: 'Alex', photoUrl: '' },
@@ -129,5 +130,44 @@ describe('HabitEditModal sharing', () => {
     expect(dayButton.exists()).toBe(true);
     expect(dayButton.classes()).toContain('cursor-default');
     expect(dayButton.classes()).not.toContain('cursor-pointer');
+  });
+
+  it('treats legacy weekly zero skip settings as no skips allowed while editing', async () => {
+    const wrapper = mountModal({
+      skipsPeriod: 'weekly',
+      skipsCount: 0
+    });
+
+    await flushPromises();
+    await nextTick();
+
+    const select = wrapper.find('select');
+    expect((select.element as HTMLSelectElement).value).toBe('disabled');
+    expect(wrapper.find('input[type="number"]').exists()).toBe(false);
+  });
+
+  it('passes normalized skip settings to the log menu while editing', async () => {
+    const wrapper = mountModal();
+
+    await flushPromises();
+    await nextTick();
+
+    await wrapper.find('select').setValue('disabled');
+    await wrapper.find('button.w-8.h-8.rounded-full').trigger('click');
+
+    expect(wrapper.emitted('open-log-menu')?.[0]?.[3]).toMatchObject({
+      skipsPeriod: 'disabled',
+      skipsCount: 0
+    });
+
+    await wrapper.find('select').setValue('monthly');
+    await nextTick();
+    await wrapper.find('input[type="number"]').setValue(99);
+    await wrapper.find('button.w-8.h-8.rounded-full').trigger('click');
+
+    expect(wrapper.emitted('open-log-menu')?.[1]?.[3]).toMatchObject({
+      skipsPeriod: 'monthly',
+      skipsCount: 27
+    });
   });
 });

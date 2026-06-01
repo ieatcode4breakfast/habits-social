@@ -51,7 +51,7 @@
                   </div>
                 </div>
                 <div class="text-[10px] font-bold uppercase tracking-widest text-zinc-500 mt-1">
-                  <span class="capitalize">{{ habit.skipsPeriod === 'none' ? 'Unlimited skips' : habit.skipsPeriod }}</span><template v-if="habit.skipsPeriod !== 'none'">, {{ habit.skipsCount || 0 }} {{ habit.skipsCount === 1 ? 'skip' : 'skips' }} allowed</template>
+                  {{ getSkipSettingsText(habit) }}
                 </div>
               </div>
             </div>
@@ -190,6 +190,17 @@ const getStatus = (day: Date) => {
   if (!props.habit) return undefined;
   const dateStr = format(day, 'yyyy-MM-dd');
   return props.logs?.find((l: any) => l.habitId === props.habit.id && l.date === dateStr)?.status;
+};
+
+const getSkipSettingsText = (habit: { skipsPeriod?: string | null; skipsCount?: number | null }) => {
+  const period = habit.skipsPeriod;
+  const count = habit.skipsCount ?? 0;
+  if (period === 'disabled' || ((period === 'weekly' || period === 'monthly') && count === 0)) {
+    return 'No skips allowed';
+  }
+  if (period === 'none') return 'Unlimited skips';
+  const skipText = count === 1 ? '1 skip' : `${count} skips`;
+  return `${period}, ${skipText} allowed`;
 };
 
 import { isStreakFaded, getStreakTheme } from '~/utils/ui';

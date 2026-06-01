@@ -406,7 +406,7 @@ const showModal = ref(false);
 const showReorderModal = ref(false);
 const showEditModal = ref(false);
 const editingHabit = ref<Habit | null>(null);
-const editSkipsPeriod = ref<'none' | 'weekly' | 'monthly' | undefined>(undefined);
+const editSkipsPeriod = ref<Habit['skipsPeriod'] | undefined>(undefined);
 const editSkipsCount = ref<number | undefined>(undefined);
 const editSharedWith = ref<string[]>([]);
 const editSharedWithWorking = ref<string[]>([]);
@@ -490,6 +490,12 @@ const getFrequencyText = (habit: Habit) => {
   const maxSkips = habit.skipsCount ?? 0;
   const now = new Date();
 
+  if (period === 'disabled' || ((period === 'weekly' || period === 'monthly') && maxSkips === 0)) {
+    return 'No skips allowed';
+  }
+
+  if (period === 'none') return 'Unlimited skips';
+
   let skipped = 0;
   if (period === 'weekly') {
     skipped = logs.value.filter(l => 
@@ -504,8 +510,6 @@ const getFrequencyText = (habit: Habit) => {
       isSameMonth(new Date(l.date), now)
     ).length;
   }
-
-  if (period === 'none') return 'Unlimited skips';
 
   const remainingSkips = Math.max(0, maxSkips - skipped);
   const skipText = remainingSkips === 1 ? '1 skip remaining' : `${remainingSkips} skips remaining`;

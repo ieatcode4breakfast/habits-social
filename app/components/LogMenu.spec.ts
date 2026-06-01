@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { mount } from '@vue/test-utils';
 import { nextTick } from 'vue';
 import LogMenu from './LogMenu.vue';
+import type { Habit, HabitLog } from '~/composables/useHabitsApi';
 
 const floatingMocks = vi.hoisted(() => ({
   placement: { value: 'top' },
@@ -23,7 +24,10 @@ vi.mock('@floating-ui/vue', () => ({
   autoUpdate: vi.fn()
 }));
 
-const mountOpenLogMenu = async () => {
+const mountOpenLogMenu = async (overrides: {
+  habit?: Partial<Habit>;
+  logs?: HabitLog[];
+} = {}) => {
   const referenceEl = document.createElement('button');
   document.body.appendChild(referenceEl);
 
@@ -43,9 +47,11 @@ const mountOpenLogMenu = async () => {
       title: 'Drink water',
       skipsPeriod: 'weekly',
       skipsCount: 1,
-      sharedWith: []
+      sharedWith: [],
+      ...overrides.habit
     } as any,
     date: new Date('2026-05-20T00:00:00'),
+    logs: overrides.logs || [],
     referenceEl
   });
 
@@ -179,6 +185,69 @@ describe('LogMenu', () => {
     const arrow = document.body.querySelector('.rotate-45');
     expect(arrow?.getAttribute('style')).toContain('top: -6px');
     expect(arrow?.getAttribute('style')).not.toContain('bottom: -6px');
+
+    wrapper.unmount();
+  });
+
+  it('does not show Skip when no skips are allowed', async () => {
+    const wrapper = await mountOpenLogMenu({
+      habit: {
+        skipsPeriod: 'disabled',
+        skipsCount: 0
+      }
+    });
+
+    expect(document.body.querySelector('button[title="Skip"]')).toBeNull();
+    expect(document.body.querySelector('button[title="Fail"]')).toBeTruthy();
+    expect(document.body.querySelector('button[title="Vacation"]')).toBeTruthy();
+
+    wrapper.unmount();
+  });
+
+  it('treats legacy weekly or monthly zero allowances as no skips allowed', async () => {
+    const wrapper = await mountOpenLogMenu({
+      habit: {
+        skipsPeriod: 'weekly',
+        skipsCount: 0
+      }
+    });
+
+    expect(document.body.querySelector('button[title="Skip"]')).toBeNull();
+    expect(document.body.querySelector('button[title="Fail"]')).toBeTruthy();
+
+    wrapper.unmount();
+  });
+
+  it('keeps Skip available for unlimited skips', async () => {
+    const wrapper = await mountOpenLogMenu({
+      habit: {
+        skipsPeriod: 'none',
+        skipsCount: 0
+      }
+    });
+
+    expect(document.body.querySelector('button[title="Skip"]')).toBeTruthy();
+    expect(document.body.querySelector('button[title="Fail"]')).toBeNull();
+
+    wrapper.unmount();
+  });
+
+  it('hides Skip when the weekly allowance is already used', async () => {
+    const wrapper = await mountOpenLogMenu({
+      logs: [
+        {
+          id: 'log-1',
+          habitId: 'habit-1',
+          ownerId: 'owner-1',
+          date: '2026-05-19',
+          status: 'skipped',
+          sharedWith: []
+        }
+      ]
+    });
+
+    expect(document.body.querySelector('button[title="Skip"]')).toBeNull();
+    expect(document.body.querySelector('button[title="Fail"]')).toBeTruthy();
 
     wrapper.unmount();
   });

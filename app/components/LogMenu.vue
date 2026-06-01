@@ -73,7 +73,7 @@ const props = defineProps<{
   logs: HabitLog[];
   referenceEl: HTMLElement | null;
   // Optional effective settings (e.g. from a modal's temporary state)
-  skipsPeriod?: 'none' | 'weekly' | 'monthly';
+  skipsPeriod?: Habit['skipsPeriod'];
   skipsCount?: number;
 }>();
 
@@ -135,7 +135,10 @@ const options = computed<LogMenuOption[]>(() => {
   let maxSkips = 0;
   let usedSkips = 0;
   
-  if (skipsPeriod === 'none') {
+  if (skipsPeriod === 'disabled' || ((skipsPeriod === 'weekly' || skipsPeriod === 'monthly') && skipsCount === 0)) {
+    maxSkips = 0;
+    usedSkips = 0;
+  } else if (skipsPeriod === 'none') {
     maxSkips = 999;
     usedSkips = 0;
   } else if (skipsPeriod === 'weekly') {

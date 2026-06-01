@@ -100,15 +100,16 @@
                   <label class="text-xs font-bold uppercase tracking-widest text-zinc-500 h-4 flex items-center">Skips Allowed</label>
                   <select
                     v-model="editSkipsPeriod"
-                    class="w-32 h-10 px-3 py-2 bg-black border border-zinc-800 rounded-lg focus:outline-none focus:ring-2 focus:ring-zinc-600 text-white appearance-none cursor-pointer text-sm"
+                    class="w-40 h-10 px-3 py-2 bg-black border border-zinc-800 rounded-lg focus:outline-none focus:ring-2 focus:ring-zinc-600 text-white appearance-none cursor-pointer text-sm"
                   >
-                    <option value="none">No limit</option>
+                    <option value="disabled">No skips allowed</option>
+                    <option value="none">Unlimited skips</option>
                     <option value="weekly">Weekly</option>
                     <option value="monthly">Monthly</option>
                   </select>
                 </div>
 
-                <template v-if="editSkipsPeriod !== 'none'">
+                <template v-if="editSkipsPeriod === 'weekly' || editSkipsPeriod === 'monthly'">
                   <div class="flex items-start gap-3">
                     <div class="flex items-center gap-3">
                       <div class="flex flex-col items-center">
@@ -119,7 +120,7 @@
                           <input
                             v-model.number="editSkipsCount"
                             type="number"
-                            @blur="editSkipsCount = editSkipsPeriod === 'weekly' ? Math.max(0, Math.min(6, editSkipsCount)) : (editSkipsPeriod === 'monthly' ? Math.max(0, Math.min(28, editSkipsCount)) : 0)"
+                            @blur="normalizeEditableSkipsCount"
                             class="w-10 h-10 bg-black border border-zinc-800 rounded-lg text-center text-sm font-medium text-white focus:outline-none focus:ring-1 focus:ring-zinc-600 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                           />
                         </div>
@@ -326,7 +327,7 @@ const { showToast } = useToast();
 const editTitle = ref('');
 const editDescription = ref('');
 const editSkipsCount = ref(2);
-const editSkipsPeriod = ref<'none' | 'weekly' | 'monthly'>('weekly');
+const editSkipsPeriod = ref<Habit['skipsPeriod']>('weekly');
 const editSharedWith = ref<string[]>([]);
 const editSharedWithWorking = ref<string[]>([]);
 
@@ -356,14 +357,32 @@ useModalHistory(isSelfOrInternalOpen, () => {
 
 const close = () => emit('update:modelValue', false);
 
+const normalizeSkipsCount = (period: Habit['skipsPeriod'], count: number) => {
+  if (period === 'disabled' || period === 'none') return 0;
+  const max = period === 'weekly' ? 6 : 27;
+  return Math.max(1, Math.min(max, count));
+};
+
+const getEditableSkipsPeriod = (habit: Habit): Habit['skipsPeriod'] => {
+  if ((habit.skipsPeriod === 'weekly' || habit.skipsPeriod === 'monthly') && (habit.skipsCount ?? 0) === 0) {
+    return 'disabled';
+  }
+  return habit.skipsPeriod;
+};
+
+const normalizeEditableSkipsCount = () => {
+  editSkipsCount.value = normalizeSkipsCount(editSkipsPeriod.value, editSkipsCount.value);
+};
+
 // Initialize state when modal opens
 watch(() => props.modelValue, (isOpen) => {
   if (isOpen && props.habit) {
     const newHabit = props.habit;
+    const editableSkipsPeriod = getEditableSkipsPeriod(newHabit);
     editTitle.value = newHabit.title;
     editDescription.value = newHabit.description || '';
-    editSkipsCount.value = newHabit.skipsCount ?? 2;
-    editSkipsPeriod.value = newHabit.skipsPeriod as any || 'weekly';
+    editSkipsPeriod.value = editableSkipsPeriod;
+    editSkipsCount.value = normalizeSkipsCount(editableSkipsPeriod, newHabit.skipsCount ?? 2);
     editSharedWith.value = [...(newHabit.sharedWith || [])];
     editSharedWithWorking.value = [...(newHabit.sharedWith || [])];
     currentCalendarDate.value = new Date();
@@ -375,6 +394,10 @@ watch(() => props.modelValue, (isOpen) => {
     });
   }
 }, { immediate: true });
+
+watch(editSkipsPeriod, () => {
+  normalizeEditableSkipsCount();
+});
 
 // Logic moved to utils/ui
 
@@ -414,18 +437,17 @@ const getStatusMap = () => {
 
 const openLogMenu = (day: Date, event: MouseEvent) => {
   if (props.habit) {
+    const normalizedSkipsCount = normalizeSkipsCount(editSkipsPeriod.value, editSkipsCount.value);
     emit('open-log-menu', props.habit, day, event, {
       skipsPeriod: editSkipsPeriod.value,
-      skipsCount: editSkipsCount.value
+      skipsCount: normalizedSkipsCount
     });
   }
 };
 
 // Frequency
 const adjustFrequency = (delta: number) => {
-  if (editSkipsPeriod.value === 'none') return;
-  const max = editSkipsPeriod.value === 'weekly' ? 6 : 28;
-  editSkipsCount.value = Math.max(0, Math.min(max, editSkipsCount.value + delta));
+  editSkipsCount.value = normalizeSkipsCount(editSkipsPeriod.value, editSkipsCount.value + delta);
 };
 
 // Sharing
@@ -449,12 +471,13 @@ const sortedFriendsForEdit = computed(() => {
 const updateHabit = async () => {
   if (!props.habit || !editTitle.value.trim() || isUpdatingHabit.value) return;
   
+  const normalizedSkipsCount = normalizeSkipsCount(editSkipsPeriod.value, editSkipsCount.value);
   isUpdatingHabit.value = true;
   try {
     const updated = await api.updateHabit(props.habit.id, { 
       title: editTitle.value.trim(),
       description: editDescription.value.trim(),
-      skipsCount: editSkipsCount.value,
+      skipsCount: normalizedSkipsCount,
       skipsPeriod: editSkipsPeriod.value,
       sharedWith: editSharedWith.value,
       userDate: format(new Date(), 'yyyy-MM-dd'),
