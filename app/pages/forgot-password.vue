@@ -58,7 +58,7 @@
               />
             </div>
 
-            <p v-if="error" class="text-sm text-red-400 bg-red-950/50 px-3 py-2 rounded-lg text-center">{{ error }}</p>
+            <p v-if="error" class="p-3 bg-rose-500/10 border border-rose-500/20 rounded-xl text-rose-500 text-sm text-center font-medium">{{ error }}</p>
 
             <button
               type="submit"

@@ -94,6 +94,7 @@ html.light .inbox-message-bubble-friend {
 
 html.light .habits-content-surface,
 html.light .buckets-content-surface,
+html.light .friend-content-surface,
 html.light .activity-content-surface {
   box-shadow: none;
 }
