@@ -36,7 +36,18 @@
             Hi, {{ user.username }}!
           </button>
           <div class="w-px h-6 bg-zinc-800 mx-2 shrink-0"></div>
-          <button @click="logout" class="pr-2 py-2 pl-0 text-zinc-500 hover:text-white hover:bg-zinc-925 rounded-lg transition-colors flex items-center justify-center cursor-pointer" title="Logout">
+          <button
+            type="button"
+            @click="toggleThemeMode"
+            class="p-2 text-zinc-500 hover:text-white hover:bg-zinc-925 rounded-lg transition-colors flex items-center justify-center cursor-pointer"
+            :title="themeToggleTitle"
+            :aria-label="themeToggleTitle"
+          >
+            <Moon v-if="isLightMode" class="w-5 h-5" />
+            <Sun v-else class="w-5 h-5" />
+          </button>
+          <div class="w-px h-6 bg-zinc-800 mx-2 shrink-0"></div>
+          <button @click="logout" class="p-2 text-zinc-500 hover:text-white hover:bg-zinc-925 rounded-lg transition-colors flex items-center justify-center cursor-pointer" title="Logout">
             <LogOut class="w-5 h-5" />
           </button>
         </div>
@@ -89,18 +100,29 @@
 
     <!-- Mobile Menu Modal -->
     <Teleport to="body">
+      <!-- Backdrop Transition -->
       <Transition
-        enter-active-class="transition duration-300 ease-out"
-        enter-from-class="opacity-0 translate-y-full"
-        enter-to-class="opacity-100 translate-y-0"
-        leave-active-class="transition duration-200 ease-in"
-        leave-from-class="opacity-100 translate-y-0"
-        leave-to-class="opacity-0 translate-y-full"
+        enter-active-class="transition-opacity duration-300 ease-out"
+        enter-from-class="opacity-0"
+        enter-to-class="opacity-100"
+        leave-active-class="transition-opacity duration-200 ease-in"
+        leave-from-class="opacity-100"
+        leave-to-class="opacity-0"
       >
-        <div v-if="showMobileMenu" class="fixed inset-x-0 top-0 bottom-[calc(4rem-6px+env(safe-area-inset-bottom,0px))] z-[45] flex flex-col justify-end md:hidden">
-          <div class="absolute inset-0 bg-black/80 backdrop-blur-sm touch-none" @click="showMobileMenu = false"></div>
-          
-          <div class="relative w-full bg-zinc-950 border-t border-zinc-800 rounded-t-3xl shadow-2xl overflow-hidden">
+        <div v-if="showMobileMenu" class="fixed inset-x-0 top-0 bottom-[calc(4rem-6px+env(safe-area-inset-bottom,0px))] z-[44] bg-black/80 backdrop-blur-sm touch-none md:hidden" @click="showMobileMenu = false"></div>
+      </Transition>
+
+      <!-- Menu Transition -->
+      <Transition
+        enter-active-class="transition-transform duration-300 ease-out"
+        enter-from-class="translate-y-full"
+        enter-to-class="translate-y-0"
+        leave-active-class="transition-transform duration-200 ease-in"
+        leave-from-class="translate-y-0"
+        leave-to-class="translate-y-full"
+      >
+        <div v-if="showMobileMenu" class="fixed inset-x-0 bottom-[calc(4rem-6px+env(safe-area-inset-bottom,0px))] z-[45] flex flex-col justify-end md:hidden pointer-events-none">
+          <div class="relative w-full bg-zinc-950 border-t border-zinc-800 rounded-t-3xl shadow-2xl overflow-hidden pointer-events-auto">
             <div class="p-4 border-b border-zinc-800 flex flex-col items-center gap-4">
               <div class="w-full flex items-center justify-between">
                 <div class="flex items-center gap-3">
@@ -125,6 +147,16 @@
                 <UserIcon class="w-5 h-5 text-zinc-400" />
                 <span class="font-semibold">Edit Profile</span>
               </button>
+
+              <button
+                type="button"
+                @click="toggleThemeMode"
+                class="w-full p-2 flex items-center gap-3 text-zinc-300 hover:bg-zinc-900 rounded-xl transition-colors cursor-pointer"
+              >
+                <Moon v-if="isLightMode" class="w-5 h-5 text-zinc-400" />
+                <Sun v-else class="w-5 h-5 text-zinc-400" />
+                <span class="font-semibold">{{ themeToggleText }}</span>
+              </button>
               
               <button 
                 @click="() => { suppressNextHistoryBack(); showMobileMenu = false; logout(); }"
@@ -148,7 +180,7 @@
 </template>
 
 <script setup lang="ts">
-import { LogOut, Target, ListChecks, Users, User as UserIcon, PaintBucket, MessageCircle, Menu } from 'lucide-vue-next';
+import { LogOut, ListChecks, Users, User as UserIcon, PaintBucket, MessageCircle, Menu, Moon, Sun } from 'lucide-vue-next';
 
 const { user, fetchUser } = useAuth();
 const { showToast } = useToast();
@@ -156,6 +188,7 @@ const { isOnline } = useNetwork();
 const { pendingCount, init: initSocial, cleanup: cleanupSocial, logoutCleanup } = useSocial();
 const { totalUnreadCount, init: initChatInbox, logoutCleanup: chatInboxLogoutCleanup } = useChatInbox();
 const realtimeInvalidation = useRealtimeInvalidation();
+const { isLightMode, themeToggleText, themeToggleTitle, toggleThemeMode } = useThemeMode();
 
 useSeoMeta({
   title: 'My Habits - Habits Social',
@@ -262,4 +295,14 @@ const logout = async () => {
   background-color: rgba(39, 39, 42, 0.5);
 }
 .nav-link-active { color: white; background-color: rgba(63, 63, 70, 0.5); }
+</style>
+
+<style>
+/* Unscoped block so it can read the global html.light class without scoping conflicts */
+html.light .nav-link:hover {
+  background-color: #000000;
+}
+html.light .nav-link-active {
+  background-color: #000000;
+}
 </style>

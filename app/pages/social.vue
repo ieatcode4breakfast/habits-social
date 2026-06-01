@@ -13,7 +13,7 @@
       </div>
       
       <!-- Tab Navigation -->
-      <div class="px-4 sm:px-0 py-2">
+      <div class="px-4 sm:px-0 pb-2">
         <div class="flex p-1 bg-zinc-925 border border-zinc-800 rounded-xl relative">
           <button 
           @click="activeTab = 'activity'"
@@ -46,7 +46,7 @@
       </div>
 
       <template v-else>
-        <div v-if="!feed || feed.length === 0" class="bg-zinc-925/80 backdrop-blur-sm sm:rounded-2xl rounded-none border-y border-x-0 sm:border border-zinc-800/80 p-10 text-center shadow-2xl flex flex-col items-center">
+        <div v-if="!feed || feed.length === 0" class="activity-content-surface bg-zinc-925/80 backdrop-blur-sm sm:rounded-2xl rounded-none border-y border-x-0 sm:border border-zinc-800/80 p-10 text-center shadow-2xl flex flex-col items-center">
         <div class="w-16 h-16 bg-zinc-950 rounded-full flex items-center justify-center mx-auto mb-4 border border-zinc-800">
           <Activity class="w-8 h-8 text-zinc-500" />
         </div>
@@ -73,7 +73,7 @@
               v-for="(item, itemIndex) in group" 
               :key="item.id"
               @click="item.habit?.id ? openHabitDetails(item.habit.id) : (String(item.user.id) !== String(user?.id) ? navigateTo(`/friends/${item.user.id}?from=${activeTab}`) : null)"
-              class="group bg-zinc-925/50 hover:bg-zinc-900/80 border-b border-zinc-800/50 last:border-b-0 sm:border-x sm:border-b sm:border-zinc-800/50 p-4 transition-all duration-300 cursor-pointer flex flex-col gap-3 shadow-sm"
+              class="activity-content-surface group bg-zinc-925/50 hover:bg-zinc-900/80 border-b border-zinc-800/50 last:border-b-0 sm:border-x sm:border-b sm:border-zinc-800/50 p-4 transition-all duration-300 cursor-pointer flex flex-col gap-3 shadow-sm"
               :class="[
                 itemIndex === 0 ? 'sm:rounded-t-2xl sm:border-t' : '',
                 itemIndex === group.length - 1 ? 'sm:rounded-b-2xl' : ''

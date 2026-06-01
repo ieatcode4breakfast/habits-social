@@ -41,6 +41,7 @@ const { isVisible, message, type } = useToast();
 const config = useRuntimeConfig();
 const { sync } = useHabitsApi();
 const { user } = useAuth();
+const { themeMode, initializeThemeMode } = useThemeMode();
 
 const { isOnline } = useNetwork();
 const { showToast } = useToast();
@@ -48,7 +49,7 @@ const { showToast } = useToast();
 useFocusRefetch(sync);
 
 onMounted(() => {
-  // Social state is now initialized globally in default.vue layout or via watch effects
+  initializeThemeMode();
 });
 
 // Watch connectivity for UI feedback and auto-sync
@@ -70,13 +71,13 @@ watch(() => user.value?.id, (newId) => {
 }, { immediate: true });
 
 
-useHead({
-  htmlAttrs: { class: 'dark', style: 'overscroll-behavior-y: none' },
+useHead(() => ({
+  htmlAttrs: { class: themeMode.value, style: 'overscroll-behavior-y: none' },
   bodyAttrs: { style: 'overscroll-behavior-y: none' },
   title: 'Habits Social',
   meta: [
     { name: 'description', content: 'A social habit tracking app.' },
-    { name: 'theme-color', content: '#000000' },
+    { name: 'theme-color', content: themeMode.value === 'light' ? '#f6f7fb' : '#000000' },
     { name: 'mobile-web-app-capable', content: 'yes' },
     { name: 'apple-mobile-web-app-status-bar-style', content: 'black-translucent' },
     { name: 'apple-mobile-web-app-title', content: config.public.appName as string },
@@ -89,5 +90,5 @@ useHead({
     { rel: 'icon', type: 'image/svg+xml', href: '/favicon-rounded.svg?v=15' },
     { rel: 'apple-touch-icon', href: '/favicon-rounded.svg' }
   ]
-});
+}));
 </script>

@@ -12,6 +12,26 @@
   --nav-bg: #000000;
 }
 
+html.light {
+  color-scheme: light;
+  --color-app-bg: #f6f7fb;
+  --color-card-bg: rgba(255, 255, 255, 0.86);
+  --nav-bg: #ffffff;
+  --color-white: #18181b;
+  --color-zinc-50: #111827;
+  --color-zinc-100: #18181b;
+  --color-zinc-200: #27272a;
+  --color-zinc-300: #3f3f46;
+  --color-zinc-400: #52525b;
+  --color-zinc-500: #71717a;
+  --color-zinc-600: #64748b;
+  --color-zinc-700: #cbd5e1;
+  --color-zinc-800: #e2e8f0;
+  --color-zinc-900: #f1f5f9;
+  --color-zinc-925: #f8fafc;
+  --color-zinc-950: #ffffff;
+}
+
 html, body {
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
@@ -24,6 +44,82 @@ html, body {
   -moz-user-select: none;
   -ms-user-select: none;
   user-select: none;
+}
+
+html.light body {
+  color: #18181b;
+}
+
+html.light .bg-black {
+  background-color: #f6f7fb;
+}
+
+@media (min-width: 48rem) {
+  html.light .md\:bg-black {
+    background-color: #f6f7fb;
+  }
+
+  html.light .md\:bg-black\/60 {
+    background-color: rgba(255, 255, 255, 0.72);
+  }
+}
+
+html.light .text-black {
+  color: #ffffff;
+}
+
+html.light .inbox-shell,
+html.light .inbox-list-panel,
+html.light .inbox-chat-panel,
+html.light .inbox-chat-chrome,
+html.light .inbox-conversation-active {
+  background-color: #ffffff;
+}
+
+html.light .inbox-conversation-active {
+  border-color: #ffffff;
+  box-shadow: none;
+}
+
+html.light .inbox-message-bubble-own {
+  background-color: #f8fafc;
+  color: #18181b;
+}
+
+html.light .inbox-message-bubble-friend {
+  background-color: #18181b;
+  border-color: #27272a;
+  color: #f8fafc;
+}
+
+html.light .habits-content-surface,
+html.light .buckets-content-surface,
+html.light .activity-content-surface {
+  box-shadow: none;
+}
+
+@media (min-width: 48rem) {
+  html.light .inbox-shell,
+  html.light .inbox-list-panel,
+  html.light .inbox-chat-panel,
+  html.light .inbox-chat-chrome {
+    background-color: #f6f7fb;
+  }
+
+  html.light .inbox-list-panel .inbox-conversation-active {
+    background-color: #f1f5f9;
+    border-color: #e2e8f0;
+  }
+}
+
+html.light :where(.bg-emerald-500, .bg-rose-500, .bg-amber-500, .bg-indigo-500, .bg-zinc-500).text-white,
+html.light :where(.bg-emerald-500, .bg-rose-500, .bg-amber-500, .bg-indigo-500, .bg-zinc-500) .text-white {
+  color: #ffffff;
+}
+
+html.light :where(.bg-emerald-500, .bg-rose-500, .bg-amber-500, .bg-indigo-500, .bg-zinc-500).bg-white,
+html.light :where(.bg-emerald-500, .bg-rose-500, .bg-amber-500, .bg-indigo-500, .bg-zinc-500) .bg-white {
+  background-color: #ffffff;
 }
 
 ::-webkit-scrollbar {

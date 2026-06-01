@@ -1,14 +1,14 @@
 <template>
-  <div class="relative h-[calc(100dvh-57px)] md:h-[calc(100dvh-80px)] flex flex-col md:flex-row bg-black/60 backdrop-blur-xl sm:-mx-6 md:mx-0 md:rounded-2xl border border-zinc-800/80 border-x-0 border-t-0 overflow-hidden shadow-2xl md:mt-2 md:mb-2 md:bg-transparent md:backdrop-blur-none md:border-transparent md:overflow-visible md:shadow-none md:gap-2">
+  <div class="inbox-shell relative h-[calc(100dvh-57px)] md:h-[calc(100dvh-80px)] flex flex-col md:flex-row bg-black/60 backdrop-blur-xl sm:-mx-6 md:mx-0 md:rounded-2xl border border-zinc-800/80 border-x-0 border-t-0 overflow-hidden shadow-2xl md:mt-2 md:mb-2 md:bg-transparent md:backdrop-blur-none md:border-transparent md:overflow-visible md:shadow-none md:gap-2">
     
     <!-- Sidebar Pane: Conversations List -->
     <div 
       v-show="!activeFriend || !isMobile"
-      class="w-full md:w-80 shrink-0 flex flex-col bg-zinc-950/40 md:rounded-2xl md:border md:border-zinc-800/80 md:bg-black/60 md:backdrop-blur-xl md:shadow-2xl md:overflow-hidden"
+      class="inbox-list-panel w-full md:w-80 shrink-0 flex flex-col bg-zinc-950/40 md:rounded-2xl md:border md:border-zinc-800/80 md:bg-black/60 md:backdrop-blur-xl md:shadow-2xl md:overflow-hidden"
       :class="{ 'h-full': isMobile }"
     >
       <!-- Sidebar Header -->
-      <div class="px-4 pt-2 py-2 flex items-end justify-between gap-4 bg-black shrink-0 md:bg-zinc-925/40 md:backdrop-blur-md md:border-b md:border-zinc-800/80">
+      <div class="inbox-chat-chrome px-4 pt-2 py-2 flex items-end justify-between gap-4 bg-black shrink-0 md:bg-zinc-925/40 md:backdrop-blur-md md:border-b md:border-zinc-800/80">
         <div class="flex items-center gap-3">
           <MessageCircle class="w-7 h-7 text-zinc-400 shrink-0" />
           <div>
@@ -63,27 +63,37 @@
             class="w-full text-left p-3 rounded-xl transition-all duration-200 flex items-center gap-3 group relative cursor-pointer outline-none border border-transparent"
             :class="[
               activeConversationId === conv.id 
-                ? 'bg-white/10 border-white/5 shadow-md shadow-black/25' 
+                ? 'inbox-conversation-active bg-white/10 border-white/5 shadow-md shadow-black/25' 
                 : 'hover:bg-zinc-900/50'
             ]"
           >
             <!-- Friend Avatar -->
             <div class="relative shrink-0">
               <div 
-                class="w-10 h-10 rounded-full flex items-center justify-center border font-bold text-xs uppercase shadow-sm transition-all"
+                class="w-10 h-10 flex items-center justify-center font-bold text-xs uppercase transition-all"
                 :class="[
                   activeConversationId === conv.id
-                    ? 'bg-white text-black border-white'
-                    : 'bg-zinc-900 border-zinc-800 text-zinc-300 group-hover:border-zinc-700'
+                    ? 'text-black'
+                    : 'text-zinc-300'
                 ]"
               >
                 <img 
                   v-if="getFriendProfile(conv)?.photoUrl" 
                   :src="getFriendProfile(conv)?.photoUrl" 
-                  class="w-full h-full rounded-full object-cover"
+                  class="w-full h-full rounded-full object-cover shadow-sm"
                   alt="Avatar"
                 />
-                <span v-else>{{ getFriendProfile(conv)?.username?.charAt(0) || '?' }}</span>
+                <div 
+                  v-else 
+                  class="w-full h-full rounded-full flex items-center justify-center shadow-sm"
+                  :class="[
+                    activeConversationId === conv.id
+                      ? 'bg-white'
+                      : 'bg-zinc-900'
+                  ]"
+                >
+                  <span>{{ getFriendProfile(conv)?.username?.charAt(0) || '?' }}</span>
+                </div>
               </div>
             </div>
 
@@ -127,12 +137,12 @@
     <!-- Main Pane: Chat History & Input -->
     <div 
       v-show="activeFriend || (viewportReady && !isMobile)"
-      class="flex-1 flex flex-col min-h-0 md:h-full bg-zinc-950/20 relative md:rounded-2xl md:border md:border-zinc-800/80 md:bg-black/60 md:backdrop-blur-xl md:shadow-2xl md:overflow-hidden"
+      class="inbox-chat-panel flex-1 flex flex-col min-h-0 md:h-full bg-zinc-950/20 relative md:rounded-2xl md:border md:border-zinc-800/80 md:bg-black/60 md:backdrop-blur-xl md:shadow-2xl md:overflow-hidden"
     >
       <!-- Chat Header + Messages + Input (only when a conversation is active) -->
       <template v-if="activeFriend">
         <!-- Chat Header -->
-        <div class="sticky top-0 z-40 px-4 py-2 flex items-end justify-between gap-4 bg-black md:bg-black shrink-0">
+        <div class="inbox-chat-chrome sticky top-0 z-40 px-4 py-2 flex items-center justify-between gap-4 bg-black md:bg-black shrink-0">
           <div class="flex items-center gap-3 min-w-0">
             <button 
               v-if="isMobile" 
@@ -147,17 +157,11 @@
               @click="navigateTo(`/friends/${activeFriend.id}?from=inbox`)"
               class="flex items-center gap-3 cursor-pointer group"
             >
-              <div class="relative shrink-0 transition-transform group-active:scale-95 group-hover:opacity-80">
-                <div class="w-9 h-9 rounded-full bg-zinc-900 border border-zinc-800 flex items-center justify-center font-bold text-xs uppercase text-zinc-300">
-                  <img 
-                    v-if="activeFriend.photoUrl" 
-                    :src="activeFriend.photoUrl" 
-                    class="w-full h-full rounded-full object-cover"
-                    alt="Avatar"
-                  />
-                  <span v-else>{{ activeFriend.username.charAt(0) }}</span>
-                </div>
-              </div>
+              <UserAvatar
+                :src="activeFriend.photoUrl"
+                container-class="w-9 h-9 bg-zinc-900 border border-zinc-800 transition-transform group-active:scale-95 group-hover:opacity-80"
+                icon-class="w-4 h-4 text-zinc-500"
+              />
 
               <div class="min-w-0">
                 <h2 class="text-sm font-bold text-white truncate leading-tight group-hover:text-zinc-300 transition-colors">{{ activeFriend.username }}</h2>
@@ -225,11 +229,11 @@
 
               <!-- Message Bubble -->
               <div 
-                class="rounded-2xl text-sm shadow-md relative break-words select-text font-normal leading-relaxed"
+                class="inbox-message-bubble rounded-2xl text-sm shadow-md relative break-words select-text font-normal leading-relaxed"
                 :class="[
                   msg.senderId === user?.id
-                    ? 'bg-zinc-100 text-zinc-950'
-                    : 'bg-zinc-900 border border-zinc-800/80 text-zinc-100',
+                    ? 'inbox-message-bubble-own bg-zinc-100 text-zinc-950'
+                    : 'inbox-message-bubble-friend bg-zinc-900 border border-zinc-800/80 text-zinc-100',
                   msg.senderId === user?.id ? 'rounded-br-sm' : 'rounded-bl-sm',
                   msg.replyToActivity && !msg.deletedAt 
                     ? 'p-1 w-full flex-1 min-w-[280px] sm:min-w-[320px] flex flex-col' 
@@ -253,7 +257,7 @@
                     <div class="flex items-center gap-2 min-w-0">
                       <UserAvatar 
                         :src="msg.replyToActivity.user.photoUrl" 
-                        container-class="w-6 h-6 bg-zinc-900 border border-zinc-805"
+                        container-class="w-6 h-6"
                         icon-class="w-3 h-3 text-zinc-700"
                       />
                       <span class="text-[11px] leading-tight font-black text-white truncate">
@@ -364,7 +368,7 @@
         </div>
 
         <!-- Input Send Panel -->
-        <div class="z-40 p-2 bg-black md:bg-black shrink-0 flex flex-col gap-2">
+        <div class="inbox-chat-chrome z-40 p-2 bg-black md:bg-black shrink-0 flex flex-col gap-2">
           <!-- Static Reply Context Card Preview (IG Story style) -->
           <div 
             v-if="replyActivityContext" 
@@ -384,7 +388,7 @@
               <div class="flex items-center gap-2 min-w-0">
                 <UserAvatar 
                   :src="replyActivityContext.user.photoUrl" 
-                  container-class="w-6 h-6 bg-zinc-950 border border-zinc-800"
+                  container-class="w-6 h-6"
                   icon-class="w-3 h-3 text-zinc-700"
                 />
                 <span class="text-[11px] leading-tight font-black text-white truncate">

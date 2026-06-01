@@ -67,7 +67,7 @@
 
     <!-- Habit List (Single Card) -->
     <div v-motion-fade :style="pullStyle" 
-         class="sm:rounded-b-2xl rounded-none overflow-hidden border-b border-x-0 sm:border-x sm:border-b relative will-change-transform transition-colors duration-300"
+         class="habits-content-surface sm:rounded-b-2xl rounded-none overflow-hidden border-b border-x-0 sm:border-x sm:border-b relative will-change-transform transition-colors duration-300"
          :class="!loading ? 'backdrop-blur-md bg-zinc-925/80 border-zinc-800/80 shadow-2xl' : 'border-transparent'">
 
       <div class="w-full relative min-h-[100px]">
