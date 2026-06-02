@@ -189,9 +189,9 @@
 
     <!-- Combined Social Sections -->
     <div v-motion-fade class="bg-zinc-925/80 backdrop-blur-sm sm:rounded-2xl rounded-none shadow-2xl border-y border-x-0 sm:border border-zinc-800/80 overflow-hidden">
-      <!-- Add Friend -->
+      <!-- Search Users -->
       <div class="sm:p-6 sm:pb-0 py-6 pb-0">
-        <h2 class="text-sm font-bold uppercase tracking-wider text-zinc-500 mb-2 px-6 sm:px-0">Add Friend</h2>
+        <h2 class="text-sm font-bold uppercase tracking-wider text-zinc-500 mb-2 px-6 sm:px-0">Search Users</h2>
         <form @submit.prevent="handleSearch" class="flex gap-3 px-6 sm:px-0">
           <div class="relative w-full max-w-md">
             <Search class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" />
