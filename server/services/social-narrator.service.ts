@@ -22,6 +22,7 @@ export interface FeedItem {
   timestamp: Date;
   weeklyStatus?: { date: string, status: string | undefined }[];
   streakCount?: number;
+  streakAnchorDate?: string | null;
   frequencyText?: string;
 }
 
@@ -128,7 +129,8 @@ export class SocialNarratorService {
         message,
         date: log.date,
         timestamp: log.updatedAt,
-        streakCount: log.streakCount
+        streakCount: log.streakCount,
+        streakAnchorDate: log.streakAnchorDate ?? null
       };
     }
     return null;

@@ -278,6 +278,7 @@
                     v-if="msg.replyToActivity.weeklyStatus"
                     :title="msg.replyToActivity.habit.title"
                     :streakCount="msg.replyToActivity.streakCount"
+                    :streak-anchor-date="msg.replyToActivity.streakAnchorDate"
                     :frequency-text="msg.replyToActivity.frequencyText"
                     :weeklyStatus="msg.replyToActivity.weeklyStatus"
                     compact
@@ -408,6 +409,7 @@
               v-if="replyActivityContext.weeklyStatus"
               :title="replyActivityContext.habit.title"
               :streakCount="replyActivityContext.streakCount"
+              :streak-anchor-date="replyActivityContext.streakAnchorDate"
               :frequency-text="replyActivityContext.frequencyText"
               :weeklyStatus="replyActivityContext.weeklyStatus"
               compact
@@ -716,6 +718,7 @@ interface ActivityReplyCard {
     status: string | undefined;
   }[];
   streakCount?: number;
+  streakAnchorDate?: string | null;
   frequencyText?: string;
 }
 

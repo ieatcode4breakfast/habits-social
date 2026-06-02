@@ -26,6 +26,7 @@ export interface LogFeedRow extends FeedRowBase {
     brokenStreakCount: number;
     updatedAt: string;
     habitTitle: string;
+    streakAnchorDate: string | null;
   };
 }
 
@@ -125,7 +126,8 @@ export default defineEventHandler(async (event) => {
           'streakCount', hl.streak_count,
           'brokenStreakCount', hl.broken_streak_count,
           'updatedAt', hl.updated_at,
-          'habitTitle', h.title
+          'habitTitle', h.title,
+          'streakAnchorDate', h.streak_anchor_date
         ) as raw_data
       FROM ${habitLogs} hl
       JOIN ${habitsTable} h ON hl.habit_id = h.id

@@ -301,6 +301,7 @@ type HabitReplyCard = {
   timestamp: Date;
   weeklyStatus: HabitReplyWeeklyStatus[];
   streakCount?: number;
+  streakAnchorDate?: string | null;
   frequencyText: string;
 };
 
@@ -577,6 +578,7 @@ const buildHabitReplyCard = (habit: Habit): HabitReplyCard | null => {
     timestamp: new Date(),
     weeklyStatus,
     streakCount: habit.currentStreak,
+    streakAnchorDate: habit.streakAnchorDate,
     frequencyText: getFrequencyText(habit)
   };
 };

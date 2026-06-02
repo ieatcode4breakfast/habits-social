@@ -27,7 +27,8 @@ describe('Chat Activity Reply Embedding', () => {
     message: 'completed Workout Daily for May 23.',
     date: '2026-05-23',
     timestamp: new Date('2026-05-23T12:00:00Z'),
-    streakCount: 5
+    streakCount: 5,
+    streakAnchorDate: '2026-05-23'
   } as unknown as FeedItem;
 
   beforeEach(async () => {
@@ -62,6 +63,7 @@ describe('Chat Activity Reply Embedding', () => {
     expect(msg.replyToActivity).toBeDefined();
     expect(msg.replyToActivity.id).toBe(card.id);
     expect(msg.replyToActivity.streakCount).toBe(5);
+    expect(msg.replyToActivity.streakAnchorDate).toBe('2026-05-23');
     expect(msg.replyToActivity.user.id).toBe(userB.id);
 
     // List messages and check if visual card is recovered perfectly
@@ -70,6 +72,7 @@ describe('Chat Activity Reply Embedding', () => {
     const savedMsg = history.messages[0] as any;
     expect(savedMsg.replyToActivity).toBeDefined();
     expect(savedMsg.replyToActivity.id).toBe(card.id);
+    expect(savedMsg.replyToActivity.streakAnchorDate).toBe('2026-05-23');
     expect(savedMsg.replyToActivity.user.id).toBe(userB.id);
   });
 

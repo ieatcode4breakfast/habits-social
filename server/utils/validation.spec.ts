@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { shareHabitsSchema, syncQuerySchema, registerSchema, updateProfileSchema, insertUserSchema } from './validation';
+import { shareHabitsSchema, syncQuerySchema, registerSchema, updateProfileSchema, insertUserSchema, chatMessageSchema } from './validation';
 
 describe('validation schemas boundaries', () => {
   describe('shareHabitsSchema', () => {
@@ -99,6 +99,34 @@ describe('validation schemas boundaries', () => {
         photoUrl: longUrl
       });
       expect(result.success).toBe(false);
+    });
+  });
+
+  describe('chatMessageSchema', () => {
+    it('preserves streakAnchorDate in embedded activity reply cards', () => {
+      const result = chatMessageSchema.parse({
+        body: 'Nice streak',
+        replyToActivity: {
+          id: 'activity-123',
+          type: 'STREAK_MILESTONE',
+          user: {
+            id: '00000000-0000-0000-0000-000000000000',
+            name: 'Alex',
+            photoUrl: null
+          },
+          habit: {
+            id: '00000000-0000-0000-0000-000000000001',
+            title: 'Meditate'
+          },
+          message: 'hit a streak',
+          date: '2026-05-23',
+          timestamp: '2026-05-23T12:00:00.000Z',
+          streakCount: 7,
+          streakAnchorDate: '2026-05-23'
+        }
+      });
+
+      expect(result.replyToActivity?.streakAnchorDate).toBe('2026-05-23');
     });
   });
 });

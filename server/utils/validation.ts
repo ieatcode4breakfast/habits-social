@@ -182,6 +182,7 @@ export const feedItemSchema = z.object({
     status: z.string().nullable().optional().transform(v => v === null ? undefined : v)
   })).optional(),
   streakCount: z.number().int().optional(),
+  streakAnchorDate: zDateString.nullable().optional(),
   frequencyText: z.string().max(120).optional()
 });
 

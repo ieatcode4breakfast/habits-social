@@ -12,10 +12,18 @@
         <!-- Streak Badge -->
         <div 
           v-if="(streakCount ?? 0) >= 2"
-          class="flex items-center gap-1 px-1.5 py-0.5 bg-black border rounded-md shrink-0 border-emerald-500/50"
+          class="flex items-center gap-1 px-1.5 py-0.5 bg-black border rounded-md shrink-0"
+          :class="[
+            streakIsFaded ? 'opacity-30' : 'opacity-100',
+            streakTheme.border
+          ]"
         >
-          <Flame class="w-2.5 h-2.5 text-emerald-500 fill-emerald-500" />
-          <span class="text-[9px] font-black tracking-tight text-emerald-500">
+          <Flame 
+            v-if="(streakCount ?? 0) >= 7"
+            class="w-2.5 h-2.5"
+            :class="[streakTheme.text, streakTheme.fill]"
+          />
+          <span class="text-[9px] font-black tracking-tight" :class="streakTheme.text">
             x{{ streakCount }} STREAK
           </span>
         </div>
@@ -73,13 +81,19 @@
 <script setup lang="ts">
 import { Flame, Check, X as XIcon, Minus, Palmtree } from 'lucide-vue-next';
 import { format, parseISO } from 'date-fns';
+import { computed } from 'vue';
+import { getStreakTheme, isStreakFaded } from '~/utils/ui';
 
-defineProps<{
+const props = defineProps<{
   title: string;
   streakCount?: number;
+  streakAnchorDate?: string | null;
   compact?: boolean;
   frequencyText?: string;
 
   weeklyStatus: { date: string, status: string | undefined }[];
 }>();
+
+const streakTheme = computed(() => getStreakTheme(props.streakCount ?? 0));
+const streakIsFaded = computed(() => isStreakFaded(props.streakAnchorDate ?? null));
 </script>

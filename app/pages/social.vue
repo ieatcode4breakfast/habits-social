@@ -112,6 +112,7 @@
                 v-if="item.weeklyStatus"
                 :title="item.habit.title"
                 :streakCount="item.streakCount"
+                :streak-anchor-date="item.streakAnchorDate"
                 :weeklyStatus="item.weeklyStatus"
               />
 
@@ -544,6 +545,7 @@ interface ActivityFeedItem {
   timestamp: string | Date;
   weeklyStatus?: { date: string; status?: string }[];
   streakCount?: number;
+  streakAnchorDate?: string | null;
 }
 interface Friendship { 
   id: string; 
