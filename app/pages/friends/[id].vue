@@ -78,7 +78,7 @@
       </div>
 
       <!-- Date Header -->
-      <div v-if="habits.length > 0" class="bg-zinc-925 border-b sm:border-t border-x-0 sm:border-x border-zinc-800/80 py-2 sm:rounded-t-2xl flex flex-col items-stretch sm:flex-row sm:items-center sm:justify-between gap-x-4 gap-y-2 sm:px-4">
+      <div v-if="habits.length > 0" class="bg-date-header-bg border-b sm:border-t border-x-0 sm:border-x border-zinc-800/80 py-2 sm:rounded-t-2xl flex flex-col items-stretch sm:flex-row sm:items-center sm:justify-between gap-x-4 gap-y-2 sm:px-4">
           <div class="w-full px-4 sm:px-0 sm:flex-1 sm:min-w-[200px] hidden sm:block pr-0 sm:pr-2"></div>
           <div class="w-full sm:w-[320px] lg:w-[400px] shrink-0 px-2 sm:px-0">
             <div class="flex items-end w-full">

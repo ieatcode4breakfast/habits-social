@@ -3,6 +3,7 @@
 @theme {
   --color-zinc-925: #101013;
   --color-nav-bg: var(--nav-bg);
+  --color-date-header-bg: var(--date-header-bg);
 }
 
 :root {
@@ -10,6 +11,7 @@
   --color-app-bg: #000000;
   --color-card-bg: rgba(16, 16, 19, 0.8);
   --nav-bg: #000000;
+  --date-header-bg: #101013;
 }
 
 html.light {
@@ -17,6 +19,7 @@ html.light {
   --color-app-bg: #f6f7fb;
   --color-card-bg: rgba(255, 255, 255, 0.86);
   --nav-bg: #ffffff;
+  --date-header-bg: #e2e8f0;
   --color-white: #18181b;
   --color-zinc-50: #111827;
   --color-zinc-100: #18181b;
