@@ -12,6 +12,7 @@ import {
 import { getServerTime } from '~~/server/utils/db';
 import type { BucketStreakBaseline, HabitStreakBaseline, SyncParams, SyncResponse } from '~~/server/types/sync';
 import type { DBConnection } from '../types/db';
+import { sanitizeHabitShareRecipientIds } from './habit-sharing.service';
 
 const V1_SAFETY_THRESHOLD = 5000;
 
@@ -36,6 +37,29 @@ interface BucketBaselineRow {
   baselineLongestStreak: number | null;
   baselineStreakAnchorDate: string | null;
 }
+
+interface ShareableRecord {
+  sharedWith: string[] | null;
+}
+
+const sanitizeShareableRecords = async <T extends ShareableRecord>(
+  db: DBConnection,
+  userId: string,
+  records: readonly T[]
+): Promise<Array<Omit<T, 'sharedWith'> & { sharedWith: string[] }>> => {
+  if (records.length === 0) return [];
+
+  const allowedShareIds = new Set(await sanitizeHabitShareRecipientIds(
+    db,
+    userId,
+    records.flatMap((record) => record.sharedWith ?? [])
+  ));
+
+  return records.map((record) => ({
+    ...record,
+    sharedWith: (record.sharedWith ?? []).map(String).filter((id) => allowedShareIds.has(id))
+  }));
+};
 
 const toOptionalNumber = (value: unknown): number | null => {
   if (typeof value === 'number') return value;
@@ -177,11 +201,13 @@ export const SyncService = {
 
     // 2. Aggregate bucket results (Stitch separate query results together)
     const normalizedBuckets = this.stitchBuckets(bucketsRes, bucketHabitsRes, membersRes);
+    const sanitizedHabits = await sanitizeShareableRecords(db, userId, habitsRes);
+    const sanitizedHabitLogs = await sanitizeShareableRecords(db, userId, habitLogsRes);
 
     return {
-      habits: habitsRes,
+      habits: sanitizedHabits,
       buckets: normalizedBuckets,
-      habitLogs: habitLogsRes,
+      habitLogs: sanitizedHabitLogs,
       bucketLogs: bucketLogsRes,
       deletions: deletionsRes.map((d: any) => ({ id: d.entityId, type: d.entityType })),
       serverTime
@@ -605,9 +631,9 @@ export const SyncService = {
     }
 
     return {
-      habits: habitsRes,
+      habits: await sanitizeShareableRecords(db, userId, habitsRes),
       buckets: normalizedBuckets,
-      habitLogs: habitLogsRes,
+      habitLogs: await sanitizeShareableRecords(db, userId, habitLogsRes),
       bucketLogs: bucketLogsRes,
       deletions: deletionsRes.map((d: any) => ({ id: d.entityId, type: d.entityType })),
       habitStreakBaselines,

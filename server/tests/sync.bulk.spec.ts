@@ -2,26 +2,30 @@ import './setup';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 // @ts-ignore - File may not exist yet
 import syncBulk from '../api/sync/bulk.post';
-import { createMockEvent, createTestUser, createTestHabit, db } from './test.utils';
-import { habits as habitsTable, buckets as bucketsTable, bucketHabits } from '../db/schema';
+import { createMockEvent, createTestUser, createTestHabit, createFriendship, db, type User } from './test.utils';
+import { habits as habitsTable, buckets as bucketsTable, bucketHabits, habitLogs, userBlocks } from '../db/schema';
 import { eq, and } from 'drizzle-orm';
 
 describe('API: POST /api/sync/bulk', () => {
-  let testUser: any;
-  let otherUser: any;
+  let testUser: User;
+  let otherUser: User;
+  let validFriend: User;
 
   beforeEach(async () => {
     testUser = await createTestUser(`bulk_sync_${Date.now()}`, `bulk_sync_${Date.now()}@example.com`);
     otherUser = await createTestUser(`bulk_sync_other_${Date.now()}`, `bulk_sync_other_${Date.now()}@example.com`);
+    validFriend = await createTestUser(`bulk_sync_valid_${Date.now()}`, `bulk_sync_valid_${Date.now()}@example.com`);
   });
 
   afterEach(async () => {
     if (testUser?.id) {
       await db.delete(habitsTable).where(eq(habitsTable.ownerId, testUser.id));
       await db.delete(habitsTable).where(eq(habitsTable.ownerId, otherUser.id));
+      await db.delete(habitsTable).where(eq(habitsTable.ownerId, validFriend.id));
       const { users } = await import('../db/schema');
       await db.delete(users).where(eq(users.id, testUser.id));
       await db.delete(users).where(eq(users.id, otherUser.id));
+      await db.delete(users).where(eq(users.id, validFriend.id));
     }
   });
 
@@ -101,6 +105,93 @@ describe('API: POST /api/sync/bulk', () => {
 
     expect(response.success.length).toBe(1);
     expect(response.failed.length).toBe(0);
+  });
+
+  it('should filter blocked recipients from bulk habit sharedWith', async () => {
+    await createFriendship(testUser.id, otherUser.id, 'accepted');
+    await db.insert(userBlocks).values({
+      blockerId: otherUser.id,
+      blockedId: testUser.id,
+      createdAt: new Date()
+    });
+
+    const habitId = crypto.randomUUID();
+    const event = createMockEvent(testUser.id, {
+      operations: [{
+        type: 'habit',
+        data: { id: habitId, title: 'Stale Shared Habit', sharedWith: [otherUser.id] }
+      }]
+    }, {}, {}, {}, 'POST');
+
+    const response = await syncBulk(event);
+
+    expect(response.success).toContain(habitId);
+
+    const [habit] = await db.select({ sharedWith: habitsTable.sharedWith })
+      .from(habitsTable)
+      .where(eq(habitsTable.id, habitId));
+    expect(habit?.sharedWith ?? []).not.toContain(otherUser.id);
+  });
+
+  it('should preserve valid recipients while filtering blocked recipients from bulk habit sharedWith', async () => {
+    await createFriendship(testUser.id, otherUser.id, 'accepted');
+    await createFriendship(testUser.id, validFriend.id, 'accepted');
+    await db.insert(userBlocks).values({
+      blockerId: testUser.id,
+      blockedId: otherUser.id,
+      createdAt: new Date()
+    });
+
+    const habitId = crypto.randomUUID();
+    const event = createMockEvent(testUser.id, {
+      operations: [{
+        type: 'habit',
+        data: { id: habitId, title: 'Mixed Shared Habit', sharedWith: [otherUser.id, validFriend.id] }
+      }]
+    }, {}, {}, {}, 'POST');
+
+    const response = await syncBulk(event);
+
+    expect(response.success).toContain(habitId);
+
+    const [habit] = await db.select({ sharedWith: habitsTable.sharedWith })
+      .from(habitsTable)
+      .where(eq(habitsTable.id, habitId));
+    expect(habit?.sharedWith ?? []).not.toContain(otherUser.id);
+    expect(habit?.sharedWith ?? []).toContain(validFriend.id);
+  });
+
+  it('should filter blocked recipients from bulk habit log sharedWith', async () => {
+    await createFriendship(testUser.id, otherUser.id, 'accepted');
+    await db.insert(userBlocks).values({
+      blockerId: otherUser.id,
+      blockedId: testUser.id,
+      createdAt: new Date()
+    });
+    const habit = await createTestHabit(testUser.id, 'Bulk Log Block Habit');
+    const logId = `${habit.id}_2026-01-01`;
+
+    const event = createMockEvent(testUser.id, {
+      operations: [{
+        type: 'log',
+        data: {
+          id: logId,
+          habitId: habit.id,
+          date: '2026-01-01',
+          status: 'completed',
+          sharedWith: [otherUser.id]
+        }
+      }]
+    }, {}, {}, {}, 'POST');
+
+    const response = await syncBulk(event);
+
+    expect(response.success).toContain(logId);
+
+    const [log] = await db.select({ sharedWith: habitLogs.sharedWith })
+      .from(habitLogs)
+      .where(eq(habitLogs.id, logId));
+    expect(log?.sharedWith ?? []).not.toContain(otherUser.id);
   });
 
   it('should successfully process valid bucket operations with habits', async () => {

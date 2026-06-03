@@ -1,6 +1,6 @@
 import { eq, and, or, sql, inArray, desc, gte, lte } from 'drizzle-orm';
 import { format, parseISO, subDays } from 'date-fns';
-import { friendships as friendshipsTable, habitLogs, habits as habitsTable, users, shareEvents } from '~~/server/db/schema';
+import { friendships as friendshipsTable, habitLogs, habits as habitsTable, users, shareEvents, userBlocks } from '~~/server/db/schema';
 import { useDB as _useDB } from '~~/server/utils/db';
 import { requireAuth as _requireAuth } from '~~/server/utils/auth';
 import { SocialNarratorService, type HabitLogSummary } from '~~/server/services/social-narrator.service';
@@ -81,7 +81,15 @@ export default defineEventHandler(async (event) => {
   .from(friendshipsTable)
   .where(and(
     or(eq(friendshipsTable.initiatorId, userId), eq(friendshipsTable.receiverId, userId)),
-    eq(friendshipsTable.status, 'accepted')
+    eq(friendshipsTable.status, 'accepted'),
+    sql`NOT EXISTS (
+      SELECT 1
+      FROM ${userBlocks}
+      WHERE (
+        (${userBlocks.blockerId} = ${friendshipsTable.initiatorId} AND ${userBlocks.blockedId} = ${friendshipsTable.receiverId})
+        OR (${userBlocks.blockerId} = ${friendshipsTable.receiverId} AND ${userBlocks.blockedId} = ${friendshipsTable.initiatorId})
+      )
+    )`
   ));
 
   const friendIds = [userId, ...friendshipRes.map((f: any) => f.initiatorId === userId ? f.receiverId : f.initiatorId)];
@@ -188,6 +196,14 @@ export default defineEventHandler(async (event) => {
       FROM ${shareEvents} se
       WHERE se.owner_id = f.friend_id
         AND (se.recipient_id = ${userId}::uuid OR se.owner_id = ${userId}::uuid)
+        AND NOT EXISTS (
+          SELECT 1
+          FROM ${userBlocks} ub
+          WHERE (
+            (ub.blocker_id = se.owner_id AND ub.blocked_id = se.recipient_id)
+            OR (ub.blocker_id = se.recipient_id AND ub.blocked_id = se.owner_id)
+          )
+        )
         ${cursorShare}
 
       ORDER BY sort_date DESC, sort_timestamp DESC, id DESC

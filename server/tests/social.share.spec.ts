@@ -1,6 +1,8 @@
 import './setup';
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { createTestUser, deleteTestUser, createMockEvent, createTestHabit, deleteTestHabit, createFriendship, deleteFriendship } from './test.utils';
+import { useDB } from '../utils/db';
+import { userBlocks } from '../db/schema';
 
 describe('POST /api/social/share-habits', () => {
   let handler: any;
@@ -43,5 +45,35 @@ describe('POST /api/social/share-habits', () => {
 
     const response = (await handler(event)) as any;
     expect(response.data.success).toBe(true);
+  });
+
+  it('should reject sharing when requester blocked the target', async () => {
+    const db = useDB();
+    await db.insert(userBlocks).values({
+      blockerId: userA.id,
+      blockedId: userB.id
+    }).onConflictDoNothing();
+
+    const event = createMockEvent(userA.id, {
+      targetUserId: userB.id,
+      habitIds: [habitA.id]
+    }, {}, {}, {}, 'POST');
+
+    await expect(handler(event)).rejects.toMatchObject({ statusCode: 403 });
+  });
+
+  it('should reject sharing when target blocked the requester', async () => {
+    const db = useDB();
+    await db.insert(userBlocks).values({
+      blockerId: userB.id,
+      blockedId: userA.id
+    }).onConflictDoNothing();
+
+    const event = createMockEvent(userA.id, {
+      targetUserId: userB.id,
+      habitIds: [habitA.id]
+    }, {}, {}, {}, 'POST');
+
+    await expect(handler(event)).rejects.toMatchObject({ statusCode: 403 });
   });
 });

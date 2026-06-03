@@ -1,9 +1,9 @@
 import { eq, and, or, sql } from 'drizzle-orm';
-import { friendships as friendshipsTable, habits, habitLogs } from '~~/server/db/schema';
+import { friendships as friendshipsTable, habits, habitLogs, userBlocks, users } from '~~/server/db/schema';
 import { extractRows } from '~~/server/utils/db';
 import { reevaluateMultipleBuckets } from '~~/server/utils/buckets';
 import type { DBConnection } from '~~/server/types/db';
-import type { Friendship } from '~~/server/types';
+import type { Friendship, UserBlock } from '~~/server/types';
 import * as realtimeNotifier from '~~/server/utils/realtimeNotifier';
 
 const isUniqueConstraintError = (error: unknown): boolean => {
@@ -19,10 +19,110 @@ const notifyFriendsChanged = (userIds: readonly string[]): void => {
   });
 };
 
+const friendshipPairCondition = (u1: string, u2: string) => or(
+  and(eq(friendshipsTable.initiatorId, u1), eq(friendshipsTable.receiverId, u2)),
+  and(eq(friendshipsTable.initiatorId, u2), eq(friendshipsTable.receiverId, u1))
+)!;
+
+const blockPairCondition = (u1: string, u2: string) => or(
+  and(eq(userBlocks.blockerId, u1), eq(userBlocks.blockedId, u2)),
+  and(eq(userBlocks.blockerId, u2), eq(userBlocks.blockedId, u1))
+)!;
+
 export const SocialService = {
+  async hasBlockBetween(db: DBConnection, u1: string, u2: string): Promise<boolean> {
+    const [block] = await db.select({
+      blockerId: userBlocks.blockerId
+    })
+      .from(userBlocks)
+      .where(blockPairCondition(u1, u2))
+      .limit(1);
+
+    return Boolean(block);
+  },
+
+  async blockUser(db: DBConnection, blockerId: string, blockedId: string): Promise<UserBlock> {
+    if (blockerId === blockedId) {
+      throw createError({ statusCode: 400, statusMessage: 'You cannot block yourself' });
+    }
+
+    const [targetUser] = await db.select({ id: users.id })
+      .from(users)
+      .where(eq(users.id, blockedId));
+
+    if (!targetUser) {
+      throw createError({ statusCode: 404, statusMessage: 'Target user not found' });
+    }
+
+    const outcome = await db.transaction(async (tx) => {
+      const [existingFriendship] = await tx.select()
+        .from(friendshipsTable)
+        .where(friendshipPairCondition(blockerId, blockedId));
+
+      const inserted = await tx.insert(userBlocks)
+        .values({
+          blockerId,
+          blockedId,
+          createdAt: new Date()
+        })
+        .onConflictDoNothing()
+        .returning();
+
+      if (existingFriendship) {
+        await SocialService.cleanupFriendshipData(tx, blockerId, blockedId);
+        await tx.delete(friendshipsTable).where(eq(friendshipsTable.id, existingFriendship.id));
+      }
+
+      const block = inserted[0] ?? (await tx.select()
+        .from(userBlocks)
+        .where(and(
+          eq(userBlocks.blockerId, blockerId),
+          eq(userBlocks.blockedId, blockedId)
+        )))[0];
+
+      if (!block) {
+        throw createError({ statusCode: 500, statusMessage: 'Failed to block user' });
+      }
+
+      return {
+        block,
+        changed: inserted.length > 0 || Boolean(existingFriendship)
+      };
+    });
+
+    if (outcome.changed) {
+      notifyFriendsChanged([blockerId, blockedId]);
+    }
+
+    return outcome.block;
+  },
+
+  async unblockUser(db: DBConnection, blockerId: string, blockedId: string): Promise<boolean> {
+    if (blockerId === blockedId) {
+      throw createError({ statusCode: 400, statusMessage: 'You cannot unblock yourself' });
+    }
+
+    const deleted = await db.delete(userBlocks)
+      .where(and(
+        eq(userBlocks.blockerId, blockerId),
+        eq(userBlocks.blockedId, blockedId)
+      ))
+      .returning({ blockerId: userBlocks.blockerId });
+
+    if (deleted.length > 0) {
+      notifyFriendsChanged([blockerId, blockedId]);
+    }
+
+    return deleted.length > 0;
+  },
+
   async createFriendship(db: DBConnection, initiatorId: string, targetUserId: string, event: unknown): Promise<Friendship> {
     if (initiatorId === targetUserId) {
       throw createError({ statusCode: 400, statusMessage: 'You cannot friend yourself' });
+    }
+
+    if (await this.hasBlockBetween(db, initiatorId, targetUserId)) {
+      throw createError({ statusCode: 403, statusMessage: 'Friendship unavailable' });
     }
 
     let result: Friendship[];
@@ -53,6 +153,18 @@ export const SocialService = {
   },
 
   async acceptFriendship(db: DBConnection, userId: string, id: string, event: unknown): Promise<Friendship | undefined> {
+    const [existing] = await db.select()
+      .from(friendshipsTable)
+      .where(and(eq(friendshipsTable.id, id), eq(friendshipsTable.receiverId, userId)));
+
+    if (!existing) {
+      return undefined;
+    }
+
+    if (await this.hasBlockBetween(db, existing.initiatorId, existing.receiverId)) {
+      throw createError({ statusCode: 403, statusMessage: 'Friendship unavailable' });
+    }
+
     const result = await db.update(friendshipsTable)
       .set({ status: 'accepted', updatedAt: new Date() })
       .where(and(eq(friendshipsTable.id, id), eq(friendshipsTable.receiverId, userId)))

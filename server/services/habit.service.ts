@@ -1,9 +1,10 @@
-import { eq, and, or, sql, inArray } from 'drizzle-orm';
-import { habitLogs, habits as habitsTable, bucketHabits, shareEvents, syncDeletions, friendships, users } from '~~/server/db/schema';
+import { eq, and, sql } from 'drizzle-orm';
+import { habitLogs, habits as habitsTable, bucketHabits, shareEvents, syncDeletions, users } from '~~/server/db/schema';
 import { recalculateHabitStreak } from '~~/server/utils/streaks';
 import { syncBucketLogsForHabit, reevaluateMultipleBuckets } from '~~/server/utils/buckets';
 import { markBucketHabitsRemoved } from '~~/server/utils/shared-buckets';
 import type { DBConnection } from '../types/db';
+import { sanitizeHabitShareRecipientIds } from './habit-sharing.service';
 
 export const HabitService = {
   async logHabit(db: DBConnection, userId: string, data: any, event: any) {
@@ -11,6 +12,7 @@ export const HabitService = {
 
     try {
       const result = await db.transaction(async (tx: any) => {
+        const sanitizedSharedWith = await sanitizeHabitShareRecipientIds(tx, userId, data.sharedWith || []);
         const insertRes = await tx.insert(habitLogs)
           .values({
             id: logId,
@@ -18,14 +20,14 @@ export const HabitService = {
             ownerId: userId,
             date: data.date,
             status: data.status,
-            sharedWith: data.sharedWith || [],
+            sharedWith: sanitizedSharedWith,
             updatedAt: new Date()
           })
           .onConflictDoUpdate({
             target: habitLogs.id,
             set: {
               status: data.status,
-              sharedWith: data.sharedWith || [],
+              sharedWith: sanitizedSharedWith,
               updatedAt: new Date()
             },
             where: eq(habitLogs.ownerId, userId)
@@ -88,21 +90,7 @@ export const HabitService = {
       // Friendship Guard: Sanitize sharedWith list
       let sanitizedSharedWith = data.sharedWith || [];
       if (sanitizedSharedWith.length > 0) {
-        const friendshipsRes = await tx.select()
-          .from(friendships)
-          .where(and(
-            inArray(friendships.status, ['accepted', 'pending']),
-            or(
-              and(eq(friendships.initiatorId, userId), inArray(friendships.receiverId, sanitizedSharedWith)),
-              and(eq(friendships.receiverId, userId), inArray(friendships.initiatorId, sanitizedSharedWith))
-            )
-          ));
-        
-        const validFriendIds = new Set(friendshipsRes.map((f: any) => 
-          f.initiatorId === userId ? f.receiverId : f.initiatorId
-        ));
-        
-        sanitizedSharedWith = sanitizedSharedWith.filter((rid: string) => validFriendIds.has(rid));
+        sanitizedSharedWith = await sanitizeHabitShareRecipientIds(tx, userId, sanitizedSharedWith);
       }
 
       const insertRes = await tx.insert(habitsTable)
@@ -188,21 +176,7 @@ export const HabitService = {
       // Friendship Guard: Sanitize sharedWith list
       let sanitizedSharedWith = data.sharedWith;
       if (sanitizedSharedWith && sanitizedSharedWith.length > 0) {
-        const friendshipsRes = await tx.select()
-          .from(friendships)
-          .where(and(
-            inArray(friendships.status, ['accepted', 'pending']),
-            or(
-              and(eq(friendships.initiatorId, userId), inArray(friendships.receiverId, sanitizedSharedWith)),
-              and(eq(friendships.receiverId, userId), inArray(friendships.initiatorId, sanitizedSharedWith))
-            )
-          ));
-        
-        const validFriendIds = new Set(friendshipsRes.map((f: any) => 
-          f.initiatorId === userId ? f.receiverId : f.initiatorId
-        ));
-        
-        sanitizedSharedWith = sanitizedSharedWith.filter((rid: string) => validFriendIds.has(rid));
+        sanitizedSharedWith = await sanitizeHabitShareRecipientIds(tx, userId, sanitizedSharedWith);
       }
 
       const result = await tx.update(habitsTable)

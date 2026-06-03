@@ -57,6 +57,13 @@
       "when": 1780136559515,
       "tag": "0007_superb_captain_america",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1780379340689,
+      "tag": "0008_fantastic_silver_fox",
+      "breakpoints": true
     }
   ]
 }

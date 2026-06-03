@@ -3,6 +3,7 @@ import { friendships, habits as habitsTable, shareEvents } from '~~/server/db/sc
 import { useDB as _useDB } from '~~/server/utils/db';
 import { requireAuth as _requireAuth } from '~~/server/utils/auth';
 import { shareHabitSchema, throwZodError } from '~~/server/utils/validation';
+import { SocialService } from '~~/server/services/social.service';
 
 type ShareHabitContext = {
   requireAuth?: typeof _requireAuth;
@@ -37,6 +38,10 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 404, statusMessage: 'Habit not found' });
   }
 
+  if (await SocialService.hasBlockBetween(db, userId, targetId)) {
+    throw createError({ statusCode: 403, statusMessage: 'Habit sharing unavailable' });
+  }
+
   const [friendship] = await db.select({ id: friendships.id })
     .from(friendships)
     .where(and(
@@ -57,6 +62,10 @@ export default defineEventHandler(async (event) => {
   }
 
   const shared = await db.transaction(async (tx) => {
+    if (await SocialService.hasBlockBetween(tx, userId, targetId)) {
+      throw createError({ statusCode: 403, statusMessage: 'Habit sharing unavailable' });
+    }
+
     const result = await tx.update(habitsTable)
       .set({
         sharedWith: sql`array_append(COALESCE(${habitsTable.sharedWith}, ARRAY[]::text[]), ${targetId})`,

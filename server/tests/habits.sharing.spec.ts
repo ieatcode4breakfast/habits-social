@@ -2,7 +2,7 @@ import './setup';
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { createTestUser, deleteTestUser, createMockEvent, createTestHabit, deleteTestHabit, createFriendship, deleteFriendship } from './test.utils';
 import { useDB } from '../utils/db';
-import { habits as habitsTable, friendships as friendshipsTable } from '../db/schema';
+import { habits as habitsTable, friendships as friendshipsTable, userBlocks } from '../db/schema';
 import { eq } from 'drizzle-orm';
 
 describe('Habit Sharing Friendship Guard', () => {
@@ -79,5 +79,40 @@ describe('Habit Sharing Friendship Guard', () => {
     const [dbHabit] = await db.select().from(habitsTable).where(eq(habitsTable.id, habitA.id));
     expect(dbHabit).toBeDefined();
     expect(dbHabit!.sharedWith || []).toHaveLength(0);
+  });
+
+  it('should filter out blocked recipients during update even when friendship exists', async () => {
+    const db = useDB();
+    await db.update(friendshipsTable).set({ status: 'accepted' }).where(eq(friendshipsTable.id, friendshipId!));
+    await db.insert(userBlocks).values({
+      blockerId: userB.id,
+      blockedId: userA.id
+    }).onConflictDoNothing();
+
+    const event = createMockEvent(userA.id, {
+      sharedWith: [userB.id]
+    }, {}, { id: habitA.id }, {}, 'PUT');
+
+    const response = (await handler(event)) as any;
+
+    expect(response.data.sharedWith || []).not.toContain(userB.id);
+
+    const [dbHabit] = await db.select().from(habitsTable).where(eq(habitsTable.id, habitA.id));
+    expect(dbHabit!.sharedWith || []).not.toContain(userB.id);
+  });
+
+  it('should allow removing a blocked recipient from sharedWith array', async () => {
+    const db = useDB();
+    await db.update(habitsTable)
+      .set({ sharedWith: [userB.id] })
+      .where(eq(habitsTable.id, habitA.id));
+
+    const event = createMockEvent(userA.id, {
+      sharedWith: []
+    }, {}, { id: habitA.id }, {}, 'PUT');
+
+    const response = (await handler(event)) as any;
+
+    expect(response.data.sharedWith || []).toHaveLength(0);
   });
 });

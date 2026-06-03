@@ -1,5 +1,5 @@
 import { eq, and, or, sql, gte, lte, desc } from 'drizzle-orm';
-import { habits as habitsTable, habitLogs } from '~~/server/db/schema';
+import { habits as habitsTable, habitLogs, userBlocks } from '~~/server/db/schema';
 import { useDB as _useDB } from '~~/server/utils/db';
 import { requireAuth as _requireAuth } from '~~/server/utils/auth';
 
@@ -24,7 +24,17 @@ export default defineEventHandler(async (event) => {
       eq(habitsTable.id, hIdStr),
       or(
         eq(habitsTable.ownerId, userId),
-        sql`${userId}::text = ANY(${habitsTable.sharedWith})`
+        and(
+          sql`${userId}::text = ANY(${habitsTable.sharedWith})`,
+          sql`NOT EXISTS (
+            SELECT 1
+            FROM ${userBlocks}
+            WHERE (
+              (${userBlocks.blockerId} = ${userId}::uuid AND ${userBlocks.blockedId} = ${habitsTable.ownerId})
+              OR (${userBlocks.blockerId} = ${habitsTable.ownerId} AND ${userBlocks.blockedId} = ${userId}::uuid)
+            )
+          )`
+        )
       )
     ));
 
