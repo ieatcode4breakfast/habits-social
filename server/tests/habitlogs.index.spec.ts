@@ -1,7 +1,9 @@
 import './setup';
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import { createTestUser, deleteTestUser, createMockEvent, createTestHabit, deleteTestHabit } from './test.utils';
+import { createTestUser, deleteTestUser, createMockEvent, createTestHabit, deleteTestHabit, createFriendship, db } from './test.utils';
 import { formatISO } from 'date-fns';
+import { eq } from 'drizzle-orm';
+import { habitLogs, userBlocks } from '../db/schema';
 
 describe('POST /api/habitlogs', () => {
   let handler: any;
@@ -57,5 +59,31 @@ describe('POST /api/habitlogs', () => {
     const targetLog = logsA.data.find((l: any) => l.id === logAId);
     expect(targetLog).toBeDefined();
     expect(targetLog.status).toBe('completed');
+  }, 15000);
+
+  it('should filter blocked recipients from habit log sharedWith', async () => {
+    await createFriendship(userA.id, userB.id, 'accepted');
+    await db.insert(userBlocks).values({
+      blockerId: userB.id,
+      blockedId: userA.id,
+      createdAt: new Date()
+    });
+
+    const dateStr = formatISO(new Date(), { representation: 'date' });
+    const logId = `blocked_hlog_${Date.now()}`;
+    const event = createMockEvent(userA.id, {
+      id: logId,
+      habitId: habitA.id,
+      date: dateStr,
+      status: 'completed',
+      sharedWith: [userB.id]
+    }, {}, {}, {}, 'POST');
+
+    await handler(event);
+
+    const [log] = await db.select({ sharedWith: habitLogs.sharedWith })
+      .from(habitLogs)
+      .where(eq(habitLogs.id, logId));
+    expect(log?.sharedWith ?? []).not.toContain(userB.id);
   }, 15000);
 });

@@ -2,7 +2,7 @@ import './setup';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { eq } from 'drizzle-orm';
 import { db, createTestUser, deleteTestUser, createMockEvent, createTestHabit, deleteTestHabit, createFriendship, deleteFriendship } from './test.utils';
-import { habits } from '../db/schema';
+import { habits, userBlocks } from '../db/schema';
 
 type ShareHabitResponse = {
   data: {
@@ -119,6 +119,40 @@ describe('POST /api/social/share-habit', () => {
       targetUserId: userC.id,
       habitId: habitA.id
     }, {}, {}, {}, 'POST'))).rejects.toMatchObject({ statusCode: 403 });
+  });
+
+  it('rejects sharing when requester blocked the target', async () => {
+    await db.insert(userBlocks).values({
+      blockerId: userA.id,
+      blockedId: userB.id
+    }).onConflictDoNothing();
+
+    await expect(handler(createMockEvent(userA.id, {
+      targetUserId: userB.id,
+      habitId: habitA.id
+    }, {}, {}, {}, 'POST'))).rejects.toMatchObject({ statusCode: 403 });
+
+    const [updated] = await db.select({ sharedWith: habits.sharedWith })
+      .from(habits)
+      .where(eq(habits.id, habitA.id));
+    expect(updated?.sharedWith ?? []).not.toContain(userB.id);
+  });
+
+  it('rejects sharing when target blocked the requester', async () => {
+    await db.insert(userBlocks).values({
+      blockerId: userB.id,
+      blockedId: userA.id
+    }).onConflictDoNothing();
+
+    await expect(handler(createMockEvent(userA.id, {
+      targetUserId: userB.id,
+      habitId: habitA.id
+    }, {}, {}, {}, 'POST'))).rejects.toMatchObject({ statusCode: 403 });
+
+    const [updated] = await db.select({ sharedWith: habits.sharedWith })
+      .from(habits)
+      .where(eq(habits.id, habitA.id));
+    expect(updated?.sharedWith ?? []).not.toContain(userB.id);
   });
 
   it('does not let a user share a habit they do not own', async () => {

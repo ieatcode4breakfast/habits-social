@@ -1,5 +1,6 @@
 import './setup';
 import { describe, it, expect, beforeAll, afterAll, afterEach } from 'vitest';
+import { and, eq, or } from 'drizzle-orm';
 import { 
   createTestUser, 
   deleteTestUser, 
@@ -8,8 +9,10 @@ import {
   deleteTestHabit, 
   createFriendship, 
   deleteFriendship,
-  shareHabitWithUser 
+  shareHabitWithUser,
+  db
 } from './test.utils';
+import { userBlocks } from '../db/schema';
 
 describe('GET /api/social/friend-data Permutations', () => {
   let handler: any;
@@ -65,6 +68,10 @@ describe('GET /api/social/friend-data Permutations', () => {
       await deleteFriendship(currentFriendshipId);
       currentFriendshipId = null;
     }
+    await db.delete(userBlocks).where(or(
+      and(eq(userBlocks.blockerId, userA.id), eq(userBlocks.blockedId, userB.id)),
+      and(eq(userBlocks.blockerId, userB.id), eq(userBlocks.blockedId, userA.id))
+    ));
   });
 
   describe('Relationship: Accepted Friends', () => {
@@ -86,6 +93,22 @@ describe('GET /api/social/friend-data Permutations', () => {
       
       expect(hasSharedLog).toBe(true);
       expect(hasPrivateLog).toBe(false);
+    });
+
+    it('should return empty data when a stale accepted friendship has a block', async () => {
+      const fs = await createFriendship(userA.id, userB.id, 'accepted');
+      currentFriendshipId = fs!.id;
+      await db.insert(userBlocks).values({
+        blockerId: userB.id,
+        blockedId: userA.id,
+        createdAt: new Date()
+      });
+
+      const event = createMockEvent(userA.id, {}, {}, {}, { friendId: userB.id });
+      const response = await handler(event);
+
+      expect(response.data.habits).toEqual([]);
+      expect(response.data.logs).toEqual([]);
     });
   });
 

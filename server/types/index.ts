@@ -9,6 +9,7 @@ export type SharedBucketMember = typeof schema.sharedBucketMembers.$inferSelect;
 export type BucketLog = typeof schema.bucketLogs.$inferSelect;
 export type ShareEvent = typeof schema.shareEvents.$inferSelect;
 export type Friendship = typeof schema.friendships.$inferSelect;
+export type UserBlock = typeof schema.userBlocks.$inferSelect;
 export type SyncDeletion = typeof schema.syncDeletions.$inferSelect;
 
 export type NewHabit = typeof schema.habits.$inferInsert;
@@ -25,6 +26,7 @@ export type IHabitLog = HabitLog;
 export type IBucket = Bucket;
 export type IBucketLog = BucketLog;
 export type IFriendship = Friendship;
+export type IUserBlock = UserBlock;
 export type IShareEvent = ShareEvent;
 export type ISyncDeletion = SyncDeletion;
 

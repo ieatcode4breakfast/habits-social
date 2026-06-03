@@ -1,10 +1,10 @@
 import './setup';
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll, afterEach } from 'vitest';
 import { createTestUser, deleteTestUser, createMockEvent, createTestHabit, deleteTestHabit, createFriendship, deleteFriendship } from './test.utils';
 import { useDB } from '../utils/db';
-import { habitLogs, habits as habitsTable, shareEvents } from '../db/schema';
+import { habitLogs, habits as habitsTable, shareEvents, userBlocks } from '../db/schema';
 import { formatISO, subDays } from 'date-fns';
-import { eq } from 'drizzle-orm';
+import { and, eq, or } from 'drizzle-orm';
 
 describe('GET /api/social/feed - Filtering', () => {
   let handler: any;
@@ -13,6 +13,12 @@ describe('GET /api/social/feed - Filtering', () => {
   let habitA: any;
   let friendshipId: string | null = null;
   const db = useDB();
+
+  type FeedItem = {
+    user: {
+      id: string;
+    };
+  };
 
   beforeAll(async () => {
     handler = (await import('../api/social/feed.get')).default;
@@ -35,6 +41,13 @@ describe('GET /api/social/feed - Filtering', () => {
     if (habitA?.id) await deleteTestHabit(habitA.id);
     if (userA?.id) await deleteTestUser(userA.id);
     if (userB?.id) await deleteTestUser(userB.id);
+  });
+
+  afterEach(async () => {
+    await db.delete(userBlocks).where(or(
+      and(eq(userBlocks.blockerId, userA.id), eq(userBlocks.blockedId, userB.id)),
+      and(eq(userBlocks.blockerId, userB.id), eq(userBlocks.blockedId, userA.id))
+    ));
   });
 
   const getTodayStr = () => formatISO(new Date(), { representation: 'date' });
@@ -231,5 +244,43 @@ describe('GET /api/social/feed - Filtering', () => {
     // Cleanup
     await db.delete(habitLogs).where(eq(habitLogs.id, logId));
     await deleteTestHabit(privateHabit.id);
+  });
+
+  it('Test 9: Blocked pairs do not leak stale feed entries', async () => {
+    const today = getTodayStr();
+    const logId = `t9_${Date.now()}`;
+    const shareId = crypto.randomUUID();
+
+    await db.insert(userBlocks).values({
+      blockerId: userA.id,
+      blockedId: userB.id,
+      createdAt: new Date()
+    });
+    await db.insert(habitLogs).values({
+      id: logId,
+      habitId: habitA.id,
+      ownerId: userA.id,
+      date: today,
+      status: 'completed',
+      streakCount: 1,
+      updatedAt: new Date()
+    });
+    await db.insert(shareEvents).values({
+      id: shareId,
+      ownerId: userA.id,
+      recipientId: userB.id,
+      habitIds: [habitA.id],
+      userDate: today,
+      createdAt: new Date()
+    });
+
+    const event = createMockEvent(userB.id, {}, {}, {}, {}, 'GET');
+    const response = (await handler(event)) as { data: FeedItem[] };
+
+    const blockedEntry = response.data.find((item) => item.user.id === userA.id);
+    expect(blockedEntry).toBeUndefined();
+
+    await db.delete(habitLogs).where(eq(habitLogs.id, logId));
+    await db.delete(shareEvents).where(eq(shareEvents.id, shareId));
   });
 });

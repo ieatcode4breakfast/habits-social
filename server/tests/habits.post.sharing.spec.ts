@@ -2,7 +2,7 @@ import './setup';
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { createTestUser, deleteTestUser, createMockEvent, deleteTestHabit, createFriendship, deleteFriendship } from './test.utils';
 import { useDB } from '../utils/db';
-import { habits as habitsTable, friendships as friendshipsTable } from '../db/schema';
+import { habits as habitsTable, friendships as friendshipsTable, userBlocks } from '../db/schema';
 import { eq } from 'drizzle-orm';
 
 describe('Habit Creation Friendship Guard (POST)', () => {
@@ -69,5 +69,43 @@ describe('Habit Creation Friendship Guard (POST)', () => {
     if (response.data.id) await deleteTestHabit(response.data.id);
     
     expect(response.data.sharedWith).toContain(userB.id);
+  });
+
+  it('should filter out blocked recipients even when a pending friendship row exists', async () => {
+    const db = useDB();
+    await db.update(friendshipsTable).set({ status: 'pending' }).where(eq(friendshipsTable.id, friendshipId!));
+    await db.insert(userBlocks).values({
+      blockerId: userB.id,
+      blockedId: userA.id
+    }).onConflictDoNothing();
+
+    const event = createMockEvent(userA.id, {
+      title: 'Post Guard Blocked Pending Test',
+      sharedWith: [userB.id]
+    }, {}, {}, {}, 'POST');
+
+    const response = (await handler(event)) as any;
+    if (response.data.id) await deleteTestHabit(response.data.id);
+
+    expect(response.data.sharedWith || []).not.toContain(userB.id);
+  });
+
+  it('should filter out blocked recipients even when an accepted friendship row exists', async () => {
+    const db = useDB();
+    await db.update(friendshipsTable).set({ status: 'accepted' }).where(eq(friendshipsTable.id, friendshipId!));
+    await db.insert(userBlocks).values({
+      blockerId: userA.id,
+      blockedId: userB.id
+    }).onConflictDoNothing();
+
+    const event = createMockEvent(userA.id, {
+      title: 'Post Guard Blocked Accepted Test',
+      sharedWith: [userB.id]
+    }, {}, {}, {}, 'POST');
+
+    const response = (await handler(event)) as any;
+    if (response.data.id) await deleteTestHabit(response.data.id);
+
+    expect(response.data.sharedWith || []).not.toContain(userB.id);
   });
 });

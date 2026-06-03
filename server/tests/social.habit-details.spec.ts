@@ -1,7 +1,7 @@
 import './setup';
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { eq } from 'drizzle-orm';
-import { habits as habitsTable } from '../db/schema';
+import { habits as habitsTable, userBlocks } from '../db/schema';
 import { createTestUser, deleteTestUser, createMockEvent, createTestHabit, deleteTestHabit, shareHabitWithUser, db } from './test.utils';
 
 describe('GET /api/social/habit-details', () => {
@@ -71,6 +71,21 @@ describe('GET /api/social/habit-details', () => {
     await db.update(habitsTable)
       .set({ sharedWith: [], updatedAt: new Date() })
       .where(eq(habitsTable.id, habit.id));
+
+    const event = createMockEvent(testUser.id, {}, {}, {}, { habitId: habit.id });
+
+    await expect(handler(event)).rejects.toThrow(/Habit not found or not shared with you/i);
+  });
+
+  it('should reject stale sharedWith visibility when a block exists', async () => {
+    await db.update(habitsTable)
+      .set({ sharedWith: [testUser.id], updatedAt: new Date() })
+      .where(eq(habitsTable.id, habit.id));
+    await db.insert(userBlocks).values({
+      blockerId: targetUser.id,
+      blockedId: testUser.id,
+      createdAt: new Date()
+    });
 
     const event = createMockEvent(testUser.id, {}, {}, {}, { habitId: habit.id });
 

@@ -2,6 +2,7 @@ import { eq, and, or, sql, inArray, gte, lte, asc, desc } from 'drizzle-orm';
 import { friendships, habits as habitsTable, habitLogs } from '~~/server/db/schema';
 import { useDB as _useDB } from '~~/server/utils/db';
 import { requireAuth as _requireAuth } from '~~/server/utils/auth';
+import { SocialService } from '~~/server/services/social.service';
 
 export default defineEventHandler(async (event) => {
   const requireAuth = (event.context as any).requireAuth || _requireAuth;
@@ -14,6 +15,10 @@ export default defineEventHandler(async (event) => {
 
   if (!friendId) {
     throw createError({ statusCode: 400, statusMessage: 'friendId is required' });
+  }
+
+  if (await SocialService.hasBlockBetween(db, userId, fId)) {
+    return { data: { habits: [], logs: [] } };
   }
 
   let startDateStr = startDate ? String(startDate) : '';
@@ -54,7 +59,7 @@ export default defineEventHandler(async (event) => {
     return { data: { habits: [], logs: [] } };
   }
 
-  const habitIdSet = new Set(habits.map((h: any) => String(h.id)));
+  const habitIds = habits.map((habit: { id: string }) => habit.id);
 
   if (!startDateStr) {
     const cutoff = new Date();
@@ -62,22 +67,20 @@ export default defineEventHandler(async (event) => {
     startDateStr = cutoff.toISOString().slice(0, 10);
   }
 
-  const logsQuery = db.select().from(habitLogs).where(and(
+  const logConditions = [
     eq(habitLogs.ownerId, fId),
+    inArray(habitLogs.habitId, habitIds),
     gte(habitLogs.date, startDateStr)
-  ));
+  ];
 
   if (endDateStr) {
-    logsQuery.where(and(
-      eq(habitLogs.ownerId, fId),
-      gte(habitLogs.date, startDateStr),
-      lte(habitLogs.date, endDateStr)
-    ));
+    logConditions.push(lte(habitLogs.date, endDateStr));
   }
 
-  const allLogsRaw = await logsQuery.orderBy(desc(habitLogs.date));
-
-  const logs = allLogsRaw.filter((l: any) => habitIdSet.has(String(l.habitId)));
+  const logs = await db.select()
+    .from(habitLogs)
+    .where(and(...logConditions))
+    .orderBy(desc(habitLogs.date));
 
   return {
     data: {

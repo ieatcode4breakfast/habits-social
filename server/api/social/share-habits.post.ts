@@ -4,6 +4,7 @@ import { useDB as _useDB } from '~~/server/utils/db';
 import { requireAuth as _requireAuth } from '~~/server/utils/auth';
 import { shareHabitsSchema } from '~~/server/utils/validation';
 import { markBucketHabitsRemoved } from '~~/server/utils/shared-buckets';
+import { SocialService } from '~~/server/services/social.service';
 
 export default defineEventHandler(async (event) => {
   const requireAuth = (event.context as any).requireAuth || _requireAuth;
@@ -20,6 +21,10 @@ export default defineEventHandler(async (event) => {
   const { targetUserId, habitIds, userDate } = validation.data;
 
   const targetId = String(targetUserId);
+
+  if (await SocialService.hasBlockBetween(db, userId, targetId)) {
+    throw createError({ statusCode: 403, statusMessage: 'Habit sharing unavailable' });
+  }
   
   // Verify friendship exists (accepted or pending)
   const friendshipRes = await db.select({ id: friendships.id })
@@ -54,6 +59,10 @@ export default defineEventHandler(async (event) => {
   const actuallySharedIds: string[] = [];
 
   await db.transaction(async (tx: any) => {
+    if (await SocialService.hasBlockBetween(tx, userId, targetId)) {
+      throw createError({ statusCode: 403, statusMessage: 'Habit sharing unavailable' });
+    }
+
     // Remove sharing for habits no longer selected
     if (toRemove.length > 0) {
       await tx.update(habitsTable)

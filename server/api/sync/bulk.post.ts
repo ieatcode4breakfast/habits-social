@@ -6,12 +6,18 @@ import { habitSchema, bucketSchema, habitLogSchema, bucketLogSchema, throwZodErr
 import * as schema from '~~/server/db/schema';
 import { eq, and, sql, inArray } from 'drizzle-orm';
 import { BucketService } from '~~/server/services/bucket.service';
+import { sanitizeHabitShareRecipientIds } from '~~/server/services/habit-sharing.service';
 import { recalculateHabitStreak } from '~~/server/utils/streaks';
 import { syncBucketLogsForHabit, recalculateMultipleBucketStreaks } from '~~/server/utils/buckets';
 
 const bulkSyncSchema = z.object({
   operations: z.array(z.object({ type: z.string(), data: z.any() })).max(100)
 });
+const bulkHabitSchema = habitSchema.extend({ id: z.string() });
+const bulkHabitLogSchema = habitLogSchema.extend({ id: z.string() });
+
+type BulkHabit = z.infer<typeof bulkHabitSchema>;
+type BulkHabitLog = z.infer<typeof bulkHabitLogSchema>;
 
 export default defineEventHandler(async (event) => {
   const db = useDB(event);
@@ -37,9 +43,9 @@ export default defineEventHandler(async (event) => {
   const success: string[] = [];
   const failed: { id: string, code: string }[] = [];
   
-  const validHabits: any[] = [];
+  const validHabits: BulkHabit[] = [];
   const validBuckets: any[] = [];
-  const validLogs: any[] = [];
+  const validLogs: BulkHabitLog[] = [];
   const validBucketLogs: any[] = [];
 
   const failedHabitIds = new Set<string>();
@@ -57,7 +63,7 @@ export default defineEventHandler(async (event) => {
 
     try {
       if (type === 'habit') {
-        const itemValidation = habitSchema.extend({ id: z.string() }).safeParse(data);
+        const itemValidation = bulkHabitSchema.safeParse(data);
         if (!itemValidation.success) {
           failed.push({ id, code: 'VALIDATION_FAILED' });
           failedHabitIds.add(id);
@@ -73,7 +79,7 @@ export default defineEventHandler(async (event) => {
         }
         validBuckets.push(itemValidation.data);
       } else if (type === 'log') {
-        const itemValidation = habitLogSchema.extend({ id: z.string() }).safeParse(data);
+        const itemValidation = bulkHabitLogSchema.safeParse(data);
         if (!itemValidation.success) {
           failed.push({ id, code: 'VALIDATION_FAILED' });
           continue;
@@ -115,7 +121,17 @@ export default defineEventHandler(async (event) => {
 
   // Habits
   if (validHabits.length > 0) {
-    const habitsToInsert = validHabits.map(h => ({ ...h, ownerId: userId, updatedAt: new Date() }));
+    const allowedShareIds = new Set(await sanitizeHabitShareRecipientIds(
+      db,
+      userId,
+      validHabits.flatMap((h) => h.sharedWith ?? [])
+    ));
+    const habitsToInsert = validHabits.map(h => ({
+      ...h,
+      sharedWith: (h.sharedWith ?? []).map(String).filter((id) => allowedShareIds.has(id)),
+      ownerId: userId,
+      updatedAt: new Date()
+    }));
     const result = await db.insert(schema.habits)
       .values(habitsToInsert)
       .onConflictDoUpdate({
@@ -195,7 +211,7 @@ export default defineEventHandler(async (event) => {
     
     const validHabitIdsInDB = new Set(existingHabits.map((h: { id: string }) => h.id));
     
-    const logsToInsert: any[] = [];
+    let logsToInsert: Array<BulkHabitLog & { ownerId: string; updatedAt: Date }> = [];
     for (const l of finalLogs) {
       if (success.includes(l.habitId) || validHabitIdsInDB.has(l.habitId)) {
         logsToInsert.push({ ...l, ownerId: userId, updatedAt: new Date() });
@@ -205,6 +221,16 @@ export default defineEventHandler(async (event) => {
     }
 
     if (logsToInsert.length > 0) {
+      const allowedShareIds = new Set(await sanitizeHabitShareRecipientIds(
+        db,
+        userId,
+        logsToInsert.flatMap((l) => l.sharedWith ?? [])
+      ));
+      logsToInsert = logsToInsert.map((l) => ({
+        ...l,
+        sharedWith: (l.sharedWith ?? []).map(String).filter((id) => allowedShareIds.has(id))
+      }));
+
       await db.transaction(async (tx: any) => {
         const result = await tx.insert(schema.habitLogs)
           .values(logsToInsert)

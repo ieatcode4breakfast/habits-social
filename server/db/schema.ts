@@ -1,5 +1,5 @@
 import { sql } from 'drizzle-orm';
-import { pgTable, text, timestamp, integer, uuid, boolean, date, index, primaryKey, uniqueIndex, jsonb } from 'drizzle-orm/pg-core';
+import { pgTable, text, timestamp, integer, uuid, boolean, date, index, primaryKey, uniqueIndex, jsonb, check } from 'drizzle-orm/pg-core';
 
 export const users = pgTable('users', {
   id: uuid('id').primaryKey(),
@@ -158,6 +158,18 @@ export const friendships = pgTable('friendships', {
       sql`LEAST(${table.initiatorId}, ${table.receiverId})`,
       sql`GREATEST(${table.initiatorId}, ${table.receiverId})`
     ),
+  };
+});
+
+export const userBlocks = pgTable('user_blocks', {
+  blockerId: uuid('blocker_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  blockedId: uuid('blocked_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' }).defaultNow(),
+}, (table) => {
+  return {
+    pk: primaryKey({ columns: [table.blockerId, table.blockedId] }),
+    userBlocksBlockedBlockerIdx: index('user_blocks_blocked_blocker_idx').on(table.blockedId, table.blockerId),
+    userBlocksNoSelfCheck: check('user_blocks_no_self_check', sql`${table.blockerId} <> ${table.blockedId}`),
   };
 });
 

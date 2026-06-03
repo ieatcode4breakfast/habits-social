@@ -2,7 +2,9 @@ import './setup';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import syncGet from '../api/sync.get';
 import { SyncService } from '../services/sync.service';
-import { createMockEvent, createTestUser, createTestHabit } from './test.utils';
+import { createMockEvent, createTestUser, createTestHabit, createFriendship, deleteTestUser } from './test.utils';
+import { eq } from 'drizzle-orm';
+import { habitLogs, habits as habitsTable, userBlocks } from '../db/schema';
 
 describe('API: GET /api/sync', () => {
   let testUser: any;
@@ -64,6 +66,41 @@ describe('API: GET /api/sync', () => {
     expect(res).toHaveProperty('nextCursors');
     expect(res).toHaveProperty('hasMore');
     expect(res.habits.length).toBeGreaterThan(0);
+  });
+
+  it('should not return blocked recipients in synced habit or log sharedWith', async () => {
+    const { db } = await import('./test.utils');
+    const otherUser = await createTestUser(`api_sync_other_${Date.now()}`, `api_sync_other_${Date.now()}@example.com`);
+    const habit = await createTestHabit(testUser.id, 'Stale Sync Shared Habit');
+    await createFriendship(testUser.id, otherUser.id, 'accepted');
+    await db.update(habitsTable)
+      .set({ sharedWith: [otherUser.id], updatedAt: new Date() })
+      .where(eq(habitsTable.id, habit.id));
+    const logId = `${habit.id}_2026-01-02`;
+    await db.insert(habitLogs).values({
+      id: logId,
+      ownerId: testUser.id,
+      habitId: habit.id,
+      date: '2026-01-02',
+      status: 'completed',
+      sharedWith: [otherUser.id],
+      updatedAt: new Date()
+    });
+    await db.insert(userBlocks).values({
+      blockerId: otherUser.id,
+      blockedId: testUser.id,
+      createdAt: new Date()
+    });
+
+    const event = createMockEvent(testUser.id, {}, {}, {}, { limit: '50' });
+    const res = await syncGet(event);
+    const syncedHabit = res.habits.find((item: { id: string }) => item.id === habit.id);
+    const syncedLog = res.habitLogs.find((item: { id: string }) => item.id === logId);
+
+    expect(syncedHabit?.sharedWith ?? []).not.toContain(otherUser.id);
+    expect(syncedLog?.sharedWith ?? []).not.toContain(otherUser.id);
+
+    await deleteTestUser(otherUser.id);
   });
 
   it('should return forceUpdateRequired: true for malformed cursors', async () => {

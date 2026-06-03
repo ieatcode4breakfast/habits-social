@@ -1,7 +1,8 @@
-import { eq } from 'drizzle-orm';
-import { users } from '~~/server/db/schema';
+import { and, eq, sql } from 'drizzle-orm';
+import { userBlocks, users } from '~~/server/db/schema';
 import { useDB as _useDB } from '~~/server/utils/db';
 import { requireAuth as _requireAuth } from '~~/server/utils/auth';
+import { zId } from '~~/server/utils/schemaPrimitives';
 
 export default defineEventHandler(async (event) => {
   const requireAuth = (event.context as any).requireAuth || _requireAuth;
@@ -10,9 +11,11 @@ export default defineEventHandler(async (event) => {
   const db = useDB(event);
 
   const id = getRouterParam(event, 'id');
-  if (!id) {
+  const idValidation = zId.safeParse(id);
+  if (!idValidation.success) {
     throw createError({ statusCode: 400, statusMessage: 'Bad Request' });
   }
+  const targetId = idValidation.data;
 
   const results = await db.select({
     id: users.id,
@@ -20,7 +23,15 @@ export default defineEventHandler(async (event) => {
     photoUrl: users.photoUrl
   })
   .from(users)
-  .where(eq(users.id, id));
+  .where(and(
+    eq(users.id, targetId),
+    sql`NOT EXISTS (
+      SELECT 1
+      FROM ${userBlocks}
+      WHERE ${userBlocks.blockerId} = ${users.id}
+        AND ${userBlocks.blockedId} = ${userId}::uuid
+    )`
+  ));
 
   const profile = results[0];
 
@@ -30,4 +41,3 @@ export default defineEventHandler(async (event) => {
 
   return { data: profile };
 });
-
