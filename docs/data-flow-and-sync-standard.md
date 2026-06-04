@@ -20,8 +20,7 @@ The server acts as the ultimate source of truth for the system, validating and p
 
 ### Server-Side Cascades
 *   The server is responsible for any secondary data mutations that must happen automatically (e.g., updating a bucket's streak when a contained habit log is added).
-*   **Social & Deletion Cascades**: When a sharing relationship is severed (e.g., unfriending, revoking habit sharing) or an entity is deleted, the server must perform a cascade to maintain data integrity. For example:
-    *   Unfriending must mark all cross-owned bucket habits as `'removed'`.
+*   **Social & Deletion Cascades**: When a sharing relationship is severed (e.g., revoking habit sharing) or an entity is deleted, the server must perform a cascade to maintain data integrity. For example:
     *   Deleting a habit must physically remove it from all buckets and trigger bucket streak re-evaluations.
 
 ### Performance: Set-Based vs. Procedural Processing

@@ -2,8 +2,8 @@ import './setup';
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { createTestUser, deleteTestUser, createTestHabit, deleteTestHabit, createFriendship, User, Habit, db } from './test.utils';
 import { HabitService } from '../services/habit.service';
-import { eq, and } from 'drizzle-orm';
-import { shareEvents, bucketHabits, habits, habitLogs } from '../db/schema';
+import { eq } from 'drizzle-orm';
+import { shareEvents, habits, habitLogs } from '../db/schema';
 
 describe('HabitService - Stress Testing', () => {
   let userA: User;

@@ -4,23 +4,19 @@ import {
   createTestUser, 
   deleteTestUser, 
   createTestHabit, 
-  createTestBucket, 
   createMockEvent,
   db,
   User,
-  Habit,
-  Bucket,
-  createTestHabitLog
+  Habit
 } from './test.utils';
 import { SocialService } from '../services/social.service';
 import { eq } from 'drizzle-orm';
-import { bucketHabits, friendships, habits as habitsTable, buckets as bucketsTable } from '../db/schema';
+import { friendships, habits as habitsTable } from '../db/schema';
 
 describe('User Deletion TDD Regression Suite', () => {
   let userA: User;
   let userB: User;
   let habitA: Habit;
-  let bucketB: Bucket;
   let friendshipId: string;
   let handler: any;
 
@@ -31,8 +27,7 @@ describe('User Deletion TDD Regression Suite', () => {
     // User A creates a habit
     habitA = await createTestHabit(userA.id, 'User A Shared Habit');
     
-    // User B creates a bucket
-    bucketB = await createTestBucket(userB.id, 'User B Bucket');
+
 
     // Create friendship
     const event = createMockEvent(userA.id);
@@ -75,11 +70,7 @@ describe('User Deletion TDD Regression Suite', () => {
     expect(updatedHabitB[0]!.sharedWith).not.toContain(userA.id);
   });
 
-  it('should re-evaluate friend buckets after deletion', async () => {
-    // This is hard to test directly without checking internal state or side effects (like bucket streaks)
-    // but the fact that SocialService.cleanupFriendshipData is called ensures the logic runs.
-    // We already proved the array scrub works above.
-    
+  it('should clean up friendship after user deletion', async () => {
     // Let's verify that the friendship is gone
     const fRes = await db.select().from(friendships).where(eq(friendships.id, friendshipId));
     expect(fRes.length).toBe(0);
