@@ -241,17 +241,14 @@ describe('API: POST /api/sync/bulk', () => {
     expect(habitsInBucket.length).toBe(0);
   });
 
-  it('should ignore foreign habits and not link them during bulk sync', async () => {
-    const { createFriendship, shareHabitWithUser } = await import('./test.utils');
-    await createFriendship(testUser.id, otherUser.id, 'accepted');
-    const foreignHabit = await createTestHabit(otherUser.id, 'Foreign Habit');
-    await shareHabitWithUser(foreignHabit.id, testUser.id);
+  it('ignores non-owned habit IDs in bucket operations', async () => {
+    const otherHabit = await createTestHabit(otherUser.id, 'Other User Habit');
 
     const bucketId = crypto.randomUUID();
     const operations = [
       {
         type: 'bucket',
-        data: { id: bucketId, title: 'Shared Bucket', habitIds: [foreignHabit.id] }
+        data: { id: bucketId, title: 'Test Bucket', habitIds: [otherHabit.id] }
       }
     ];
 

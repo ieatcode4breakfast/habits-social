@@ -1,4 +1,4 @@
-import { eq, and, or, gte, asc, desc, sql, inArray } from 'drizzle-orm';
+import { eq, and, gte, asc, desc, inArray } from 'drizzle-orm';
 import { buckets as bucketsTable, bucketHabits, habits as habitsTable, users } from '~~/server/db/schema';
 import { useDB as _useDB } from '~~/server/utils/db';
 import { requireAuth as _requireAuth } from '~~/server/utils/auth';

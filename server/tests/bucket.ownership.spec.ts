@@ -19,15 +19,15 @@ import { reevaluateMultipleBuckets } from '../utils/buckets';
 import bucketIdHandler from '../api/buckets/[id]';
 import bucketsIndexHandler from '../api/buckets/index';
 
-describe('Legacy / Cross-owner Bucket Habits Defensive Filtering', () => {
+describe('Bucket Habit Ownership Boundaries', () => {
   let userA: User;
   let userB: User;
   let habitA: Habit;
   let bucketB: Bucket;
 
   beforeAll(async () => {
-    userA = await createTestUser(`leg_A_${Date.now()}`, `leg_A_${Date.now()}@ex.com`);
-    userB = await createTestUser(`leg_B_${Date.now()}`, `leg_B_${Date.now()}@ex.com`);
+    userA = await createTestUser(`owner_a_${Date.now()}`, `owner_a_${Date.now()}@ex.com`);
+    userB = await createTestUser(`owner_b_${Date.now()}`, `owner_b_${Date.now()}@ex.com`);
 
     // User A owns habitA
     habitA = await createTestHabit(userA.id, 'User A Habit');
@@ -35,7 +35,7 @@ describe('Legacy / Cross-owner Bucket Habits Defensive Filtering', () => {
     // User B owns bucketB
     bucketB = await createTestBucket(userB.id, 'User B Bucket');
 
-    // Seed a legacy cross-owner row directly in db bypassing APIs
+    // Seed a non-owned habit directly in the DB bypassing the APIs to test defensive boundaries
     await db.insert(bucketHabits).values({
       bucketId: bucketB.id,
       habitId: habitA.id
@@ -51,13 +51,37 @@ describe('Legacy / Cross-owner Bucket Habits Defensive Filtering', () => {
     if (userB?.id) await deleteTestUser(userB.id);
   });
 
-  it('GET /api/buckets/[id] should defensively exclude cross-owner habits', async () => {
+  it('should NOT allow a user to link another user\'s habit to their bucket', async () => {
+    const putEvent = createMockEvent(userB.id, {
+      habitIds: [habitA.id]
+    }, {}, { id: bucketB.id }, {}, 'PUT');
+
+    const putResponse = (await bucketIdHandler(putEvent)) as any;
+    expect(putResponse.data.habitIds).not.toContain(habitA.id);
+  });
+
+  it('should ignore nonexistent or random habit IDs in bucket operations', async () => {
+    const randomHabitId = crypto.randomUUID();
+    const putEvent = createMockEvent(userB.id, {
+      habitIds: [randomHabitId]
+    }, {}, { id: bucketB.id }, {}, 'PUT');
+
+    const putResponse = (await bucketIdHandler(putEvent)) as any;
+    expect(putResponse.data.habitIds).not.toContain(randomHabitId);
+
+    const habitsInDb = await db.select()
+      .from(bucketHabits)
+      .where(and(eq(bucketHabits.bucketId, bucketB.id), eq(bucketHabits.habitId, randomHabitId)));
+    expect(habitsInDb).toHaveLength(0);
+  });
+
+  it('GET /api/buckets/[id] should defensively exclude habits owned by other users', async () => {
     const event = createMockEvent(userB.id, {}, {}, { id: bucketB.id }, {}, 'GET');
     const response = (await bucketIdHandler(event)) as any;
     expect(response.data.habitIds).not.toContain(habitA.id);
   });
 
-  it('GET /api/buckets should defensively exclude cross-owner habits', async () => {
+  it('GET /api/buckets should defensively exclude habits owned by other users', async () => {
     const event = createMockEvent(userB.id, {}, {}, {}, {}, 'GET');
     const response = (await bucketsIndexHandler(event)) as any;
     const matchedBucket = response.data.find((b: any) => b.id === bucketB.id);
@@ -65,24 +89,21 @@ describe('Legacy / Cross-owner Bucket Habits Defensive Filtering', () => {
     expect(matchedBucket.habitIds).not.toContain(habitA.id);
   });
 
-  it('SyncService.getDeltas should defensively exclude cross-owner habits in stitched buckets', async () => {
+  it('SyncService.getDeltas should defensively exclude non-owned habits in stitched buckets', async () => {
     const deltas = await SyncService.getDeltas(db, userB.id, { lastSynced: 0 });
     const matchedBucket = deltas.buckets.find((b: any) => b.id === bucketB.id);
     expect(matchedBucket).toBeDefined();
     expect(matchedBucket.habitIds).not.toContain(habitA.id);
   });
 
-  it('SyncService.getPaginatedDeltas should defensively exclude cross-owner habits in stitched buckets', async () => {
+  it('SyncService.getPaginatedDeltas should defensively exclude non-owned habits in stitched buckets', async () => {
     const deltas = await SyncService.getPaginatedDeltas(db, userB.id, { lastSynced: 0 });
     const matchedBucket = deltas.buckets.find((b: any) => b.id === bucketB.id);
     expect(matchedBucket).toBeDefined();
     expect(matchedBucket.habitIds).not.toContain(habitA.id);
   });
 
-  it('reevaluateMultipleBuckets should not count cross-owner habits for streak/log calculations', async () => {
-    // If habitA was counted, and since there is no log for it by userB, the bucket log status would be 'cleared'
-    // but since it's defensively ignored, the bucket actually has 0 valid habits.
-    // Let's create a valid habit for userB inside bucketB first.
+  it('reevaluateMultipleBuckets should not count non-owned habits for streak/log calculations', async () => {
     const habitB = await createTestHabit(userB.id, 'User B Habit');
     await db.insert(bucketHabits).values({
       bucketId: bucketB.id,
@@ -90,20 +111,14 @@ describe('Legacy / Cross-owner Bucket Habits Defensive Filtering', () => {
     });
 
     try {
-      // Create a completed log for userB's habitB
       await createTestHabitLog(userB.id, habitB.id, '2026-05-30', 'completed');
-
-      // Reevaluate logs for bucketB
       await reevaluateMultipleBuckets(db, [{ bucketId: bucketB.id, ownerId: userB.id }]);
 
-      // Get bucket log status
       const logs = await db.select()
         .from(bucketLogs)
         .where(and(eq(bucketLogs.bucketId, bucketB.id), eq(bucketLogs.date, '2026-05-30')));
 
       expect(logs).toHaveLength(1);
-      // It should be 'completed' because the only valid habit (habitB) is completed.
-      // If the legacy row (habitA) was counted, it would be 'cleared' (since habitA is missing).
       expect(logs[0]?.status).toBe('completed');
     } finally {
       await db.delete(bucketHabits).where(eq(bucketHabits.habitId, habitB.id));
@@ -112,7 +127,7 @@ describe('Legacy / Cross-owner Bucket Habits Defensive Filtering', () => {
     }
   });
 
-  it('POST /api/buckets (upsert) should defensively exclude cross-owner habits in the response', async () => {
+  it('POST /api/buckets (upsert) should defensively exclude non-owned habits in the response', async () => {
     const event = createMockEvent(userB.id, {
       id: bucketB.id,
       title: 'User B Bucket Upserted'

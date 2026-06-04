@@ -1,4 +1,4 @@
-import { eq, and, or, sql, inArray } from 'drizzle-orm';
+import { eq, and, inArray } from 'drizzle-orm';
 import { buckets as bucketsTable, bucketHabits, habits as habitsTable, syncDeletions, bucketLogs } from '~~/server/db/schema';
 import { reevaluateMultipleBuckets } from '~~/server/utils/buckets';
 import type { DBConnection } from '../types/db';

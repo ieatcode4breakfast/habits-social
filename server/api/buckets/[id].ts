@@ -1,5 +1,5 @@
-import { eq, and, or, sql, inArray, notInArray, ne } from 'drizzle-orm';
-import { buckets as bucketsTable, bucketHabits, habits as habitsTable, friendships, syncDeletions } from '~~/server/db/schema';
+import { eq, and } from 'drizzle-orm';
+import { buckets as bucketsTable, bucketHabits, habits as habitsTable } from '~~/server/db/schema';
 import { useDB as _useDB } from '~~/server/utils/db';
 import { requireAuth as _requireAuth } from '~~/server/utils/auth';
 import { bucketUpdateSchema } from '~~/server/utils/validation';
