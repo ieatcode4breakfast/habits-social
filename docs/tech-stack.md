@@ -6,34 +6,39 @@ This document is the source of truth for the current application stack and the o
 
 ## 1. Application Runtime
 
-- **Framework**: Nuxt 4 with Vue 3.
-- **Server Engine**: Nitro.
-- **Runtime Targets**: Node.js for local tooling and Cloudflare Workerd for deployed server runtime.
-- **Language**: TypeScript.
+- **Framework**: Nuxt 4 with Vue 3 (Composition API with `<script setup>`).
+- **Server Engine**: Nitro (file-based API routes under `server/api/`).
+- **Runtime Targets**: Node.js (v22) for local tooling and Cloudflare Workerd for deployed server runtime.
+- **Language**: TypeScript with `strict: true`.
 - **Production Build Command**: `npm run build`.
-- **Type Safety Command**: `npm run check`.
+- **Type Safety Command**: `npm run check` (runs `nuxi typecheck` and `vitest typecheck`).
 
 ## 2. Hosting and Deployment
 
-- **App Hosting**: Cloudflare Workers via Wrangler.
+- **App Hosting**: Cloudflare Workers via Wrangler (preset `cloudflare-module`, compat flag `nodejs_compat`).
+- **CI/CD**: GitHub Actions (`.github/workflows/deploy.yml`) on pushes to `staging` and `main`.
 - **Staging Worker**: `habits-social-staging`.
+- **Staging Domain**: `habits-social-staging.mycooltools.workers.dev`.
 - **Production Worker**: `habits-social-live`.
 - **Production Domains**: `habitssocial.com` and `www.habitssocial.com`.
 - **Static Assets**: served from `.output/public` through the Cloudflare Workers assets binding.
 
-- **Deployment Workflow**: GitHub Actions deploys on pushes to `staging` and `main`.
-
 ## 3. Database
 
-- **Database**: PostgreSQL.
-- **Host**: Neon Serverless Postgres.
+- **Database**: PostgreSQL (15 tables total; see `server/db/schema.ts`).
+- **Host**: Neon Serverless Postgres (Asia-Southeast-1 region).
 - **ORM and Query Builder**: Drizzle ORM.
-- **Migration Tool**: Drizzle Kit.
+- **Schema Validation**: Drizzle Zod (generates Zod schemas from Drizzle table definitions).
+- **Migration Tool**: Drizzle Kit (`generate`, `migrate`, `check`).
 - **Database Driver**: `@neondatabase/serverless`.
 - **Schema Source**: `server/db/schema.ts`.
 - **Migration Directory**: `server/db/migrations`.
 - **Drizzle Config**: `drizzle.config.ts`.
 - **Migration Ledger**: Drizzle reads `drizzle.__drizzle_migrations`.
+
+### Database Tables
+
+`users`, `password_reset_tokens`, `habits`, `habit_logs`, `buckets`, `bucket_habits`, `shared_bucket_members`, `bucket_logs`, `share_events`, `friendships`, `user_blocks`, `sync_deletions`, `chat_conversations`, `chat_participants`, `chat_messages`
 
 ## 4. Database Branches
 
@@ -57,44 +62,95 @@ Required deployment secrets:
 - `CLOUDFLARE_ACCOUNT_ID`
 - `STAGING_DATABASE_URL`
 - `PRODUCTION_DATABASE_URL`
-- `NUXT_REALTIME_JWT_SECRET`
-- `NUXT_PARTYKIT_NOTIFY_SECRET`
+- `JWT_SECRET` — signs session auth tokens (HS256).
+- `REALTIME_JWT_SECRET` — signs Worker-issued WebSocket tokens. Used as `NUXT_REALTIME_JWT_SECRET` in the Nuxt runtime config.
+- `PARTYKIT_NOTIFY_SECRET` — signs Worker-to-PartyKit notification requests. Used as `NUXT_PARTYKIT_NOTIFY_SECRET` in the Nuxt runtime config.
+- `GOOGLE_CLIENT_ID` — Google OAuth 2.0 client ID. Exposed to the client via `runtimeConfig.public.googleClientId` (also settable as `NUXT_PUBLIC_GOOGLE_CLIENT_ID` for build-time injection).
+- `RESEND_API_KEY` — API key for Resend transactional email delivery.
+- `RESEND_FROM_EMAIL` — sender address for outgoing emails (default: `Habits Social <noreply@habitssocial.com>`).
+- `APP_URL` — canonical application URL used in email links and redirects.
 
 ## 6. Realtime and Chat
 
-- **Realtime Server**: PartyKit.
+- **Realtime Server**: PartyKit (WebSocket-based invalidation broadcaster; does not carry message data over the socket).
 - **PartyKit Package**: `partykit`.
-- **Client Socket Package**: `partysocket`.
+- **Client Socket Package**: `partysocket` (auto-reconnect WebSocket client).
+- **Realtime Events**: `chat.changed`, `friends.changed` (invalidation signals only; clients refetch data via REST).
 - **Staging PartyKit Host**: `habits-social-realtime-staging.ieatcode4breakfast.partykit.dev`.
 - **Production PartyKit Host**: `habits-social-realtime-production.ieatcode4breakfast.partykit.dev`.
 - **Realtime Public Flags**: `NUXT_PUBLIC_REALTIME_ENABLED=true` and `NUXT_PUBLIC_PARTYKIT_HOST=<environment PartyKit host>` must be set at build time so the generated Cloudflare `_headers` file includes the matching `https://` and `wss://` PartyKit origins in `connect-src`.
-- **Realtime Auth**: JWT-based token flow using server utilities.
-- **Realtime Secrets**: `NUXT_REALTIME_JWT_SECRET` signs Worker-issued websocket tokens, and `NUXT_PARTYKIT_NOTIFY_SECRET` signs Worker-to-PartyKit notification requests. These must be rotated and synced separately for staging and production.
+- **Realtime Auth**: JWT-based token flow (HS256, 15-minute expiry, 14-minute auto-refresh) via `POST /api/realtime/token`. The `REALTIME_JWT_SECRET` signs Worker-issued WebSocket tokens, and `PARTYKIT_NOTIFY_SECRET` signs Worker-to-PartyKit notification requests using HMAC-SHA256 with a timestamp. These must be rotated and synced separately for staging and production.
 - **PartyKit Project Names**: staging deploys to `habits-social-realtime-staging`; production deploys to `habits-social-realtime-production`. Because `partykit.json` defaults to the staging project, production deploys must pass `--name habits-social-realtime-production` explicitly.
-- **Chat Persistence**: PostgreSQL tables defined in `server/db/schema.ts`.
+- **Chat Persistence**: PostgreSQL tables `chat_conversations`, `chat_participants`, `chat_messages` defined in `server/db/schema.ts`.
 
 ## 7. Frontend and Local Data
 
-- **Styling**: Tailwind CSS 4.
+- **Styling**: Tailwind CSS 4 (via `@tailwindcss/vite` plugin; dark/light theme via CSS custom properties; Inter font family).
 - **Icons**: Lucide Vue Next.
-- **UI Utilities**: Floating UI.
-- **Animations**: VueUse Motion.
-- **Local Offline Storage**: Dexie over IndexedDB.
-- **PWA Support**: `@vite-pwa/nuxt`.
+- **UI Utilities**: Floating UI (popover/positioning).
+- **Animations**: VueUse Motion (declarative Vue animations).
+- **Composables**: VueUse (`@vueuse/core`, `@vueuse/integrations`, `@vueuse/nuxt`) for reactive utilities like `useNetwork`.
+- **Drag and Drop**: SortableJS for habit and bucket reordering.
+- **SEO**: `@nuxtjs/seo` (meta tags, Open Graph, sitemap, JSON-LD; uses `@unhead/vue` for head management).
+- **Date Manipulation**: `date-fns` for parsing, date difference calculations, and streak computations.
+- **Local Offline Storage**: Dexie (IndexedDB wrapper) for offline habit and bucket data.
+- **PWA Support**: `@vite-pwa/nuxt` (auto-update registration, Workbox service worker with runtime caching strategies: `NetworkOnly` for API routes, `CacheFirst` for `/_nuxt/` assets with 30-day cache expiry).
+- **Image Processing**: Jimp (used by `scripts/generate-icons.js` to generate PWA icon assets).
 
-## 8. Validation and Auth
+## 8. Authentication and Authorization
 
-- **Validation**: Zod and Drizzle Zod.
-- **Password Hashing**: `bcrypt-ts`.
-- **JWT Handling**: `jose`.
+### 8.1 Session Management
 
-## 9. Testing
+- **Token Format**: Stateless JWT (HS256) issued by `jose`.
+- **Token Storage**: HTTP-only cookie named `auth_token` (`sameSite: 'lax'`, `secure: true` in production; 7-day max age). Also accepted via `Authorization: Bearer` header.
+- **Token Lifetime**: 7-day expiry with sliding renewal at 50% lifetime (tokens are reissued when more than 3.5 days old).
+- **Session Versioning**: The `users.sessionVersion` column invalidates all existing tokens when incremented (e.g., on password change). Every token embeds the session version that was current at issuance time.
+- **Token Verification**: `getUserFromEvent()` checks the cookie first, then falls back to the `Authorization` header.
+- **Auth Middleware**: `app/middleware/auth.ts` protects client-side routes; `requireAuth()` protects server-side API handlers.
 
-- **Unit and Integration Tests**: Vitest.
-- **Type Checks**: `nuxi typecheck` and Vitest typecheck.
-- **DOM Test Environment**: Happy DOM.
-- **IndexedDB Test Mock**: `fake-indexeddb`.
-- **Browser/E2E Tests**: Playwright.
+### 8.2 Local Authentication (Email/Password)
+
+- **Registration**: `POST /api/auth/register` — validates email, username, and password via Zod; hashes password with `bcrypt-ts` (cost factor 10); creates user; issues session token.
+- **Login**: `POST /api/auth/login` — looks up user by lowercased email; verifies password hash; issues session token. Uses a dummy hash comparison (`DUMMY_HASH`) on missing-user codepaths to mitigate timing-based user-enumeration attacks.
+- **Password Reset**: `POST /api/auth/forgot-password` generates a SHA-256 hashed reset token (15-minute TTL, stored in `password_reset_tokens` table) and sends it via email. `POST /api/auth/reset-password` verifies the reset token hash and updates the user's password, then increments `sessionVersion` to invalidate all existing sessions.
+- **Logout**: `POST /api/auth/logout` clears the `auth_token` cookie.
+- **Current User**: `GET /api/auth/me` returns the authenticated user profile.
+
+### 8.3 Google OAuth 2.0 Authentication
+
+- **Provider**: Google Identity Services (OAuth 2.0).
+- **Client ID**: The `GOOGLE_CLIENT_ID` environment variable is exposed to the frontend via `runtimeConfig.public.googleClientId` and also served at `GET /api/auth/google-client-id`.
+- **ID Token Verification**: Google ID tokens are verified server-side using `jose` against Google's public JWKS endpoint (`https://www.googleapis.com/oauth2/v3/certs`). The `verifyGoogleIdToken()` utility in `server/utils/auth.ts` performs audience validation, expiry checking, and signature verification.
+- **Sign-In Flow (first step)**: The client sends the Google credential (ID token) to `POST /api/auth/google`. The server verifies the token to extract the verified email and photo URL.
+  - **Existing user**: If the email matches a user in the database, the server auto-verifies their email (if not already verified), issues a full session token, sets the auth cookie, and returns `{ signupRequired: false, token, id, email, username, photoUrl }`.
+  - **New user**: If no matching user exists, the server generates a temporary signup token (a 15-minute JWT containing the verified email and photo URL) via `generateSignupToken()` and returns `{ signupRequired: true, signupToken, email, photoUrl }`.
+- **Registration Flow (second step)**: The client collects a username and password from the new Google user and sends them along with the temporary `signupToken` to `POST /api/auth/register-google`. The server verifies the signup token, checks that the email and username are not already taken, creates the user with the verified email (pre-marked as verified), and issues a full session token.
+- **Rate Limiting**: Both Google auth endpoints are subject to the same rate limiting as local auth (5 requests per 15 minutes per email identifier, 50 requests per 15 minutes per IP).
+
+## 9. Email Delivery
+
+- **Provider**: Resend (transactional email API).
+- **API Endpoint**: `https://api.resend.com/emails`.
+- **Sender**: `Habits Social <noreply@habitssocial.com>` (configurable via `RESEND_FROM_EMAIL` / `resendFromEmail`).
+- **Current Usage**: Password reset emails only (`sendPasswordResetEmail` in server utilities).
+- **Secrets**: `RESEND_API_KEY` and `RESEND_FROM_EMAIL` must be set in deployment environments.
+
+## 10. Validation and Data Integrity
+
+- **Runtime Validation**: Zod 4 (all API request bodies are validated with Zod schemas before processing).
+- **Schema-Derived Validation**: Drizzle Zod generates Zod insert/select schemas directly from Drizzle table definitions.
+- **Shared Validation Primitives**: `server/utils/schemaPrimitives.ts` defines reusable Zod schemas (e.g., `zPassword` with minimum length and complexity rules).
+- **Rate Limiting**: In-memory store via Nitro storage (`authRateLimit`, `chatRateLimit`). Auth endpoints: 5 requests per 15 minutes per identifier, 50 requests per 15 minutes per IP.
+
+## 11. Testing
+
+- **Unit and Integration Tests**: Vitest (70+ test files named `*.spec.ts`).
+- **Vue Component Testing**: `@vue/test-utils` with `@nuxt/test-utils` for Nuxt-aware test setup.
+- **Type Checks**: `nuxi typecheck` and Vitest typecheck (combined via `npm run check`).
+- **DOM Test Environment**: Happy DOM (lightweight browser-like environment).
+- **IndexedDB Test Mock**: `fake-indexeddb` (mocks IndexedDB for Dexie-dependent tests).
+- **Browser/E2E Tests**: Playwright (chromium, firefox, webkit; HTML reporter output to `playwright-report/`).
+- **Test UI**: `@vitest/ui` (interactive test dashboard via `npm run test:ui`).
 
 For database schema work, focus on:
 
@@ -107,7 +163,7 @@ Do not add browser tests for a database migration unless the specific user-facin
 
 # Part B: Workflow Instructions
 
-## 10. Database Migration Workflow
+## 12. Database Migration Workflow
 
 This is the normal solo-dev and AI-agent workflow:
 
@@ -128,7 +184,7 @@ This is the normal solo-dev and AI-agent workflow:
 
 The intended day-to-day experience is: AI handles schema edits and migration generation; CI handles applying migrations; the developer tests staging and approves production promotion.
 
-## 11. Strict Migration Rules
+## 13. Strict Migration Rules
 
 These rules are mandatory for all AI agents and automation:
 
@@ -139,7 +195,7 @@ These rules are mandatory for all AI agents and automation:
 - Run `npx drizzle-kit check` before committing migration changes when the migration history has been touched.
 - Manual SQL against staging or production is reserved for incident repair and must be followed by a read-only verification.
 
-## 12. Safe Rollout Pattern
+## 14. Safe Rollout Pattern
 
 For additive changes, one deployment is usually acceptable:
 
@@ -155,7 +211,7 @@ For risky or destructive changes, use a multi-step rollout:
 
 Never remove or rename a production column in the same deploy where old production code might still read it.
 
-## 13. Production Promotion Checklist
+## 15. Production Promotion Checklist
 
 Before promoting staging to production:
 
@@ -167,7 +223,7 @@ Before promoting staging to production:
 6. Let CI migrate production before deploying production code.
 7. If CI migration fails, stop and inspect the database state before retrying.
 
-## 14. Incident Recovery Rule
+## 16. Incident Recovery Rule
 
 When staging or production schema becomes desynchronized:
 
@@ -180,4 +236,4 @@ When staging or production schema becomes desynchronized:
 
 ---
 
-Last updated: 2026-05-24
+Last updated: 2026-06-04
