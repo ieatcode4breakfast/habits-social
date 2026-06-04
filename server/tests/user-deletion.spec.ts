@@ -45,14 +45,6 @@ describe('User Deletion TDD Regression Suite', () => {
       .set({ sharedWith: [userB.id] })
       .where(eq(habitsTable.id, habitA.id));
 
-    // User B adds habitA to their bucketB
-    await db.insert(bucketHabits).values({
-      bucketId: bucketB.id,
-      habitId: habitA.id,
-      addedBy: userB.id,
-      approvalStatus: 'approved'
-    });
-
     handler = (await import('../api/users/me.delete')).default;
   });
 

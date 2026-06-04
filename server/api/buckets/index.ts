@@ -37,10 +37,7 @@ export default defineEventHandler(async (event) => {
     .innerJoin(habitsTable, eq(bucketHabits.habitId, habitsTable.id))
     .where(and(
       inArray(bucketHabits.bucketId, bucketIds),
-      or(
-        eq(habitsTable.ownerId, userId),
-        sql`${habitsTable.sharedWith} @> ARRAY[${userId}]::text[]`
-      )
+      eq(habitsTable.ownerId, userId)
     ));
 
     const bucketsWithHabits = buckets.map((b: any) => ({
@@ -59,7 +56,7 @@ export default defineEventHandler(async (event) => {
     }
 
     const data = validation.data;
-    
+
     const nextSortOrder = data.sortOrder !== undefined ? data.sortOrder : 0;
     const bucketId = data.id || crypto.randomUUID();
 
@@ -114,17 +111,21 @@ export default defineEventHandler(async (event) => {
       }
 
     // Manage bucket_habits
-    if (data.habitIds && data.habitIds.length > 0) {
-      // Validate habits exist and belong to user
-      const validHabits = await db.select({ id: habitsTable.id })
-        .from(habitsTable)
-        .where(and(inArray(habitsTable.id, data.habitIds), eq(habitsTable.ownerId, userId)));
-      
-      const validIds = validHabits.map((h: any) => h.id);
+    if (data.habitIds !== undefined) {
+      let validIds: string[] = [];
+      if (data.habitIds.length > 0) {
+        // Validate habits exist and belong to user
+        const validHabits = await db.select({ id: habitsTable.id })
+          .from(habitsTable)
+          .where(and(inArray(habitsTable.id, data.habitIds), eq(habitsTable.ownerId, userId)));
+
+        validIds = validHabits.map((h: any) => h.id);
+      }
+
+      await db.delete(bucketHabits).where(eq(bucketHabits.bucketId, newBucket.id));
 
       // Manage bucket_habits in batch
       if (validIds.length > 0) {
-        await db.delete(bucketHabits).where(eq(bucketHabits.bucketId, newBucket.id));
         await db.insert(bucketHabits)
           .values(validIds.map((hid: string) => ({
             bucketId: newBucket.id,
@@ -139,10 +140,7 @@ export default defineEventHandler(async (event) => {
       .innerJoin(habitsTable, eq(bucketHabits.habitId, habitsTable.id))
       .where(and(
         eq(bucketHabits.bucketId, newBucket.id),
-        or(
-          eq(habitsTable.ownerId, userId),
-          sql`${habitsTable.sharedWith} @> ARRAY[${userId}]::text[]`
-        )
+        eq(habitsTable.ownerId, userId)
       ));
 
     return { data: { ...newBucket, habitIds: habitsData.map((h: any) => h.habitId) } };

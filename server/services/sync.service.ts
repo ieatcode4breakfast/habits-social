@@ -5,9 +5,7 @@ import {
   habitLogs, 
   bucketLogs, 
   syncDeletions, 
-  sharedBucketMembers, 
-  bucketHabits, 
-  users 
+  bucketHabits
 } from '~~/server/db/schema';
 import { getServerTime } from '~~/server/utils/db';
 import type { BucketStreakBaseline, HabitStreakBaseline, SyncParams, SyncResponse } from '~~/server/types/sync';
@@ -116,19 +114,12 @@ export const SyncService = {
 
     const habitsFilters = [eq(habitsTable.ownerId, userId)];
     
-    // Identifies buckets where user is owner OR an accepted member
+    // Identifies buckets where user is owner
     const bucketIdsSubquery = db.select({ id: bucketsTable.id })
       .from(bucketsTable)
-      .leftJoin(sharedBucketMembers, eq(bucketsTable.id, sharedBucketMembers.bucketId))
-      .where(or(
-        eq(bucketsTable.ownerId, userId),
-        and(
-          eq(sharedBucketMembers.userId, userId),
-          eq(sharedBucketMembers.status, 'accepted')
-        )
-      ));
+      .where(eq(bucketsTable.ownerId, userId));
 
-    const bucketFilters = [inArray(bucketsTable.id, bucketIdsSubquery)];
+    const bucketFilters = [eq(bucketsTable.ownerId, userId)];
     const habitLogsFilters = [eq(habitLogs.ownerId, userId)];
     const bucketLogsFilters = [eq(bucketLogs.ownerId, userId)];
     const deletionsFilters = [eq(syncDeletions.ownerId, userId)];
@@ -150,7 +141,7 @@ export const SyncService = {
     }
 
     // 1. Fetch main deltas in parallel (wrapped in transaction to use a single connection)
-    const [habitsRes, bucketsRes, bucketHabitsRes, membersRes, habitLogsRes, bucketLogsRes, deletionsRes] = await db.transaction(async (tx: any) => {
+    const [habitsRes, bucketsRes, bucketHabitsRes, habitLogsRes, bucketLogsRes, deletionsRes] = await db.transaction(async (tx: any) => {
       // Parallel fetch to avoid Cartesian product and OOM
       return await Promise.all([
         tx.select().from(habitsTable)
@@ -162,30 +153,15 @@ export const SyncService = {
           .orderBy(asc(bucketsTable.sortOrder), desc(bucketsTable.createdAt)),
 
         tx.select({
-          bh: bucketHabits,
-          habitOwnerId: habitsTable.ownerId
+          bucketId: bucketHabits.bucketId,
+          habitId: bucketHabits.habitId
         })
         .from(bucketHabits)
         .innerJoin(habitsTable, eq(bucketHabits.habitId, habitsTable.id))
         .where(and(
           inArray(bucketHabits.bucketId, bucketIdsSubquery),
-          or(
-            isNull(bucketHabits.approvalStatus),
-            ne(bucketHabits.approvalStatus, 'removed')
-          ),
-          or(
-            eq(habitsTable.ownerId, userId),
-            sql`${habitsTable.sharedWith} @> ARRAY[${userId}]::text[]`
-          )
+          eq(habitsTable.ownerId, userId)
         )),
-
-        tx.select({
-          sbm: sharedBucketMembers,
-          memberUsername: users.username
-        })
-        .from(sharedBucketMembers)
-        .leftJoin(users, eq(sharedBucketMembers.userId, users.id))
-        .where(inArray(sharedBucketMembers.bucketId, bucketIdsSubquery)),
 
         tx.select().from(habitLogs)
           .where(and(...habitLogsFilters)!),
@@ -200,7 +176,7 @@ export const SyncService = {
     });
 
     // 2. Aggregate bucket results (Stitch separate query results together)
-    const normalizedBuckets = this.stitchBuckets(bucketsRes, bucketHabitsRes, membersRes);
+    const normalizedBuckets = this.stitchBuckets(bucketsRes, bucketHabitsRes);
     const sanitizedHabits = await sanitizeShareableRecords(db, userId, habitsRes);
     const sanitizedHabitLogs = await sanitizeShareableRecords(db, userId, habitLogsRes);
 
@@ -215,42 +191,23 @@ export const SyncService = {
   },
 
   /**
-   * Stitches together separate bucket, habit assignment, and member assignment queries
+   * Stitches together separate bucket and habit assignment queries
    * to avoid Cartesian product explosions while maintaining expected sync payload shape.
    */
-  stitchBuckets(buckets: any[], habitAssignments: any[], memberAssignments: any[]): any[] {
+  stitchBuckets(buckets: any[], habitAssignments: any[]): any[] {
     const bucketMap = new Map<string, any>();
     
     for (const b of buckets) {
       bucketMap.set(b.id, {
         ...b,
-        habitIds: [],
-        sharedMembers: [],
-        sharedHabits: []
+        habitIds: []
       });
     }
 
     for (const row of habitAssignments) {
-      const entry = bucketMap.get(row.bh.bucketId);
+      const entry = bucketMap.get(row.bucketId);
       if (entry) {
-        entry.habitIds.push(row.bh.habitId);
-        entry.sharedHabits.push({
-          habitId: row.bh.habitId,
-          approvalStatus: row.bh.approvalStatus,
-          addedBy: row.bh.addedBy,
-          habitOwnerId: row.habitOwnerId
-        });
-      }
-    }
-
-    for (const row of memberAssignments) {
-      const entry = bucketMap.get(row.sbm.bucketId);
-      if (entry) {
-        entry.sharedMembers.push({
-          userId: row.sbm.userId,
-          username: row.memberUsername,
-          status: row.sbm.status
-        });
+        entry.habitIds.push(row.habitId);
       }
     }
 
@@ -330,20 +287,9 @@ export const SyncService = {
     startDate: string,
     endDate: string
   ): Promise<BucketStreakBaseline[]> {
-    const bucketIdsSubquery = db.select({ id: bucketsTable.id })
-      .from(bucketsTable)
-      .leftJoin(sharedBucketMembers, eq(bucketsTable.id, sharedBucketMembers.bucketId))
-      .where(or(
-        eq(bucketsTable.ownerId, userId),
-        and(
-          eq(sharedBucketMembers.userId, userId),
-          eq(sharedBucketMembers.status, 'accepted')
-        )
-      ));
-
     const bucketRows: BucketIdRow[] = await db.select({ id: bucketsTable.id })
       .from(bucketsTable)
-      .where(inArray(bucketsTable.id, bucketIdsSubquery));
+      .where(eq(bucketsTable.ownerId, userId));
 
     if (bucketRows.length === 0) return [];
 
@@ -457,15 +403,6 @@ export const SyncService = {
     }
 
     const [habitsResRaw, bucketIdsResRaw] = await db.transaction(async (tx: any) => {
-      // Subquery to identify accessible bucket IDs (to avoid join duplicates)
-      const bucketIdsSubquery = tx.select({ id: bucketsTable.id })
-        .from(bucketsTable)
-        .leftJoin(sharedBucketMembers, eq(bucketsTable.id, sharedBucketMembers.bucketId))
-        .where(or(
-          eq(bucketsTable.ownerId, userId),
-          and(eq(sharedBucketMembers.userId, userId), eq(sharedBucketMembers.status, 'accepted'))
-        ));
-
       return await Promise.all([
         tx.select().from(habitsTable)
           .where(and(
@@ -477,7 +414,7 @@ export const SyncService = {
         
         tx.select({ id: bucketsTable.id }).from(bucketsTable)
           .where(and(
-            inArray(bucketsTable.id, bucketIdsSubquery),
+            eq(bucketsTable.ownerId, userId),
             bucketCursor ? buildCursorFilter(bucketsTable, bucketCursor as any, fallbackDate) : gte(bucketsTable.updatedAt, fallbackDate)
           ))
           .orderBy(asc(bucketsTable.updatedAt), asc(bucketsTable.id))
@@ -562,41 +499,26 @@ export const SyncService = {
 
     // Fetch Bucket Details if we have IDs
     if (bucketIds.length > 0) {
-      const [rawBuckets, habitAssignments, memberAssignments] = await db.transaction(async (tx: any) => {
+      const [rawBuckets, habitAssignments] = await db.transaction(async (tx: any) => {
         return await Promise.all([
           tx.select().from(bucketsTable)
             .where(inArray(bucketsTable.id, bucketIds))
             .orderBy(asc(bucketsTable.updatedAt), asc(bucketsTable.id)),
           
           tx.select({
-            bh: bucketHabits,
-            habitOwnerId: habitsTable.ownerId
+            bucketId: bucketHabits.bucketId,
+            habitId: bucketHabits.habitId
           })
           .from(bucketHabits)
           .innerJoin(habitsTable, eq(bucketHabits.habitId, habitsTable.id))
           .where(and(
             inArray(bucketHabits.bucketId, bucketIds),
-            or(
-              isNull(bucketHabits.approvalStatus),
-              ne(bucketHabits.approvalStatus, 'removed')
-            ),
-            or(
-              eq(habitsTable.ownerId, userId),
-              sql`${habitsTable.sharedWith} @> ARRAY[${userId}]::text[]`
-            )
-          )),
-
-          tx.select({
-            sbm: sharedBucketMembers,
-            memberUsername: users.username
-          })
-          .from(sharedBucketMembers)
-          .leftJoin(users, eq(sharedBucketMembers.userId, users.id))
-          .where(inArray(sharedBucketMembers.bucketId, bucketIds))
+            eq(habitsTable.ownerId, userId)
+          ))
         ]);
       });
 
-      normalizedBuckets = this.stitchBuckets(rawBuckets, habitAssignments, memberAssignments);
+      normalizedBuckets = this.stitchBuckets(rawBuckets, habitAssignments);
     }
 
     const nextCursors: Record<string, string> = {};

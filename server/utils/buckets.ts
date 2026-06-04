@@ -29,7 +29,7 @@ export async function syncBucketLogsForHabit(db: any, habitId: string, userId: s
       ${date} as date,
       CASE 
         WHEN bool_or(hl.status = 'failed') THEN 'failed'
-        WHEN COUNT(DISTINCT hl.habit_id) < (SELECT COUNT(*) FROM bucket_habits WHERE bucket_id = b.id AND approval_status = 'accepted') THEN 'cleared'
+        WHEN COUNT(DISTINCT hl.habit_id) < (SELECT COUNT(*) FROM bucket_habits bh2 JOIN habits h2 ON bh2.habit_id = h2.id WHERE bh2.bucket_id = b.id AND h2.owner_id = b.owner_id) THEN 'cleared'
         WHEN bool_or(hl.status = 'vacation') THEN 'vacation'
         WHEN bool_or(hl.status = 'skipped') THEN 'skipped'
         ELSE 'completed'
@@ -37,9 +37,9 @@ export async function syncBucketLogsForHabit(db: any, habitId: string, userId: s
       NOW() as updated_at
     FROM buckets b
     JOIN bucket_habits bh ON b.id = bh.bucket_id
+    JOIN habits h ON bh.habit_id = h.id AND h.owner_id = b.owner_id
     LEFT JOIN habit_logs hl ON bh.habit_id = hl.habit_id AND hl.owner_id = b.owner_id AND hl.date = ${date} AND hl.status != 'cleared'
     WHERE b.id::text IN (${idList})
-      AND bh.approval_status = 'accepted'
     GROUP BY b.id, b.owner_id
     ON CONFLICT (id) DO UPDATE SET
       status = EXCLUDED.status,
@@ -78,7 +78,7 @@ export async function reevaluateMultipleBuckets(db: any, items: { bucketId: stri
       hl.date,
       CASE 
         WHEN bool_or(hl.status = 'failed') THEN 'failed'
-        WHEN COUNT(DISTINCT hl.habit_id) < (SELECT COUNT(*) FROM bucket_habits WHERE bucket_id = tb.id::uuid AND approval_status = 'accepted') THEN 'cleared'
+        WHEN COUNT(DISTINCT hl.habit_id) < (SELECT COUNT(*) FROM bucket_habits bh2 JOIN habits h2 ON bh2.habit_id = h2.id WHERE bh2.bucket_id = tb.id::uuid AND h2.owner_id = tb.owner_id::uuid) THEN 'cleared'
         WHEN bool_or(hl.status = 'vacation') THEN 'vacation'
         WHEN bool_or(hl.status = 'skipped') THEN 'skipped'
         ELSE 'completed'
@@ -86,9 +86,9 @@ export async function reevaluateMultipleBuckets(db: any, items: { bucketId: stri
       NOW() as updated_at
     FROM target_buckets tb
     JOIN bucket_habits bh ON tb.id::uuid = bh.bucket_id
+    JOIN habits h ON bh.habit_id = h.id AND h.owner_id = tb.owner_id::uuid
     JOIN habit_logs hl ON bh.habit_id = hl.habit_id AND hl.owner_id = tb.owner_id::uuid
     WHERE hl.status != 'cleared'
-      AND bh.approval_status = 'accepted'
     GROUP BY tb.id, tb.owner_id, hl.date
     ON CONFLICT (id) DO UPDATE SET
       status = EXCLUDED.status,

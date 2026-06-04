@@ -21,9 +21,7 @@ describe('Streak Calculation Engine - Stress Testing', () => {
     await db.insert(bucketHabits)
       .values({
         bucketId: bucket.id,
-        habitId: habit.id,
-        addedBy: user.id,
-        approvalStatus: 'accepted'
+        habitId: habit.id
       });
   });
 

@@ -2,7 +2,6 @@ import { eq, and, sql } from 'drizzle-orm';
 import { habitLogs, habits as habitsTable, bucketHabits, shareEvents, syncDeletions, users } from '~~/server/db/schema';
 import { recalculateHabitStreak } from '~~/server/utils/streaks';
 import { syncBucketLogsForHabit, reevaluateMultipleBuckets } from '~~/server/utils/buckets';
-import { markBucketHabitsRemoved } from '~~/server/utils/shared-buckets';
 import type { DBConnection } from '../types/db';
 import { sanitizeHabitShareRecipientIds } from './habit-sharing.service';
 
@@ -207,11 +206,6 @@ export const HabitService = {
       const newSharedSet = new Set((updated.sharedWith || []).map(String));
       
       const newRecipients = (updated.sharedWith || []).filter((rid: string) => !oldSharedSet.has(String(rid)));
-      const removedRecipients = Array.from(oldSharedSet).filter((rid) => !newSharedSet.has(String(rid))) as string[];
-
-      if (removedRecipients.length > 0) {
-        await markBucketHabitsRemoved(tx, [id], removedRecipients);
-      }
 
       if (newRecipients.length > 0 && updated.userDate) {
         await tx.insert(shareEvents)

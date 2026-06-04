@@ -1,5 +1,5 @@
 import { eq, and, or, sql, inArray, notInArray, ne } from 'drizzle-orm';
-import { buckets as bucketsTable, bucketHabits, habits as habitsTable, friendships, sharedBucketMembers, syncDeletions } from '~~/server/db/schema';
+import { buckets as bucketsTable, bucketHabits, habits as habitsTable, friendships, syncDeletions } from '~~/server/db/schema';
 import { useDB as _useDB } from '~~/server/utils/db';
 import { requireAuth as _requireAuth } from '~~/server/utils/auth';
 import { bucketUpdateSchema } from '~~/server/utils/validation';
@@ -31,14 +31,7 @@ export default defineEventHandler(async (event) => {
       .innerJoin(habitsTable, eq(bucketHabits.habitId, habitsTable.id))
       .where(and(
         eq(bucketHabits.bucketId, id),
-        or(
-          sql`${bucketHabits.approvalStatus} IS NULL`,
-          inArray(bucketHabits.approvalStatus, ['accepted', 'pending'])
-        ),
-        or(
-          eq(habitsTable.ownerId, userId),
-          sql`${habitsTable.sharedWith} @> ARRAY[${userId}]::text[]`
-        )
+        eq(habitsTable.ownerId, userId)
       ));
     return { data: { ...bucket, habitIds: habitsRes.map((h: any) => h.habitId) } };
   }

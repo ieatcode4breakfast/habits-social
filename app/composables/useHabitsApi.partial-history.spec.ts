@@ -96,7 +96,6 @@ const buildRemoteBucket = (): Bucket => ({
   description: '',
   color: '#6366f1',
   habitIds: [HABIT_ID],
-  sharedHabits: [],
   currentStreak: 99,
   longestStreak: 99,
   streakAnchorDate: d(-1)

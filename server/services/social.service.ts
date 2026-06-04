@@ -1,7 +1,6 @@
 import { eq, and, or, sql } from 'drizzle-orm';
 import { friendships as friendshipsTable, habits, habitLogs, userBlocks, users } from '~~/server/db/schema';
 import { extractRows } from '~~/server/utils/db';
-import { reevaluateMultipleBuckets } from '~~/server/utils/buckets';
 import type { DBConnection } from '~~/server/types/db';
 import type { Friendship, UserBlock } from '~~/server/types';
 import * as realtimeNotifier from '~~/server/utils/realtimeNotifier';
@@ -178,24 +177,6 @@ export const SocialService = {
   },
 
   async cleanupFriendshipData(db: DBConnection, u1: string, u2: string): Promise<void> {
-    // Cascade 'removed' status for cross-owned bucket habits
-    const affected = await db.execute(sql`
-      UPDATE bucket_habits bh
-      SET approval_status = 'removed'
-      FROM buckets b, habits h
-      WHERE bh.bucket_id = b.id AND bh.habit_id = h.id
-        AND (
-          (h.owner_id = ${u1} AND b.owner_id = ${u2})
-          OR (h.owner_id = ${u2} AND b.owner_id = ${u1})
-        )
-        AND bh.approval_status != 'removed'
-      RETURNING bh.bucket_id, b.owner_id
-    `);
-
-    const rows = extractRows<{ bucket_id: string, owner_id: string }>(affected);
-    if (rows.length > 0) {
-      await reevaluateMultipleBuckets(db, rows.map(r => ({ bucketId: r.bucket_id, ownerId: r.owner_id })));
-    }
 
     // Cleanup sharing flags
     await db.update(habits)

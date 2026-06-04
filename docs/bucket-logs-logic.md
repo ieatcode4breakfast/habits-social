@@ -17,7 +17,6 @@ A Bucket's status for a specific date is calculated by evaluating the statuses o
 ## 2. Aggregation Rules
 
 ### Inclusion Criteria
-*   Only habits with an `accepted` approval status within the bucket are considered.
 *   A habit is considered "missing" (Priority 2) if no log exists for that specific date or if the log status is explicitly `cleared`.
 
 ### Streak Impact

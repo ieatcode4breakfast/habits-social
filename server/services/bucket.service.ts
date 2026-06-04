@@ -1,5 +1,5 @@
-import { eq, and, or, sql, inArray, notInArray, ne } from 'drizzle-orm';
-import { buckets as bucketsTable, bucketHabits, habits as habitsTable, friendships, sharedBucketMembers, syncDeletions, bucketLogs } from '~~/server/db/schema';
+import { eq, and, or, sql, inArray } from 'drizzle-orm';
+import { buckets as bucketsTable, bucketHabits, habits as habitsTable, syncDeletions, bucketLogs } from '~~/server/db/schema';
 import { reevaluateMultipleBuckets } from '~~/server/utils/buckets';
 import type { DBConnection } from '../types/db';
 
@@ -61,154 +61,27 @@ export const BucketService = {
 
       if (data.habitIds !== undefined) {
         const habitIds = data.habitIds as string[];
-        
-        const foreignHabitRows: any[] = [];
-        const ownHabitIds: string[] = [];
+        let validIds: string[] = [];
 
-        let habitsInfo: any[] = [];
         if (habitIds.length > 0) {
-          habitsInfo = await tx.select().from(habitsTable).where(inArray(habitsTable.id, habitIds));
-        }
-
-        for (const hid of habitIds) {
-          const h = habitsInfo.find((h: any) => h.id === hid);
-          if (h) {
-            if (h.ownerId !== userId) {
-              foreignHabitRows.push(h);
-            } else {
-              ownHabitIds.push(hid);
-            }
-          }
-        }
-
-        const validForeignHabits = [];
-        const uniqueForeignOwners = new Set<string>();
-
-        if (foreignHabitRows.length > 0) {
-          const foreignOwnerIds = [...new Set(foreignHabitRows.map(h => h.ownerId))];
-          const friendshipsRes = await tx.select()
-            .from(friendships)
+          const ownHabits = await tx.select({ id: habitsTable.id })
+            .from(habitsTable)
             .where(and(
-              eq(friendships.status, 'accepted'),
-              or(
-                and(eq(friendships.initiatorId, userId), inArray(friendships.receiverId, foreignOwnerIds)),
-                and(eq(friendships.receiverId, userId), inArray(friendships.initiatorId, foreignOwnerIds))
-              )
+              inArray(habitsTable.id, habitIds),
+              eq(habitsTable.ownerId, userId)
             ));
-
-          for (const h of foreignHabitRows) {
-            const isFriend = friendshipsRes.some((f: any) => 
-              (f.initiatorId === userId && f.receiverId === h.ownerId) ||
-              (f.receiverId === userId && f.initiatorId === h.ownerId)
-            );
-            const isSharedWithMe = h.sharedWith && h.sharedWith.includes(userId);
-
-            if (isFriend && isSharedWithMe) {
-              validForeignHabits.push(h);
-              uniqueForeignOwners.add(h.ownerId);
-            }
-          }
+          validIds = ownHabits.map((h: any) => h.id);
         }
 
-        // Update removed habits
-        if (habitIds.length > 0) {
-          await tx.update(bucketHabits)
-            .set({ approvalStatus: 'removed' })
-            .where(and(
-              eq(bucketHabits.bucketId, id),
-              notInArray(bucketHabits.habitId, habitIds)
-            ));
-        } else {
-          await tx.update(bucketHabits)
-            .set({ approvalStatus: 'removed' })
-            .where(eq(bucketHabits.bucketId, id));
-        }
+        await tx.delete(bucketHabits).where(eq(bucketHabits.bucketId, id));
 
-        // Add own habits in batch
-        if (ownHabitIds.length > 0) {
+        if (validIds.length > 0) {
           await tx.insert(bucketHabits)
-            .values(ownHabitIds.map(hid => ({
+            .values(validIds.map(hid => ({
               bucketId: id,
-              habitId: hid,
-              addedBy: userId as any,
-              approvalStatus: 'accepted'
-            })))
-            .onConflictDoUpdate({
-              target: [bucketHabits.bucketId, bucketHabits.habitId],
-              set: {
-                approvalStatus: 'accepted',
-                addedBy: userId as any
-              }
-            });
-        }
-
-        // Add foreign habits in batch
-        if (validForeignHabits.length > 0) {
-          await tx.insert(bucketHabits)
-            .values(validForeignHabits.map(h => ({
-              bucketId: id,
-              habitId: h.id,
-              addedBy: userId as any,
-              approvalStatus: 'pending'
-            })))
-            .onConflictDoUpdate({
-              target: [bucketHabits.bucketId, bucketHabits.habitId],
-              set: {
-                approvalStatus: sql`CASE WHEN bucket_habits.approval_status = 'accepted' THEN 'accepted' ELSE 'pending' END`,
-                addedBy: userId as any
-              }
-            });
-        }
-
-        // Manage members in batch
-        if (uniqueForeignOwners.size > 0) {
-          await tx.insert(sharedBucketMembers)
-            .values(Array.from(uniqueForeignOwners).map(foreignOwnerId => ({
-              bucketId: id,
-              userId: foreignOwnerId,
-              status: 'pending',
-              createdAt: new Date(),
-              updatedAt: new Date()
+              habitId: hid
             })))
             .onConflictDoNothing();
-        }
-
-        const currentMembers = await tx.select({ userId: sharedBucketMembers.userId })
-          .from(sharedBucketMembers)
-          .where(and(
-            eq(sharedBucketMembers.bucketId, id),
-            ne(sharedBucketMembers.userId, userId)
-          ));
-
-        if (currentMembers.length > 0) {
-          // Identify members who no longer have any active habits in this bucket via a single query
-          const activeHabitCounts = await tx.select({
-            memberId: habitsTable.ownerId
-          })
-          .from(bucketHabits)
-          .innerJoin(habitsTable, eq(bucketHabits.habitId, habitsTable.id))
-          .where(and(
-            eq(bucketHabits.bucketId, id),
-            inArray(habitsTable.ownerId, currentMembers.map((m: any) => m.userId)),
-            or(
-              sql`${bucketHabits.approvalStatus} IS NULL`,
-              inArray(bucketHabits.approvalStatus, ['accepted', 'pending'])
-            )
-          ))
-          .groupBy(habitsTable.ownerId);
-
-          const activeMemberIds = new Set(activeHabitCounts.map((row: any) => row.memberId));
-          const membersToDelete = currentMembers
-            .map((m: any) => m.userId)
-            .filter((mid: string) => !activeMemberIds.has(mid));
-
-          if (membersToDelete.length > 0) {
-            await tx.delete(sharedBucketMembers)
-              .where(and(
-                eq(sharedBucketMembers.bucketId, id),
-                inArray(sharedBucketMembers.userId, membersToDelete)
-              ));
-          }
         }
 
         await reevaluateMultipleBuckets(tx, [{ bucketId: id, ownerId: userId }]);
@@ -219,14 +92,7 @@ export const BucketService = {
         .innerJoin(habitsTable, eq(bucketHabits.habitId, habitsTable.id))
         .where(and(
           eq(bucketHabits.bucketId, id),
-          or(
-            sql`${bucketHabits.approvalStatus} IS NULL`,
-            inArray(bucketHabits.approvalStatus, ['accepted', 'pending'])
-          ),
-          or(
-            eq(habitsTable.ownerId, userId),
-            sql`${habitsTable.sharedWith} @> ARRAY[${userId}]::text[]`
-          )
+          eq(habitsTable.ownerId, userId)
         ));
 
       return { ...updatedBucket, habitIds: habitsResult.map((h: any) => h.habitId) };
@@ -251,7 +117,6 @@ export const BucketService = {
         throw createError({ statusCode: 403, statusMessage: 'Forbidden: You do not own this bucket' });
       }
 
-      await tx.delete(sharedBucketMembers).where(eq(sharedBucketMembers.bucketId, id));
       await tx.delete(bucketHabits).where(eq(bucketHabits.bucketId, id));
       await tx.delete(bucketsTable).where(eq(bucketsTable.id, id));
       
