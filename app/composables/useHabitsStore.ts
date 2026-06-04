@@ -95,13 +95,7 @@ export const useHabitsStore = () => {
   };
 
   const _internalSyncBucketLog = async (bucket: any, date: string) => {
-    // DEV-1: Filter habits by approvalStatus === 'accepted'
-    // Personal buckets (no sharedHabits) use habitIds as fallback.
-    const acceptedHabitIds = (bucket.sharedHabits || [])
-      .filter((sh: any) => sh.approvalStatus === 'accepted')
-      .map((sh: any) => sh.habitId);
-    
-    const habitsInBucket = acceptedHabitIds.length > 0 ? acceptedHabitIds : (bucket.habitIds || []);
+    const habitsInBucket = bucket.habitIds || [];
     
     // If no habits in bucket, we shouldn't have logs for it.
     if (habitsInBucket.length === 0) {
@@ -147,16 +141,13 @@ export const useHabitsStore = () => {
   const removeHabitFromBuckets = async (habitId: string) => {
     const buckets = await db.buckets.where('ownerId').equals(getOwnerId()).toArray();
     for (const bucket of buckets) {
-      const isMember = bucket.habitIds?.includes(habitId) || 
-                       bucket.sharedHabits?.some(sh => sh.habitId === habitId);
+      const isMember = bucket.habitIds?.includes(habitId);
 
       if (isMember) {
         const filteredHabitIds = (bucket.habitIds || []).filter(id => id !== habitId);
-        const filteredSharedHabits = (bucket.sharedHabits || []).filter(sh => sh.habitId !== habitId);
         
         await db.buckets.update(bucket.id, {
           habitIds: filteredHabitIds,
-          sharedHabits: filteredSharedHabits,
           synced: (bucket as any).synced === 1 ? -1 : (bucket as any).synced,
           updatedAt: Date.now()
         });
@@ -164,11 +155,9 @@ export const useHabitsStore = () => {
         const updatedBucket = await db.buckets.get(bucket.id);
         if (!updatedBucket) continue;
 
-        const habitsInBucket = (updatedBucket.sharedHabits || []).length > 0 
-          ? updatedBucket.sharedHabits?.filter(sh => sh.approvalStatus === 'accepted').map(sh => sh.habitId)
-          : updatedBucket.habitIds;
+        const habitsInBucket = updatedBucket.habitIds || [];
 
-        if (!habitsInBucket || habitsInBucket.length === 0) {
+        if (habitsInBucket.length === 0) {
           // Cleanup empty bucket
           await db.bucketLogs.where({ bucketId: bucket.id }).delete();
           await db.buckets.update(bucket.id, {
@@ -206,10 +195,8 @@ export const useHabitsStore = () => {
   const syncLocalBucketLogs = async (habitId: string, date: string) => {
     const allBuckets = await db.buckets.where('ownerId').equals(getOwnerId()).toArray();
     const affectedBuckets = allBuckets.filter(b => {
-      const habitsInBucket = (b.sharedHabits || []).length > 0 
-        ? b.sharedHabits?.filter(sh => sh.approvalStatus === 'accepted').map(sh => sh.habitId)
-        : b.habitIds;
-      return habitsInBucket?.includes(habitId);
+      const habitsInBucket = b.habitIds || [];
+      return habitsInBucket.includes(habitId);
     });
 
     for (const bucket of affectedBuckets) {

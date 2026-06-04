@@ -38,7 +38,7 @@ This document is the source of truth for the current application stack and the o
 
 ### Database Tables
 
-`users`, `password_reset_tokens`, `habits`, `habit_logs`, `buckets`, `bucket_habits`, `shared_bucket_members`, `bucket_logs`, `share_events`, `friendships`, `user_blocks`, `sync_deletions`, `chat_conversations`, `chat_participants`, `chat_messages`
+`users`, `password_reset_tokens`, `habits`, `habit_logs`, `buckets`, `bucket_habits`, `bucket_logs`, `share_events`, `friendships`, `user_blocks`, `sync_deletions`, `chat_conversations`, `chat_participants`, `chat_messages`
 
 ## 4. Database Branches
 

@@ -23,8 +23,8 @@ describe('Bucket Streak Calculation - Alignment with Habit Streaks', () => {
 
     // Link both habits to the bucket
     await db.insert(bucketHabits).values([
-      { bucketId: bucket.id, habitId: habitA.id, addedBy: user.id, approvalStatus: 'accepted' },
-      { bucketId: bucket.id, habitId: habitB.id, addedBy: user.id, approvalStatus: 'accepted' },
+      { bucketId: bucket.id, habitId: habitA.id },
+      { bucketId: bucket.id, habitId: habitB.id },
     ]);
   });
 

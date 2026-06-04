@@ -94,23 +94,9 @@ export const buckets = pgTable('buckets', {
 export const bucketHabits = pgTable('bucket_habits', {
   bucketId: uuid('bucket_id').notNull().references(() => buckets.id, { onDelete: 'cascade' }),
   habitId: uuid('habit_id').notNull().references(() => habits.id, { onDelete: 'cascade' }),
-  addedBy: uuid('added_by').references(() => users.id, { onDelete: 'cascade' }),
-  approvalStatus: text('approval_status').default('accepted'),
 }, (table) => {
   return {
     pk: primaryKey({ columns: [table.bucketId, table.habitId] }),
-  };
-});
-
-export const sharedBucketMembers = pgTable('shared_bucket_members', {
-  bucketId: uuid('bucket_id').notNull().references(() => buckets.id, { onDelete: 'cascade' }),
-  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
-  status: text('status').notNull(),
-  createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' }).defaultNow(),
-  updatedAt: timestamp('updated_at', { withTimezone: true, mode: 'date' }).defaultNow(),
-}, (table) => {
-  return {
-    pk: primaryKey({ columns: [table.bucketId, table.userId] }),
   };
 });
 

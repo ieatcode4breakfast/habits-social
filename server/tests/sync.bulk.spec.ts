@@ -241,7 +241,7 @@ describe('API: POST /api/sync/bulk', () => {
     expect(habitsInBucket.length).toBe(0);
   });
 
-  it('should preserve foreign habits and handle sharing state', async () => {
+  it('should ignore foreign habits and not link them during bulk sync', async () => {
     const { createFriendship, shareHabitWithUser } = await import('./test.utils');
     await createFriendship(testUser.id, otherUser.id, 'accepted');
     const foreignHabit = await createTestHabit(otherUser.id, 'Foreign Habit');
@@ -261,42 +261,7 @@ describe('API: POST /api/sync/bulk', () => {
     expect(response.success.length).toBe(1);
 
     const habitsInBucket = await db.select().from(bucketHabits).where(eq(bucketHabits.bucketId, bucketId));
-    expect(habitsInBucket.length).toBe(1);
-    expect(habitsInBucket[0]!.habitId).toBe(foreignHabit.id);
-    expect(habitsInBucket[0]!.approvalStatus).toBe('pending');
-  });
-
-  it('should preserve approvalStatus for foreign habits if already accepted', async () => {
-    const { createFriendship, shareHabitWithUser } = await import('./test.utils');
-    await createFriendship(testUser.id, otherUser.id, 'accepted');
-    const foreignHabit = await createTestHabit(otherUser.id, 'Foreign Habit');
-    await shareHabitWithUser(foreignHabit.id, testUser.id);
-    
-    const bucketId = crypto.randomUUID();
-    
-    await db.insert(bucketsTable).values({ id: bucketId, ownerId: testUser.id, title: 'Old Title' });
-    await db.insert(bucketHabits).values({
-      bucketId,
-      habitId: foreignHabit.id,
-      addedBy: otherUser.id,
-      approvalStatus: 'accepted'
-    });
-
-    const operations = [
-      {
-        type: 'bucket',
-        data: { id: bucketId, title: 'New Title', habitIds: [foreignHabit.id] }
-      }
-    ];
-
-    const event = createMockEvent(testUser.id, { operations }, {}, {}, {}, 'POST');
-    const response = await syncBulk(event);
-
-    expect(response.success.length).toBe(1);
-
-    const habitsInBucket = await db.select().from(bucketHabits).where(eq(bucketHabits.bucketId, bucketId));
-    expect(habitsInBucket.length).toBe(1);
-    expect(habitsInBucket[0]!.approvalStatus).toBe('accepted');
+    expect(habitsInBucket.length).toBe(0);
   });
 
   it('should calculate streak_count correctly for completed logs processed via bulk sync', async () => {
@@ -370,9 +335,7 @@ describe('API: POST /api/sync/bulk', () => {
 
     await db.insert(bucketHabits).values({
       bucketId,
-      habitId: testHabit.id,
-      addedBy: testUser.id,
-      approvalStatus: 'accepted'
+      habitId: testHabit.id
     });
 
     const todayStr = new Date().toISOString().split('T')[0] as string;

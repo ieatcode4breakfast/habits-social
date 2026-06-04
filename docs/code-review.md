@@ -125,10 +125,9 @@
 - **Note:** These are fine for low user counts but will cause sequential scans at scale:
   - `friendships` — needs indexes on `initiatorId` and `receiverId` (every lookup is a seq scan)
   - `shareEvents` — needs index on `recipientId`
-  - `sharedBucketMembers` — needs index on `userId` for membership lookups
 
 ### 14. status Columns Are Untyped `text` — No DB-Level Constraint
-- **Location:** `friendships.status`, `habitLogs.status`, `bucketLogs.status`, `sharedBucketMembers.status`, `bucketHabits.approvalStatus`
+- **Location:** `friendships.status`, `habitLogs.status`, `bucketLogs.status`
 - **Note:** Any arbitrary string can be persisted. Consider Postgres enums or CHECK constraints for data integrity.
 
 ### 15. API Route Handlers Lack HTTP Method Guards

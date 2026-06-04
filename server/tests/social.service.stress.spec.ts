@@ -1,15 +1,14 @@
 import './setup';
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import { createTestUser, deleteTestUser, createTestHabit, deleteTestHabit, createTestBucket, deleteTestBucket, createFriendship, shareHabitWithUser, User, Habit, Bucket, Friendship, db } from './test.utils';
+import { createTestUser, deleteTestUser, createTestHabit, deleteTestHabit, createFriendship, shareHabitWithUser, User, Habit, Friendship, db } from './test.utils';
 import { SocialService } from '../services/social.service';
-import { eq, and } from 'drizzle-orm';
-import { bucketHabits, friendships as friendshipsTable, habits, habitLogs } from '../db/schema';
+import { eq } from 'drizzle-orm';
+import { friendships as friendshipsTable, habits, habitLogs } from '../db/schema';
 
 describe('SocialService - Stress Testing', () => {
   let userA: User;
   let userB: User;
   let habitH: Habit;
-  let bucketBK: Bucket;
   let friendship: Friendship;
 
   beforeAll(async () => {
@@ -22,15 +21,6 @@ describe('SocialService - Stress Testing', () => {
     // User A creates Habit H and shares with User B
     habitH = await createTestHabit(userA.id, 'Shared Habit H');
     await shareHabitWithUser(habitH.id, userB.id);
-
-    // User B creates Bucket BK and adds Habit H to it
-    bucketBK = await createTestBucket(userB.id, 'Bucket BK');
-    await db.insert(bucketHabits).values({
-      bucketId: bucketBK.id,
-      habitId: habitH.id,
-      addedBy: userB.id,
-      approvalStatus: 'accepted'
-    });
 
     // Create a log for Habit H by User A, shared with B
     await db.insert(habitLogs).values({
@@ -45,31 +35,26 @@ describe('SocialService - Stress Testing', () => {
   });
 
   afterAll(async () => {
-    if (bucketBK?.id) await deleteTestBucket(bucketBK.id);
     if (habitH?.id) await deleteTestHabit(habitH.id);
     if (userA?.id) await deleteTestUser(userA.id);
     if (userB?.id) await deleteTestUser(userB.id);
   });
 
-  it('should cascade friendship removal properly across habits and buckets', async () => {
+  it('should cascade friendship removal properly across habits and logs', async () => {
     // Action: remove friendship
     const result = await SocialService.removeFriendship(db, userA.id, friendship.id, null);
     expect(result).toBe(true);
 
     // Assertions:
-    // 1. Habit H is removed from User B's bucket
-    const bhRes = await db.select().from(bucketHabits).where(and(eq(bucketHabits.bucketId, bucketBK.id), eq(bucketHabits.habitId, habitH.id)));
-    expect(bhRes[0]?.approvalStatus).toBe('removed');
-
-    // 2. User B's ID is removed from the sharedWith array on Habit H
+    // 1. User B's ID is removed from the sharedWith array on Habit H
     const hRes = await db.select().from(habits).where(eq(habits.id, habitH.id));
     expect(hRes[0]?.sharedWith).not.toContain(userB.id);
 
-    // 3. User B's ID is removed from log-level sharing too
+    // 2. User B's ID is removed from log-level sharing too
     const logRes = await db.select().from(habitLogs).where(eq(habitLogs.id, `${habitH.id}_2024-01-01`));
     expect(logRes[0]?.sharedWith).not.toContain(userB.id);
 
-    // 4. Friendship row is deleted after cleanup succeeds
+    // 3. Friendship row is deleted after cleanup succeeds
     const friendshipRes = await db.select().from(friendshipsTable).where(eq(friendshipsTable.id, friendship.id));
     expect(friendshipRes).toHaveLength(0);
   }, 60000);

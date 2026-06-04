@@ -3,7 +3,7 @@ import { friendships, habits as habitsTable, shareEvents } from '~~/server/db/sc
 import { useDB as _useDB } from '~~/server/utils/db';
 import { requireAuth as _requireAuth } from '~~/server/utils/auth';
 import { shareHabitsSchema } from '~~/server/utils/validation';
-import { markBucketHabitsRemoved } from '~~/server/utils/shared-buckets';
+
 import { SocialService } from '~~/server/services/social.service';
 
 export default defineEventHandler(async (event) => {
@@ -74,8 +74,6 @@ export default defineEventHandler(async (event) => {
           inArray(habitsTable.id, toRemove),
           eq(habitsTable.ownerId, userId)
         ));
-
-      await markBucketHabitsRemoved(tx, toRemove, [targetId]);
     }
 
     // Add sharing for newly selected habits

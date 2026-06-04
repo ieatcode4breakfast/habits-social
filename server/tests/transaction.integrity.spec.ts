@@ -59,9 +59,7 @@ describe('Transactional Integrity', () => {
     // Add habit to bucket
     await db.insert(bucketHabits).values({
       bucketId: bucketId,
-      habitId: habit.id,
-      addedBy: user.id as any,
-      approvalStatus: 'accepted'
+      habitId: habit.id
     });
 
     // We'll spy on reevaluateBucketLogs which is called AFTER the deletion in deleteHabit

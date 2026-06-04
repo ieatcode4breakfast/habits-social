@@ -10,7 +10,6 @@ import {
   bucketLogs,
   shareEvents,
   syncDeletions,
-  sharedBucketMembers,
   bucketHabits
 } from '~~/server/db/schema';
 import { SocialService } from './social.service';
@@ -63,8 +62,6 @@ export const UserService = {
       ));
       
       await tx.delete(syncDeletions).where(eq(syncDeletions.ownerId, userId));
-      await tx.delete(sharedBucketMembers).where(eq(sharedBucketMembers.userId, userId));
-      await tx.delete(bucketHabits).where(eq(bucketHabits.addedBy, userId));
       
       await tx.delete(buckets).where(eq(buckets.ownerId, userId));
       await tx.delete(habits).where(eq(habits.ownerId, userId));

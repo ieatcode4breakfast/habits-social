@@ -158,27 +158,23 @@ describe('useHabitsStore', () => {
     expect(bucketLog).toBeUndefined();
   });
 
-  it('syncLocalBucketLogs ignores pending habits and handles cleared status', async () => {
+  it('syncLocalBucketLogs handles cleared status when a habit is missing a log', async () => {
     const store = useHabitsStore();
     const date = '2023-01-01';
     
-    // 1. Setup bucket with 1 accepted habit and 1 pending habit
+    // 1. Setup bucket with 2 habits
     await db.buckets.add({
       id: 'b1',
       ownerId: 'test-user-id',
-      habitIds: ['h-accepted', 'h-pending'],
-      sharedHabits: [
-        { habitId: 'h-accepted', approvalStatus: 'accepted', addedBy: 'u1', habitOwnerId: 'u1' },
-        { habitId: 'h-pending', approvalStatus: 'pending', addedBy: 'u1', habitOwnerId: 'u1' }
-      ],
+      habitIds: ['h1', 'h2'],
       synced: 1,
       updatedAt: Date.now()
     } as any);
 
-    // 2. Add 'completed' log for the accepted habit
+    // 2. Add 'completed' log for h1 (h2 is missing log)
     await db.habitLogs.add({
       id: 'log-1',
-      habitId: 'h-accepted',
+      habitId: 'h1',
       ownerId: 'test-user-id',
       date,
       status: 'completed',
@@ -187,25 +183,29 @@ describe('useHabitsStore', () => {
       updatedAt: Date.now()
     });
 
-    // 3. Trigger sync for the accepted habit log
-    // This should NOT result in 'cleared' because 'h-pending' is ignored
-    await store.syncLocalBucketLogs('h-accepted', date);
+    // 3. Trigger sync for h1 log
+    // This should result in 'cleared' because h2 is in the bucket but has no log on this date
+    await store.syncLocalBucketLogs('h1', date);
 
     const bucketLog = await db.bucketLogs.get(`b1_${date}_test-user-id`);
     expect(bucketLog).toBeDefined();
-    expect(bucketLog?.status).toBe('completed');
+    expect(bucketLog?.status).toBe('cleared');
 
-    // 4. Now make another habit accepted but missing a log
-    await db.buckets.update('b1', {
-      sharedHabits: [
-        { habitId: 'h-accepted', approvalStatus: 'accepted', addedBy: 'u1', habitOwnerId: 'u1' },
-        { habitId: 'h-pending', approvalStatus: 'accepted', addedBy: 'u1', habitOwnerId: 'u1' } // now it counts!
-      ]
+    // 4. Add 'completed' log for h2
+    await db.habitLogs.add({
+      id: 'log-2',
+      habitId: 'h2',
+      ownerId: 'test-user-id',
+      date,
+      status: 'completed',
+      sharedWith: [],
+      synced: 1,
+      updatedAt: Date.now()
     });
 
-    await store.syncLocalBucketLogs('h-accepted', date);
+    await store.syncLocalBucketLogs('h2', date);
     const updatedLog = await db.bucketLogs.get(`b1_${date}_test-user-id`);
-    expect(updatedLog?.status).toBe('cleared'); // Should be cleared now because h-pending is missing a log
+    expect(updatedLog?.status).toBe('completed');
   });
 
   it('syncLocalBucketLogs generates ID with ownerId suffix', async () => {

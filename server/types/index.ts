@@ -5,7 +5,6 @@ export type Habit = typeof schema.habits.$inferSelect;
 export type HabitLog = typeof schema.habitLogs.$inferSelect;
 export type Bucket = typeof schema.buckets.$inferSelect;
 export type BucketHabit = typeof schema.bucketHabits.$inferSelect;
-export type SharedBucketMember = typeof schema.sharedBucketMembers.$inferSelect;
 export type BucketLog = typeof schema.bucketLogs.$inferSelect;
 export type ShareEvent = typeof schema.shareEvents.$inferSelect;
 export type Friendship = typeof schema.friendships.$inferSelect;
