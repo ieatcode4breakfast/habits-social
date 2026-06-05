@@ -434,24 +434,36 @@ const setLogStatus = async (habit: Habit, day: Date, status: LogMenuStatus) => {
   referenceRef.value = null;
 
   try {
-    if (status === null) {
-      await api.deleteLog(habit.id, dateStr);
-    } else {
-      await api.upsertLog({
+    const { log, habit: updatedHabit } = status === null
+      ? await api.deleteLog(habit.id, dateStr)
+      : await api.upsertLog({
         habitId: habit.id,
         date: dateStr,
-        status
+        status,
+        sharedWith: habit.sharedWith
       });
+
+    const logIdx = habitLogs.value.findIndex(l => l.habitId === habit.id && l.date === dateStr);
+    if (logIdx >= 0) {
+      habitLogs.value[logIdx] = log;
+    } else {
+      habitLogs.value.push(log);
     }
-    // Refresh only logs to be fast
-    const start = format(startOfMonth(currentCalendarDate.value), 'yyyy-MM-dd');
-    const end = format(endOfMonth(currentCalendarDate.value), 'yyyy-MM-dd');
-    const [newL, newBL] = await Promise.all([
-      api.getLogs(start, end),
-      api.getBucketLogs(start, end)
-    ]);
-    habitLogs.value = newL;
-    bucketLogs.value = newBL;
+
+    const habitIdx = availableHabits.value.findIndex(h => h.id === habit.id);
+    if (habitIdx >= 0) {
+      availableHabits.value[habitIdx] = updatedHabit;
+    }
+
+    const firstVisibleDay = days[0] ?? day;
+    const lastVisibleDay = days[days.length - 1] ?? day;
+    const visibleStart = format(firstVisibleDay, 'yyyy-MM-dd');
+    const visibleEnd = format(lastVisibleDay, 'yyyy-MM-dd');
+    const refreshedBucketLogs = await api.getBucketLogs(visibleStart, visibleEnd);
+    bucketLogs.value = [
+      ...bucketLogs.value.filter(l => l.date < visibleStart || l.date > visibleEnd),
+      ...refreshedBucketLogs
+    ];
   } catch (error) {
     console.error('[Buckets] Failed to update log:', error);
     showToast('Failed to update log', 'failed');
