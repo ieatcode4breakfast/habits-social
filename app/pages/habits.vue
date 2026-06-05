@@ -62,6 +62,7 @@
             </div>
           </div>
         </div>
+        <div class="hidden sm:block w-7 shrink-0"></div>
     </div>
     </div>
 
@@ -83,7 +84,7 @@
             v-for="habit in habits" :key="habit.id"
             :data-habit-id="habit.id"
             @click="openEditModal(habit)"
-            class="relative py-3 group transition-colors flex flex-col items-stretch sm:flex-row sm:flex-wrap sm:items-center sm:justify-between gap-x-4 gap-y-2 cursor-pointer hover:bg-zinc-800/40 sm:px-4 bg-zinc-925/80 sortable-item"
+            class="relative py-3 group transition-colors flex flex-col items-stretch sm:flex-row sm:flex-nowrap sm:items-center sm:justify-between gap-x-4 gap-y-2 cursor-pointer hover:bg-zinc-800/40 sm:px-4 bg-zinc-925/80 sortable-item"
           >
         <div class="w-full px-4 sm:px-0 sm:flex-1 sm:min-w-[200px] flex flex-col gap-1 sm:pr-2">
           <div class="flex justify-between items-start gap-4">
@@ -117,7 +118,7 @@
               </h3>
             </div>
             
-            <div class="shrink-0 flex items-start justify-end">
+            <div class="shrink-0 flex items-start justify-end sm:hidden">
               <button
                 @click.stop="chatAboutHabit(habit)"
                 class="text-zinc-500 hover:text-white transition-all active:scale-95 cursor-pointer opacity-70 group-hover:opacity-100 p-1 -mr-1 -mt-1"
@@ -140,6 +141,16 @@
           :status-map="getHabitStatusMap(habit.id)"
           @click-day="(day, event) => openLogMenu(habit, day, event)"
         />
+
+        <div class="hidden sm:flex w-7 shrink-0 items-center justify-center">
+          <button
+            @click.stop="chatAboutHabit(habit)"
+            class="text-zinc-500 hover:text-white transition-all active:scale-95 cursor-pointer opacity-70 group-hover:opacity-100 p-1"
+            title="Chat about this habit"
+          >
+            <MessageCircle class="w-5 h-5" />
+          </button>
+        </div>
 
           </div>
         </div>
