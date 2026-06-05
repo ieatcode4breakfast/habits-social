@@ -38,7 +38,7 @@
     </div>
     <!-- Date Header -->
     <div class="bg-date-header-bg border-b sm:border-t border-x-0 sm:border-x border-zinc-800/80 py-2 sm:rounded-t-2xl flex flex-col items-stretch sm:flex-row sm:items-center sm:justify-between gap-x-4 gap-y-2 sm:px-4">
-        <div class="w-full px-4 sm:px-0 sm:flex-1 sm:min-w-[200px] hidden sm:block pr-0 sm:pr-2"></div>
+        <div class="w-full px-4 sm:px-0 sm:flex-1 sm:min-w-[200px] hidden sm:block sm:pr-2"></div>
         <div class="w-full sm:w-[320px] lg:w-[400px] shrink-0 px-2 sm:px-0">
           <div class="flex items-end w-full">
             <div v-for="(day, i) in days" :key="i" class="flex-1 flex flex-col items-center relative">
@@ -85,36 +85,50 @@
             @click="openEditModal(habit)"
             class="relative py-3 group transition-colors flex flex-col items-stretch sm:flex-row sm:flex-wrap sm:items-center sm:justify-between gap-x-4 gap-y-2 cursor-pointer hover:bg-zinc-800/40 sm:px-4 bg-zinc-925/80 sortable-item"
           >
-        <div class="w-full px-4 sm:px-0 sm:flex-1 sm:min-w-[200px] flex flex-col gap-1 pr-0 sm:pr-2">
-          <div class="flex items-center gap-2 flex-wrap sm:flex-nowrap">
-            <h3 class="text-sm font-bold text-zinc-200 leading-tight break-all group-hover:text-white transition-colors">{{ habit.title }}</h3>
-            <!-- Compact Streak Badge -->
-            <div 
-              v-if="(habit.currentStreak ?? 0) >= 2"
-              class="flex items-center gap-1 px-1.5 py-0.5 bg-black border rounded-md shrink-0"
-              :class="[
-                isFaded(habit) ? 'opacity-30' : 'opacity-100',
-                getStreakTheme(habit.currentStreak ?? 0).border
-              ]"
-            >
-              <Flame 
-                v-if="(habit.currentStreak ?? 0) >= 7"
-                class="w-2.5 h-2.5" 
-                :class="[
-                  getStreakTheme(habit.currentStreak ?? 0).text,
-                  getStreakTheme(habit.currentStreak ?? 0).fill
-                ]"
-              />
-              <span 
-                class="text-[9px] font-black tracking-tight"
-                :class="getStreakTheme(habit.currentStreak ?? 0).text"
+        <div class="w-full px-4 sm:px-0 sm:flex-1 sm:min-w-[200px] flex flex-col gap-1 sm:pr-2">
+          <div class="flex justify-between items-start gap-4">
+            <div class="flex-1 min-w-0">
+              <h3 class="text-sm font-bold text-zinc-200 leading-tight break-all group-hover:text-white transition-colors">
+                {{ habit.title }}
+                <!-- Compact Streak Badge -->
+                <span 
+                  v-if="(habit.currentStreak ?? 0) >= 2"
+                  class="inline-flex items-center gap-1 px-1.5 py-0.5 bg-black border rounded-md shrink-0 align-middle ml-1.5"
+                  :class="[
+                    isFaded(habit) ? 'opacity-30' : 'opacity-100',
+                    getStreakTheme(habit.currentStreak ?? 0).border
+                  ]"
+                >
+                  <Flame 
+                    v-if="(habit.currentStreak ?? 0) >= 7"
+                    class="w-2.5 h-2.5" 
+                    :class="[
+                      getStreakTheme(habit.currentStreak ?? 0).text,
+                      getStreakTheme(habit.currentStreak ?? 0).fill
+                    ]"
+                  />
+                  <span 
+                    class="text-[9px] font-black tracking-tight"
+                    :class="getStreakTheme(habit.currentStreak ?? 0).text"
+                  >
+                    x{{ habit.currentStreak }} STREAK
+                  </span>
+                </span>
+              </h3>
+            </div>
+            
+            <div class="shrink-0 flex items-start justify-end">
+              <button
+                @click.stop="chatAboutHabit(habit)"
+                class="text-zinc-500 hover:text-white transition-all active:scale-95 cursor-pointer opacity-70 group-hover:opacity-100 p-1 -mr-1 -mt-1"
+                title="Chat about this habit"
               >
-                x{{ habit.currentStreak }} STREAK
-              </span>
+                <MessageCircle class="w-5 h-5" />
+              </button>
             </div>
           </div>
           <!-- Frequency Text -->
-          <div class="text-[10px] font-semibold tracking-tight text-zinc-500">
+          <div class="text-[10px] font-semibold tracking-tight text-zinc-500 mt-0.5">
             {{ getFrequencyText(habit) }}
           </div>
         </div>
@@ -126,17 +140,6 @@
           :status-map="getHabitStatusMap(habit.id)"
           @click-day="(day, event) => openLogMenu(habit, day, event)"
         />
-
-        <div class="w-full flex items-center justify-end px-4 sm:px-0">
-          <button
-            @click.stop="chatAboutHabit(habit)"
-            class="p-1 text-zinc-500 hover:text-zinc-300 transition-all active:scale-95 cursor-pointer flex items-center justify-center gap-1.5"
-            title="Chat about this habit"
-          >
-            <span class="text-xs font-medium">Chat about this habit</span>
-            <MessageCircle class="w-5 h-5" />
-          </button>
-        </div>
 
           </div>
         </div>

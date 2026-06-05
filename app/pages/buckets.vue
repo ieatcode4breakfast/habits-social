@@ -32,7 +32,7 @@
     </div>
     <!-- Date Header -->
     <div class="bg-date-header-bg border-b sm:border-t border-x-0 sm:border-x border-zinc-800/80 py-2 sm:rounded-t-2xl flex flex-col items-stretch sm:flex-row sm:items-center sm:justify-between gap-x-4 gap-y-2 sm:px-4">
-        <div class="w-full px-4 sm:px-0 sm:flex-1 sm:min-w-[200px] hidden sm:block pr-0 sm:pr-2"></div>
+        <div class="w-full px-4 sm:px-0 sm:flex-1 sm:min-w-[200px] hidden sm:block sm:pr-2"></div>
         <div class="w-full sm:w-[320px] lg:w-[400px] shrink-0 px-2 sm:px-0">
           <div class="flex items-end w-full">
             <div v-for="(day, i) in days" :key="i" class="flex-1 flex flex-col items-center relative">
@@ -123,38 +123,40 @@
             @click="toggleExpand(bucket.id)"
             class="relative py-3 group transition-all duration-300 ease-out flex flex-col items-stretch sm:flex-row sm:items-center sm:justify-between gap-x-4 gap-y-2 cursor-pointer hover:bg-zinc-800/40 sm:px-4"
           >
-            <div class="w-full px-4 sm:px-0 sm:flex-1 sm:min-w-[200px] flex flex-col gap-0.5 pr-0 sm:pr-2">
-              <div class="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+            <div class="w-full px-4 sm:px-0 sm:flex-1 sm:min-w-[200px] flex flex-col gap-0.5 sm:pr-2">
+              <div class="flex items-start gap-2">
                 <ChevronRight 
-                  class="w-4 h-4 text-zinc-600 transition-transform duration-300"
+                  class="w-4 h-4 text-zinc-600 transition-transform duration-300 mt-0.5 shrink-0"
                   :class="expandedBucketId === bucket.id ? 'rotate-90 text-white' : ''"
                 />
-                <h3 class="text-sm font-bold text-zinc-200 leading-tight break-all group-hover:text-white transition-colors">{{ bucket.title }}</h3>
-                
-                <!-- Streak Badge -->
-                <div 
-                  v-if="(bucket.currentStreak ?? 0) >= 2"
-                  class="flex items-center gap-1 px-1.5 py-0.5 bg-black border rounded-md shrink-0"
-                  :class="[
-                    isFaded(bucket) ? 'opacity-30' : 'opacity-100',
-                    getStreakTheme(bucket.currentStreak ?? 0).border
-                  ]"
-                >
-                  <Flame 
-                    v-if="(bucket.currentStreak ?? 0) >= 7"
-                    class="w-2.5 h-2.5" 
-                    :class="[
-                      getStreakTheme(bucket.currentStreak ?? 0).text,
-                      getStreakTheme(bucket.currentStreak ?? 0).fill
-                    ]"
-                  />
+                <h3 class="text-sm font-bold text-zinc-200 leading-tight break-all group-hover:text-white transition-colors flex-1 min-w-0">
+                  {{ bucket.title }}
+                  
+                  <!-- Streak Badge -->
                   <span 
-                    class="text-[9px] font-black tracking-tight"
-                    :class="getStreakTheme(bucket.currentStreak ?? 0).text"
+                    v-if="(bucket.currentStreak ?? 0) >= 2"
+                    class="inline-flex items-center gap-1 px-1.5 py-0.5 bg-black border rounded-md shrink-0 align-middle ml-1.5"
+                    :class="[
+                      isFaded(bucket) ? 'opacity-30' : 'opacity-100',
+                      getStreakTheme(bucket.currentStreak ?? 0).border
+                    ]"
                   >
-                    x{{ bucket.currentStreak }} STREAK
+                    <Flame 
+                      v-if="(bucket.currentStreak ?? 0) >= 7"
+                      class="w-2.5 h-2.5" 
+                      :class="[
+                        getStreakTheme(bucket.currentStreak ?? 0).text,
+                        getStreakTheme(bucket.currentStreak ?? 0).fill
+                      ]"
+                    />
+                    <span 
+                      class="text-[9px] font-black tracking-tight"
+                      :class="getStreakTheme(bucket.currentStreak ?? 0).text"
+                    >
+                      x{{ bucket.currentStreak }} STREAK
+                    </span>
                   </span>
-                </div>
+                </h3>
               </div>
               
               <div class="hidden sm:flex items-center gap-2">
