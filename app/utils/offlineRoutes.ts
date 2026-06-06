@@ -24,13 +24,6 @@ export const buildOfflineRedirect = (
     return null;
   }
 
-  return null;
+  return `/offline?reason=route&from=${encodeURIComponent(path)}`;
 };
 
-export const shouldShowOfflineUnavailableContent = (
-  path: string,
-  isOnline: boolean,
-  hasAuthenticatedUser: boolean
-): boolean => {
-  return !isOnline && hasAuthenticatedUser && !isOfflineAccessibleRoute(path);
-};
