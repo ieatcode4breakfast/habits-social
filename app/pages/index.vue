@@ -5,7 +5,7 @@ definePageMeta({
   middleware: [
     function () {
       if (import.meta.server) {
-        return navigateTo('/social', { replace: true });
+        return;
       }
 
       return navigateTo(resolveStartupRoute(navigator.onLine), { replace: true });

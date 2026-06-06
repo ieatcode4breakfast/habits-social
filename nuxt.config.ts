@@ -47,7 +47,7 @@ export default defineNuxtConfig({
       ],
     },
     workbox: {
-      navigateFallback: '/offline-shell',
+      navigateFallback: '/',
       navigateFallbackDenylist: [/^\/api\//],
       globPatterns: ['**/*.{js,css,html,png,svg,ico,webmanifest}'],
       runtimeCaching: [
@@ -90,7 +90,7 @@ export default defineNuxtConfig({
   nitro: {
     preset: 'cloudflare-module',
     prerender: {
-      routes: ['/offline-shell']
+      routes: ['/']
     },
     ignore: [
       'api/_v1/**',
