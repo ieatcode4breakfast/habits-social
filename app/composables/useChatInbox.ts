@@ -1,4 +1,5 @@
 import { computed } from 'vue';
+import { useNetwork } from '@vueuse/core';
 
 export interface ChatInboxConversation {
   id: string;
@@ -15,6 +16,7 @@ let isInitialized = false;
 
 export const useChatInbox = () => {
   const { user } = useAuth();
+  const { isOnline } = useNetwork();
   const conversations = useState<ChatInboxConversation[]>('chat-inbox-conversations', () => []);
   const isLoading = useState<boolean>('chat-inbox-loading', () => false);
 
@@ -27,6 +29,12 @@ export const useChatInbox = () => {
 
   const refresh = async (silent = false, preserveLoading = false): Promise<void> => {
     if (!user.value) return;
+    if (!isOnline.value) {
+      if (!preserveLoading) {
+        isLoading.value = false;
+      }
+      return;
+    }
     if (!silent) isLoading.value = true;
 
     try {
@@ -44,6 +52,7 @@ export const useChatInbox = () => {
 
   const init = (): void => {
     if (import.meta.server || isInitialized || !user.value) return;
+    if (!isOnline.value) return;
     isInitialized = true;
 
     void refresh(true).catch(() => {

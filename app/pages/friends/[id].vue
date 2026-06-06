@@ -385,6 +385,14 @@ const friendId = route.params.id as string;
 
 const { friendships, refresh: refreshSocial, toggleFavorite } = useSocial();
 const { user } = useAuth();
+const { showToast } = useToast();
+const { isOnline } = useNetwork();
+
+const requireOnlineAction = (): boolean => {
+  if (isOnline.value) return true;
+  showToast('This action needs an internet connection.', 'failed');
+  return false;
+};
 
 const friendship = computed(() => {
   return friendships.value.find(f => f.participants.includes(friendId));
@@ -399,6 +407,7 @@ const isFavorite = computed(() => {
 });
 
 const handleToggleFavorite = async () => {
+  if (!requireOnlineAction()) return;
   if (!friendship.value) return;
   await toggleFavorite(friendship.value.id, !isFavorite.value);
 };
@@ -437,6 +446,7 @@ const shareModalTitle = ref('Request Sent!');
 const isProcessing = ref(false);
 
 const openShareModal = async () => {
+  if (!requireOnlineAction()) return;
   const { data: habitsData } = await $fetch<{ data: any[] }>('/api/habits');
   myHabits.value = habitsData;
   // Pre-select habits already shared with this friend
@@ -463,6 +473,7 @@ const toggleSelectAllHabits = () => {
 };
 
 const executeSendRequest = async () => {
+  if (!requireOnlineAction()) return;
   isProcessing.value = true;
   try {
     await $fetch('/api/friendships', { method: 'POST', body: { targetUserId: friendId } });
@@ -484,6 +495,7 @@ const executeSendRequest = async () => {
 };
 
 const executeAcceptRequest = async () => {
+  if (!requireOnlineAction()) return;
   if (!friendship.value) return;
   isProcessing.value = true;
   try {
@@ -507,10 +519,13 @@ const executeAcceptRequest = async () => {
 
 const executeBatchShareRefresh = async () => {
   showShareModal.value = false;
-  load(); // Reload friend data to see if anything changed
+  if (isOnline.value) {
+    load(); // Reload friend data to see if anything changed
+  }
 };
 
 const executeUnfriend = async () => {
+  if (!requireOnlineAction()) return;
   if (!friendship.value) return;
   await $fetch(`/api/friendships/${friendship.value.id}`, { method: 'DELETE' });
   await refreshSocial();
@@ -519,6 +534,7 @@ const executeUnfriend = async () => {
 };
 
 const executeCancelRequest = async () => {
+  if (!requireOnlineAction()) return;
   if (!friendship.value) return;
   await $fetch(`/api/friendships/${friendship.value.id}`, { method: 'DELETE' });
   await refreshSocial();
@@ -548,6 +564,7 @@ const handleMenuAction = (action: 'share' | 'block' | 'unblock') => {
 };
 
 const executeBlock = async () => {
+  if (!requireOnlineAction()) return;
   if (!profile.value) return;
   isProcessing.value = true;
   try {
@@ -563,6 +580,7 @@ const executeBlock = async () => {
 };
 
 const executeUnblock = async () => {
+  if (!requireOnlineAction()) return;
   if (!profile.value) return;
   isProcessing.value = true;
   try {
@@ -711,6 +729,7 @@ const buildHabitReplyCard = (habit: Habit): HabitReplyCard | null => {
 };
 
 const chatAboutHabit = (habit: Habit) => {
+  if (!requireOnlineAction()) return;
   const card = buildHabitReplyCard(habit);
   if (!card) return;
 
@@ -725,6 +744,10 @@ const getStatus = (habitId: string, day: Date) => {
 };
 
 const load = async () => {
+  if (!isOnline.value) {
+    loading.value = false;
+    return;
+  }
   loading.value = true;
   try {
     // 1. Fetch profile (always succeeds for public profiles)
@@ -761,6 +784,7 @@ const isCompleted = (habitId: string, day: Date) => {
 
 // --- Dynamic Log Fetching ---
 const handleFriendMonthChanged = async (newDate: Date) => {
+  if (!requireOnlineAction()) return;
   if (!selectedHabit.value) return;
   const start = format(startOfMonth(newDate), 'yyyy-MM-dd');
   const end = format(endOfMonth(newDate), 'yyyy-MM-dd');
@@ -796,7 +820,9 @@ const modalContent = ref<HTMLElement | null>(null);
 const shareModalContent = ref<HTMLElement | null>(null);
 
 onMounted(() => {
-  load();
+  if (isOnline.value) {
+    load();
+  }
 });
 // ─────────────────────────────────────────────────────────────────────────────
 

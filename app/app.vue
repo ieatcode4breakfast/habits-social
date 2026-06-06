@@ -37,12 +37,12 @@
 
 <script setup lang="ts">
 import { Check as CheckIcon, X as XIcon, Minus as MinusIcon } from 'lucide-vue-next';
-import { isOfflineAccessibleRoute } from '~/utils/offlineRoutes';
+import { shouldShowOfflineUnavailableContent } from '~/utils/offlineRoutes';
 
 const { isVisible, message, type } = useToast();
 const config = useRuntimeConfig();
 const { sync } = useHabitsApi();
-const { user } = useAuth();
+const { user, flushPendingLogout } = useAuth();
 const { themeMode, initializeThemeMode } = useThemeMode();
 
 const { isOnline } = useNetwork();
@@ -51,24 +51,28 @@ const route = useRoute();
 
 const showOfflineUnavailableContent = computed(() => {
   if (!import.meta.client) return false;
-  if (isOnline.value) return false;
-  if (!user.value?.id) return false;
-  return !isOfflineAccessibleRoute(route.fullPath);
+  return shouldShowOfflineUnavailableContent(route.fullPath, isOnline.value, Boolean(user.value?.id));
 });
 
 useFocusRefetch(sync);
 
 onMounted(() => {
   initializeThemeMode();
+  if (isOnline.value) {
+    void flushPendingLogout();
+  }
 });
 
 // Watch connectivity for UI feedback and auto-sync
-watch(isOnline, (online) => {
+watch(isOnline, async (online) => {
   if (!online) {
     showToast('You are offline. Changes will be saved locally. Some features may not be available.', 'failed');
   } else {
+    await flushPendingLogout();
     showToast('Back online! Syncing changes...', 'completed');
-    sync();
+    if (user.value?.id) {
+      sync();
+    }
   }
 });
 

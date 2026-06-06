@@ -508,6 +508,13 @@ definePageMeta({ middleware: 'auth' });
 const { user } = useAuth();
 const { showToast } = useToast();
 const route = useRoute();
+const { isOnline } = useNetwork();
+
+const requireOnlineAction = (): boolean => {
+  if (isOnline.value) return true;
+  showToast('This action needs an internet connection.', 'failed');
+  return false;
+};
 
 const { pullDistance, isPulling, isRefreshing } = usePullToRefresh(async () => {
   if (activeTab.value === 'activity') {
@@ -613,6 +620,7 @@ const currentCalendarDate = ref(new Date());
 const calendarLoading = ref(false);
 
 const openHabitDetails = async (habitId: string) => {
+  if (!requireOnlineAction()) return;
   habitLoading.value = true;
   try {
     const { data } = await $fetch<{ data: any }>(`/api/social/habit-details`, { query: { habitId } });
@@ -667,6 +675,7 @@ const FEED_STALE_THRESHOLD_MS = 10 * 60 * 1000; // 10 minutes
 
 const loadFeed = async ({ isLoadMore = false, force = false } = {}) => {
   if (activeTab.value !== 'activity') return;
+  if (!isOnline.value) return;
   if (isLoadMore && (!hasMore.value || loadingMore.value)) return;
 
   if (!isLoadMore) {
@@ -722,6 +731,7 @@ useIntersectionObserver(loadMoreSentinel, (entries) => {
 });
 
 const handleMessageClick = (event: MouseEvent) => {
+  if (!isOnline.value) return;
   const target = event.target as HTMLElement;
   const userId = target.getAttribute('data-user-id');
   if (userId) {
@@ -733,6 +743,7 @@ const handleMessageClick = (event: MouseEvent) => {
 };
 
 const replyToActivity = (item: ActivityFeedItem) => {
+  if (!requireOnlineAction()) return;
   if (String(item.user.id) === String(user.value?.id)) {
     pendingReplyActivity.value = item;
     showActivityReplyFriendSelectModal.value = true;
@@ -803,6 +814,7 @@ const formatMessage = (msg: string) => {
 
 // Refresh sort snapshot when entering the friends tab
 watch(activeTab, (newTab, oldTab) => {
+  if (!isOnline.value) return;
   if (newTab === 'activity') {
     loadFeed();
     refreshSocial(true);
@@ -819,6 +831,7 @@ watch(activeTab, (newTab, oldTab) => {
 
 // --- Dynamic Log Fetching ---
 const handleSocialMonthChanged = async (newDate: Date) => {
+  if (!requireOnlineAction()) return;
   if (!selectedHabit.value) return;
   const start = format(startOfMonth(newDate), 'yyyy-MM-dd');
   const end = format(endOfMonth(newDate), 'yyyy-MM-dd');
@@ -914,12 +927,14 @@ const closeShareBeforeReplyModal = () => {
 const shareBeforeReplyModalHistory = useModalHistory(showShareBeforeReplyModal, closeShareBeforeReplyModal);
 
 const goToFriendsSection = async () => {
+  if (!requireOnlineAction()) return;
   localModalHistory.suppressNextHistoryBack();
   showActivityReplyFriendSelectModal.value = false;
   await navigateTo({ path: '/social', query: { tab: 'friends' } }, { replace: true });
 };
 
 const navigateToReplyFriend = (friendId: string) => {
+  if (!requireOnlineAction()) return;
   const replyContext = useState<ActivityFeedItem | null>('chat-reply-activity-context');
   replyContext.value = pendingReplyActivity.value ? { ...pendingReplyActivity.value } : null;
   localModalHistory.suppressNextHistoryBack();
@@ -928,6 +943,7 @@ const navigateToReplyFriend = (friendId: string) => {
 };
 
 const loadOwnedReplyHabit = async () => {
+  if (!isOnline.value) return null;
   const habitId = pendingReplyActivity.value?.habit?.id;
   if (!habitId) return null;
 
@@ -971,6 +987,7 @@ const selectFriendForReply = async (friendship: Friendship) => {
 };
 
 const executeShareBeforeReply = async () => {
+  if (!requireOnlineAction()) return;
   const friendship = pendingShareFriendship.value;
   const habitId = pendingReplyActivity.value?.habit?.id;
   if (!friendship || !habitId) return;
@@ -1079,6 +1096,7 @@ const loadFriendships = async (silent = true) => {
 };
 
 onMounted(() => {
+  if (!isOnline.value) return;
   initSocial();
   loadFeed();
 });
@@ -1112,7 +1130,7 @@ onActivated(async () => {
       FEED_STALE_THRESHOLD_MS
     );
 
-    if (shouldRefresh) {
+    if (shouldRefresh && isOnline.value) {
       await loadFriendships();
       if (activeTab.value === 'activity') {
         loadFeed();
@@ -1137,6 +1155,10 @@ onBeforeRouteLeave((to, from) => {
 });
 
 const handleSearch = async () => {
+  if (!isOnline.value) {
+    searchResults.value = [];
+    return;
+  }
   if (!searchQuery.value.trim()) {
     searchResults.value = [];
     return;
@@ -1152,6 +1174,7 @@ watch(searchQuery, (val) => {
 });
 
 const executeUnblockUser = async (userProfile: UserProfile) => {
+  if (!requireOnlineAction()) return;
   unblockingUserId.value = userProfile.id;
   try {
     await $fetch(`/api/users/${userProfile.id}/block`, { method: 'DELETE' });
@@ -1172,6 +1195,7 @@ const executeUnblockUser = async (userProfile: UserProfile) => {
 };
 
 const executeSendRequest = async (target: UserProfile) => {
+  if (!requireOnlineAction()) return;
   addingFriendId.value = target.id;
   try {
     await $fetch('/api/friendships', { method: 'POST', body: { targetUserId: target.id } });
@@ -1199,6 +1223,7 @@ const executeSendRequest = async (target: UserProfile) => {
 };
 
 const acceptRequest = async (fid: string) => {
+  if (!requireOnlineAction()) return;
   const friendship = friendships.value.find((f: any) => f.id === fid);
   if (!friendship) return;
 
@@ -1223,6 +1248,7 @@ const acceptRequest = async (fid: string) => {
 };
 
 const declineRequest = async (fid: string) => {
+  if (!requireOnlineAction()) return;
   await $fetch(`/api/friendships/${fid}`, { method: 'DELETE' });
   await loadFriendships();
 };
@@ -1234,6 +1260,7 @@ const confirmUnfriend = (f: Friendship) => {
 };
 
 const executeUnfriend = async () => {
+  if (!requireOnlineAction()) return;
   if (!friendshipToUnfriend.value) return;
   const fid = friendshipToUnfriend.value.id;
 
@@ -1248,6 +1275,7 @@ const executeUnfriend = async () => {
   unfriendDisplayName.value = '';
 };
 const handleToggleFavorite = async (f: Friendship) => {
+  if (!requireOnlineAction()) return;
   const current = isFriendshipFavorite(f);
   await toggleFavorite(f.id, !current);
 };

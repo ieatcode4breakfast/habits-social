@@ -236,6 +236,7 @@
 
 <script setup lang="ts">
 import { Mail, Lock, Eye, EyeOff, User } from 'lucide-vue-next';
+import { cacheAuthUser, type CachedAuthUser } from '~/utils/cachedAuth';
 
 definePageMeta({ 
   layout: false,
@@ -244,7 +245,14 @@ definePageMeta({
 
 const { user } = useAuth();
 const { showToast } = useToast();
-const router = useRouter();
+
+type AuthSuccessUser = CachedAuthUser & {
+  token?: string;
+};
+
+type GoogleAuthResponse =
+  | (AuthSuccessUser & { signupRequired?: false })
+  | { signupRequired: true; email: string; signupToken: string; photoUrl?: string };
 
 useSeoMeta({
   title: 'Log In or Sign Up - Habits Social',
@@ -303,7 +311,7 @@ const handleSubmit = async () => {
 
   try {
     const endpoint = tab.value === 'login' ? '/api/auth/login' : '/api/auth/register';
-    const { data } = await $fetch<{ data: any }>(endpoint, { 
+    const { data } = await $fetch<{ data: AuthSuccessUser }>(endpoint, { 
       method: 'POST',
       body: { 
         [endpoint === '/api/auth/login' ? 'identifier' : 'email']: email.value, 
@@ -314,6 +322,7 @@ const handleSubmit = async () => {
 
     if (data.token) {
       user.value = data;
+      if (import.meta.client) cacheAuthUser(localStorage, data);
       if (tab.value === 'signup') {
         if (typeof window !== 'undefined') {
           sessionStorage.setItem('just-signed-up', 'true');
@@ -333,7 +342,7 @@ const handleGoogleCallback = async (response: any) => {
   loading.value = true;
   error.value = '';
   try {
-    const res = await $fetch<{ data: any }>('/api/auth/google', {
+    const res = await $fetch<{ data: GoogleAuthResponse }>('/api/auth/google', {
       method: 'POST',
       body: { credential: response.credential }
     });
@@ -341,11 +350,12 @@ const handleGoogleCallback = async (response: any) => {
     if (res.data.signupRequired) {
       googleSignupEmail.value = res.data.email;
       googleSignupToken.value = res.data.signupToken;
-      googleSignupPhotoUrl.value = res.data.photoUrl;
+      googleSignupPhotoUrl.value = res.data.photoUrl ?? '';
       googleUsername.value = res.data.email.split('@')[0] || '';
       showGoogleSignup.value = true;
     } else {
       user.value = res.data;
+      if (import.meta.client) cacheAuthUser(localStorage, res.data);
       showToast('Logged in successfully!');
       await navigateTo('/habits', { replace: true });
     }
@@ -375,7 +385,7 @@ const handleGoogleSignupSubmit = async () => {
   error.value = '';
 
   try {
-    const res = await $fetch<{ data: any }>('/api/auth/register-google', {
+    const res = await $fetch<{ data: AuthSuccessUser }>('/api/auth/register-google', {
       method: 'POST',
       body: {
         signupToken: googleSignupToken.value,
@@ -386,6 +396,7 @@ const handleGoogleSignupSubmit = async () => {
 
     user.value = res.data;
     if (typeof window !== 'undefined') {
+      cacheAuthUser(localStorage, res.data);
       sessionStorage.setItem('just-signed-up', 'true');
     }
     showToast('Account completed successfully!');

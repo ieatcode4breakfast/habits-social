@@ -26,3 +26,11 @@ export const buildOfflineRedirect = (
 
   return null;
 };
+
+export const shouldShowOfflineUnavailableContent = (
+  path: string,
+  isOnline: boolean,
+  hasAuthenticatedUser: boolean
+): boolean => {
+  return !isOnline && hasAuthenticatedUser && !isOfflineAccessibleRoute(path);
+};

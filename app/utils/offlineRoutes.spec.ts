@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { isOfflineAccessibleRoute, buildOfflineRedirect } from './offlineRoutes';
+import { isOfflineAccessibleRoute, buildOfflineRedirect, shouldShowOfflineUnavailableContent } from './offlineRoutes';
 
 describe('offlineRoutes', () => {
   describe('isOfflineAccessibleRoute', () => {
@@ -46,6 +46,25 @@ describe('offlineRoutes', () => {
     it('returns null if route is blocked and user has session so the app shell can show offline content in place', () => {
       expect(buildOfflineRedirect('/social', true)).toBeNull();
       expect(buildOfflineRedirect('/inbox?foo=bar', true)).toBeNull();
+    });
+  });
+
+  describe('shouldShowOfflineUnavailableContent', () => {
+    it('shows unavailable content for blocked offline routes with an authenticated user', () => {
+      expect(shouldShowOfflineUnavailableContent('/social', false, true)).toBe(true);
+      expect(shouldShowOfflineUnavailableContent('/inbox', false, true)).toBe(true);
+      expect(shouldShowOfflineUnavailableContent('/friends/abc?from=friends', false, true)).toBe(true);
+    });
+
+    it('does not show unavailable content for offline allowed routes', () => {
+      expect(shouldShowOfflineUnavailableContent('/habits', false, true)).toBe(false);
+      expect(shouldShowOfflineUnavailableContent('/buckets', false, true)).toBe(false);
+      expect(shouldShowOfflineUnavailableContent('/offline?reason=session', false, true)).toBe(false);
+    });
+
+    it('does not show unavailable content online or without a local user', () => {
+      expect(shouldShowOfflineUnavailableContent('/social', true, true)).toBe(false);
+      expect(shouldShowOfflineUnavailableContent('/social', false, false)).toBe(false);
     });
   });
 });

@@ -1,4 +1,5 @@
 import { ref, computed, watch } from 'vue';
+import { useNetwork } from '@vueuse/core';
 
 export interface UserProfile { 
   id: string; 
@@ -23,6 +24,7 @@ let isInitialized = false;
 
 export const useSocial = () => {
   const { user } = useAuth();
+  const { isOnline } = useNetwork();
 
   // Global state using Nuxt's useState (shared across all instances)
   const friendships = useState<Friendship[]>('social-friendships', () => []);
@@ -61,6 +63,10 @@ export const useSocial = () => {
 
   const refresh = async (silent = false) => {
     if (!user.value) return;
+    if (!isOnline.value) {
+      isLoading.value = false;
+      return;
+    }
     if (!silent) isLoading.value = true;
     try {
       // Use cache-busting timestamp to ensure fresh data
@@ -86,6 +92,7 @@ export const useSocial = () => {
 
   const init = () => {
     if (import.meta.server || isInitialized) return;
+    if (!user.value || !isOnline.value) return;
     
 
     isInitialized = true;

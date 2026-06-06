@@ -1,4 +1,11 @@
-import { AUTH_USER_STORAGE_KEY, getCachedAuthUser, type CachedAuthUser } from '~/utils/cachedAuth';
+import {
+  cacheAuthUser,
+  clearCachedAuthUser,
+  flushPendingServerLogout,
+  getCachedAuthUser,
+  hasPendingServerLogout,
+  type CachedAuthUser
+} from '~/utils/cachedAuth';
 
 const getFetchErrorStatus = (error: unknown): number | null => {
   if (typeof error !== 'object' || error === null) return null;
@@ -24,7 +31,23 @@ export const useAuth = () => {
     user.value = getCachedAuthUser(localStorage);
   }
 
+  const flushPendingLogout = async (): Promise<void> => {
+    if (!import.meta.client || !hasPendingServerLogout(localStorage)) return;
+
+    user.value = null;
+    clearCachedAuthUser(localStorage);
+
+    if (navigator.onLine) {
+      await flushPendingServerLogout(localStorage, (request, options) => $fetch(request, options));
+    }
+  };
+
   const fetchUser = async () => {
+    if (import.meta.client && hasPendingServerLogout(localStorage)) {
+      await flushPendingLogout();
+      return;
+    }
+
     try {
       const headers = useRequestHeaders(['cookie']) as Record<string, string>;
       const { data } = await $fetch<{ data: CachedAuthUser | null }>('/api/auth/me', { headers });
@@ -32,9 +55,9 @@ export const useAuth = () => {
 
       if (import.meta.client) {
         if (data) {
-          localStorage.setItem(AUTH_USER_STORAGE_KEY, JSON.stringify(data));
+          cacheAuthUser(localStorage, data);
         } else {
-          localStorage.removeItem(AUTH_USER_STORAGE_KEY);
+          clearCachedAuthUser(localStorage);
         }
       }
     } catch (error: unknown) {
@@ -42,10 +65,10 @@ export const useAuth = () => {
       if (status === 401 || status === 403) {
         // Explicit auth rejection clears cached session state. Network errors keep it.
         user.value = null;
-        if (import.meta.client) localStorage.removeItem(AUTH_USER_STORAGE_KEY);
+        if (import.meta.client) clearCachedAuthUser(localStorage);
       }
     }
   };
 
-  return { user, fetchUser };
+  return { user, fetchUser, flushPendingLogout };
 };

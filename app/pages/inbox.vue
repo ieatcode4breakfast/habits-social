@@ -686,6 +686,7 @@ const route = useRoute();
 const router = useRouter();
 const { friends, profilesMap, init: initSocial, refresh: refreshSocial } = useSocial();
 const { showToast } = useToast();
+const { isOnline } = useNetwork();
 const {
   conversations,
   isLoading: conversationsLoading,
@@ -693,6 +694,12 @@ const {
   markConversationReadLocally,
   updateOptimisticPreview
 } = useChatInbox();
+
+const requireOnlineAction = (): boolean => {
+  if (isOnline.value) return true;
+  showToast('This action needs an internet connection.', 'failed');
+  return false;
+};
 
 interface ActivityReplyCard {
   id: string;
@@ -800,6 +807,7 @@ const hasReplyActivityHabit = (activity: ActivityReplyCard | null | undefined): 
 };
 
 const openReplyActivityHabit = async (activity: ActivityReplyCard | null | undefined) => {
+  if (!requireOnlineAction()) return;
   const habitId = getReplyActivityHabitId(activity);
   if (!habitId) return;
 
@@ -824,6 +832,7 @@ const openReplyActivityHabit = async (activity: ActivityReplyCard | null | undef
 };
 
 const handleInboxHabitMonthChanged = async (newDate: Date) => {
+  if (!requireOnlineAction()) return;
   if (!selectedHabit.value) return;
 
   const start = format(startOfMonth(newDate), 'yyyy-MM-dd');
@@ -952,6 +961,7 @@ watch(showNewChatModal, (val) => {
 });
 
 const goToFriendsSection = async () => {
+  if (!requireOnlineAction()) return;
   showNewChatModal.value = false;
   await navigateTo({ path: '/social', query: { tab: 'friends' } }, { replace: true });
 };
@@ -1012,6 +1022,7 @@ const createOptimisticMessageId = (): string => {
 
 // Load Conversations list from backend
 const loadConversations = async (silent = false, preserveLoading = false) => {
+  if (!isOnline.value) return;
   try {
     await refreshChatInbox(silent, preserveLoading);
   } catch (error: unknown) {
@@ -1021,6 +1032,7 @@ const loadConversations = async (silent = false, preserveLoading = false) => {
 };
 
 const refreshConversations = async () => {
+  if (!isOnline.value) return;
   try {
     await Promise.all([
       refreshChatInbox(false, true),
@@ -1066,6 +1078,7 @@ const getConversationPreview = (conv: ChatInboxConversation) => {
 };
 
 const markConversationRead = async (conversationId: string) => {
+  if (!isOnline.value) return;
   try {
     await $fetch(`/api/chat/conversations/${conversationId}/read`, { method: 'POST' });
     markConversationReadLocally(conversationId);
@@ -1105,6 +1118,7 @@ const switchToConversation = async (conv: ChatInboxConversation) => {
 };
 
 const restoreConversationFromHistory = async (friendId: string) => {
+  if (!isOnline.value) return;
   if (friends.value.length === 0) {
     await refreshSocial();
   }
@@ -1181,6 +1195,7 @@ const deselectConversation = () => {
 
 // Load messages in the active conversation
 const loadMessages = async (cursor: string | null = null, autoScroll = true) => {
+  if (!isOnline.value) return;
   if (!activeConversationId.value) return;
   
   const isPaginating = !!cursor;
@@ -1254,6 +1269,7 @@ const getMessageAvatarInitial = (msg: InboxMessage) => {
 
 // Send message to the selected friend
 const sendMessage = async () => {
+  if (!requireOnlineAction()) return;
   if (!canSend.value || !activeFriend.value || !user.value?.id) return;
   
   const text = messageBody.value.trim();
@@ -1328,6 +1344,7 @@ const sendMessage = async () => {
 
 // Clear the entire chat history for the current user
 const clearChat = async () => {
+  if (!requireOnlineAction()) return;
   if (!activeConversationId.value || isClearingChat.value) return;
   
   isClearingChat.value = true;
@@ -1374,6 +1391,7 @@ const deletePendingMessage = async () => {
 
 // Delete a specific message
 const confirmDeleteMessage = async (messageId: string): Promise<boolean> => {
+  if (!requireOnlineAction()) return false;
   try {
     await $fetch(`/api/chat/messages/${messageId}`, { method: 'DELETE' });
     
@@ -1468,6 +1486,7 @@ const checkViewport = () => {
 };
 
 const handleReplyQuery = async () => {
+  if (!isOnline.value) return;
   const queryFriendId = route.query.replyToFriend as string;
   if (queryFriendId) {
     if (friends.value.length === 0) {
@@ -1500,9 +1519,11 @@ onMounted(async () => {
   window.addEventListener('popstate', handlePopState);
   window.addEventListener('reset-inbox', deselectConversation);
   
+  if (!isOnline.value) return;
+
   // Hydrate global social profiles first
   initSocial();
-  
+
   await loadConversations();
   
   if (window.history.state?.inboxChat && window.history.state?.friendId) {
@@ -1515,6 +1536,7 @@ onMounted(async () => {
 });
 
 onActivated(async () => {
+  if (!isOnline.value) return;
   if (activeConversationId.value) {
     sharedActiveConversationId.value = activeConversationId.value;
     
@@ -1548,6 +1570,7 @@ onUnmounted(() => {
 });
 
 watch(chatRefreshSequence, async () => {
+  if (!isOnline.value) return;
   if (!activeConversationId.value) return;
 
   // Only auto-scroll to bottom if user was already near the bottom before refresh

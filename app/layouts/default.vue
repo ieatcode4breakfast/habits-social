@@ -181,8 +181,9 @@
 
 <script setup lang="ts">
 import { LogOut, ListChecks, Users, User as UserIcon, PaintBucket, MessageCircle, Menu, Moon, Sun } from 'lucide-vue-next';
+import { clearCachedAuthUser, flushPendingServerLogout, markPendingServerLogout } from '~/utils/cachedAuth';
 
-const { user, fetchUser } = useAuth();
+const { user } = useAuth();
 const { showToast } = useToast();
 const { isOnline } = useNetwork();
 const { pendingCount, init: initSocial, cleanup: cleanupSocial, logoutCleanup } = useSocial();
@@ -279,7 +280,10 @@ const handleEditProfile = () => {
 };
 
 const logout = async () => {
-  await $fetch('/api/auth/logout', { method: 'POST' });
+  if (import.meta.client) {
+    markPendingServerLogout(localStorage);
+  }
+
   logoutCleanup();
   chatInboxLogoutCleanup();
 
@@ -298,10 +302,14 @@ const logout = async () => {
   ]);
 
   // Clear cached auth profile
-  if (import.meta.client) localStorage.removeItem('auth-user');
+  if (import.meta.client) clearCachedAuthUser(localStorage);
 
   user.value = null;
-  router.push('/login');
+  await router.push('/login');
+
+  if (import.meta.client && isOnline.value) {
+    void flushPendingServerLogout(localStorage, (request, options) => $fetch(request, options));
+  }
 };
 </script>
 

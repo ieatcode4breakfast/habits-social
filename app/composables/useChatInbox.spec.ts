@@ -3,6 +3,7 @@ import { ref, type Ref } from 'vue';
 
 const fetchMock = vi.fn();
 const stateStore = new Map<string, Ref<unknown>>();
+const isOnlineRef = ref(true);
 
 const useStateMock = <T>(key: string, init: () => T): Ref<T> => {
   if (!stateStore.has(key)) {
@@ -29,12 +30,17 @@ vi.mock('./useAuth', () => ({
   }),
 }));
 
+vi.mock('@vueuse/core', () => ({
+  useNetwork: () => ({ isOnline: isOnlineRef })
+}));
+
 vi.stubGlobal('$fetch', fetchMock);
 
 describe('useChatInbox', () => {
   beforeEach(() => {
     fetchMock.mockReset();
     stateStore.clear();
+    isOnlineRef.value = true;
   });
 
   it('refreshes shared conversations and derives the total unread count', async () => {
@@ -71,6 +77,18 @@ describe('useChatInbox', () => {
     expect(inbox.conversations.value[0]?.lastMessageBody).toBe('Unread preview');
     expect(inbox.conversations.value[1]?.lastMessageSenderId).toBe('user-1');
     expect(inbox.totalUnreadCount.value).toBe(5);
+  });
+
+  it('does not fetch conversations while offline', async () => {
+    isOnlineRef.value = false;
+
+    const { useChatInbox } = await import('./useChatInbox');
+    const inbox = useChatInbox();
+
+    await inbox.refresh();
+
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(inbox.conversations.value).toEqual([]);
   });
 
   it('clears one conversation locally after it is marked read', async () => {
