@@ -4,7 +4,8 @@ export interface UserProfile {
   id: string; 
   email: string; 
   username: string; 
-  photoUrl?: string; 
+  photoUrl?: string;
+  blockedByMe?: boolean;
 }
 
 export interface Friendship { 

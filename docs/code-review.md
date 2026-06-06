@@ -212,3 +212,9 @@ The application uses Nitro's `memory` storage driver for rate limiting instead o
 - The accepted trade-off is that rate limit counters are isolate-scoped (residing in the local memory of individual Cloudflare edge servers) rather than synchronized globally.
 - **DO NOT FLAG** this as a vulnerability or push for a distributed rate limiter. This approach is completely sufficient to stop basic brute-force scripts and is an accepted trade-off for the current scale and traffic of the application.
 
+### 10. Block UI Rare Race Conditions (Accepted Edge Case)
+The current block UI intentionally accepts two rare stale-state cases:
+- If User A is viewing User B's profile at the exact moment User B blocks User A, User A may not see an immediate toast for a friend-request failure.
+- If that same profile request fails after User B blocks User A, the page may not aggressively clear already-loaded local profile state until normal navigation or refresh.
+- This is acceptable because the backend still rejects the forbidden action and prevents data access. The impact is limited to a narrow, temporary user-experience mismatch, not a security boundary failure.
+

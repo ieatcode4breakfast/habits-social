@@ -305,11 +305,7 @@ export class ChatService {
             WHERE ${m.conversationId} = ${c.id}
               AND (${this.getVisibilityPredicate(m, p)})
           )`,
-          or(
-            eq(f.status, 'accepted'),
-            isNull(c.user1Id),
-            isNull(c.user2Id)
-          )
+          eq(f.status, 'accepted')
         )
       )
       .orderBy(desc(c.lastMessageAt));

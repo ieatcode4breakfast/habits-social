@@ -29,11 +29,11 @@ describe('Chat Lifecycle', () => {
     it('should lock chat access when unfriended', async () => {
       const f = await createFriendship(userA.id, userB.id, 'accepted');
       const conv = await ChatService.getOrCreateConversationForFriend(db, userA.id, userB.id);
-      
+
       // Unfriend
       const event = createMockEvent(userA.id);
       await SocialService.removeFriendship(db, userA.id, f.id, event);
-      
+
       // Access should be denied
       await expect(ChatService.sendMessage(db, userA.id, conv!.id, 'Still there?')).rejects.toThrow();
       await expect(ChatService.listMessages(db, userA.id, conv!.id)).rejects.toThrow();
@@ -43,14 +43,14 @@ describe('Chat Lifecycle', () => {
       const f1 = await createFriendship(userA.id, userB.id, 'accepted');
       const conv = await ChatService.getOrCreateConversationForFriend(db, userA.id, userB.id);
       await ChatService.sendMessage(db, userA.id, conv!.id, 'Old message');
-      
+
       const event = createMockEvent(userA.id);
       await SocialService.removeFriendship(db, userA.id, f1.id, event);
-      
+
       // Refriend
       await createFriendship(userA.id, userB.id, 'accepted');
       const sameConv = await ChatService.getOrCreateConversationForFriend(db, userA.id, userB.id);
-      
+
       expect(sameConv?.id).toBe(conv?.id);
       const messages = await ChatService.listMessages(db, userA.id, conv!.id);
       expect(messages.messages[0]?.body).toBe('Old message');
@@ -60,13 +60,13 @@ describe('Chat Lifecycle', () => {
       const f = await createFriendship(userA.id, userB.id, 'accepted');
       const conv = await ChatService.getOrCreateConversationForFriend(db, userA.id, userB.id);
       await ChatService.sendMessage(db, userA.id, conv!.id, 'Hello');
-      
+
       const inboxBefore = await ChatService.listConversations(db, userA.id);
       expect(inboxBefore.length).toBe(1);
 
       const event = createMockEvent(userA.id);
       await SocialService.removeFriendship(db, userA.id, f.id, event);
-      
+
       const inboxAfter = await ChatService.listConversations(db, userA.id);
       expect(inboxAfter.length).toBe(0);
     });
@@ -75,10 +75,10 @@ describe('Chat Lifecycle', () => {
       const f = await createFriendship(userA.id, userB.id, 'accepted');
       const conv = await ChatService.getOrCreateConversationForFriend(db, userA.id, userB.id);
       const msg = await ChatService.sendMessage(db, userA.id, conv!.id, 'My secret');
-      
+
       const event = createMockEvent(userA.id);
       await SocialService.removeFriendship(db, userA.id, f.id, event);
-      
+
       await expect(ChatService.deleteMessage(db, userA.id, msg.id)).rejects.toThrow(/Active friendship required/i);
     });
   });
@@ -88,15 +88,51 @@ describe('Chat Lifecycle', () => {
       await createFriendship(userA.id, userB.id, 'accepted');
       const conv = await ChatService.getOrCreateConversationForFriend(db, userA.id, userB.id);
       await ChatService.sendMessage(db, userA.id, conv!.id, 'Confidential info');
-      
+
       // Delete userA
       const event = createMockEvent(userA.id);
       await UserService.deleteUser(db, userA.id, event);
-      
+
       // B should see tombstoned message
       const messages = await ChatService.listMessages(db, userB.id, conv!.id);
       expect(messages.messages[0]?.body).toBe('');
       expect(messages.messages[0]?.deletedAt).not.toBeNull();
+    });
+
+    it('should NOT list conversation in inbox when the other user deletes their account', async () => {
+      await createFriendship(userA.id, userB.id, 'accepted');
+      const conv = await ChatService.getOrCreateConversationForFriend(db, userA.id, userB.id);
+      await ChatService.sendMessage(db, userA.id, conv!.id, 'Hello');
+
+      const inboxBefore = await ChatService.listConversations(db, userB.id);
+      expect(inboxBefore.length).toBe(1);
+
+      // Delete userA
+      const event = createMockEvent(userA.id);
+      await UserService.deleteUser(db, userA.id, event);
+
+      const inboxAfter = await ChatService.listConversations(db, userB.id);
+      expect(inboxAfter.length).toBe(0);
+    });
+
+    it('should NOT resurrect a blocked chat if the blocked user deletes their account', async () => {
+      await createFriendship(userA.id, userB.id, 'accepted');
+      const conv = await ChatService.getOrCreateConversationForFriend(db, userA.id, userB.id);
+      await ChatService.sendMessage(db, userA.id, conv!.id, 'Hello');
+
+      // A blocks B
+      await SocialService.blockUser(db, userA.id, userB.id);
+
+      const inboxBlocked = await ChatService.listConversations(db, userA.id);
+      expect(inboxBlocked.length).toBe(0);
+
+      // B deletes account
+      const event = createMockEvent(userB.id);
+      await UserService.deleteUser(db, userB.id, event);
+
+      // Should STILL not be in inbox
+      const inboxDeleted = await ChatService.listConversations(db, userA.id);
+      expect(inboxDeleted.length).toBe(0);
     });
   });
 });
