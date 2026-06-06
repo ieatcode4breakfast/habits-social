@@ -20,7 +20,13 @@ export default defineEventHandler(async (event) => {
   const results = await db.select({
     id: users.id,
     username: users.username,
-    photoUrl: users.photoUrl
+    photoUrl: users.photoUrl,
+    blockedByMe: sql<boolean>`EXISTS (
+      SELECT 1
+      FROM ${userBlocks}
+      WHERE ${userBlocks.blockerId} = ${userId}::uuid
+        AND ${userBlocks.blockedId} = ${users.id}
+    )`
   })
   .from(users)
   .where(and(

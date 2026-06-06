@@ -9,6 +9,12 @@
           <button @click="handleBack" class="inline-flex items-center justify-center p-1 -ml-1 text-zinc-500 hover:text-white transition-all flex-shrink-0 cursor-pointer">
             <ChevronLeft class="w-6 h-6" />
           </button>
+          <div v-if="!profile && !loading" class="flex items-center gap-4 ml-2 mt-1">
+            <div>
+              <h1 class="text-lg font-bold tracking-tight text-white">User not found</h1>
+              <p class="text-zinc-400 text-sm">This profile is unavailable.</p>
+            </div>
+          </div>
           <div v-if="profile" class="flex items-center gap-4 ml-1">
             <UserAvatar 
               :src="profile.photoUrl" 
@@ -35,19 +41,15 @@
 
         <!-- Action Row -->
         <div v-if="profile && !loading" class="flex items-center gap-2">
-          <button v-if="relationshipStatus === 'friends'" @click="openShareModal" class="w-11 sm:w-auto py-2.5 sm:px-4 bg-white hover:bg-zinc-200 text-black font-semibold rounded-xl transition-all shadow-lg shadow-white/5 cursor-pointer text-sm flex items-center justify-center gap-2 active:scale-95" title="Share Habits">
-            <Share2 class="w-4 h-4" />
-            <span class="hidden sm:inline">Share</span>
-          </button>
-          <button v-if="relationshipStatus === 'friends'" @click="showUnfriendModal = true" class="w-11 sm:w-auto py-2.5 sm:px-4 bg-rose-500 hover:bg-rose-600 text-white font-semibold rounded-xl transition-all shadow-lg shadow-rose-500/20 cursor-pointer text-sm flex items-center justify-center gap-2 active:scale-95" title="Unfriend">
+          <button v-if="relationshipStatus === 'friends'" @click="showUnfriendModal = true" class="w-11 sm:w-auto py-2.5 sm:px-4 bg-rose-500 hover:bg-rose-600 text-white font-semibold rounded-xl border border-transparent transition-all shadow-lg shadow-rose-500/20 cursor-pointer text-sm flex items-center justify-center gap-2 active:scale-95" title="Unfriend">
             <UserMinus class="w-4 h-4" />
             <span class="hidden sm:inline">Unfriend</span>
           </button>
           <button 
-            v-if="relationshipStatus === 'none'" 
+            v-if="relationshipStatus === 'none' && !profile.blockedByMe"
             @click="executeSendRequest" 
             :disabled="isProcessing"
-            class="w-11 sm:w-auto py-2.5 sm:px-4 bg-white hover:bg-zinc-200 disabled:opacity-50 text-black font-semibold rounded-xl transition-all shadow-lg shadow-white/5 cursor-pointer text-sm flex items-center justify-center gap-2 active:scale-95"
+            class="w-11 sm:w-auto py-2.5 sm:px-4 bg-white hover:bg-zinc-200 disabled:opacity-50 text-black font-semibold rounded-xl border border-transparent transition-all shadow-lg shadow-white/5 cursor-pointer text-sm flex items-center justify-center gap-2 active:scale-95"
           >
             <template v-if="isProcessing">
               <div class="w-4 h-4 border-2 border-black/20 border-t-black rounded-full animate-spin"></div>
@@ -61,7 +63,7 @@
             v-else-if="relationshipStatus === 'pending_incoming'" 
             @click="executeAcceptRequest" 
             :disabled="isProcessing"
-            class="w-11 sm:w-auto py-2.5 sm:px-4 bg-emerald-500 hover:bg-emerald-600 disabled:opacity-50 text-white font-semibold rounded-xl transition-all shadow-lg shadow-emerald-500/20 cursor-pointer text-sm flex items-center justify-center gap-2 active:scale-95"
+            class="w-11 sm:w-auto py-2.5 sm:px-4 bg-emerald-500 hover:bg-emerald-600 disabled:opacity-50 text-white font-semibold rounded-xl border border-transparent transition-all shadow-lg shadow-emerald-500/20 cursor-pointer text-sm flex items-center justify-center gap-2 active:scale-95"
           >
             <template v-if="isProcessing">
               <div class="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>
@@ -74,11 +76,20 @@
           <button v-else-if="relationshipStatus === 'pending_outgoing'" @click="showCancelRequestModal = true" class="py-2.5 px-4 bg-zinc-925 hover:bg-zinc-900 text-zinc-500 font-semibold rounded-xl border border-zinc-800 transition-all cursor-pointer text-sm flex items-center justify-center gap-2 active:scale-95">
             Pending
           </button>
+
+          <!-- More Options Menu Button -->
+          <button
+            @click="openMenu"
+            class="w-11 py-2.5 bg-zinc-925 hover:bg-zinc-900 text-zinc-400 hover:text-white font-semibold rounded-xl border border-zinc-800 transition-all cursor-pointer flex items-center justify-center active:scale-95"
+            title="More options"
+          >
+            <MoreVertical class="w-5 h-5" />
+          </button>
         </div>
       </div>
 
       <!-- Date Header -->
-      <div v-if="habits.length > 0" class="bg-date-header-bg border-b sm:border-t border-x-0 sm:border-x border-zinc-800/80 py-2 sm:rounded-t-2xl flex flex-col items-stretch sm:flex-row sm:items-center sm:justify-between gap-x-4 gap-y-2 sm:px-4">
+      <div v-if="profile && habits.length > 0" class="bg-date-header-bg border-b sm:border-t border-x-0 sm:border-x border-zinc-800/80 py-2 sm:rounded-t-2xl flex flex-col items-stretch sm:flex-row sm:items-center sm:justify-between gap-x-4 gap-y-2 sm:px-4">
           <div class="w-full px-4 sm:px-0 sm:flex-1 sm:min-w-[200px] hidden sm:block sm:pr-2"></div>
           <div class="w-full sm:w-[320px] lg:w-[400px] shrink-0 px-2 sm:px-0">
             <div class="flex items-end w-full">
@@ -109,6 +120,7 @@
 
     <!-- Shared Habit List (Single Card) -->
     <div
+      v-if="profile || loading"
       v-motion-fade
       :style="pullStyle"
       class="friend-content-surface sm:rounded-b-2xl rounded-none overflow-hidden border-b border-x-0 sm:border-x sm:border-b relative will-change-transform transition-colors duration-300"
@@ -119,8 +131,13 @@
       </div>
       <template v-else>
         <div v-if="habits.length === 0" class="p-10 text-center text-zinc-500 italic text-sm">
-        {{ profile?.username }} hasn't shared any habits with you yet.
-      </div>
+          <template v-if="profile?.blockedByMe">
+            You have blocked this user.
+          </template>
+          <template v-else>
+            {{ profile?.username }} hasn't shared any habits with you yet.
+          </template>
+        </div>
       
       <div v-for="habit in habits" :key="habit.id" 
            @click="openHabitDetails(habit)"
@@ -276,11 +293,55 @@
         </div>
       </Transition>
     </Teleport>
+
+    <!-- Block Confirmation Modal -->
+    <Teleport to="body">
+      <Transition
+        enter-active-class="transition duration-300 ease-out"
+        enter-from-class="opacity-0 scale-95"
+        enter-to-class="opacity-100 scale-100"
+        leave-active-class="transition duration-200 ease-in"
+        leave-from-class="opacity-100 scale-100"
+        leave-to-class="opacity-0 scale-95"
+      >
+        <div v-if="showBlockModal" class="fixed inset-0 z-[120] flex items-center justify-center p-4">
+          <div class="absolute inset-0 bg-black/80 backdrop-blur-md touch-none" @click="showBlockModal = false"></div>
+          <div class="relative w-full max-w-sm bg-zinc-925 border border-zinc-800 rounded-3xl shadow-2xl p-8 text-center">
+            <div class="w-16 h-16 bg-zinc-925 rounded-full flex items-center justify-center mx-auto mb-4">
+              <ShieldBan class="w-8 h-8 text-rose-500" />
+            </div>
+            <h2 class="text-xl font-bold text-white mb-2">Block User?</h2>
+            <p class="text-zinc-500 mb-8 text-sm">
+              Are you sure you want to block <span class="text-zinc-200 font-medium">{{ profile?.username }}</span>? This will unfriend them and hide their activity.
+            </p>
+            <div class="flex gap-3 mt-2">
+              <button @click="showBlockModal = false" :disabled="isProcessing" class="flex-1 px-5 py-3 bg-transparent hover:bg-zinc-800 text-zinc-400 hover:text-zinc-200 font-semibold rounded-xl transition-all cursor-pointer whitespace-nowrap">
+                Cancel
+              </button>
+              <button @click="executeBlock" :disabled="isProcessing" class="flex-1 px-5 py-3 bg-rose-500 hover:bg-rose-600 disabled:opacity-50 text-white font-semibold rounded-xl transition-all shadow-lg shadow-rose-500/20 cursor-pointer whitespace-nowrap flex items-center justify-center gap-2">
+                <div v-if="isProcessing" class="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>
+                <span>Block</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
+
+    <!-- Friend Profile Menu Popover -->
+    <FriendProfileMenu
+      v-if="showMenu"
+      :reference-el="menuReferenceEl"
+      :show-share="relationshipStatus === 'friends'"
+      :is-blocked="!!profile?.blockedByMe"
+      @action="handleMenuAction"
+      @close="showMenu = false"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ChevronLeft, User, Flame, X as XIcon, ChevronRight, Check, Minus, UserPlus, CheckSquare, Share2, UserMinus, Star, MessageCircle } from 'lucide-vue-next';
+import { ChevronLeft, User, Flame, X as XIcon, ChevronRight, Check, Minus, UserPlus, CheckSquare, Share2, UserMinus, Star, MessageCircle, MoreVertical, ShieldBan } from 'lucide-vue-next';
 import { format, subDays, isToday, startOfMonth, endOfMonth, eachDayOfInterval, addMonths, subMonths, isAfter, startOfDay, addDays, isSameWeek, isSameMonth, getDaysInMonth, parseISO, startOfWeek } from 'date-fns';
 import type { Habit, HabitLog } from '~/composables/useHabitsApi';
 import { useSocial } from '~/composables/useSocial';
@@ -291,6 +352,7 @@ type FriendProfile = {
   id: string;
   username: string;
   photoUrl?: string | null;
+  blockedByMe?: boolean;
 };
 type HabitReplyStatus = Exclude<HabitLog['status'], 'cleared'>;
 type HabitReplyWeeklyStatus = {
@@ -463,6 +525,57 @@ const executeCancelRequest = async () => {
   showCancelRequestModal.value = false;
 };
 
+const showBlockModal = ref(false);
+const showMenu = ref(false);
+const menuReferenceEl = ref<HTMLElement | null>(null);
+
+const openMenu = (event: MouseEvent) => {
+  const el = (event.target as HTMLElement).closest('button');
+  if (el) {
+    menuReferenceEl.value = el;
+    showMenu.value = true;
+  }
+};
+
+const handleMenuAction = (action: 'share' | 'block' | 'unblock') => {
+  if (action === 'share') {
+    openShareModal();
+  } else if (action === 'block') {
+    showBlockModal.value = true;
+  } else if (action === 'unblock') {
+    executeUnblock();
+  }
+};
+
+const executeBlock = async () => {
+  if (!profile.value) return;
+  isProcessing.value = true;
+  try {
+    await $fetch(`/api/users/${friendId}/block`, { method: 'POST' });
+    showBlockModal.value = false;
+    await refreshSocial();
+    await load();
+  } catch (err) {
+    console.error('Failed to block user:', err);
+  } finally {
+    isProcessing.value = false;
+  }
+};
+
+const executeUnblock = async () => {
+  if (!profile.value) return;
+  isProcessing.value = true;
+  try {
+    await $fetch(`/api/users/${friendId}/block`, { method: 'DELETE' });
+    await refreshSocial();
+    await load();
+  } catch (err) {
+    console.error('Failed to unblock user:', err);
+  } finally {
+    isProcessing.value = false;
+  }
+};
+
 const profile = ref<FriendProfile | null>(null);
 const habits = ref<Habit[]>([]);
 const logs = ref<HabitLog[]>([]);
@@ -489,11 +602,12 @@ const selectedHabit = ref<Habit | null>(null);
 const currentCalendarDate = ref(new Date());
 const calendarLoading = ref(false);
 
-const isAnyModalOpen = computed(() => showUnfriendModal.value || showCancelRequestModal.value);
+const isAnyModalOpen = computed(() => showUnfriendModal.value || showCancelRequestModal.value || showBlockModal.value);
 
 useModalHistory(isAnyModalOpen, () => {
   showUnfriendModal.value = false;
   showCancelRequestModal.value = false;
+  showBlockModal.value = false;
 });
 
 const isFutureDay = (day: Date) => isAfter(startOfDay(day), startOfDay(today));

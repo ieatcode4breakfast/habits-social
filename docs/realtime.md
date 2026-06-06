@@ -226,9 +226,9 @@ Message content, activity reply context, and tombstones.
 ## 9. Chat Access Control
 
 - Any read/write access to a conversation requires an active `accepted` friendship between the participants.
-- If a participant deletes their account, the remaining participant keeps read-only history access.
+- If a participant deletes their account, the remaining participant no longer sees that conversation in the inbox.
 - Write operations such as sending and deleting messages are blocked when the other user is deleted.
-- Conversations appear in `GET /api/chat/conversations` only when an active friendship exists or the other user has been deleted, and at least one visible message exists.
+- Conversations appear in `GET /api/chat/conversations` only when an active friendship exists and at least one visible message exists.
 - `clearConversation` requires membership only. It updates only the caller's `cleared_at`.
 
 IDOR protection, meaning protection against accessing another user's object by guessing an ID, is enforced on every chat endpoint by checking the authenticated user's conversation membership and friendship state.

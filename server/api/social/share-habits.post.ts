@@ -3,6 +3,7 @@ import { friendships, habits as habitsTable, shareEvents } from '~~/server/db/sc
 import { useDB as _useDB } from '~~/server/utils/db';
 import { requireAuth as _requireAuth } from '~~/server/utils/auth';
 import { shareHabitsSchema } from '~~/server/utils/validation';
+
 import { SocialService } from '~~/server/services/social.service';
 
 export default defineEventHandler(async (event) => {

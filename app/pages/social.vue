@@ -11,18 +11,18 @@
           </div>
         </div>
       </div>
-      
+
       <!-- Tab Navigation -->
       <div class="px-4 sm:px-0 pb-2">
         <div class="flex p-1 bg-zinc-925 border border-zinc-800 rounded-xl relative">
-          <button 
+          <button
           @click="activeTab = 'activity'"
           class="flex-1 py-2.5 text-[11px] font-bold tracking-widest uppercase rounded-lg transition-all relative z-10 cursor-pointer"
           :class="activeTab === 'activity' ? 'text-white' : 'text-zinc-500 hover:text-zinc-300'"
         >
           Activity
         </button>
-        <button 
+        <button
           @click="activeTab = 'friends'"
           class="flex-1 py-2.5 text-[11px] font-bold tracking-widest uppercase rounded-lg transition-all relative z-10 cursor-pointer flex items-center justify-center gap-2"
           :class="activeTab === 'friends' ? 'text-white' : 'text-zinc-500 hover:text-zinc-300'"
@@ -31,7 +31,7 @@
           <span v-if="pendingIncoming.length > 0" class="flex w-2 h-2 bg-rose-500 rounded-full"></span>
         </button>
         <!-- Sliding Indicator -->
-        <div 
+        <div
           class="absolute top-1 bottom-1 w-[calc(50%-6px)] bg-zinc-800 rounded-lg transition-all duration-300 ease-out z-0 shadow-sm"
           :class="activeTab === 'activity' ? 'left-1' : 'left-[calc(50%+2px)]'"
         ></div>
@@ -54,8 +54,8 @@
         <p class="text-zinc-400 text-sm max-w-sm mx-auto leading-relaxed mb-6">
           Commit to new habits, add some friends, and start building streaks to bring this space to life!
         </p>
-        <button 
-          @click="navigateTo('/habits?action=add')" 
+        <button
+          @click="navigateTo('/habits?action=add')"
           class="px-6 py-3 bg-white text-black font-bold rounded-xl hover:bg-zinc-200 transition-colors shadow-lg cursor-pointer"
         >
           Commit to a new habit
@@ -67,10 +67,10 @@
           <h3 class="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-600 px-4 sm:px-1 pb-2" :class="index === 0 ? 'mt-2' : 'mt-4'">
             {{ formatFeedDate(String(date)) }}
           </h3>
-          
+
           <div class="space-y-0">
-            <div 
-              v-for="(item, itemIndex) in group" 
+            <div
+              v-for="(item, itemIndex) in group"
               :key="item.id"
               @click="item.habit?.id ? openHabitDetails(item.habit.id) : (String(item.user.id) !== String(user?.id) ? navigateTo(`/friends/${item.user.id}?from=${activeTab}`) : null)"
               class="activity-content-surface group bg-zinc-925/50 hover:bg-zinc-900/80 border-b border-zinc-800/50 last:border-b-0 sm:border-x sm:border-b sm:border-zinc-800/50 p-4 transition-all duration-300 cursor-pointer flex flex-col gap-3 shadow-sm"
@@ -82,9 +82,9 @@
               <!-- Row 1: Header (Avatar + Message) -->
               <div class="flex items-center gap-4 w-full">
                 <!-- Avatar -->
-                <UserAvatar 
+                <UserAvatar
                   @click="String(item.user.id) !== String(user?.id) ? ($event.stopPropagation(), navigateTo(`/friends/${item.user.id}?from=${activeTab}`)) : null"
-                  :src="item.user.photoUrl" 
+                  :src="item.user.photoUrl"
                   container-class="w-10 h-10 bg-zinc-950 border border-zinc-800 transition-transform cursor-pointer"
                   :class="{ 'active:scale-95': String(item.user.id) !== String(user?.id) }"
                   icon-class="w-5 h-5 text-zinc-700"
@@ -93,7 +93,7 @@
                 <!-- Content -->
                 <div class="flex-1 min-w-0">
                   <div class="text-sm leading-relaxed min-w-0 break-words">
-                    <span 
+                    <span
                       @click="String(item.user.id) !== String(user?.id) ? ($event.stopPropagation(), navigateTo(`/friends/${item.user.id}?from=${activeTab}`)) : null"
                       class="font-bold text-zinc-100 transition-colors cursor-pointer mr-1.5"
                       :class="{ 'hover:text-zinc-400': String(item.user.id) !== String(user?.id) }"
@@ -108,7 +108,7 @@
 
               <!-- Row 2: Habit Visual (Title + Grid) -->
               <!-- Row 2: Habit Visual (Title + Grid) -->
-              <HabitLogVisualizer 
+              <HabitLogVisualizer
                 v-if="item.weeklyStatus"
                 :title="item.habit.title"
                 :streakCount="item.streakCount"
@@ -132,10 +132,10 @@
             </div>
           </div>
         </div>
-        
+
         <!-- Sentinel for infinite scroll -->
         <div ref="loadMoreSentinel" class="h-4 w-full"></div>
-        
+
         <!-- Loading indicator for load more -->
         <div v-if="hasMore" class="flex justify-center p-4 h-14">
           <div v-if="loadingMore" class="animate-spin rounded-full h-6 w-6 border-b-2 border-white"></div>
@@ -151,7 +151,7 @@
       <template v-else>
         <!-- Incoming Requests Accordion -->
       <div v-if="pendingIncoming.length > 0" v-motion-fade class="bg-zinc-925/80 backdrop-blur-sm sm:rounded-2xl rounded-none border-y border-x-0 sm:border border-zinc-800/80 overflow-hidden shadow-2xl">
-      <button @click="isRequestsExpanded = !isRequestsExpanded" 
+      <button @click="isRequestsExpanded = !isRequestsExpanded"
         class="w-full flex items-center justify-between p-6 hover:bg-white/5 transition-colors cursor-pointer group"
       >
         <div class="flex items-center gap-3">
@@ -169,8 +169,8 @@
         <div class="gap-0 flex flex-col max-h-[380px] overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-zinc-800 scrollbar-track-transparent">
           <div v-for="req in pendingIncoming" :key="req.id" class="flex items-center justify-between bg-transparent border-none p-4 hover:bg-white/5 transition-colors rounded-none md:rounded-xl">
             <NuxtLink :to="`/friends/${req.initiatorId}?from=${activeTab}`" class="flex items-center gap-3 hover:opacity-80 transition-opacity">
-              <UserAvatar 
-                :src="profilesMap[req.initiatorId]?.photoUrl" 
+              <UserAvatar
+                :src="profilesMap[req.initiatorId]?.photoUrl"
                 container-class="w-10 h-10 bg-zinc-950"
                 icon-class="w-5 h-5 text-zinc-600"
               />
@@ -203,8 +203,8 @@
         <div v-if="searchResults.length > 0" class="mt-4 gap-0 flex flex-col max-h-[380px] overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-zinc-800 scrollbar-track-transparent pb-4">
           <div v-for="res in searchResults" :key="res.id" class="flex items-center justify-between bg-transparent border-none p-4 hover:bg-white/5 transition-colors rounded-none md:rounded-xl">
             <NuxtLink :to="`/friends/${res.id}?from=${activeTab}`" class="flex items-center gap-3 hover:opacity-80 transition-opacity">
-              <UserAvatar 
-                :src="res.photoUrl" 
+              <UserAvatar
+                :src="res.photoUrl"
                 container-class="w-10 h-10 bg-zinc-950"
                 icon-class="w-5 h-5 text-zinc-600"
               />
@@ -215,9 +215,22 @@
             <span v-if="getRelationship(res.id)" class="text-xs font-semibold text-zinc-500 bg-zinc-925 px-3 py-1.5 rounded-full">
               {{ getRelationship(res.id) === 'accepted' ? 'Friends' : 'Pending' }}
             </span>
-            <button 
-              v-else 
-              @click="executeSendRequest(res)" 
+            <button
+              v-else-if="res.blockedByMe"
+              @click="executeUnblockUser(res)"
+              :disabled="unblockingUserId === res.id"
+              class="flex items-center justify-center gap-2 px-4 py-2 bg-rose-500 hover:bg-rose-600 disabled:opacity-50 text-white rounded-xl transition-colors font-semibold text-sm cursor-pointer min-w-[80px]"
+            >
+              <template v-if="unblockingUserId === res.id">
+                <div class="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>
+              </template>
+              <template v-else>
+                <ShieldBan class="w-4 h-4" /> Unblock
+              </template>
+            </button>
+            <button
+              v-else
+              @click="executeSendRequest(res)"
               :disabled="addingFriendId === res.id"
               class="flex items-center justify-center gap-2 px-4 py-2 bg-white hover:bg-zinc-200 disabled:opacity-50 text-black rounded-xl transition-colors font-semibold text-sm cursor-pointer min-w-[80px]"
             >
@@ -238,25 +251,25 @@
           <h2 class="text-sm font-bold uppercase tracking-wider text-zinc-500">My Friends</h2>
           <div class="relative w-full sm:max-w-[240px]">
             <Search class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
-            <input 
+            <input
               v-model="friendsSearchQuery"
-              type="text" 
-              placeholder="Filter friends..." 
+              type="text"
+              placeholder="Filter friends..."
               class="w-full pl-10 pr-4 py-2.5 bg-black border border-zinc-925 rounded-xl focus:outline-none focus:ring-2 focus:ring-zinc-600 text-white placeholder-zinc-600 text-sm transition-all"
             />
           </div>
         </div>
-        
+
         <p v-if="displayFriends.length === 0" class="text-zinc-600 text-sm italic px-6 sm:px-0">No friends yet. Search for people above!</p>
         <p v-else-if="filteredDisplayFriends.length === 0" class="text-zinc-600 text-sm italic px-6 sm:px-0">No friends found matching your filter.</p>
         <div v-else class="grid grid-cols-1 md:grid-cols-2 gap-0 max-h-[480px] overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-zinc-800 scrollbar-track-transparent">
-          <div 
+          <div
             v-for="f in filteredDisplayFriends" :key="f.id"
             @click="handleFriendClick(f)"
             class="flex items-center gap-4 p-4 bg-transparent border-none transition-all group cursor-pointer hover:bg-white/5 rounded-none md:rounded-xl"
           >
-            <UserAvatar 
-              :src="profilesMap[getFriendId(f)]?.photoUrl" 
+            <UserAvatar
+              :src="profilesMap[getFriendId(f)]?.photoUrl"
               container-class="w-12 h-12 bg-zinc-950"
               icon-class="w-6 h-6 text-zinc-600"
             />
@@ -271,17 +284,17 @@
               </div>
             </div>
             <div class="flex items-center gap-1 flex-shrink-0">
-              <button 
+              <button
                 v-if="f.status === 'accepted'"
-                @click.stop="handleToggleFavorite(f)" 
+                @click.stop="handleToggleFavorite(f)"
                 class="p-2 transition-all cursor-pointer rounded-xl"
                 :class="isFriendshipFavorite(f) ? 'text-amber-400 bg-amber-400/10' : 'text-zinc-600 hover:text-amber-400 hover:bg-amber-400/5'"
                 title="Favorite"
               >
                 <Star class="w-4 h-4" :class="{ 'fill-amber-400': isFriendshipFavorite(f) }" />
               </button>
-              <button 
-                @click.stop="confirmUnfriend(f)" 
+              <button
+                @click.stop="confirmUnfriend(f)"
                 class="p-2 text-zinc-600 hover:text-rose-500 hover:bg-rose-500/10 rounded-xl transition-all cursor-pointer"
                 :title="f.status === 'pending' ? 'Cancel Request' : 'Unfriend'"
               >
@@ -314,9 +327,9 @@
             </div>
             <h2 class="text-xl font-bold text-white mb-2">{{ friendshipToUnfriend?.status === 'pending' ? 'Cancel Request?' : 'Unfriend?' }}</h2>
             <p class="text-zinc-500 mb-8 text-sm">
-              {{ friendshipToUnfriend?.status === 'pending' 
+              {{ friendshipToUnfriend?.status === 'pending'
                 ? `Cancel your friend request to ${unfriendDisplayName}?`
-                : `Are you sure you want to unfriend ${unfriendDisplayName}?` 
+                : `Are you sure you want to unfriend ${unfriendDisplayName}?`
               }}
             </p>
             <div class="flex gap-3 mt-2">
@@ -342,20 +355,20 @@
         leave-from-class="opacity-100 scale-100"
         leave-to-class="opacity-0 scale-95"
       >
-        <div 
+        <div
           v-if="showActivityReplyFriendSelectModal"
           class="fixed inset-0 z-[150] flex items-center justify-center p-4"
         >
           <!-- Dedicated Sibling Backdrop with touch-none to prevent background scrolling -->
           <div class="fixed inset-0 bg-black/80 backdrop-blur-sm touch-none" @click="showActivityReplyFriendSelectModal = false"></div>
-          
+
           <!-- Sibling Modal Card -->
           <div class="relative w-full max-w-sm bg-zinc-925 border border-zinc-800 rounded-2xl shadow-2xl flex flex-col max-h-[80vh] overflow-hidden select-none">
-            
+
             <!-- Modal Header -->
             <div class="p-4 border-b border-zinc-800/60 flex items-center justify-between">
               <h3 class="text-sm font-bold text-white">Chat about this activity with</h3>
-              <button 
+              <button
                 @click="showActivityReplyFriendSelectModal = false"
                 class="p-1 hover:bg-zinc-850 rounded-lg text-zinc-400 hover:text-white transition-colors cursor-pointer"
               >
@@ -384,7 +397,7 @@
               <div v-else-if="filteredReplyFriends.length === 0" class="py-12 text-center text-zinc-500 italic text-sm">
                 No friends found matching your filter.
               </div>
-              
+
               <button
                 v-for="friend in filteredReplyFriends"
                 :key="friend.id"
@@ -392,12 +405,12 @@
                 :disabled="replyFriendActionId === getFriendId(friend)"
                 class="w-full text-left p-3 rounded-xl hover:bg-zinc-900/60 transition-colors flex items-center gap-3 cursor-pointer outline-none border border-transparent disabled:opacity-60 disabled:cursor-wait"
               >
-                <UserAvatar 
-                  :src="profilesMap[getFriendId(friend)]?.photoUrl" 
+                <UserAvatar
+                  :src="profilesMap[getFriendId(friend)]?.photoUrl"
                   container-class="w-9 h-9 bg-zinc-900"
                   icon-class="w-5 h-5 text-zinc-600"
                 />
-                
+
                 <div class="flex-1 min-w-0">
                   <div class="flex items-center gap-1.5">
                     <div class="text-sm font-bold text-white truncate">{{ profilesMap[getFriendId(friend)]?.username || 'Unknown' }}</div>
@@ -483,7 +496,7 @@
 
 <script setup lang="ts">
 defineOptions({ name: 'social' });
-import { Search, UserPlus, UserMinus, Check, X as XIcon, User, Users, Trash2, ChevronDown, CheckSquare, Activity, Star, ChevronLeft, ChevronRight, Flame, Minus, Palmtree, MessageCircle } from 'lucide-vue-next';
+import { Search, UserPlus, UserMinus, Check, X as XIcon, User, Users, Trash2, ChevronDown, CheckSquare, Activity, Star, ChevronLeft, ChevronRight, Flame, Minus, Palmtree, MessageCircle, ShieldBan } from 'lucide-vue-next';
 import { format, parseISO, isToday, addDays, startOfMonth, endOfMonth, eachDayOfInterval, subDays, isAfter, startOfDay, subMonths, addMonths } from 'date-fns';
 import { useSocial } from '../composables/useSocial';
 import { useToast } from '../composables/useToast';
@@ -526,7 +539,7 @@ const activeTab = computed({
   set: (val) => navigateTo({ query: { ...route.query, tab: val } } as any, { replace: true })
 });
 
-interface UserProfile { id: string; email: string; username: string; photoUrl?: string; }
+interface UserProfile { id: string; email: string; username: string; photoUrl?: string; blockedByMe?: boolean; }
 interface SocialHabit { id: string; title: string; sharedWith?: string[] | null; }
 interface ActivityFeedItem {
   id: string;
@@ -547,12 +560,12 @@ interface ActivityFeedItem {
   streakCount?: number;
   streakAnchorDate?: string | null;
 }
-interface Friendship { 
-  id: string; 
-  participants: string[]; 
-  initiatorId: string; 
-  receiverId: string; 
-  status: 'pending' | 'accepted'; 
+interface Friendship {
+  id: string;
+  participants: string[];
+  initiatorId: string;
+  receiverId: string;
+  status: 'pending' | 'accepted';
   initiatorFavorite?: boolean;
   receiverFavorite?: boolean;
 }
@@ -561,11 +574,11 @@ const searchQuery = ref('');
 const friendsSearchQuery = ref('');
 const isRequestsExpanded = ref(false);
 const searchResults = ref<UserProfile[]>([]);
-const { 
-  friendships, 
-  profilesMap, 
-  refresh: refreshSocial, 
-  init: initSocial, 
+const {
+  friendships,
+  profilesMap,
+  refresh: refreshSocial,
+  init: initSocial,
   cleanup: cleanupSocial,
   toggleFavorite,
   isLoading
@@ -574,6 +587,7 @@ const showUnfriendModal = ref(false);
 const friendshipToUnfriend = ref<Friendship | null>(null);
 const unfriendDisplayName = ref('');
 const addingFriendId = ref<string | null>(null);
+const unblockingUserId = ref<string | null>(null);
 const showShareModal = ref(false);
 const myHabits = ref<SocialHabit[]>([]);
 const selectedHabitIds = ref<string[]>([]);
@@ -654,7 +668,7 @@ const FEED_STALE_THRESHOLD_MS = 10 * 60 * 1000; // 10 minutes
 const loadFeed = async ({ isLoadMore = false, force = false } = {}) => {
   if (activeTab.value !== 'activity') return;
   if (isLoadMore && (!hasMore.value || loadingMore.value)) return;
-  
+
   if (!isLoadMore) {
     const shouldRefresh = shouldRefreshFeed(
       lastFeedFetchTime.value,
@@ -663,13 +677,13 @@ const loadFeed = async ({ isLoadMore = false, force = false } = {}) => {
       FEED_STALE_THRESHOLD_MS
     );
     if (!shouldRefresh) return;
-    
+
     feedLoading.value = true;
   }
   if (isLoadMore) {
     loadingMore.value = true;
   }
-  
+
   try {
     const query: any = {};
     if (isLoadMore && nextCursor.value) {
@@ -677,19 +691,19 @@ const loadFeed = async ({ isLoadMore = false, force = false } = {}) => {
       query.cursorTimestamp = nextCursor.value.timestamp;
       query.cursorId = nextCursor.value.id;
     }
-    
+
     const [response] = await Promise.all([
       $fetch<{ data: any[], nextCursor: any }>('/api/social/feed', { query }),
       new Promise(resolve => setTimeout(resolve, 500))
     ]);
-    
+
     if (isLoadMore) {
       feed.value = [...feed.value, ...response.data];
     } else {
       feed.value = response.data;
       lastFeedFetchTime.value = Date.now();
     }
-    
+
     nextCursor.value = response.nextCursor;
     hasMore.value = !!response.nextCursor;
   } catch (err) {
@@ -756,10 +770,10 @@ const formatMessage = (msg: string) => {
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#039;');
-  
+
   // 1. Process Habits [H]...[/H] -> Sky Blue
   content = content.replace(/\[H\](.*?)\[\/H\]/g, '<strong class="text-blue-500 font-bold">$1</strong>');
-  
+
   // 2. Process Usernames [U:id]...[/U] -> Bold White + Clickable (Interactive only if not current user)
   content = content.replace(/\[U:(.*?)\](.*?)\[\/U\]/g, (match, id, label) => {
     const isMe = id === String(user.value?.id);
@@ -768,19 +782,19 @@ const formatMessage = (msg: string) => {
     }
     return `<span class="font-bold text-zinc-100 hover:text-zinc-400 transition-colors cursor-pointer" data-user-id="${id}">${label}</span>`;
   });
-  
+
   // Legacy support for [U]...[/U] without ID
   content = content.replace(/\[U\](.*?)\[\/U\]/g, '<strong class="text-zinc-100 font-bold">$1</strong>');
-  
+
   // 3. Process Streaks [S:count]...[/S] -> Dynamic Color
   content = content.replace(/\[S:(\d+)(?::(broken))?\](.*?)\[\/S\]/g, (_, countStr, broken, text) => {
     if (broken) return `<strong class="text-rose-500 font-bold">${text}</strong>`;
-    
+
     const count = parseInt(countStr);
     let colorClass = 'text-emerald-500'; // Default < 7 days (Green)
     if (count >= 30) colorClass = 'text-yellow-400'; // 30+ days (Gold)
     else if (count >= 7) colorClass = 'text-violet-400'; // 7+ days (Purple)
-    
+
     return `<strong class="${colorClass} font-bold">${text}</strong>`;
   });
 
@@ -810,12 +824,12 @@ const handleSocialMonthChanged = async (newDate: Date) => {
   const end = format(endOfMonth(newDate), 'yyyy-MM-dd');
   calendarLoading.value = true;
   try {
-    const { data } = await $fetch<{ data: any }>('/api/social/habit-details', { 
-      query: { 
+    const { data } = await $fetch<{ data: any }>('/api/social/habit-details', {
+      query: {
         habitId: selectedHabit.value.id,
         startDate: start,
         endDate: end
-      } 
+      }
     });
     if (data.logs) {
       data.logs.forEach((newLog: any) => {
@@ -835,7 +849,7 @@ const handleSocialMonthChanged = async (newDate: Date) => {
 };
 // ----------------------------
 
-const isLocalModalOpen = computed(() => 
+const isLocalModalOpen = computed(() =>
   showUnfriendModal.value || showActivityReplyFriendSelectModal.value
 );
 
@@ -883,7 +897,7 @@ const filteredReplyFriends = computed(() => {
     const bFav = isFriendshipFavorite(b);
     if (aFav && !bFav) return -1;
     if (!aFav && bFav) return 1;
-    
+
     const aName = profilesMap.value[getFriendId(a)]?.username || '';
     const bName = profilesMap.value[getFriendId(b)]?.username || '';
     return aName.localeCompare(bName);
@@ -1008,7 +1022,7 @@ const displayFriends = computed(() => {
   const combined = [...acceptedFriends.value, ...pendingOutgoing.value];
   if (!user.value?.id) return combined;
   const myId = String(user.value.id);
-  
+
   return combined
     .filter((f: any) => {
       const friendId = getFriendId(f);
@@ -1017,7 +1031,7 @@ const displayFriends = computed(() => {
     .sort((a, b) => {
       const aFav = favoritedAtStart.value.has(a.id);
       const bFav = favoritedAtStart.value.has(b.id);
-      
+
       if (aFav && !bFav) return -1;
       if (!aFav && bFav) return 1;
 
@@ -1089,7 +1103,7 @@ onActivated(async () => {
   // 2. Conditional Refresh
   // We refresh if we're coming from anywhere EXCEPT a friend's profile (to preserve state on back-nav)
   const isFromProfile = lastPath.value.includes('/friends/');
-  
+
   if (!isFromProfile) {
     const shouldRefresh = shouldRefreshFeed(
       lastFeedFetchTime.value,
@@ -1097,13 +1111,13 @@ onActivated(async () => {
       false,
       FEED_STALE_THRESHOLD_MS
     );
-    
+
     if (shouldRefresh) {
       await loadFriendships();
       if (activeTab.value === 'activity') {
         loadFeed();
       }
-      
+
       // Also update the stable favorites snapshot for friends list sorting
       const myId = String(user.value?.id);
       const favs = friendships.value
@@ -1137,21 +1151,41 @@ watch(searchQuery, (val) => {
   searchTimeout = setTimeout(handleSearch, 300);
 });
 
+const executeUnblockUser = async (userProfile: UserProfile) => {
+  unblockingUserId.value = userProfile.id;
+  try {
+    await $fetch(`/api/users/${userProfile.id}/block`, { method: 'DELETE' });
+
+    // Optimistic local update
+    const idx = searchResults.value.findIndex(r => r.id === userProfile.id);
+    if (idx !== -1 && searchResults.value[idx]) {
+      searchResults.value[idx]!.blockedByMe = false;
+    }
+
+    showToast('User unblocked', 'completed');
+  } catch (err) {
+    console.error('Failed to unblock user:', err);
+    showToast('Failed to unblock user', 'failed');
+  } finally {
+    unblockingUserId.value = null;
+  }
+};
+
 const executeSendRequest = async (target: UserProfile) => {
   addingFriendId.value = target.id;
   try {
     await $fetch('/api/friendships', { method: 'POST', body: { targetUserId: target.id } });
     await loadFriendships();
-    
+
     // Setup for share modal
     userBeingSharedWith.value = target;
     const { data: habitsData } = await $fetch<{ data: any[] }>('/api/habits');
     myHabits.value = habitsData;
     selectedHabitIds.value = [];
-    
+
     searchResults.value = [];
     searchQuery.value = '';
-    
+
     // Open share modal if user has habits
     if (habitsData.length > 0) {
       shareModalTitle.value = 'Request Sent!';
@@ -1167,7 +1201,7 @@ const executeSendRequest = async (target: UserProfile) => {
 const acceptRequest = async (fid: string) => {
   const friendship = friendships.value.find((f: any) => f.id === fid);
   if (!friendship) return;
-  
+
   const initiatorId = friendship.initiatorId;
   const initiatorProfile = profilesMap.value[initiatorId];
 
@@ -1180,7 +1214,7 @@ const acceptRequest = async (fid: string) => {
     const { data: habitsData } = await $fetch<{ data: any[] }>('/api/habits');
     myHabits.value = habitsData;
     selectedHabitIds.value = [];
-    
+
     if (habitsData.length > 0) {
       shareModalTitle.value = 'Request Accepted!';
       showShareModal.value = true;
@@ -1202,13 +1236,13 @@ const confirmUnfriend = (f: Friendship) => {
 const executeUnfriend = async () => {
   if (!friendshipToUnfriend.value) return;
   const fid = friendshipToUnfriend.value.id;
-  
+
   // Close modal first to avoid flickering when data reloads
   showUnfriendModal.value = false;
-  
+
   await $fetch(`/api/friendships/${fid}`, { method: 'DELETE' });
   await loadFriendships();
-  
+
   // Clear reference after data is reloaded
   friendshipToUnfriend.value = null;
   unfriendDisplayName.value = '';
