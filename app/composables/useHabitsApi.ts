@@ -163,6 +163,7 @@ export const useHabitsApi = () => {
       clearTimeout(retryTimer.value);
       retryTimer.value = null;
     }
+    if (!isOnline.value) return;
     sync(options).catch(err => console.error('[Sync] Background sync failed:', err));
   };
 
@@ -329,7 +330,7 @@ export const useHabitsApi = () => {
 
   // --- The Core Sync Engine (Reconciliation) ---
   const sync = async (options: SyncOptions = {}) => {
-    if (!user.value || !process.client) return;
+    if (!user.value || !process.client || !isOnline.value) return;
 
     if (options.skipPullAfterSuccessfulHabitLogPush) {
       skipPullAfterHabitLogPush.value = true;
@@ -703,7 +704,7 @@ export const useHabitsApi = () => {
   };
 
   const fetchHistory = async (startDate: string, endDate: string) => {
-    if (!user.value || !process.client) return;
+    if (!user.value || !process.client || !isOnline.value) return;
     try {
       const response = await client.fetchSync({ startDate, endDate });
       const {
@@ -749,6 +750,7 @@ export const useHabitsApi = () => {
 
   const ensureHistoryLoadedForDate = async (targetDateStr: string) => {
     if (!user.value || !process.client) return;
+    if (!isOnline.value) return;
     
     while (targetDateStr < earliestFetchedDate.value) {
       if (historyFetchPromise) {
@@ -775,6 +777,6 @@ export const useHabitsApi = () => {
     getHabits, createHabit, updateHabit, deleteHabit, getLogs, upsertLog, deleteLog, reorderHabits,
     getBuckets, createBucket, updateBucket, deleteBucket, getBucketLogs, reorderBuckets,
     sync, lastSyncTime, fetchHistory, ensureHistoryLoadedForDate, earliestFetchedDate,
-    habits, buckets
+    habits, buckets, triggerSync
   };
 };

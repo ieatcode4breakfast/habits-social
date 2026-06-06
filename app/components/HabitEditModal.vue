@@ -204,7 +204,11 @@
 
               <div v-if="friends.length > 0" class="space-y-3 mt-8">
                 <label class="text-xs font-bold uppercase tracking-widest text-zinc-500">Share with</label>
+                <div v-if="!isOnline" class="p-4 bg-black border border-zinc-800 rounded-xl text-center text-zinc-500 text-xs font-medium">
+                  Sharing modifications are not available offline.
+                </div>
                 <div 
+                  v-else
                   class="space-y-2 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar transition-all duration-300"
                 >
                   <label v-for="friend in sortedFriendsForEdit" :key="friend.id" class="flex items-center justify-between p-3 bg-black border border-zinc-925 rounded-xl cursor-pointer hover:border-zinc-800 transition-colors">
@@ -323,6 +327,7 @@ const emit = defineEmits(['update:modelValue', 'habit-updated', 'habit-deleted',
 
 const api = useHabitsApi();
 const { showToast } = useToast();
+const { isOnline } = useNetwork();
 
 const editTitle = ref('');
 const editDescription = ref('');

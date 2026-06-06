@@ -199,19 +199,43 @@ useSeoMeta({
   twitterCard: 'summary_large_image',
 })
 
-onMounted(() => {
-  if (user.value) {
+const started = ref(false);
+
+const startServices = () => {
+  if (user.value && isOnline.value && !started.value) {
     initSocial();
     initChatInbox();
     realtimeInvalidation.start();
+    started.value = true;
+  }
+};
+
+const stopServices = () => {
+  if (started.value) {
+    realtimeInvalidation.stop();
+    cleanupSocial();
+    started.value = false;
+  }
+};
+
+onMounted(() => {
+  if (user.value && isOnline.value) {
+    startServices();
   }
   checkJustSignedUp();
 });
 
 onUnmounted(() => {
-  realtimeInvalidation.stop();
-  cleanupSocial();
+  stopServices();
 });
+
+watch([isOnline, () => user.value?.id], ([online, userId]) => {
+  if (online && userId) {
+    startServices();
+  } else if (!online || !userId) {
+    stopServices();
+  }
+}, { immediate: true });
 
 const router = useRouter();
 const route = useRoute();

@@ -66,6 +66,12 @@
     </div>
     </div>
 
+    <!-- Offline Banner -->
+    <div v-if="!isOnline" class="mx-4 sm:mx-0 my-2 px-4 py-2.5 bg-amber-500/10 border border-amber-500/20 rounded-xl flex items-center gap-2.5 text-amber-500 text-xs font-semibold">
+      <WifiOff class="w-4 h-4 shrink-0" />
+      <span>Offline. Changes are saved on this device and will sync when you’re back online.</span>
+    </div>
+
     <!-- Habit List (Single Card) -->
     <div v-motion-fade :style="pullStyle" 
          class="habits-content-surface sm:rounded-b-2xl rounded-none overflow-hidden border-b border-x-0 sm:border-x sm:border-b relative will-change-transform transition-colors duration-300"
@@ -322,7 +328,7 @@
 </template>
 
 <script setup lang="ts">
-import { Plus, Trash2, Check, X as XIcon, Minus, ChevronLeft, ChevronRight, User, ChevronUp, ChevronDown, Edit2, Save, CheckSquare, GripVertical, ArrowUpDown, Flame, Palmtree, MessageCircle, UserPlus, Star } from 'lucide-vue-next';
+import { Plus, Trash2, Check, X as XIcon, Minus, ChevronLeft, ChevronRight, User, ChevronUp, ChevronDown, Edit2, Save, CheckSquare, GripVertical, ArrowUpDown, Flame, Palmtree, MessageCircle, UserPlus, Star, WifiOff } from 'lucide-vue-next';
 import { format, subDays, isToday, startOfMonth, endOfMonth, eachDayOfInterval, addMonths, subMonths, isAfter, startOfDay, addDays, isSameWeek, isSameMonth, parseISO, startOfWeek, isSameDay } from 'date-fns';
 import type { Habit, HabitLog } from '~/composables/useHabitsApi';
 import { getStreakTheme, isStreakFaded as isFaded, autoExpandTextarea as autoExpand, isMarkable } from '~/utils/ui';
@@ -538,13 +544,17 @@ const load = async (silent = false) => {
   try {
     const promises: Promise<any>[] = [
       api.getHabits(), 
-      api.getLogs(startDate, endDate),
-      refreshSocial()
+      api.getLogs(startDate, endDate)
     ];
+    if (isOnline.value) {
+      promises.push(refreshSocial());
+    }
     if (!silent) {
       promises.push(new Promise(resolve => setTimeout(resolve, 500)));
     }
-    const [h, l] = await Promise.all(promises);
+    const results = await Promise.all(promises);
+    const h = results[0];
+    const l = results[1];
 
     if (currentSequence !== lastLoadSequence) return;
 
@@ -630,6 +640,10 @@ const buildHabitReplyCard = (habit: Habit): HabitReplyCard | null => {
 };
 
 const navigateToHabitReplyFriend = (friendId: string) => {
+  if (!isOnline.value) {
+    showToast('This action needs an internet connection.', 'failed');
+    return;
+  }
   const card = pendingReplyHabit.value ? buildHabitReplyCard(pendingReplyHabit.value) : null;
   if (!card) {
     showToast('Could not prepare habit reply. Try again.', 'failed');
@@ -645,6 +659,10 @@ const navigateToHabitReplyFriend = (friendId: string) => {
 };
 
 const chatAboutHabit = (habit: Habit) => {
+  if (!isOnline.value) {
+    showToast('This action needs an internet connection.', 'failed');
+    return;
+  }
   pendingReplyHabit.value = habit;
   showHabitReplyFriendSelectModal.value = true;
 };
@@ -676,12 +694,20 @@ const closeShareBeforeReplyModal = () => {
 };
 
 const goToFriendsSection = async () => {
+  if (!isOnline.value) {
+    showToast('This action needs an internet connection.', 'failed');
+    return;
+  }
   modalHistory.suppressNextHistoryBack();
   showHabitReplyFriendSelectModal.value = false;
   await navigateTo({ path: '/social', query: { tab: 'friends' } }, { replace: true });
 };
 
 const executeShareBeforeHabitReply = async () => {
+  if (!isOnline.value) {
+    showToast('This action needs an internet connection.', 'failed');
+    return;
+  }
   const habit = pendingReplyHabit.value;
   const friend = pendingShareFriend.value;
   if (!habit || !friend) return;
@@ -896,7 +922,9 @@ watch(showHabitReplyFriendSelectModal, (val) => {
 onMounted(() => {
   // Social state is now initialized globally in default.vue layout
   load();
-  api.sync();
+  if (isOnline.value) {
+    api.sync();
+  }
 
   const route = useRoute();
   const router = useRouter();

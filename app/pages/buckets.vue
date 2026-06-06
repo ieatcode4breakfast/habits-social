@@ -59,6 +59,12 @@
     </div>
     </div>
 
+    <!-- Offline Banner -->
+    <div v-if="!isOnline" class="mx-4 sm:mx-0 my-2 px-4 py-2.5 bg-amber-500/10 border border-amber-500/20 rounded-xl flex items-center gap-2.5 text-amber-500 text-xs font-semibold">
+      <WifiOff class="w-4 h-4 shrink-0" />
+      <span>Offline. Changes are saved on this device and will sync when you’re back online.</span>
+    </div>
+
     <!-- Bucket Edit/Add Modal -->
     <BucketModal
       v-model="showBucketModal"
@@ -276,7 +282,7 @@
 </template>
 
 <script setup lang="ts">
-import { Plus, Trash2, Check, X as XIcon, Minus, ChevronLeft, ChevronRight, Flame, PaintBucket, Palmtree, Edit2, ChevronDown, ChevronUp, ArrowUpDown, GripVertical, CheckSquare } from 'lucide-vue-next';
+import { Plus, Trash2, Check, X as XIcon, Minus, ChevronLeft, ChevronRight, Flame, PaintBucket, Palmtree, Edit2, ChevronDown, ChevronUp, ArrowUpDown, GripVertical, CheckSquare, WifiOff } from 'lucide-vue-next';
 import { format, subDays, startOfMonth, endOfMonth, eachDayOfInterval, addMonths, subMonths, isAfter, startOfDay, parseISO, isToday, startOfWeek, addDays, isSameDay, isSameWeek, isSameMonth } from 'date-fns';
 import type { Bucket, BucketLog, Habit, HabitLog } from '~/composables/useHabitsApi';
 import { getStreakTheme, isStreakFaded as isFaded, autoExpandTextarea as autoExpand, isMarkable } from '~/utils/ui';
@@ -292,6 +298,7 @@ const { user } = useAuth();
 const { friends } = useSocial();
 const { lastSyncTime } = api;
 const { showToast } = useToast();
+const { isOnline } = useNetwork();
 
 const { pullDistance, isPulling, isRefreshing } = usePullToRefresh(async () => {
   await load();
@@ -641,7 +648,9 @@ useModalHistory(isAnyModalOpen, () => {
 
 onMounted(() => {
   load();
-  api.sync();
+  if (isOnline.value) {
+    api.sync();
+  }
 });
 
 watch(lastSyncTime, () => {
