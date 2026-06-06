@@ -3,7 +3,8 @@
     <VitePwaManifest />
     <NuxtRouteAnnouncer />
     <NuxtLayout>
-      <NuxtPage :keepalive="{ include: ['social', 'inbox'] }" />
+      <OfflineUnavailableContent v-if="showOfflineUnavailableContent" />
+      <NuxtPage v-else :keepalive="{ include: ['social', 'inbox'] }" />
     </NuxtLayout>
 
     <!-- Global Toast Notification -->
@@ -36,6 +37,7 @@
 
 <script setup lang="ts">
 import { Check as CheckIcon, X as XIcon, Minus as MinusIcon } from 'lucide-vue-next';
+import { isOfflineAccessibleRoute } from '~/utils/offlineRoutes';
 
 const { isVisible, message, type } = useToast();
 const config = useRuntimeConfig();
@@ -45,6 +47,14 @@ const { themeMode, initializeThemeMode } = useThemeMode();
 
 const { isOnline } = useNetwork();
 const { showToast } = useToast();
+const route = useRoute();
+
+const showOfflineUnavailableContent = computed(() => {
+  if (!import.meta.client) return false;
+  if (isOnline.value) return false;
+  if (!user.value?.id) return false;
+  return !isOfflineAccessibleRoute(route.fullPath);
+});
 
 useFocusRefetch(sync);
 

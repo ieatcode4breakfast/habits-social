@@ -24,5 +24,5 @@ export const buildOfflineRedirect = (
     return null;
   }
 
-  return `/offline?from=${encodeURIComponent(path)}`;
+  return null;
 };

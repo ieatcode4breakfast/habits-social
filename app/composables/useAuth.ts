@@ -1,24 +1,35 @@
-const AUTH_USER_STORAGE_KEY = 'auth-user';
+import { AUTH_USER_STORAGE_KEY, getCachedAuthUser, type CachedAuthUser } from '~/utils/cachedAuth';
+
+const getFetchErrorStatus = (error: unknown): number | null => {
+  if (typeof error !== 'object' || error === null) return null;
+
+  const maybeError = error as {
+    response?: { status?: unknown };
+    statusCode?: unknown;
+    status?: unknown;
+  };
+  const status = maybeError.response?.status ?? maybeError.statusCode ?? maybeError.status;
+  return typeof status === 'number' ? status : null;
+};
 
 export const useAuth = () => {
-  const user = useState<{ id: string; email: string; username: string; photoUrl?: string } | null>('auth-user', () => {
-    // Hydrate from localStorage on cold start (client-side only).
-    // This prevents false redirects to /login when offline or during SSR hydration gaps.
+  const user = useState<CachedAuthUser | null>('auth-user', () => {
     if (import.meta.client) {
-      try {
-        const cached = localStorage.getItem(AUTH_USER_STORAGE_KEY);
-        return cached ? JSON.parse(cached) : null;
-      } catch { return null; }
+      return getCachedAuthUser(localStorage);
     }
     return null;
   });
 
+  if (import.meta.client && !user.value) {
+    user.value = getCachedAuthUser(localStorage);
+  }
+
   const fetchUser = async () => {
     try {
       const headers = useRequestHeaders(['cookie']) as Record<string, string>;
-      const { data } = await $fetch<{ data: any }>('/api/auth/me', { headers });
+      const { data } = await $fetch<{ data: CachedAuthUser | null }>('/api/auth/me', { headers });
       user.value = data;
-      // Persist to localStorage for offline hydration
+
       if (import.meta.client) {
         if (data) {
           localStorage.setItem(AUTH_USER_STORAGE_KEY, JSON.stringify(data));
@@ -26,16 +37,13 @@ export const useAuth = () => {
           localStorage.removeItem(AUTH_USER_STORAGE_KEY);
         }
       }
-    } catch (error: any) {
-      const status = error?.response?.status || error?.statusCode || error?.status;
+    } catch (error: unknown) {
+      const status = getFetchErrorStatus(error);
       if (status === 401 || status === 403) {
-        // Server explicitly rejected the token — clear session state.
-        // The auth layer NEVER touches IndexedDB. Only the logout button does.
+        // Explicit auth rejection clears cached session state. Network errors keep it.
         user.value = null;
         if (import.meta.client) localStorage.removeItem(AUTH_USER_STORAGE_KEY);
       }
-      // Network errors, 500s, timeouts → retain the hydrated state.
-      // The user stays on the dashboard with access to their local data.
     }
   };
 

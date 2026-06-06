@@ -43,9 +43,9 @@ describe('offlineRoutes', () => {
       expect(buildOfflineRedirect('/offline', true)).toBeNull();
     });
 
-    it('returns redirect with from query if route is blocked and user has session', () => {
-      expect(buildOfflineRedirect('/social', true)).toBe('/offline?from=%2Fsocial');
-      expect(buildOfflineRedirect('/inbox?foo=bar', true)).toBe(`/offline?from=${encodeURIComponent('/inbox?foo=bar')}`);
+    it('returns null if route is blocked and user has session so the app shell can show offline content in place', () => {
+      expect(buildOfflineRedirect('/social', true)).toBeNull();
+      expect(buildOfflineRedirect('/inbox?foo=bar', true)).toBeNull();
     });
   });
 });

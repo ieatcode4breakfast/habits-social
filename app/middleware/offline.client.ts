@@ -8,7 +8,7 @@ export default defineNuxtRouteMiddleware((to) => {
 
   const { user } = useAuth();
   const hasSession = Boolean(user.value?.id) || hasCachedAuthUser(localStorage);
-  const redirect = buildOfflineRedirect(to.fullPath, hasSession);
+  const redirect = buildOfflineRedirect(to.path, hasSession);
 
   if (redirect && to.fullPath !== redirect) {
     return navigateTo(redirect, { replace: true });

@@ -1,5 +1,5 @@
 <template>
-  <div class="relative">
+  <div key="social-page-root" class="relative">
     <!-- Sticky Header + Tabs -->
     <div class="sticky top-0 md:top-[57px] z-40 bg-black">
       <div class="px-4 sm:px-0 flex items-end justify-between gap-4 pt-2 pb-2 sm:pt-4">
