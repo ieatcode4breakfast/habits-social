@@ -1,6 +1,7 @@
 <template>
-  <div class="min-h-[calc(100dvh-9rem)] flex items-center justify-center bg-zinc-950 px-4 py-12 select-none">
-    <div class="w-full max-w-md bg-zinc-900 border border-zinc-800 rounded-3xl p-8 shadow-2xl space-y-8 relative overflow-hidden">
+  <div class="fixed inset-0 md:top-[57px] z-40 bg-zinc-950 overflow-y-auto select-none flex flex-col">
+    <div class="flex-1 flex items-center justify-center px-4 py-12 pb-24 md:pb-12">
+      <div class="w-full max-w-md bg-zinc-900 border border-zinc-800 rounded-3xl p-8 shadow-2xl space-y-8 relative overflow-hidden">
       <div class="absolute -top-20 -left-20 w-40 h-40 bg-zinc-800/10 rounded-full blur-3xl pointer-events-none"></div>
 
       <div class="text-center space-y-4 relative">
@@ -68,6 +69,7 @@
       </div>
     </div>
   </div>
+</div>
 </template>
 
 <script setup lang="ts">
