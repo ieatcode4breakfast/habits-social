@@ -8,16 +8,16 @@ A Bucket's status for a specific date is calculated by evaluating the statuses o
 
 | Priority | Bucket Status | Condition |
 | :--- | :--- | :--- |
-| **1** | `failed` | At least one habit in the bucket is marked as `failed`. |
-| **2** | `cleared` | No habit is `failed`, but at least one habit is missing a log (or is explicitly set to `cleared`). |
-| **3** | `vacation` | No habit is `failed` or `cleared`, but at least one habit is marked as `vacation`. |
-| **4** | `skipped` | No habit is `failed`, `cleared`, or `vacation`, but at least one habit is marked as `skipped`. |
-| **5** | `completed` | All habits in the bucket are marked as `completed`. |
+| **1** | `cleared` | At least one habit in the bucket is missing a log (or is explicitly set to `cleared`). |
+| **2** | `completed` | At least one habit in the bucket is marked as `completed`. |
+| **3** | `failed` | EVERY habit in the bucket is marked as `failed` (100% failure rate). |
+| **4** | `skipped` | The total number of `skipped` habits is greater than or equal to `vacation` habits. |
+| **5** | `vacation` | Fallback condition: There are strictly more `vacation` habits than `skipped` habits. |
 
 ## 2. Aggregation Rules
 
 ### Inclusion Criteria
-*   A habit is considered "missing" (Priority 2) if no log exists for that specific date or if the log status is explicitly `cleared`.
+*   A habit is considered "missing" (Priority 1) if no log exists for that specific date or if the log status is explicitly `cleared`.
 
 ### Streak Impact
 The resulting bucket status directly influences the bucket's streak calculation:

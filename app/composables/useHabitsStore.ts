@@ -118,12 +118,17 @@ export const useHabitsStore = () => {
     const statuses = logs.map(l => l.status);
     const isMissing = uniqueLoggedHabits.size < habitsInBucket.length;
 
-    let finalStatus: 'completed' | 'failed' | 'skipped' | 'vacation' | 'cleared' = 'completed';
+    let finalStatus: 'completed' | 'failed' | 'skipped' | 'vacation' | 'cleared' = 'vacation';
 
-    if (statuses.includes('failed')) finalStatus = 'failed';
-    else if (isMissing) finalStatus = 'cleared';
-    else if (statuses.includes('vacation')) finalStatus = 'vacation';
-    else if (statuses.includes('skipped')) finalStatus = 'skipped';
+    const skippedCount = statuses.filter(s => s === 'skipped').length;
+    const vacationCount = statuses.filter(s => s === 'vacation').length;
+    const allFailed = statuses.length > 0 && statuses.every(s => s === 'failed');
+
+    if (isMissing) finalStatus = 'cleared';
+    else if (statuses.includes('completed')) finalStatus = 'completed';
+    else if (allFailed) finalStatus = 'failed';
+    else if (skippedCount >= vacationCount) finalStatus = 'skipped';
+    else finalStatus = 'vacation';
 
     await db.bucketLogs.put({
       id: `${bucket.id}_${date}_${getOwnerId()}`,

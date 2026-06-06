@@ -117,9 +117,9 @@ describe('Bucket Streak Calculation - Alignment with Habit Streaks', () => {
       await createTestHabitLog(user.id, habitB.id, d(i), 'completed');
     }
 
-    // Day 3: habitA = failed, habitB = completed → bucket = 'failed'
+    // Day 3: habitA = failed, habitB = failed → bucket = 'failed'
     await createTestHabitLog(user.id, habitA.id, d(3), 'failed');
-    await createTestHabitLog(user.id, habitB.id, d(3), 'completed');
+    await createTestHabitLog(user.id, habitB.id, d(3), 'failed');
 
     // Day 4: Both completed
     await createTestHabitLog(user.id, habitA.id, d(4), 'completed');

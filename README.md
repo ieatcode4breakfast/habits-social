@@ -81,7 +81,7 @@ A Bucket is a collection of related habits. For example, you might have a "Morni
 2. Create a new Bucket, name it, and select which of your existing habits belong in it.
 3. Each bucket shows a read-only timeline summary (using square cells) so you can see at a glance how the bucket is performing across the week.
 4. **Expand** a bucket by tapping on it to reveal the individual habits inside. From the expanded view, you can log progress on each habit directly, or tap a habit to open its full edit view.
-5. **Bucket Streaks:** As you complete all the habits within a bucket each day, the bucket itself maintains a "meta-streak," giving you a high-level view of how well you are sticking to that overall routine.
+5. **Bucket Streaks:** As long as you engage with at least one habit in a bucket each day, the bucket maintains a "meta-streak". A bucket streak will only break if every single habit inside it is marked as failed.
 6. **Reordering:** Just like habits, you can reorder your buckets to keep your most important goals at the top.
 
 ---

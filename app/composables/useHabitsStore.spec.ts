@@ -208,6 +208,49 @@ describe('useHabitsStore', () => {
     expect(updatedLog?.status).toBe('completed');
   });
 
+  it('syncLocalBucketLogs correctly assigns status based on new aggregation matrix', async () => {
+    const store = useHabitsStore();
+    const date = '2023-01-01';
+    
+    await db.buckets.add({
+      id: 'b-matrix',
+      ownerId: 'test-user-id',
+      habitIds: ['h1', 'h2', 'h3'],
+      synced: 1,
+      updatedAt: Date.now()
+    } as any);
+
+    const setupLogs = async (statuses: string[]) => {
+      await db.habitLogs.filter(l => l.date === date).delete();
+      for (let i = 0; i < statuses.length; i++) {
+        await db.habitLogs.add({
+          id: `log-${i}`,
+          habitId: `h${i+1}`,
+          ownerId: 'test-user-id',
+          date,
+          status: statuses[i] as any,
+          sharedWith: [],
+          synced: 1,
+          updatedAt: Date.now()
+        });
+      }
+      await store.syncLocalBucketLogs('h1', date);
+      return await db.bucketLogs.get(`b-matrix_${date}_test-user-id`);
+    };
+
+    let log = await setupLogs(['completed', 'failed', 'skipped']);
+    expect(log?.status).toBe('completed');
+
+    log = await setupLogs(['failed', 'skipped', 'skipped']);
+    expect(log?.status).toBe('skipped');
+
+    log = await setupLogs(['failed', 'failed', 'failed']);
+    expect(log?.status).toBe('failed');
+    
+    log = await setupLogs(['failed', 'vacation', 'vacation']);
+    expect(log?.status).toBe('vacation');
+  });
+
   it('syncLocalBucketLogs generates ID with ownerId suffix', async () => {
     const store = useHabitsStore();
     const date = '2023-01-01';

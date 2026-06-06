@@ -28,11 +28,11 @@ export async function syncBucketLogsForHabit(db: any, habitId: string, userId: s
       b.owner_id as owner_id,
       ${date} as date,
       CASE 
-        WHEN bool_or(hl.status = 'failed') THEN 'failed'
         WHEN COUNT(DISTINCT hl.habit_id) < (SELECT COUNT(*) FROM bucket_habits bh2 JOIN habits h2 ON bh2.habit_id = h2.id WHERE bh2.bucket_id = b.id AND h2.owner_id = b.owner_id) THEN 'cleared'
-        WHEN bool_or(hl.status = 'vacation') THEN 'vacation'
-        WHEN bool_or(hl.status = 'skipped') THEN 'skipped'
-        ELSE 'completed'
+        WHEN bool_or(hl.status = 'completed') THEN 'completed'
+        WHEN bool_and(hl.status = 'failed') THEN 'failed'
+        WHEN SUM(CASE WHEN hl.status = 'skipped' THEN 1 ELSE 0 END) >= SUM(CASE WHEN hl.status = 'vacation' THEN 1 ELSE 0 END) THEN 'skipped'
+        ELSE 'vacation'
       END as status,
       NOW() as updated_at
     FROM buckets b
@@ -77,11 +77,11 @@ export async function reevaluateMultipleBuckets(db: any, items: { bucketId: stri
       tb.owner_id::uuid as owner_id,
       hl.date,
       CASE 
-        WHEN bool_or(hl.status = 'failed') THEN 'failed'
         WHEN COUNT(DISTINCT hl.habit_id) < (SELECT COUNT(*) FROM bucket_habits bh2 JOIN habits h2 ON bh2.habit_id = h2.id WHERE bh2.bucket_id = tb.id::uuid AND h2.owner_id = tb.owner_id::uuid) THEN 'cleared'
-        WHEN bool_or(hl.status = 'vacation') THEN 'vacation'
-        WHEN bool_or(hl.status = 'skipped') THEN 'skipped'
-        ELSE 'completed'
+        WHEN bool_or(hl.status = 'completed') THEN 'completed'
+        WHEN bool_and(hl.status = 'failed') THEN 'failed'
+        WHEN SUM(CASE WHEN hl.status = 'skipped' THEN 1 ELSE 0 END) >= SUM(CASE WHEN hl.status = 'vacation' THEN 1 ELSE 0 END) THEN 'skipped'
+        ELSE 'vacation'
       END as status,
       NOW() as updated_at
     FROM target_buckets tb
