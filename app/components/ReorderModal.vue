@@ -50,7 +50,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from 'vue';
+import { ref, watch, nextTick } from 'vue';
 import { GripVertical } from 'lucide-vue-next';
 import { useSortable } from '@vueuse/integrations/useSortable';
 
@@ -86,7 +86,8 @@ useSortable(sortableContainer, internalItems, {
   forceFallback: true,
   fallbackClass: 'sortable-fallback-opaque',
   fallbackOnBody: true,
-  onEnd: () => {
+  onEnd: async () => {
+    await nextTick();
     emit('reorder', internalItems.value.map(i => i.id));
   }
 });

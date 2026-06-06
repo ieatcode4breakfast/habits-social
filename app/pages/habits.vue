@@ -468,7 +468,8 @@ useSortable(sortableContainer, habits, {
   forceFallback: true,
   fallbackClass: 'sortable-fallback-opaque',
   fallbackOnBody: true,
-  onEnd: () => {
+  onEnd: async () => {
+    await nextTick();
     api.reorderHabits(habits.value.map(h => h.id)).catch(err => {
       console.error('[My Habits] Failed to save reorder:', err);
       showToast('Failed to save order', 'failed');

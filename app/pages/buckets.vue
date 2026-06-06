@@ -621,7 +621,8 @@ useSortable(sortableContainer, buckets, {
   forceFallback: true,
   fallbackClass: 'sortable-fallback-opaque',
   fallbackOnBody: true,
-  onEnd: () => {
+  onEnd: async () => {
+    await nextTick();
     api.reorderBuckets(buckets.value.map(b => b.id));
   }
 });
