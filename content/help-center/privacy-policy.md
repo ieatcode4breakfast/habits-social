@@ -1,3 +1,6 @@
+---
+order: 4
+---
 # Privacy Policy
 
 **Effective Date:** May 26, 2026

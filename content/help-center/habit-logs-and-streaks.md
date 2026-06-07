@@ -1,3 +1,6 @@
+---
+order: 3
+---
 # Habit Logs and Streaks
 
 Habit logs are how you record what happened for each habit each day. They determine whether a habit is completed, skipped, marked as vacation, failed, or left unlogged.

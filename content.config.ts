@@ -4,7 +4,10 @@ export default defineContentConfig({
   collections: {
     docs: defineCollection({
       type: 'page',
-      source: 'help-center/**'
+      source: 'help-center/**',
+      schema: z.object({
+        order: z.number().optional()
+      })
     })
   }
 })

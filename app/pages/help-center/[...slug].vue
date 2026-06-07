@@ -15,7 +15,5 @@
 
 <script setup lang="ts">
 const route = useRoute();
-const { data: page } = await useAsyncData(`page-${route.path}`, () => {
-  return queryCollection('docs').path(route.path).first();
-});
+const { data: page } = await useHelpArticle(() => route.path);
 </script>

@@ -72,7 +72,7 @@
       <!-- Main Content -->
       <main class="flex-1 min-w-0 bg-zinc-50 dark:bg-zinc-950/50">
         <div class="max-w-4xl mx-auto px-4 py-8 md:px-8 lg:px-12">
-          <NuxtPage />
+          <NuxtPage :page-key="route => route.fullPath" />
         </div>
       </main>
     </div>
@@ -91,9 +91,9 @@ const { isLightMode, themeToggleTitle, toggleThemeMode } = useThemeMode();
 const isSidebarOpen = ref(false);
 
 const { data: navigation, pending, error } = await useAsyncData('help-navigation', async () => {
-  const docs = await queryCollection('docs').select('title', 'path', 'id').all();
-  // Sort by id to maintain the 001, 002 order from filenames, then return
-  return docs.sort((a, b) => a.id.localeCompare(b.id));
+  const docs = await queryCollection('docs').select('title', 'path', 'order').all();
+  // Sort by order frontmatter (ensure strict number casting for TypeScript)
+  return docs.sort((a, b) => (Number(a.order) || 0) - (Number(b.order) || 0));
 });
 
 // Close sidebar when navigating on mobile
