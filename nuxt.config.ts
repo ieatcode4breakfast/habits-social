@@ -11,6 +11,7 @@ export default defineNuxtConfig({
   compatibilityDate: '2024-11-01',
   devtools: { enabled: process.env.NODE_ENV !== 'production' },
   modules: [
+    '@nuxt/content',
     '@vueuse/nuxt',
     '@vueuse/motion/nuxt',
     '@nuxtjs/seo',
@@ -98,6 +99,7 @@ export default defineNuxtConfig({
       'api/v2/_types/**',
     ],
     routeRules: {
+      '/help-center': { redirect: '/help-center/welcome' },
       '/_nuxt/**': { headers: { 'Cache-Control': 'public, max-age=31536000, immutable' } },
       '/**': {
         headers: {
