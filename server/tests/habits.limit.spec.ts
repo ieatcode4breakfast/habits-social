@@ -20,9 +20,9 @@ describe('POST /api/habits - Limit Enforcement', () => {
     }
   });
 
-  it('should allow creating up to 30 habits', async () => {
-    // 1. Create 29 habits directly in DB
-    const batch = Array.from({ length: 29 }, (_, i) => ({
+  it('should allow creating up to 200 habits', async () => {
+    // 1. Create 199 habits directly in DB
+    const batch = Array.from({ length: 199 }, (_, i) => ({
       id: crypto.randomUUID(),
       ownerId: testUser.id,
       title: `Habit ${i}`,
@@ -31,17 +31,17 @@ describe('POST /api/habits - Limit Enforcement', () => {
     }));
     await db.insert(habitsTable).values(batch);
 
-    // 2. Create the 30th habit via API
-    const event30 = createMockEvent(testUser.id, { title: 'Habit 30' }, {}, {}, {}, 'POST');
-    const res30 = await handler(event30);
-    expect(res30.data.title).toBe('Habit 30');
+    // 2. Create the 200th habit via API
+    const event200 = createMockEvent(testUser.id, { title: 'Habit 200' }, {}, {}, {}, 'POST');
+    const res200 = await handler(event200);
+    expect(res200.data.title).toBe('Habit 200');
 
-    // 3. Attempt to create the 31st habit via API
-    const event31 = createMockEvent(testUser.id, { title: 'Habit 31' }, {}, {}, {}, 'POST');
-    await expect(handler(event31)).rejects.toThrow(/Habit limit of 30 reached/i);
+    // 3. Attempt to create the 201st habit via API
+    const event201 = createMockEvent(testUser.id, { title: 'Habit 201' }, {}, {}, {}, 'POST');
+    await expect(handler(event201)).rejects.toThrow(/Habit limit of 200 reached/i);
   });
 
-  it('should allow updating an existing habit when at the limit of 30', async () => {
+  it('should allow updating an existing habit when at the limit of 200', async () => {
     const existing = await db.select()
       .from(habitsTable)
       .where(eq(habitsTable.ownerId, testUser.id))

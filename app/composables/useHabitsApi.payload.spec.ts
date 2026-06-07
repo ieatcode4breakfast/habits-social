@@ -413,6 +413,6 @@ describe('useHabitsApi - Payload Minimization', () => {
     const api = useHabitsApi();
     await api.sync();
 
-    expect(mockShowToast).toHaveBeenCalledWith("Bucket limit of 50 reached on the server. Some buckets may not sync.", "failed");
+    expect(mockShowToast).toHaveBeenCalledWith("Bucket limit of 30 reached on the server. Some buckets may not sync.", "failed");
   });
 });

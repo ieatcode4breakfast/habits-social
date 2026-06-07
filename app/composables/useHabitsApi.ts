@@ -660,7 +660,7 @@ export const useHabitsApi = () => {
           else if (status >= 400 && status < 500 && status !== 429) { 
             await db.buckets.update(b.id, { synced: 1 }); 
             if (e.data?.code === 'BUCKET_LIMIT_REACHED') {
-              showToast("Bucket limit of 50 reached on the server. Some buckets may not sync.", "failed");
+              showToast("Bucket limit of 30 reached on the server. Some buckets may not sync.", "failed");
             } else {
               showToast("A bucket update could not be saved.", "failed"); 
             }

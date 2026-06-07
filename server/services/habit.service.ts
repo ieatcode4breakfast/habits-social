@@ -78,10 +78,10 @@ export const HabitService = {
       
       const exists = userHabits.some((h: any) => h.id === habitId);
       
-      if (!exists && userHabits.length >= 30) {
+      if (!exists && userHabits.length >= 200) {
         throw createError({ 
           statusCode: 400, 
-          statusMessage: 'Habit limit of 30 reached',
+          statusMessage: 'Habit limit of 200 reached',
           data: { code: 'HABIT_LIMIT_REACHED' } 
         });
       }

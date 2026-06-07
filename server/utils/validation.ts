@@ -148,11 +148,11 @@ export const shareHabitSchema = z.object({
 });
 
 export const habitReorderSchema = z.object({
-  ids: zStandardArray(zId).min(1).max(30)
+  ids: zStandardArray(zId).min(1).max(200)
 });
 
 export const bucketReorderSchema = z.object({
-  ids: zStandardArray(zId).min(1).max(50)
+  ids: zStandardArray(zId).min(1).max(200)
 });
 
 export const feedItemSchema = z.object({

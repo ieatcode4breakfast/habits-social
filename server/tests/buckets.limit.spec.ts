@@ -20,9 +20,9 @@ describe('POST /api/buckets - Limit Enforcement', () => {
     }
   });
 
-  it('should allow creating up to 50 buckets', async () => {
-    // 1. Create 49 buckets directly in DB
-    const batch = Array.from({ length: 49 }, (_, i) => ({
+  it('should allow creating up to 200 buckets', async () => {
+    // 1. Create 199 buckets directly in DB
+    const batch = Array.from({ length: 199 }, (_, i) => ({
       id: crypto.randomUUID(),
       ownerId: testUser.id,
       title: `Bucket ${i}`,
@@ -31,17 +31,17 @@ describe('POST /api/buckets - Limit Enforcement', () => {
     }));
     await db.insert(bucketsTable).values(batch);
 
-    // 2. Create the 50th bucket via API
-    const event50 = createMockEvent(testUser.id, { title: 'Bucket 50' }, {}, {}, {}, 'POST');
-    const res50 = await handler(event50);
-    expect(res50.data.title).toBe('Bucket 50');
+    // 2. Create the 200th bucket via API
+    const event200 = createMockEvent(testUser.id, { title: 'Bucket 200' }, {}, {}, {}, 'POST');
+    const res200 = await handler(event200);
+    expect(res200.data.title).toBe('Bucket 200');
 
-    // 3. Attempt to create the 51st bucket via API
-    const event51 = createMockEvent(testUser.id, { title: 'Bucket 51' }, {}, {}, {}, 'POST');
-    await expect(handler(event51)).rejects.toThrow(/Bucket limit of 50 reached/i);
+    // 3. Attempt to create the 201st bucket via API
+    const event201 = createMockEvent(testUser.id, { title: 'Bucket 201' }, {}, {}, {}, 'POST');
+    await expect(handler(event201)).rejects.toThrow(/Bucket limit of 200 reached/i);
   });
 
-  it('should allow updating an existing bucket when at the limit of 50', async () => {
+  it('should allow updating an existing bucket when at the limit of 200', async () => {
     const existing = await db.select()
       .from(bucketsTable)
       .where(eq(bucketsTable.ownerId, testUser.id))

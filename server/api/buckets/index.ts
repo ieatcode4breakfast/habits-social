@@ -72,10 +72,10 @@ export default defineEventHandler(async (event) => {
         
         const exists = userBuckets.some((b: any) => b.id === bucketId);
         
-        if (!exists && userBuckets.length >= 50) {
+        if (!exists && userBuckets.length >= 200) {
           throw createError({ 
             statusCode: 400, 
-            statusMessage: 'Bucket limit of 50 reached',
+            statusMessage: 'Bucket limit of 200 reached',
             data: { code: 'BUCKET_LIMIT_REACHED' } 
           });
         }

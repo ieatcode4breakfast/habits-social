@@ -1,7 +1,7 @@
 ---
 order: 3
 ---
-# My Habits Page
+# My Habits
 
 The My Habits page is your main screen for tracking habits. It shows every habit you are tracking, your current streak for each one, and a 7-day timeline so you can log what happened each day.
 
@@ -57,7 +57,7 @@ Tap any day circle on the 7-day timeline for a habit. A menu opens with these op
 | Failed | Ends the active streak immediately. |
 | Cleared | Removes any log for that day. A missing day can reset the streak if it breaks the chain of daily logs. |
 
-Pick the status that matches what happened. The dot on the timeline updates right away. The app syncs your choice in the background and recalculates your streak automatically. If there is a sync problem, your changes are reverted and you will see a message asking you to try again.
+Pick the status that matches what happened. The dot on the timeline updates right away. The app syncs your choice in the background and recalculates your streak automatically.
 
 For a full explanation of how each status affects your streak, including miss days, recovery, and recalculations, see [Habit Logs and Streaks](/help-center/habit-logs-and-streaks).
 
@@ -69,25 +69,13 @@ When you have more than one habit, a **Reorder** button appears at the top right
 
 ## Chatting about a habit
 
-Each habit row has a message icon. Tap it to share the habit with a friend and start a conversation about your progress. If the habit is not yet shared with that friend, the app asks you to confirm sharing before the chat opens. Once shared, your friend can see the habit name, your 7-day timeline, your current streak, and your skip allowance for that habit.
+Each habit row has a message icon. Tap it to share the habit with a friend and start a conversation about your progress. If the habit is not yet shared with that friend, the app asks you to confirm sharing before the chat opens.
 
 ## Working offline
 
-When you lose your internet connection, a banner appears at the top of the page that says "Offline." You can still view your existing habits and logs. Any changes you make while offline are saved on your device. When your connection returns, the app syncs them automatically. If a change cannot be synced, you will see a message and the change will be reverted.
+When you lose your internet connection, a banner appears at the top of the page that says "Offline." You can still view your existing habits and logs. Any changes you make while offline are saved on your device. When your connection returns, the app syncs them automatically.
 
 ## FAQs
-
-### Why is there a 30-habit limit?
-
-The limit keeps the page fast and prevents data overload. Thirty habits gives you room to track a wide range of routines across different areas of your life.
-
-### Why can I only log the past 7 days?
-
-The 7-day window keeps your logs accurate. It is long enough to fix honest mistakes without making older data open to changes that could distort your long-term tracking.
-
-### Why is my streak not showing?
-
-The streak badge only appears once you reach 2 or more consecutive days with completed, skipped, or vacation logs. A streak of 1 or fewer will not display a badge.
 
 ### Can I recover a deleted habit?
 
