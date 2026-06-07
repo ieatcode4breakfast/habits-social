@@ -27,7 +27,7 @@
             
             <!-- Selection Controls -->
             <div class="flex items-center justify-between mb-3 px-1">
-              <label class="text-[10px] font-bold uppercase tracking-widest text-zinc-500">My habits</label>
+              <label class="text-[10px] font-bold uppercase tracking-widest text-zinc-500">My Habits</label>
               <button 
                 @click="toggleSelectAllHabits"
                 title="Select/Unselect All"
