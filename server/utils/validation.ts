@@ -64,6 +64,10 @@ export const resetPasswordSchema = z.object({
   password: zPassword
 });
 
+export const deleteAccountSchema = z.object({
+  password: z.string().min(1)
+});
+
 export const updateProfileSchema = z.object({
   username: z.string().min(3).max(20).optional(),
   email: z.string().email().optional(),

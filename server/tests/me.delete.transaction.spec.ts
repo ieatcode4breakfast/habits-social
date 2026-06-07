@@ -44,7 +44,7 @@ describe('Atomic User Deletion (Transaction Test)', () => {
       });
     });
 
-    const event = createMockEvent(testUser.id);
+    const event = createMockEvent(testUser.id, { password: 'password123' });
     event.context.useDB = () => db; 
 
     // 3. Action: Attempt deletion (expected to throw)

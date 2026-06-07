@@ -19,7 +19,7 @@ describe('DELETE /api/users/me', () => {
   });
 
   it('should delete the user successfully', async () => {
-    const event = createMockEvent(testUser.id);
+    const event = createMockEvent(testUser.id, { password: 'password123' });
     event.context.userId = testUser.id;
 
     const response = (await handler(event)) as any;
@@ -27,8 +27,20 @@ describe('DELETE /api/users/me', () => {
     expect(response.data!.id).toBe(testUser.id);
   });
 
+  it('should throw 403 if password is incorrect', async () => {
+    const wrongPassUser = await createTestUser(`t_del_wp_${Date.now() % 1000000}`, `d_wp_${Date.now()}@ex.com`);
+    try {
+      const event = createMockEvent(wrongPassUser.id, { password: 'wrongpassword' });
+      event.context.userId = wrongPassUser.id;
+
+      await expect(handler(event)).rejects.toThrow('Current password is incorrect');
+    } finally {
+      try { await deleteTestUser(wrongPassUser.id); } catch {}
+    }
+  });
+
   it('should throw 404 if user already deleted', async () => {
-    const event = createMockEvent(testUser.id);
+    const event = createMockEvent(testUser.id, { password: 'password123' });
     event.context.userId = testUser.id;
 
     await expect(handler(event)).rejects.toThrow('User not found');

@@ -57,7 +57,7 @@ describe('User Deletion TDD Regression Suite', () => {
       .set({ sharedWith: [userA.id] })
       .where(eq(habitsTable.id, habitB.id));
 
-    const event = createMockEvent(userA.id);
+    const event = createMockEvent(userA.id, { password: 'password123' });
     event.context.userId = userA.id;
 
     // Delete User A
