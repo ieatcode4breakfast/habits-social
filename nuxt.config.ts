@@ -1,3 +1,5 @@
+import { readdirSync } from 'node:fs';
+import { join, parse } from 'node:path';
 import tailwindcss from '@tailwindcss/vite';
 import { buildContentSecurityPolicy } from './utils/securityHeaders';
 
@@ -5,6 +7,12 @@ const contentSecurityPolicy = buildContentSecurityPolicy({
   realtimeEnabled: process.env.NUXT_PUBLIC_REALTIME_ENABLED,
   partykitHost: process.env.NUXT_PUBLIC_PARTYKIT_HOST,
 });
+
+// Dynamically discover help-center articles so new .md files need no config update.
+const helpCenterDir = join(process.cwd(), 'content', 'help-center');
+const helpCenterRoutes = readdirSync(helpCenterDir)
+  .filter((name) => name.endsWith('.md'))
+  .map((name) => `/help-center/${parse(name).name}`);
 
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
@@ -91,14 +99,7 @@ export default defineNuxtConfig({
   nitro: {
     preset: 'cloudflare-module',
     prerender: {
-      routes: [
-        '/',
-        '/help-center/welcome',
-        '/help-center/creating-an-account-and-logging-in',
-        '/help-center/my-habits',
-        '/help-center/habit-logs-and-streaks',
-        '/help-center/privacy-policy',
-      ]
+      routes: ['/', ...helpCenterRoutes]
     },
     ignore: [
       'api/_v1/**',
