@@ -39,11 +39,9 @@ Streaks are based on consecutive calendar days.
 
 ## Missed days
 
-If you miss a day, your streak may still be recoverable.
+If you forget to log a day, the app is forgiving: you can go back and update any missed log within the past 7 days. When you fill in the missing day, the app recalculates your streak from that point forward, and your progress reflects the full timeline.
 
-The app may show your streak as faded when the most recent valid log is older than yesterday. This means the streak has not necessarily been broken yet, but it may reset if you add a new log without filling the missing day first.
-
-You can update missing logs for the past 7 days. If the missed date is still within that window, go back and add the correct log for that day. When you update an earlier day, the app recalculates the streak from that point forward, so your progress reflects the full timeline.
+The app may show your streak as faded when the most recent valid log is older than yesterday. This means the streak has not been broken yet, but it may reset if you add a new log without filling the missing day first. As long as the missed date is still within the 7-day window, add the correct log for that day to keep your streak going.
 
 ## Skips and vacation days
 
