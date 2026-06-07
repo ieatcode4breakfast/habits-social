@@ -11,11 +11,11 @@ Streaks use those daily logs to show how consistently you have kept a habit acti
 
 | Status | What happens to your streak |
 | --- | --- |
-| Completed | Adds 1 day to the streak and keeps your progress moving. |
-| Skipped | Keeps the streak safe, but does not add a day. |
-| Vacation | Keeps the streak safe, but does not add a day. |
-| Failed | Ends the current streak. |
-| Cleared or no log | Creates a missing day. If you continue later without filling the missing day, the streak can reset. |
+| <span style="display:inline-flex;align-items:center;justify-content:center;width:1.25rem;height:1.25rem;border-radius:9999px;background:#10b981;color:white;font-size:.75rem;flex-shrink:0;">✓</span> Completed | Adds 1 day to the streak and keeps your progress moving. |
+| <span style="display:inline-flex;align-items:center;justify-content:center;width:1.25rem;height:1.25rem;border-radius:9999px;background:#71717a;color:white;font-size:.75rem;flex-shrink:0;">−</span> Skipped | Keeps the streak safe, but does not add a day. |
+| <span style="display:inline-flex;align-items:center;justify-content:center;width:1.25rem;height:1.25rem;border-radius:9999px;background:#f59e0b;color:white;font-size:.75rem;flex-shrink:0;">🌴</span> Vacation | Keeps the streak safe, but does not add a day. |
+| <span style="display:inline-flex;align-items:center;justify-content:center;width:1.25rem;height:1.25rem;border-radius:9999px;background:#f43f5e;color:white;font-size:.75rem;flex-shrink:0;">✕</span> Failed | Ends the current streak. |
+| <span style="display:inline-flex;align-items:center;justify-content:center;width:1.25rem;height:1.25rem;border-radius:9999px;border:2px solid #a1a1aa;color:#a1a1aa;font-size:.75rem;flex-shrink:0;">○</span> Cleared or no log | Creates a missing day. If you continue later without filling the missing day, the streak can reset. |
 
 ## Monitoring progress through streaks
 
@@ -55,10 +55,10 @@ Example:
 
 | Day | Log | Streak |
 | --- | --- | --- |
-| Monday | Completed | 1 |
-| Tuesday | Completed | 2 |
-| Wednesday | Skipped | 2 |
-| Thursday | Completed | 3 |
+| Monday | <span style="display:inline-flex;align-items:center;justify-content:center;width:1.25rem;height:1.25rem;border-radius:9999px;background:#10b981;color:white;font-size:.75rem;flex-shrink:0;">✓</span> Completed | 1 |
+| Tuesday | <span style="display:inline-flex;align-items:center;justify-content:center;width:1.25rem;height:1.25rem;border-radius:9999px;background:#10b981;color:white;font-size:.75rem;flex-shrink:0;">✓</span> Completed | 2 |
+| Wednesday | <span style="display:inline-flex;align-items:center;justify-content:center;width:1.25rem;height:1.25rem;border-radius:9999px;background:#71717a;color:white;font-size:.75rem;flex-shrink:0;">−</span> Skipped | 2 |
+| Thursday | <span style="display:inline-flex;align-items:center;justify-content:center;width:1.25rem;height:1.25rem;border-radius:9999px;background:#10b981;color:white;font-size:.75rem;flex-shrink:0;">✓</span> Completed | 3 |
 
 The skipped day keeps the streak intact, and Thursday becomes the third completed day in the streak.
 

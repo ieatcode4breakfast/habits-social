@@ -51,11 +51,11 @@ Tap any day circle on the 7-day timeline for a habit. A menu opens with these op
 
 | Status | What it does |
 | --- | --- |
-| Completed | Adds 1 day to your streak and keeps progress moving. |
-| Skipped | Protects the streak, but does not add a day. Uses one of your available skips. |
-| Vacation | Protects the streak, but does not add a day. Does not count against your skip allowance. |
-| Failed | Ends the active streak immediately. |
-| Cleared | Removes any log for that day. A missing day can reset the streak if it breaks the chain of daily logs. |
+| <span style="display:inline-flex;align-items:center;justify-content:center;width:1.25rem;height:1.25rem;border-radius:9999px;background:#10b981;color:white;font-size:.75rem;flex-shrink:0;">✓</span> Completed | Adds 1 day to your streak and keeps progress moving. |
+| <span style="display:inline-flex;align-items:center;justify-content:center;width:1.25rem;height:1.25rem;border-radius:9999px;background:#71717a;color:white;font-size:.75rem;flex-shrink:0;">−</span> Skipped | Protects the streak, but does not add a day. Uses one of your available skips. |
+| <span style="display:inline-flex;align-items:center;justify-content:center;width:1.25rem;height:1.25rem;border-radius:9999px;background:#f59e0b;color:white;font-size:.75rem;flex-shrink:0;">🌴</span> Vacation | Protects the streak, but does not add a day. Does not count against your skip allowance. |
+| <span style="display:inline-flex;align-items:center;justify-content:center;width:1.25rem;height:1.25rem;border-radius:9999px;background:#f43f5e;color:white;font-size:.75rem;flex-shrink:0;">✕</span> Failed | Ends the active streak immediately. |
+| <span style="display:inline-flex;align-items:center;justify-content:center;width:1.25rem;height:1.25rem;border-radius:9999px;border:2px solid #a1a1aa;color:#a1a1aa;font-size:.75rem;flex-shrink:0;">○</span> Cleared | Removes any log for that day. A missing day can reset the streak if it breaks the chain of daily logs. |
 
 Pick the status that matches what happened. The dot on the timeline updates right away. The app syncs your choice in the background and recalculates your streak automatically.
 
