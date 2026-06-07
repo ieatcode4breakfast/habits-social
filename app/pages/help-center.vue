@@ -84,7 +84,14 @@ import { Menu as MenuIcon, X as XIcon, Sun as SunIcon, Moon as MoonIcon } from '
 import { useThemeMode } from '~/composables/useThemeMode';
 
 definePageMeta({
-  layout: false
+  layout: false,
+  middleware: [
+    (to) => {
+      if (to.path === '/help-center') {
+        return navigateTo('/help-center/welcome', { replace: true })
+      }
+    }
+  ]
 });
 
 const { isLightMode, themeToggleTitle, toggleThemeMode } = useThemeMode();
