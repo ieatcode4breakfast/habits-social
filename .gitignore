@@ -4,6 +4,7 @@ node_modules
 dist
 .env
 *.log
+.data/
 scratch/
 *.kilocode/
 .claude/
