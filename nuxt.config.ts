@@ -91,7 +91,14 @@ export default defineNuxtConfig({
   nitro: {
     preset: 'cloudflare-module',
     prerender: {
-      routes: ['/']
+      routes: [
+        '/',
+        '/help-center/welcome',
+        '/help-center/creating-an-account-and-logging-in',
+        '/help-center/my-habits',
+        '/help-center/habit-logs-and-streaks',
+        '/help-center/privacy-policy',
+      ]
     },
     ignore: [
       'api/_v1/**',
