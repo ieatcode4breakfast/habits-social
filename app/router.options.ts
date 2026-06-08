@@ -12,7 +12,16 @@ export default <RouterConfig>{
 
     // Hash links
     if (to.hash) {
-      return { el: to.hash, behavior: 'smooth' };
+      if (to.path !== from.path) {
+        // Cross-page navigation: wait for async data (Nuxt Content) to render
+        return new Promise((resolve) => {
+          setTimeout(() => {
+            resolve({ el: to.hash, top: 80, behavior: 'smooth' });
+          }, 300);
+        });
+      }
+      // Same-page navigation: DOM is already rendered, scroll instantly
+      return { el: to.hash, top: 80, behavior: 'smooth' };
     }
 
     // Default: scroll to top for new navigations

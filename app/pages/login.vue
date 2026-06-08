@@ -1,5 +1,9 @@
 <template>
-  <div class="min-h-screen flex flex-col items-center justify-center px-4 py-8">
+  <div class="min-h-screen flex flex-col items-center justify-center px-4 py-8 relative">
+    <button @click="toggleThemeMode" class="fixed top-4 right-4 p-2 rounded-lg hover:bg-zinc-900 transition-colors z-50" :title="themeToggleTitle">
+      <SunIcon v-if="isLightMode" class="w-5 h-5 text-white" />
+      <MoonIcon v-else class="w-5 h-5 text-white" />
+    </button>
     <div class="w-full max-w-md">
       <!-- Logo -->
       <div class="flex flex-col items-center mb-8">
@@ -145,6 +149,14 @@
             <div class="flex justify-center pb-2">
               <div id="google-btn" class="w-full max-w-[320px] h-[44px]"></div>
             </div>
+
+            <!-- Legal Disclaimer -->
+            <p class="text-[11px] text-zinc-500 text-center mt-6">
+              By continuing, you agree to our
+              <NuxtLink to="/help-center/terms-of-service" class="underline hover:text-zinc-300 transition-colors">Terms of Service</NuxtLink>
+              and acknowledge our
+              <NuxtLink to="/help-center/privacy-policy" class="underline hover:text-zinc-300 transition-colors">Privacy Policy</NuxtLink>.
+            </p>
           </div>
         </div>
 
@@ -227,6 +239,14 @@
                 </button>
               </div>
             </form>
+
+            <!-- Legal Disclaimer -->
+            <p class="text-[11px] text-zinc-500 text-center mt-6">
+              By continuing, you agree to our
+              <NuxtLink to="/help-center/terms-of-service" class="underline hover:text-zinc-300 transition-colors">Terms of Service</NuxtLink>
+              and acknowledge our
+              <NuxtLink to="/help-center/privacy-policy" class="underline hover:text-zinc-300 transition-colors">Privacy Policy</NuxtLink>.
+            </p>
           </div>
         </div>
       </div>
@@ -235,8 +255,11 @@
 </template>
 
 <script setup lang="ts">
-import { Mail, Lock, Eye, EyeOff, User } from 'lucide-vue-next';
+import { Mail, Lock, Eye, EyeOff, User, Sun as SunIcon, Moon as MoonIcon } from 'lucide-vue-next';
 import { cacheAuthUser, type CachedAuthUser } from '~/utils/cachedAuth';
+import { useThemeMode } from '~/composables/useThemeMode';
+
+const { isLightMode, themeToggleTitle, toggleThemeMode } = useThemeMode();
 
 definePageMeta({ 
   layout: false,

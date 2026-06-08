@@ -1,7 +1,7 @@
 ---
 order: 2
 ---
-# Creating and Account and Logging In
+# Creating an Account and Logging In
 
 ## Create an Account
 
@@ -20,6 +20,12 @@ Enter your email or username, enter your password, then select **Log In**.
 On the login screen, use the Google sign-in button.
 
 If this is your first time using Google with Habits Social, finish your profile by choosing a username and password. After the profile is complete, the app logs you in.
+
+## Log Out
+
+You can log out of your account at any time from the navigation menu.
+
+> Warning: Logging out completely clears your local device data to protect your privacy. If you have been logging habits offline, ensure you reconnect to the internet and allow your app to sync before you log out. Any offline progress that has not synced to the server will be permanently destroyed when you log out.
 
 ## Reset Your Password
 

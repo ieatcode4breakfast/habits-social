@@ -110,7 +110,7 @@
          class="buckets-content-surface sm:rounded-b-2xl rounded-none overflow-hidden border-b border-x-0 sm:border-x sm:border-b relative will-change-transform transition-colors duration-300"
          :class="!loading ? 'backdrop-blur-md bg-zinc-925/80 border-zinc-800/80 shadow-2xl' : 'border-transparent'">
 
-      <div class="w-full relative min-h-[100px]">
+      <div class="w-full relative">
         <div v-if="loading" class="flex justify-center items-center p-12 min-h-[150px] w-full">
           <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
         </div>
