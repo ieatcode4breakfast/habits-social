@@ -90,10 +90,12 @@ const props = defineProps<{
   streakAnchorDate?: string | null;
   compact?: boolean;
   frequencyText?: string;
+  referenceDate?: Date;
 
   weeklyStatus: { date: string, status: string | undefined }[];
 }>();
 
+const referenceDate = computed(() => props.referenceDate ?? new Date());
 const streakTheme = computed(() => getStreakTheme(props.streakCount ?? 0));
-const streakIsFaded = computed(() => isStreakFaded(props.streakAnchorDate ?? null));
+const streakIsFaded = computed(() => isStreakFaded(props.streakAnchorDate ?? null, referenceDate.value));
 </script>

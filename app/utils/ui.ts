@@ -5,8 +5,8 @@ import { subDays, startOfDay, parseISO, isAfter, differenceInDays } from 'date-f
  */
 export const MARKABLE_DAY_WINDOW = 7;
 
-export const isMarkable = (day: Date) => {
-  const today = new Date();
+export const isMarkable = (day: Date, referenceDate: Date = new Date()) => {
+  const today = referenceDate;
   const diff = differenceInDays(startOfDay(today), startOfDay(day));
   return diff >= 0 && diff < MARKABLE_DAY_WINDOW;
 };
@@ -36,13 +36,16 @@ export const getStreakTheme = (count: number) => {
  * Determines if a streak should be visually faded (e.g., if missed yesterday).
  * Accepts either a string date or an object with a streakAnchorDate property.
  */
-export function isStreakFaded(item: string | { streakAnchorDate?: string | null } | null) {
+export function isStreakFaded(
+  item: string | { streakAnchorDate?: string | null } | null,
+  referenceDate: Date = new Date()
+) {
   if (!item) return false;
   const dateStr = typeof item === 'string' ? item : item.streakAnchorDate;
   if (!dateStr) return false;
   
   const anchor = startOfDay(parseISO(dateStr));
-  const yesterday = startOfDay(subDays(new Date(), 1));
+  const yesterday = startOfDay(subDays(referenceDate, 1));
   return isAfter(yesterday, anchor);
 }
 

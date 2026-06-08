@@ -280,6 +280,7 @@
                     :streakCount="msg.replyToActivity.streakCount"
                     :streak-anchor-date="msg.replyToActivity.streakAnchorDate"
                     :frequency-text="msg.replyToActivity.frequencyText"
+                    :reference-date="today"
                     :weeklyStatus="msg.replyToActivity.weeklyStatus"
                     compact
                   />
@@ -411,6 +412,7 @@
               :streakCount="replyActivityContext.streakCount"
               :streak-anchor-date="replyActivityContext.streakAnchorDate"
               :frequency-text="replyActivityContext.frequencyText"
+              :reference-date="today"
               :weeklyStatus="replyActivityContext.weeklyStatus"
               compact
             />
@@ -687,6 +689,7 @@ const router = useRouter();
 const { friends, profilesMap, init: initSocial, refresh: refreshSocial } = useSocial();
 const { showToast } = useToast();
 const { isOnline } = useNetwork();
+const { today } = useStableToday();
 const {
   conversations,
   isLoading: conversationsLoading,

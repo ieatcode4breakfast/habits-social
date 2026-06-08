@@ -113,6 +113,7 @@
                 :title="item.habit.title"
                 :streakCount="item.streakCount"
                 :streak-anchor-date="item.streakAnchorDate"
+                :reference-date="today"
                 :weeklyStatus="item.weeklyStatus"
               />
 
@@ -497,7 +498,7 @@
 <script setup lang="ts">
 defineOptions({ name: 'social' });
 import { Search, UserPlus, UserMinus, Check, X as XIcon, User, Users, Trash2, ChevronDown, CheckSquare, Activity, Star, ChevronLeft, ChevronRight, Flame, Minus, Palmtree, MessageCircle, ShieldBan } from 'lucide-vue-next';
-import { format, parseISO, isToday, addDays, startOfMonth, endOfMonth, eachDayOfInterval, subDays, isAfter, startOfDay, subMonths, addMonths } from 'date-fns';
+import { format, parseISO, isSameDay, addDays, startOfMonth, endOfMonth, eachDayOfInterval, subDays, isAfter, startOfDay, subMonths, addMonths } from 'date-fns';
 import { useSocial } from '../composables/useSocial';
 import { useToast } from '../composables/useToast';
 import { shouldRefreshFeed } from '~/utils/feed';
@@ -509,6 +510,7 @@ const { user } = useAuth();
 const { showToast } = useToast();
 const route = useRoute();
 const { isOnline } = useNetwork();
+const { today } = useStableToday();
 
 const requireOnlineAction = (): boolean => {
   if (isOnline.value) return true;
@@ -651,7 +653,7 @@ const calendarDays = computed(() => {
 
 const prevMonth = () => currentCalendarDate.value = subMonths(currentCalendarDate.value, 1);
 const nextMonth = () => currentCalendarDate.value = addMonths(currentCalendarDate.value, 1);
-const isFutureDay = (day: Date) => isAfter(startOfDay(day), startOfDay(new Date()));
+const isFutureDay = (day: Date) => isAfter(startOfDay(day), startOfDay(today.value));
 
 const getStatus = (habitId: string, day: Date) => {
   const dateStr = format(day, 'yyyy-MM-dd');
@@ -659,7 +661,7 @@ const getStatus = (habitId: string, day: Date) => {
 };
 
 import { isStreakFaded, getStreakTheme } from '~/utils/ui';
-const isFaded = (habit: any) => isStreakFaded(habit);
+const isFaded = (habit: any) => isStreakFaded(habit, today.value);
 
 // --- Activity Feed Logic ---
 const feed = ref<any[]>([]);
@@ -767,8 +769,8 @@ const groupedFeed = computed<Record<string, any[]>>(() => {
 
 const formatFeedDate = (dateStr: string) => {
   const d = parseISO(dateStr);
-  if (isToday(d)) return 'Today';
-  if (isToday(addDays(d, 1))) return 'Yesterday';
+  if (isSameDay(d, today.value)) return 'Today';
+  if (isSameDay(addDays(d, 1), today.value)) return 'Yesterday';
   return format(d, 'MMMM d, yyyy');
 };
 

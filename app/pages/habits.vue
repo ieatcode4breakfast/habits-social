@@ -49,13 +49,13 @@
               ></div>
               <div 
                 class="text-[10px] uppercase tracking-tighter font-black transition-colors"
-                :class="isToday(day) ? 'text-white' : 'text-zinc-500'"
+                :class="isSameDay(day, today) ? 'text-white' : 'text-zinc-500'"
               >
                 {{ format(day, 'EEE') }}
               </div>
               <div 
                 class="text-[10px] sm:text-xs font-bold transition-colors"
-                :class="isToday(day) ? 'text-white' : 'text-zinc-500'"
+                :class="isSameDay(day, today) ? 'text-white' : 'text-zinc-500'"
               >
                 {{ format(day, 'd') }}
               </div>
@@ -144,6 +144,7 @@
         <TimelineRow
           interactive
           :days="days"
+          :reference-date="today"
           :status-map="getHabitStatusMap(habit.id)"
           @click-day="(day, event) => openLogMenu(habit, day, event)"
         />
@@ -329,7 +330,7 @@
 
 <script setup lang="ts">
 import { Plus, Trash2, Check, X as XIcon, Minus, ChevronLeft, ChevronRight, User, ChevronUp, ChevronDown, Edit2, Save, CheckSquare, GripVertical, ArrowUpDown, Flame, Palmtree, MessageCircle, UserPlus, Star, WifiOff } from 'lucide-vue-next';
-import { format, subDays, isToday, startOfMonth, endOfMonth, eachDayOfInterval, addMonths, subMonths, isAfter, startOfDay, addDays, isSameWeek, isSameMonth, parseISO, startOfWeek, isSameDay } from 'date-fns';
+import { format, subDays, startOfMonth, endOfMonth, eachDayOfInterval, addMonths, subMonths, isAfter, startOfDay, addDays, isSameWeek, isSameMonth, parseISO, startOfWeek, isSameDay } from 'date-fns';
 import type { Habit, HabitLog } from '~/composables/useHabitsApi';
 import { getStreakTheme, isStreakFaded as isFaded, autoExpandTextarea as autoExpand, isMarkable } from '~/utils/ui';
 import { useSortable } from '@vueuse/integrations/useSortable';
@@ -499,18 +500,18 @@ const openAddModal = () => {
 
 // Logic moved to useCalendar
 
-const today = new Date();
-const isFutureDay = (day: Date) => isAfter(startOfDay(day), startOfDay(today));
-const days = Array.from({ length: 7 }, (_, i) => subDays(new Date(), 6 - i));
-const startDate = format(startOfMonth(subMonths(today, 1)), 'yyyy-MM-dd');
-const endDate = format(endOfMonth(addMonths(today, 1)), 'yyyy-MM-dd');
+const { today } = useStableToday();
+const isFutureDay = (day: Date) => isAfter(startOfDay(day), startOfDay(today.value));
+const days = computed(() => Array.from({ length: 7 }, (_, i) => subDays(today.value, 6 - i)));
+const startDate = computed(() => format(startOfMonth(subMonths(today.value, 1)), 'yyyy-MM-dd'));
+const endDate = computed(() => format(endOfMonth(addMonths(today.value, 1)), 'yyyy-MM-dd'));
 
 // Logic moved to utils/ui
 
 const getFrequencyText = (habit: Habit) => {
   const period = habit.skipsPeriod;
   const maxSkips = habit.skipsCount ?? 0;
-  const now = new Date();
+  const now = today.value;
 
   if (period === 'disabled' || ((period === 'weekly' || period === 'monthly') && maxSkips === 0)) {
     return 'No skips allowed';
@@ -545,7 +546,7 @@ const load = async (silent = false) => {
   try {
     const promises: Promise<any>[] = [
       api.getHabits(), 
-      api.getLogs(startDate, endDate)
+      api.getLogs(startDate.value, endDate.value)
     ];
     if (isOnline.value) {
       promises.push(refreshSocial());
@@ -607,7 +608,7 @@ const pendingShareFriendName = computed(() => pendingShareFriend.value?.username
 const buildHabitReplyCard = (habit: Habit): HabitReplyCard | null => {
   if (!user.value?.id) return null;
 
-  const weeklyStatus = days.map((day) => {
+  const weeklyStatus = days.value.map((day) => {
     const date = format(day, 'yyyy-MM-dd');
     const log = logs.value.find(l => l.habitId === habit.id && l.date === date);
     const status = log?.status === 'cleared' ? undefined : log?.status;
@@ -751,7 +752,7 @@ const activeHabitForMenu = computed(() => {
   return habits.value.find(h => h.id === activeLogMenu.value?.habitId) || (editingHabit.value?.id === activeLogMenu.value?.habitId ? editingHabit.value : null);
 });
 const openLogMenu = (habit: Habit, day: Date, event: MouseEvent, options?: LogMenuOpenOptions) => {
-  if (!isMarkable(day)) {
+  if (!isMarkable(day, today.value)) {
     showToast('You can only update habits for the last 7 days', 'failed');
     return;
   }

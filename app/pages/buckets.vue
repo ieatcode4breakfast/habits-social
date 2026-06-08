@@ -43,13 +43,13 @@
               ></div>
               <div 
                 class="text-[10px] uppercase tracking-tighter font-black transition-colors"
-                :class="isToday(day) ? 'text-white' : 'text-zinc-500'"
+                :class="isSameDay(day, today) ? 'text-white' : 'text-zinc-500'"
               >
                 {{ format(day, 'EEE') }}
               </div>
               <div 
                 class="text-[10px] sm:text-xs font-bold transition-colors"
-                :class="isToday(day) ? 'text-white' : 'text-zinc-500'"
+                :class="isSameDay(day, today) ? 'text-white' : 'text-zinc-500'"
               >
                 {{ format(day, 'd') }}
               </div>
@@ -181,6 +181,7 @@
             <!-- Read-only Timeline -->
             <TimelineRow
               :days="days"
+              :reference-date="today"
               :status-map="getBucketStatusMap(bucket.id)"
               cell-shape="square"
             />
@@ -257,6 +258,7 @@
                     <TimelineRow
                       interactive
                       :days="days"
+                      :reference-date="today"
                       :status-map="getHabitStatusMap(habit.id)"
                       @click-day="(day, event) => openLogMenu(habit, day, event)"
                     />
@@ -283,7 +285,7 @@
 
 <script setup lang="ts">
 import { Plus, Trash2, Check, X as XIcon, Minus, ChevronLeft, ChevronRight, Flame, PaintBucket, Palmtree, Edit2, ChevronDown, ChevronUp, ArrowUpDown, GripVertical, CheckSquare, WifiOff } from 'lucide-vue-next';
-import { format, subDays, startOfMonth, endOfMonth, eachDayOfInterval, addMonths, subMonths, isAfter, startOfDay, parseISO, isToday, startOfWeek, addDays, isSameDay, isSameWeek, isSameMonth } from 'date-fns';
+import { format, subDays, startOfMonth, endOfMonth, eachDayOfInterval, addMonths, subMonths, isAfter, startOfDay, parseISO, startOfWeek, addDays, isSameDay, isSameWeek, isSameMonth } from 'date-fns';
 import type { Bucket, BucketLog, Habit, HabitLog } from '~/composables/useHabitsApi';
 import { getStreakTheme, isStreakFaded as isFaded, autoExpandTextarea as autoExpand, isMarkable } from '~/utils/ui';
 import { useSortable } from '@vueuse/integrations/useSortable';
@@ -377,10 +379,10 @@ const onBucketCalendarMonthChange = async (newDate: Date) => {
   }
 };
 
-const today = new Date();
-const days = Array.from({ length: 7 }, (_, i) => subDays(new Date(), 6 - i));
-const startDate = format(startOfMonth(subMonths(today, 1)), 'yyyy-MM-dd');
-const endDate = format(endOfMonth(addMonths(today, 1)), 'yyyy-MM-dd');
+const { today } = useStableToday();
+const days = computed(() => Array.from({ length: 7 }, (_, i) => subDays(today.value, 6 - i)));
+const startDate = computed(() => format(startOfMonth(subMonths(today.value, 1)), 'yyyy-MM-dd'));
+const endDate = computed(() => format(endOfMonth(addMonths(today.value, 1)), 'yyyy-MM-dd'));
 
 const toggleExpand = (bucketId: string) => {
   const isOpening = expandedBucketId.value !== bucketId;
@@ -414,7 +416,7 @@ const activeHabitForMenu = computed(() => {
 });
 
 const openLogMenu = (habit: Habit, day: Date, event: MouseEvent) => {
-  if (!isMarkable(day)) {
+  if (!isMarkable(day, today.value)) {
     showToast('You can only update habits for the last 7 days', 'failed');
     return;
   }
@@ -462,8 +464,8 @@ const setLogStatus = async (habit: Habit, day: Date, status: LogMenuStatus) => {
       availableHabits.value[habitIdx] = updatedHabit;
     }
 
-    const firstVisibleDay = days[0] ?? day;
-    const lastVisibleDay = days[days.length - 1] ?? day;
+    const firstVisibleDay = days.value[0] ?? day;
+    const lastVisibleDay = days.value[days.value.length - 1] ?? day;
     const visibleStart = format(firstVisibleDay, 'yyyy-MM-dd');
     const visibleEnd = format(lastVisibleDay, 'yyyy-MM-dd');
     const refreshedBucketLogs = await api.getBucketLogs(visibleStart, visibleEnd);
@@ -504,8 +506,8 @@ const load = async (silent = false) => {
   try {
     const promises: Promise<any>[] = [
       api.getBuckets(), 
-      api.getLogs(startDate, endDate),
-      api.getBucketLogs(startDate, endDate),
+      api.getLogs(startDate.value, endDate.value),
+      api.getBucketLogs(startDate.value, endDate.value),
       api.getHabits()
     ];
     if (!silent) {

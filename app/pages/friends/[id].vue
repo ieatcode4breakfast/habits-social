@@ -101,13 +101,13 @@
                 ></div>
                 <div 
                   class="text-[10px] uppercase tracking-tighter font-black transition-colors"
-                  :class="isToday(day) ? 'text-white' : 'text-zinc-500'"
+                  :class="isSameDay(day, today) ? 'text-white' : 'text-zinc-500'"
                 >
                   {{ format(day, 'EEE') }}
                 </div>
                 <div 
                   class="text-[10px] sm:text-xs font-bold transition-colors"
-                  :class="isToday(day) ? 'text-white' : 'text-zinc-500'"
+                  :class="isSameDay(day, today) ? 'text-white' : 'text-zinc-500'"
                 >
                   {{ format(day, 'd') }}
                 </div>
@@ -195,6 +195,7 @@
         <!-- Interactive Logs (Read-only for friends) -->
         <TimelineRow
           :days="days"
+          :reference-date="today"
           :status-map="getHabitStatusMap(habit.id)"
         />
         <div class="hidden sm:flex w-7 shrink-0 items-center justify-center">
@@ -342,7 +343,7 @@
 
 <script setup lang="ts">
 import { ChevronLeft, User, Flame, X as XIcon, ChevronRight, Check, Minus, UserPlus, CheckSquare, Share2, UserMinus, Star, MessageCircle, MoreVertical, ShieldBan } from 'lucide-vue-next';
-import { format, subDays, isToday, startOfMonth, endOfMonth, eachDayOfInterval, addMonths, subMonths, isAfter, startOfDay, addDays, isSameWeek, isSameMonth, getDaysInMonth, parseISO, startOfWeek } from 'date-fns';
+import { format, subDays, startOfMonth, endOfMonth, eachDayOfInterval, addMonths, subMonths, isAfter, startOfDay, addDays, isSameWeek, isSameMonth, getDaysInMonth, parseISO, startOfWeek, isSameDay } from 'date-fns';
 import type { Habit, HabitLog } from '~/composables/useHabitsApi';
 import { useSocial } from '~/composables/useSocial';
 
@@ -611,8 +612,8 @@ const pullStyle = computed(() => {
   };
 });
 
-const today = new Date();
-const days = Array.from({ length: 7 }, (_, i) => subDays(today, 6 - i));
+const { today } = useStableToday();
+const days = computed(() => Array.from({ length: 7 }, (_, i) => subDays(today.value, 6 - i)));
 
 // Modal and Calendar State
 const showModal = ref(false);
@@ -628,7 +629,7 @@ useModalHistory(isAnyModalOpen, () => {
   showBlockModal.value = false;
 });
 
-const isFutureDay = (day: Date) => isAfter(startOfDay(day), startOfDay(today));
+const isFutureDay = (day: Date) => isAfter(startOfDay(day), startOfDay(today.value));
 
 const calendarDays = computed(() => {
   const start = startOfMonth(currentCalendarDate.value);
@@ -645,12 +646,12 @@ const prevMonth = () => currentCalendarDate.value = subMonths(currentCalendarDat
 const nextMonth = () => currentCalendarDate.value = addMonths(currentCalendarDate.value, 1);
 
 import { isStreakFaded, getStreakTheme } from '~/utils/ui';
-const isFaded = (habit: Habit) => isStreakFaded(habit);
+const isFaded = (habit: Habit) => isStreakFaded(habit, today.value);
 
 const getFrequencyText = (habit: Habit) => {
   const period = habit.skipsPeriod;
   const maxSkips = habit.skipsCount ?? 0;
-  const now = new Date();
+  const now = today.value;
 
   if (period === 'disabled' || ((period === 'weekly' || period === 'monthly') && maxSkips === 0)) {
     return 'No skips allowed';
@@ -696,7 +697,7 @@ const getHabitStatusMap = (habitId: string) => {
 const buildHabitReplyCard = (habit: Habit): HabitReplyCard | null => {
   if (!profile.value) return null;
 
-  const weeklyStatus = days.map((day) => {
+  const weeklyStatus = days.value.map((day) => {
     const date = format(day, 'yyyy-MM-dd');
     const log = logs.value.find(l => l.habitId === habit.id && l.date === date);
     const status = log?.status === 'cleared' ? undefined : log?.status;

@@ -27,6 +27,19 @@ From the login screen, select **Forgot password?**. Enter your email address and
 
 If an account exists for that email address, password reset instructions are sent to that inbox. Use the link in the email to enter and confirm a new password, then return to the login screen.
 
+## Edit Profile
+
+You can update your username, email address, password, or avatar at any time.
+
+To edit your profile:
+
+1. Open the app and go to your profile.
+2. Select **Edit Profile**.
+3. Update your desired information.
+4. If you are changing your email address or password, enter your **Current Password** to confirm the changes.
+5. Select **Save** at the bottom of the form.
+6. Review the confirmation, then select **Yes, Update Profile**.
+
 ## Delete Your Account
 
 **Deleting your account is permanent and cannot be undone.** All your habits, logs, buckets, friendships, and messages will be permanently erased.
