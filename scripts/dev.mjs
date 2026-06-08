@@ -5,6 +5,30 @@ import { spawn } from 'node:child_process';
 const localPartykitHostPattern = /^(localhost|127\.0\.0\.1):([1-9]\d{0,4})$/;
 const nuxtCli = resolve(process.cwd(), 'node_modules', '@nuxt', 'cli', 'bin', 'nuxi.mjs');
 const partykitCli = resolve(process.cwd(), 'node_modules', 'partykit', 'dist', 'bin.mjs');
+const defaultNuxtHost = '0.0.0.0';
+
+const normalizeNuxtArgs = (args) => {
+  const normalized = [];
+
+  for (let index = 0; index < args.length; index += 1) {
+    const arg = args[index];
+    normalized.push(arg);
+
+    if (arg !== '--host') continue;
+
+    const nextArg = args[index + 1];
+    if (nextArg && !nextArg.startsWith('-')) {
+      normalized.push(nextArg);
+      index += 1;
+    } else {
+      normalized.push(defaultNuxtHost);
+    }
+  }
+
+  return normalized;
+};
+
+const forwardedNuxtArgs = normalizeNuxtArgs(process.argv.slice(2));
 
 const readDotEnv = () => {
   const env = new Map();
@@ -36,19 +60,22 @@ const normalizeHost = (host) => host
   .replace(/^https?:\/\//, '')
   .replace(/\/+$/, '');
 
-const isLocalPartykitHost = (host) => {
+const getLocalPartykitPort = (host) => {
   const match = localPartykitHostPattern.exec(normalizeHost(host));
-  if (!match) return false;
+  if (!match) return null;
 
   const port = Number(match[2]);
-  return Number.isInteger(port) && port <= 65535;
+  return Number.isInteger(port) && port <= 65535 ? String(port) : null;
 };
 
+const hasForwardedHost = forwardedNuxtArgs.some((arg) => arg === '--host' || arg.startsWith('--host='));
+const nuxtArgs = ['dev', ...(hasForwardedHost ? [] : ['--host', defaultNuxtHost]), ...forwardedNuxtArgs];
 const dotenv = readDotEnv();
 const partykitHost = process.env.NUXT_PUBLIC_PARTYKIT_HOST || dotenv.get('NUXT_PUBLIC_PARTYKIT_HOST') || '';
+const localPartykitPort = getLocalPartykitPort(partykitHost);
 const commands = [
-  ['dev:nuxt', nuxtCli, ['dev', '--host']],
-  ...(isLocalPartykitHost(partykitHost) ? [['dev:realtime', partykitCli, ['dev', '--port', '1999', '--with-env']]] : []),
+  ['dev:nuxt', nuxtCli, nuxtArgs],
+  ...(localPartykitPort ? [['dev:realtime', partykitCli, ['dev', '--port', localPartykitPort, '--with-env']]] : []),
 ];
 
 const children = [];
