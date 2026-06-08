@@ -26,6 +26,7 @@
             <CheckIcon v-if="type === 'completed'" class="w-4 h-4" />
             <XIcon v-else-if="type === 'failed'" class="w-4 h-4" />
             <MinusIcon v-else-if="type === 'skipped'" class="w-4 h-4" />
+            <Trash2Icon v-else-if="type === 'cleared'" class="w-4 h-4" />
           </div>
           <span class="text-sm font-bold tracking-tight text-white text-center">{{ message }}</span>
         </div>
@@ -35,7 +36,7 @@
 </template>
 
 <script setup lang="ts">
-import { Check as CheckIcon, X as XIcon, Minus as MinusIcon } from 'lucide-vue-next';
+import { Check as CheckIcon, X as XIcon, Minus as MinusIcon, Trash2 as Trash2Icon } from 'lucide-vue-next';
 
 const { isVisible, message, type } = useToast();
 const config = useRuntimeConfig();

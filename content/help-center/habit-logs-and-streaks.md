@@ -15,7 +15,7 @@ Streaks use those daily logs to show how consistently you have kept a habit acti
 | <span style="display:inline-flex;align-items:center;justify-content:center;width:1.25rem;height:1.25rem;border-radius:9999px;background:#71717a;color:white;font-size:.75rem;flex-shrink:0;">−</span> Skipped | Keeps the streak safe, but does not add a day. |
 | <span style="display:inline-flex;align-items:center;justify-content:center;width:1.25rem;height:1.25rem;border-radius:9999px;background:#f59e0b;color:white;font-size:.75rem;flex-shrink:0;">🌴</span> Vacation | Keeps the streak safe, but does not add a day. |
 | <span style="display:inline-flex;align-items:center;justify-content:center;width:1.25rem;height:1.25rem;border-radius:9999px;background:#f43f5e;color:white;font-size:.75rem;flex-shrink:0;">✕</span> Failed | Ends the current streak. |
-| <span style="display:inline-flex;align-items:center;justify-content:center;width:1.25rem;height:1.25rem;border-radius:9999px;border:2px solid #a1a1aa;color:#a1a1aa;font-size:.75rem;flex-shrink:0;">○</span> Cleared or no log | Creates a missing day. If you continue later without filling the missing day, the streak can reset. |
+| <span style="display:inline-flex;align-items:center;justify-content:center;width:1.25rem;height:1.25rem;border-radius:9999px;background:#27272a;color:#a1a1aa;font-size:.75rem;flex-shrink:0;">🗑</span> Cleared or no log | Creates a missing day. If you continue later without filling the missing day, the streak can reset. |
 
 ## Monitoring progress through streaks
 
