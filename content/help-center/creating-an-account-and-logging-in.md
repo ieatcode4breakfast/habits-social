@@ -26,3 +26,18 @@ If this is your first time using Google with Habits Social, finish your profile 
 From the login screen, select **Forgot password?**. Enter your email address and select **Send reset link**.
 
 If an account exists for that email address, password reset instructions are sent to that inbox. Use the link in the email to enter and confirm a new password, then return to the login screen.
+
+## Delete Your Account
+
+**Deleting your account is permanent and cannot be undone.** All your habits, logs, buckets, friendships, and messages will be permanently erased.
+
+To delete your account:
+
+1. Open the app and go to your profile.
+2. Select **Edit Profile**.
+3. Scroll to the bottom of the form and select **Delete Account**.
+4. Read the warning, then select **Yes, Delete My Account**.
+5. Enter your current password to confirm, then select **Delete My Account**.
+
+After deletion, your email and username become available for anyone to use with a new account.
+
