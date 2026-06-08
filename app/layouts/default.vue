@@ -38,10 +38,10 @@
           <div class="w-px h-6 bg-zinc-800 mx-2 shrink-0"></div>
           <button
             type="button"
-            @click="helpModal.open()"
             class="p-2 text-zinc-500 hover:text-white hover:bg-zinc-925 rounded-lg transition-colors flex items-center justify-center cursor-pointer"
             title="Help Center"
             aria-label="Help Center"
+            @click="openHelpCenter"
           >
             <CircleHelp class="w-5 h-5" />
           </button>
@@ -170,7 +170,7 @@
               
               <button
                 type="button"
-                @click="() => { showMobileMenu = false; helpModal.open(); }"
+                @click="() => { suppressNextHistoryBack(); showMobileMenu = false; openHelpCenter(); }"
                 class="w-full p-2 flex items-center gap-3 text-zinc-300 hover:bg-zinc-900 rounded-xl transition-colors cursor-pointer"
               >
                 <CircleHelp class="w-5 h-5 text-zinc-400" />
@@ -195,9 +195,6 @@
 
     <!-- Choose Avatar Modal on Signup -->
     <ChooseAvatarModal v-model="showChooseAvatarModal" />
-
-    <!-- Global Help Center Modal -->
-    <HelpCenterModal />
   </div>
 </template>
 
@@ -300,6 +297,10 @@ const handleEditProfile = () => {
     return;
   }
   showProfileModal.value = true;
+};
+
+const openHelpCenter = () => {
+  helpModal.open('/help-center/welcome');
 };
 
 const logout = async () => {

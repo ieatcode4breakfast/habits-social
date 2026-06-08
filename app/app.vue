@@ -6,6 +6,8 @@
       <NuxtPage :keepalive="{ include: ['social', 'inbox'] }" />
     </NuxtLayout>
 
+    <HelpCenterModal />
+
     <!-- Global Toast Notification -->
     <Teleport to="body">
       <Transition

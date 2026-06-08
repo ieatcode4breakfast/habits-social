@@ -46,8 +46,8 @@ describe('useHelpArticle', () => {
     mocks.captured.key = null;
   });
 
-  it('uses the latest route path for the async data key and content query', async () => {
-    const path = ref('/help-center/welcome');
+  it('uses the latest hashless route path for the async data key and content query', async () => {
+    const path = ref('/help-center/welcome#intro');
     const resolveArticle = vi.fn((_articlePath: string) => Promise.resolve(null));
 
     useHelpArticle(() => path.value, resolveArticle);
@@ -65,7 +65,7 @@ describe('useHelpArticle', () => {
 
     expect(resolveArticle).toHaveBeenLastCalledWith('/help-center/welcome');
 
-    path.value = '/help-center/habit-logs-and-streaks';
+    path.value = '/help-center/habit-logs-and-streaks#streaks';
 
     expect(key()).toBe('help-article-/help-center/habit-logs-and-streaks');
 

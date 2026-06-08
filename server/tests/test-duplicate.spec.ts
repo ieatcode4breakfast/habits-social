@@ -26,19 +26,19 @@ describe('Duplicate test', () => {
     console.log('Total habits in DB for user:', userHabits.length);
     expect(userHabits.length).toBe(1); // Should update, not duplicate
 
-    // 4. Try to create 31 habits
-    for (let i = 0; i < 35; i++) {
+    // 4. Try to create bulk habits above the 200 limit
+    for (let i = 0; i < 205; i++) {
       try {
         const e = createMockEvent(user.id, { title: `Bulk ${i}` }, {}, {}, {}, 'POST');
         await habitHandler(e);
       } catch (err: any) {
         console.log(`Failed at ${i}:`, err.data?.code || err.statusMessage);
-        break; // Should break at 29 (1 already exists)
+        break; // Should break at 199 (1 already exists)
       }
     }
 
     const finalHabits = await db.select().from(habits).where(eq(habits.ownerId, user.id));
     console.log('Final habits count:', finalHabits.length);
-    expect(finalHabits.length).toBe(30);
-  }, 30000);
+    expect(finalHabits.length).toBe(200);
+  }, 120000);
 });

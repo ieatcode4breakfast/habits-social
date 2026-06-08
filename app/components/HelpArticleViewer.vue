@@ -1,30 +1,113 @@
 <template>
-  <div>
-    <div class="prose max-w-none prose-headings:font-bold prose-a:text-emerald-400 hover:prose-a:text-emerald-300 prose-pre:bg-transparent prose-hr:border-zinc-800 custom-prose-theme">
-      <ContentRenderer v-if="page" :value="page" />
-      <div v-else class="text-center py-12">
-        <h1 class="text-2xl font-bold mb-4 text-white">Article Not Found</h1>
-        <p class="text-zinc-400">The help article you are looking for does not exist.</p>
-        <button @click="emit('reset')" class="inline-block mt-6 px-4 py-2 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors">
-          Go to Welcome
-        </button>
-      </div>
+  <div
+    ref="contentRoot"
+    class="prose max-w-none prose-headings:font-bold prose-a:text-emerald-400 hover:prose-a:text-emerald-300 prose-pre:bg-transparent prose-hr:border-zinc-800 custom-prose-theme"
+    @click.capture="handleContentClick"
+  >
+    <ContentRenderer v-if="page" :value="page" />
+    <div v-else class="text-center py-12">
+      <h1 class="text-2xl font-bold mb-4 text-white">Article Not Found</h1>
+      <p class="text-zinc-400">The help article you are looking for does not exist.</p>
+      <NuxtLink
+        v-if="mode === 'page'"
+        to="/help-center"
+        class="inline-block mt-6 px-4 py-2 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors no-underline"
+      >
+        Go to Help Center
+      </NuxtLink>
+      <button
+        v-else
+        type="button"
+        class="inline-block mt-6 px-4 py-2 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors no-underline"
+        @click="emit('navigate', DEFAULT_HELP_PATH)"
+      >
+        Go to Help Center
+      </button>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
+import { nextTick, ref, watch } from 'vue';
 import { useHelpArticle } from '~/composables/useHelpArticle';
+import { DEFAULT_HELP_PATH, getHelpPathHash, parseHelpPath, type HelpCenterMode } from '~/utils/helpCenter';
 
-const props = defineProps<{ path: string }>();
-const emit = defineEmits<{ (e: 'reset'): void }>();
+const props = defineProps<{
+  path: string;
+  mode: HelpCenterMode;
+}>();
 
-// Provide the path reactivity to useHelpArticle
+const emit = defineEmits<{
+  navigate: [path: string];
+}>();
+
+const contentRoot = ref<HTMLElement | null>(null);
 const { data: page } = await useHelpArticle(() => props.path);
+
+const getAnchorFromEvent = (event: MouseEvent): HTMLAnchorElement | null => {
+  if (!(event.target instanceof Element)) return null;
+  return event.target.closest('a[href]');
+};
+
+const isPlainLeftClick = (event: MouseEvent) => {
+  return event.button === 0 && !event.altKey && !event.ctrlKey && !event.metaKey && !event.shiftKey;
+};
+
+const shouldIgnoreAnchor = (anchor: HTMLAnchorElement) => {
+  const target = anchor.getAttribute('target');
+  return anchor.hasAttribute('download') || Boolean(target && target !== '_self');
+};
+
+const scrollToHash = async (hash: string) => {
+  if (!import.meta.client || !hash) return;
+
+  await nextTick();
+
+  let targetId: string;
+  try {
+    targetId = decodeURIComponent(hash.slice(1));
+  } catch {
+    targetId = hash.slice(1);
+  }
+
+  const target = Array.from(contentRoot.value?.querySelectorAll<HTMLElement>('[id]') ?? [])
+    .find((element) => element.id === targetId);
+
+  target?.scrollIntoView({ block: 'start' });
+};
+
+const handleContentClick = (event: MouseEvent) => {
+  if (props.mode !== 'modal' || !isPlainLeftClick(event)) return;
+
+  const anchor = getAnchorFromEvent(event);
+  if (!anchor || shouldIgnoreAnchor(anchor)) return;
+
+  const href = anchor.getAttribute('href');
+  if (!href) return;
+
+  if (href.startsWith('#')) {
+    event.preventDefault();
+    void scrollToHash(href);
+    return;
+  }
+
+  const nextPath = parseHelpPath(href);
+  if (!nextPath) return;
+
+  event.preventDefault();
+  emit('navigate', nextPath.fullPath);
+};
+
+watch(
+  () => [props.path, page.value] as const,
+  () => {
+    void scrollToHash(getHelpPathHash(props.path));
+  },
+  { flush: 'post' }
+);
 </script>
 
 <style scoped>
-/* Map Tailwind Typography variables to dynamic app CSS variables */
 .custom-prose-theme {
   --tw-prose-body: var(--color-zinc-300);
   --tw-prose-headings: var(--color-white);
