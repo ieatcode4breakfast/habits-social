@@ -5,17 +5,22 @@
       <div v-else class="text-center py-12">
         <h1 class="text-2xl font-bold mb-4 text-white">Article Not Found</h1>
         <p class="text-zinc-400">The help article you are looking for does not exist.</p>
-        <NuxtLink to="/help-center" class="inline-block mt-6 px-4 py-2 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors no-underline">
-          Go to Help Center
-        </NuxtLink>
+        <button @click="emit('reset')" class="inline-block mt-6 px-4 py-2 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors">
+          Go to Welcome
+        </button>
       </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-const route = useRoute();
-const { data: page } = await useHelpArticle(() => route.path);
+import { useHelpArticle } from '~/composables/useHelpArticle';
+
+const props = defineProps<{ path: string }>();
+const emit = defineEmits<{ (e: 'reset'): void }>();
+
+// Provide the path reactivity to useHelpArticle
+const { data: page } = await useHelpArticle(() => props.path);
 </script>
 
 <style scoped>

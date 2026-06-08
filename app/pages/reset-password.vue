@@ -1,8 +1,8 @@
 <template>
   <div class="min-h-screen flex flex-col items-center justify-center px-4 py-8 relative">
     <button @click="toggleThemeMode" class="fixed top-4 right-4 p-2 rounded-lg hover:bg-zinc-900 transition-colors z-50" :title="themeToggleTitle">
-      <SunIcon v-if="isLightMode" class="w-5 h-5 text-white" />
-      <MoonIcon v-else class="w-5 h-5 text-white" />
+      <MoonIcon v-if="isLightMode" class="w-5 h-5 text-white" />
+      <SunIcon v-else class="w-5 h-5 text-white" />
     </button>
     <div class="w-full max-w-md">
       <!-- Logo -->

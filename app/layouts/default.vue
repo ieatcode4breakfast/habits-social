@@ -38,6 +38,16 @@
           <div class="w-px h-6 bg-zinc-800 mx-2 shrink-0"></div>
           <button
             type="button"
+            @click="helpModal.open()"
+            class="p-2 text-zinc-500 hover:text-white hover:bg-zinc-925 rounded-lg transition-colors flex items-center justify-center cursor-pointer"
+            title="Help Center"
+            aria-label="Help Center"
+          >
+            <CircleHelp class="w-5 h-5" />
+          </button>
+          <div class="w-px h-6 bg-zinc-800 mx-2 shrink-0"></div>
+          <button
+            type="button"
             @click="toggleThemeMode"
             class="p-2 text-zinc-500 hover:text-white hover:bg-zinc-925 rounded-lg transition-colors flex items-center justify-center cursor-pointer"
             :title="themeToggleTitle"
@@ -158,6 +168,15 @@
                 <span class="font-semibold">{{ themeToggleText }}</span>
               </button>
               
+              <button
+                type="button"
+                @click="() => { showMobileMenu = false; helpModal.open(); }"
+                class="w-full p-2 flex items-center gap-3 text-zinc-300 hover:bg-zinc-900 rounded-xl transition-colors cursor-pointer"
+              >
+                <CircleHelp class="w-5 h-5 text-zinc-400" />
+                <span class="font-semibold">Help Center</span>
+              </button>
+
               <button 
                 @click="() => { suppressNextHistoryBack(); showMobileMenu = false; logout(); }"
                 class="w-full p-2 flex items-center gap-3 text-rose-500 hover:bg-zinc-900 rounded-xl transition-colors cursor-pointer"
@@ -176,11 +195,14 @@
 
     <!-- Choose Avatar Modal on Signup -->
     <ChooseAvatarModal v-model="showChooseAvatarModal" />
+
+    <!-- Global Help Center Modal -->
+    <HelpCenterModal />
   </div>
 </template>
 
 <script setup lang="ts">
-import { LogOut, ListChecks, Users, User as UserIcon, PaintBucket, MessageCircle, Menu, Moon, Sun } from 'lucide-vue-next';
+import { LogOut, ListChecks, Users, User as UserIcon, PaintBucket, MessageCircle, Menu, Moon, Sun, CircleHelp } from 'lucide-vue-next';
 import { clearCachedAuthUser, flushPendingServerLogout, markPendingServerLogout } from '~/utils/cachedAuth';
 
 const { user } = useAuth();
@@ -190,6 +212,7 @@ const { pendingCount, init: initSocial, cleanup: cleanupSocial, logoutCleanup } 
 const { totalUnreadCount, init: initChatInbox, logoutCleanup: chatInboxLogoutCleanup } = useChatInbox();
 const realtimeInvalidation = useRealtimeInvalidation();
 const { isLightMode, themeToggleText, themeToggleTitle, toggleThemeMode } = useThemeMode();
+const helpModal = useHelpModal();
 
 useSeoMeta({
   title: 'My Habits - Habits Social',
