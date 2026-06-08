@@ -5,10 +5,7 @@ definePageMeta({
   layout: false,
   middleware: [
     async function () {
-      if (import.meta.server) {
-        return;
-      }
-
+      const nuxtApp = useNuxtApp();
       const { user, fetchUser } = useAuth();
 
       if (!user.value) {
@@ -16,10 +13,12 @@ definePageMeta({
       }
 
       if (!user.value) {
-        return navigateTo('/login', { replace: true });
+        return nuxtApp.runWithContext(() => navigateTo('/login', { replace: true }));
       }
 
-      return navigateTo(resolveStartupRoute(navigator.onLine), { replace: true });
+      return nuxtApp.runWithContext(() =>
+        navigateTo(resolveStartupRoute(import.meta.client ? navigator.onLine : true), { replace: true })
+      );
     }
   ]
 });

@@ -57,7 +57,7 @@ export default defineNuxtConfig({
     },
     workbox: {
       navigateFallback: '/',
-      navigateFallbackDenylist: [/^\/api\//],
+      navigateFallbackDenylist: [/^\/api\//, /^\/login$/, /^\/forgot-password$/, /^\/reset-password$/],
       globPatterns: ['**/*.{js,css,html,png,svg,ico,webmanifest}'],
       runtimeCaching: [
         {
@@ -99,7 +99,7 @@ export default defineNuxtConfig({
   nitro: {
     preset: 'cloudflare-module',
     prerender: {
-      routes: ['/', ...helpCenterRoutes]
+      routes: helpCenterRoutes
     },
     ignore: [
       'api/_v1/**',
