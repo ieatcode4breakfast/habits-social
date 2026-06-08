@@ -580,7 +580,7 @@ const handleUpdateProfile = async () => {
     initialProfileSnapshot.value = null;
     isOpen.value = false;
   } catch (err: any) {
-    profileError.value = err.data?.message || 'Failed to update profile';
+    profileError.value = err.data?.statusMessage || err.data?.message || 'Failed to update profile';
   } finally {
     isUpdating.value = false;
   }
@@ -632,7 +632,7 @@ const confirmDeleteAccount = async () => {
 
     await navigateTo('/login');
   } catch (err: any) {
-    deleteError.value = err.data?.message || 'Failed to delete account. Please try again.';
+    deleteError.value = err.data?.statusMessage || err.data?.message || 'Failed to delete account. Please try again.';
   } finally {
     isDeleting.value = false;
   }

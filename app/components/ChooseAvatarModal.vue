@@ -149,7 +149,7 @@ const saveAvatar = async () => {
     showToast('Avatar saved successfully!', 'completed');
     handleClose();
   } catch (err: any) {
-    showToast(err.data?.message || 'Failed to save avatar', 'failed');
+    showToast(err.data?.statusMessage || err.data?.message || 'Failed to save avatar', 'failed');
   } finally {
     saving.value = false;
   }
