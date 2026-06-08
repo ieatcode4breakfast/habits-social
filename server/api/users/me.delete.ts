@@ -1,3 +1,4 @@
+import { readBody } from 'h3';
 import { compare } from 'bcrypt-ts';
 import { eq } from 'drizzle-orm';
 import { users } from '~~/server/db/schema';
@@ -14,10 +15,36 @@ export default defineEventHandler(async (event) => {
   const db = useDB(event);
 
   // 1. Read and validate password
-  // On Cloudflare Workers, h3's readBody hangs for DELETE requests.
-  // Read from event.request directly when available, falling back to readBody.
-  const body = (event as any)._body
-    || ((event as any).request ? await (event as any).request.clone().json() : await readBody(event));
+  // On Cloudflare Workers, h3's readBody hangs for DELETE requests because
+  // Nitro's fetchHandler does not consume the body for DELETE (its
+  // requestHasBody regex only matches POST, PUT, PATCH). This leaves the
+  // raw CF Request body intact on event.context._platform.cloudflare.request,
+  // but the Node.js stream polyfill never receives the body data, so
+  // readRawBody's data/end event listeners hang forever.
+  //
+  // Strategy:
+  //   a) event._body — set by test utilities (createMockEvent)
+  //   b) event.context._platform.cloudflare.request — raw CF Request on Workers
+  //   c) readBody(event) — standard h3 body reader for local dev
+  let body: unknown = (event as any)._body;
+
+  if (!body) {
+    const platformContext = (event.context as any)?._platform as
+      | { cloudflare?: { request?: { bodyUsed: boolean; json(): Promise<unknown> } } }
+      | undefined;
+    const cfRequest = platformContext?.cloudflare?.request;
+    if (cfRequest && !cfRequest.bodyUsed) {
+      try {
+        body = await cfRequest.json();
+      } catch {
+        // Body stream disturbed, fall through to readBody
+      }
+    }
+  }
+
+  if (!body) {
+    body = await readBody(event);
+  }
   const validation = deleteAccountSchema.safeParse(body);
 
   if (!validation.success) {
