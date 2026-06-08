@@ -14,7 +14,10 @@ export default defineEventHandler(async (event) => {
   const db = useDB(event);
 
   // 1. Read and validate password
-  const body = await readBody(event);
+  // On Cloudflare Workers, h3's readBody hangs for DELETE requests.
+  // Read from event.request directly when available, falling back to readBody.
+  const body = (event as any)._body
+    || ((event as any).request ? await (event as any).request.clone().json() : await readBody(event));
   const validation = deleteAccountSchema.safeParse(body);
 
   if (!validation.success) {
