@@ -177,7 +177,7 @@
                 </div>
 
                 <!-- Delete Account Link -->
-                <div class="pt-2 pb-1">
+                <div class="pt-2 pb-1 text-center">
                   <button
                     type="button"
                     @click="openDeleteWarning"
