@@ -4,9 +4,19 @@ import { resolveStartupRoute } from '~/utils/startupRoute';
 definePageMeta({
   layout: false,
   middleware: [
-    function () {
+    async function () {
       if (import.meta.server) {
         return;
+      }
+
+      const { user, fetchUser } = useAuth();
+
+      if (!user.value) {
+        await fetchUser();
+      }
+
+      if (!user.value) {
+        return navigateTo('/login', { replace: true });
       }
 
       return navigateTo(resolveStartupRoute(navigator.onLine), { replace: true });
