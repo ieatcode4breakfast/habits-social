@@ -15,7 +15,7 @@ For each day, the app looks at every habit log inside the bucket and picks the b
 
 | Priority | Bucket status | When it happens |
 | --- | --- | --- |
-| 1 | <span style="display:inline-flex;align-items:center;justify-content:center;width:1.25rem;height:1.25rem;border-radius:9999px;border:2px solid #a1a1aa;color:#a1a1aa;font-size:.75rem;flex-shrink:0;">○</span> Cleared | At least one habit in the bucket has no log for that day. |
+| 1 | <span style="display:inline-flex;align-items:center;justify-content:center;width:1.25rem;height:1.25rem;border-radius:9999px;background:#27272a;color:#a1a1aa;font-size:.75rem;flex-shrink:0;">🗑</span> Cleared | At least one habit in the bucket has no log for that day. |
 | 2 | <span style="display:inline-flex;align-items:center;justify-content:center;width:1.25rem;height:1.25rem;border-radius:9999px;background:#10b981;color:white;font-size:.75rem;flex-shrink:0;">✓</span> Completed | At least one habit in the bucket is marked completed. |
 | 3 | <span style="display:inline-flex;align-items:center;justify-content:center;width:1.25rem;height:1.25rem;border-radius:9999px;background:#f43f5e;color:white;font-size:.75rem;flex-shrink:0;">✕</span> Failed | Every habit in the bucket is marked failed. |
 | 4 | <span style="display:inline-flex;align-items:center;justify-content:center;width:1.25rem;height:1.25rem;border-radius:9999px;background:#71717a;color:white;font-size:.75rem;flex-shrink:0;">−</span> Skipped | More habits are skipped than on vacation (or the count is tied). |
