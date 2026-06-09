@@ -138,6 +138,25 @@ watch(
   font-weight: inherit !important;
 }
 
+:deep(a) {
+  text-decoration: none;
+}
+
+:deep(h2),
+:deep(h3),
+:deep(h4) {
+  scroll-margin-top: 2rem;
+}
+
+:deep(p:has(> a:only-child)) {
+  margin-top: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+:deep(p > a:only-child) {
+  display: inline-block;
+}
+
 :deep(blockquote p::before),
 :deep(blockquote p::after) {
   content: none !important;

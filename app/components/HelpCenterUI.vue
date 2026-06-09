@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-[100dvh] bg-zinc-950 text-zinc-100 flex flex-col transition-colors duration-200">
+  <div class="h-[100dvh] overflow-hidden bg-zinc-950 text-zinc-100 flex flex-col transition-colors duration-200">
     <header class="flex items-center justify-between p-4 border-b border-zinc-800 bg-zinc-950/80 backdrop-blur-md sticky top-0 z-30">
       <div class="flex items-center gap-3">
         <button
@@ -18,7 +18,7 @@
           @click="emit('navigate', DEFAULT_HELP_PATH)"
         >
           <div class="w-8 h-8 rounded-lg bg-transparent flex items-center justify-center transition-shadow">
-            <img src="/icons/icon-192.png" class="w-full h-full object-contain" alt="Logo" />
+            <img :src="'/icons/icon-192.png'" class="w-full h-full object-contain" alt="Logo" />
           </div>
           <span class="font-bold text-lg tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-zinc-200 to-zinc-400 hidden sm:inline">
             Habits Social
@@ -29,7 +29,7 @@
 
         <NuxtLink v-else to="/help-center/welcome" class="flex items-center gap-2 group">
           <div class="w-8 h-8 rounded-lg bg-transparent flex items-center justify-center transition-shadow">
-            <img src="/icons/icon-192.png" class="w-full h-full object-contain" alt="Logo" />
+            <img :src="'/icons/icon-192.png'" class="w-full h-full object-contain" alt="Logo" />
           </div>
           <span class="font-bold text-lg tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-zinc-200 to-zinc-400 hidden sm:inline">
             Habits Social
@@ -62,7 +62,7 @@
       </div>
     </header>
 
-    <div class="flex flex-1 flex-col md:flex-row min-h-0">
+    <div class="flex flex-1 flex-col md:flex-row min-h-0 overflow-hidden">
       <div
         v-if="isSidebarOpen"
         class="fixed inset-0 bg-black/50 z-40 md:hidden"
@@ -93,34 +93,70 @@
             <div v-else-if="error" class="px-3 py-2 text-sm text-rose-500">Error loading navigation</div>
 
             <template v-else>
-              <template v-for="link in navigationLinks" :key="link.path">
-                <button
-                  v-if="mode === 'modal'"
-                  type="button"
-                  class="w-full text-left flex items-center justify-between px-4 py-2.5 text-sm transition-colors rounded-lg"
+              <div v-for="link in navigationLinks" :key="link.path" class="mb-1">
+                <div
+                  class="flex items-center rounded-lg transition-colors"
                   :class="currentArticlePath === link.path ? 'bg-emerald-500/10 text-emerald-400 font-medium' : 'text-zinc-400 hover:text-zinc-100 hover:bg-zinc-900'"
-                  @click="navigateInModal(link.path)"
                 >
-                  <span class="truncate pr-2">{{ link.title }}</span>
-                </button>
+                  <button
+                    v-if="mode === 'modal'"
+                    type="button"
+                    class="min-w-0 flex-1 text-left px-4 py-2.5 text-sm"
+                    @click="navigateInModal(link.path)"
+                  >
+                    <span class="block truncate pr-2">{{ link.title }}</span>
+                  </button>
 
-                <NuxtLink
-                  v-else
-                  :to="link.path"
-                  class="block px-4 py-2.5 text-sm transition-colors rounded-lg"
-                  active-class="bg-emerald-500/10 text-emerald-400 font-medium"
-                  :class="currentArticlePath === link.path ? 'bg-emerald-500/10 text-emerald-400 font-medium' : 'text-zinc-400 hover:text-zinc-100 hover:bg-zinc-900'"
-                  @click="isSidebarOpen = false"
-                >
-                  <span class="truncate pr-2">{{ link.title }}</span>
-                </NuxtLink>
-              </template>
+                  <NuxtLink
+                    v-else
+                    :to="link.path"
+                    class="min-w-0 flex-1 px-4 py-2.5 text-sm"
+                    @click="isSidebarOpen = false"
+                  >
+                    <span class="block truncate pr-2">{{ link.title }}</span>
+                  </NuxtLink>
+
+                  <button
+                    v-if="link.tocLinks.length"
+                    type="button"
+                    class="p-2 mr-1 rounded-md text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800 transition-colors"
+                    :aria-expanded="isExpanded(link.path)"
+                    :aria-label="isExpanded(link.path) ? `Hide ${link.title} subheaders` : `Show ${link.title} subheaders`"
+                    @click="toggleAccordion(link.path)"
+                  >
+                    <ChevronDown v-if="isExpanded(link.path)" class="w-4 h-4" />
+                    <ChevronRight v-else class="w-4 h-4" />
+                  </button>
+                </div>
+
+                <div v-if="isExpanded(link.path) && link.tocLinks.length" class="ml-4 mt-1 space-y-1 border-l border-zinc-800 pl-2">
+                  <template v-for="tocLink in link.tocLinks" :key="tocLink.id">
+                    <button
+                      v-if="mode === 'modal'"
+                      type="button"
+                      class="block w-full truncate rounded-md px-2 py-1.5 text-left text-sm text-zinc-400 transition-colors hover:bg-zinc-800/50 hover:text-white"
+                      @click="navigateInModal(`${link.path}#${tocLink.id}`)"
+                    >
+                      {{ tocLink.text }}
+                    </button>
+
+                    <NuxtLink
+                      v-else
+                      :to="`${link.path}#${tocLink.id}`"
+                      class="block truncate rounded-md px-2 py-1.5 text-sm text-zinc-400 transition-colors hover:bg-zinc-800/50 hover:text-white"
+                      @click="isSidebarOpen = false"
+                    >
+                      {{ tocLink.text }}
+                    </NuxtLink>
+                  </template>
+                </div>
+              </div>
             </template>
           </nav>
         </div>
       </aside>
 
-      <main class="flex-1 min-w-0 bg-black">
+      <main class="flex-1 min-w-0 bg-black overflow-y-auto">
         <div class="max-w-4xl mx-auto px-4 py-8 md:px-8 lg:px-12">
           <HelpArticleViewer
             :path="activePath"
@@ -134,20 +170,23 @@
 </template>
 
 <script setup lang="ts">
-import { ArrowLeft as ArrowLeftIcon, Menu as MenuIcon, Moon as MoonIcon, Sun as SunIcon, X as XIcon } from 'lucide-vue-next';
+import { useAsyncData, useHead } from '#app';
+import { queryCollection } from '#imports';
+import { ArrowLeft as ArrowLeftIcon, ChevronDown, ChevronRight, Menu as MenuIcon, Moon as MoonIcon, Sun as SunIcon, X as XIcon } from 'lucide-vue-next';
 import { computed, ref, watch } from 'vue';
 import { DEFAULT_HELP_PATH, getHelpArticlePath, type HelpCenterMode } from '~/utils/helpCenter';
 import { useThemeMode } from '~/composables/useThemeMode';
+import HelpArticleViewer from './HelpArticleViewer.vue';
 
 interface HelpNavigationLink {
   path: string;
   title: string;
+  tocLinks: HelpTocLink[];
 }
 
-interface HelpNavigationItem {
-  path?: string;
-  title?: string;
-  children?: HelpNavigationItem[];
+interface HelpTocLink {
+  id: string;
+  text: string;
 }
 
 const props = withDefaults(defineProps<{
@@ -165,26 +204,31 @@ const emit = defineEmits<{
 
 const { isLightMode, themeToggleTitle, toggleThemeMode } = useThemeMode();
 const isSidebarOpen = ref(false);
+const expandedNavs = ref<Record<string, boolean>>({});
 const currentArticlePath = computed(() => getHelpArticlePath(props.activePath));
 
-const flattenNavigation = (items: HelpNavigationItem[]): HelpNavigationLink[] => {
-  return items.flatMap((item) => {
-    const children = item.children ? flattenNavigation(item.children) : [];
-    if (!item.path || !item.path.startsWith('/help-center/')) return children;
+const isRecord = (value: unknown): value is Record<string, unknown> => {
+  return typeof value === 'object' && value !== null;
+};
 
-    return [
-      {
-        path: item.path,
-        title: item.title || item.path.split('/').pop() || item.path
-      },
-      ...children
-    ];
+const getTocLinks = (body: unknown): HelpTocLink[] => {
+  if (!isRecord(body) || !isRecord(body.toc) || !Array.isArray(body.toc.links)) return [];
+
+  return body.toc.links.flatMap((link) => {
+    if (!isRecord(link) || typeof link.id !== 'string' || typeof link.text !== 'string') return [];
+    return [{ id: link.id, text: link.text }];
   });
 };
 
-const { data: navigation, pending, error } = await useAsyncData('help-navigation', async () => {
-  const items = await queryCollectionNavigation('docs', ['order']).order('order', 'ASC');
-  return flattenNavigation(items);
+const { data: navigation, pending, error } = useAsyncData('help-navigation', async () => {
+  const docs = await queryCollection('docs').select('title', 'path', 'order', 'body').all();
+  return docs
+    .sort((a, b) => (Number(a.order) || 0) - (Number(b.order) || 0))
+    .map((doc) => ({
+      path: doc.path,
+      title: doc.title || doc.path.split('/').pop() || doc.path,
+      tocLinks: getTocLinks(doc.body)
+    }));
 });
 
 const navigationLinks = computed<HelpNavigationLink[]>(() => navigation.value ?? []);
@@ -194,8 +238,17 @@ const navigateInModal = (path: string) => {
   emit('navigate', path);
 };
 
+const isExpanded = (path: string) => expandedNavs.value[path] === true;
+
+const toggleAccordion = (path: string) => {
+  expandedNavs.value[path] = !isExpanded(path);
+};
+
 watch(currentArticlePath, () => {
   isSidebarOpen.value = false;
+  if (expandedNavs.value[currentArticlePath.value] === undefined) {
+    expandedNavs.value[currentArticlePath.value] = true;
+  }
 }, { immediate: true });
 
 useHead({
