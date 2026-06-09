@@ -109,7 +109,8 @@
     </nav>
 
     <!-- Mobile Menu Modal -->
-    <Teleport to="body">
+    <ClientOnly>
+      <Teleport to="body">
       <!-- Backdrop Transition -->
       <Transition
         enter-active-class="transition-opacity duration-300 ease-out"
@@ -188,7 +189,8 @@
           </div>
         </div>
       </Transition>
-    </Teleport>
+      </Teleport>
+    </ClientOnly>
 
     <!-- Unified Profile Modal Component -->
     <ProfileModal v-model="showProfileModal" />

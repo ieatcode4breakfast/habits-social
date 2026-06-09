@@ -70,7 +70,8 @@ const mountModal = (habitOverrides: Record<string, unknown> = {}) =>
     global: {
       stubs: {
         Teleport: true,
-        UserAvatar: true
+        UserAvatar: true,
+        ClientOnly: { template: '<slot />' }
       }
     }
   });

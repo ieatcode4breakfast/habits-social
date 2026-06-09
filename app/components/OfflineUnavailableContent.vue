@@ -6,10 +6,10 @@
 
       <div class="text-center space-y-4 relative">
         <div class="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-zinc-800/50 border border-zinc-700/30 mb-2 relative">
-          <Wifi v-if="isOnline" class="w-8 h-8 text-emerald-400" />
+          <Wifi v-if="isOnlineMounted" class="w-8 h-8 text-emerald-400" />
           <WifiOff v-else class="w-8 h-8 text-zinc-500" />
 
-          <div v-if="isOnline" class="absolute -top-1 -right-1 w-3 h-3 bg-emerald-500 rounded-full border-2 border-zinc-900"></div>
+          <div v-if="isOnlineMounted" class="absolute -top-1 -right-1 w-3 h-3 bg-emerald-500 rounded-full border-2 border-zinc-900"></div>
           <div v-else class="absolute -top-1 -right-1 w-3 h-3 bg-zinc-650 rounded-full border-2 border-zinc-900"></div>
         </div>
 
@@ -25,7 +25,7 @@
           }}
         </p>
 
-        <div v-if="isOnline" class="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-500/10 border border-emerald-500/25 rounded-full text-emerald-400 text-xs font-semibold">
+        <div v-if="isOnlineMounted" class="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-500/10 border border-emerald-500/25 rounded-full text-emerald-400 text-xs font-semibold">
           <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
           Your internet connection has returned
         </div>
@@ -37,18 +37,18 @@
             to="/login"
             :class="[
               'w-full py-3 flex items-center justify-center gap-2 font-semibold rounded-xl transition-all text-sm border shadow-lg cursor-pointer active:scale-[0.98]',
-              isOnline
+              isOnlineMounted
                 ? 'bg-white hover:bg-zinc-200 text-black border-white shadow-white/5'
                 : 'bg-zinc-850 text-zinc-500 border-zinc-800 shadow-none cursor-not-allowed opacity-50'
             ]"
-            :style="!isOnline ? 'pointer-events: none;' : ''"
+            :style="!isOnlineMounted ? 'pointer-events: none;' : ''"
           >
             <LogIn class="w-4 h-4" />
             Try again online
           </NuxtLink>
         </template>
 
-        <template v-else-if="hasOfflineSession">
+        <template v-else-if="hasOfflineSessionMounted">
           <div class="grid grid-cols-2 gap-3">
             <NuxtLink
               to="/habits"
@@ -81,6 +81,22 @@ const props = defineProps<{
 }>();
 
 const { isOnline } = useNetwork();
+const isOnlineMounted = ref(true);
+const hasOfflineSessionMounted = ref(false);
+
+onMounted(() => {
+  isOnlineMounted.value = isOnline.value;
+  hasOfflineSessionMounted.value = !!user.value?.id || hasCachedAuthUser(localStorage);
+});
+
+watch(isOnline, (val) => {
+  isOnlineMounted.value = val;
+});
+
+watch(() => user.value?.id, (newId) => {
+  hasOfflineSessionMounted.value = !!newId || (import.meta.client && hasCachedAuthUser(localStorage));
+});
+
 const { user } = useAuth();
 
 const isSessionReason = computed(() => props.reason === 'session');

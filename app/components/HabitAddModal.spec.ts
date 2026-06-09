@@ -13,7 +13,8 @@ const mountModal = () =>
     },
     global: {
       stubs: {
-        Teleport: true
+        Teleport: true,
+        ClientOnly: { template: '<slot />' }
       }
     }
   });

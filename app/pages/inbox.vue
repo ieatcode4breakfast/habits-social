@@ -466,7 +466,8 @@
     </div>
 
     <!-- New Chat Modal -->
-    <Teleport to="body">
+    <ClientOnly>
+      <Teleport to="body">
       <Transition
         enter-active-class="transition duration-300 ease-out"
         enter-from-class="opacity-0 scale-95"
@@ -543,9 +544,11 @@
         </div>
       </Transition>
     </Teleport>
+    </ClientOnly>
 
     <!-- Clear Chat Modal -->
-    <Teleport to="body">
+    <ClientOnly>
+      <Teleport to="body">
       <Transition
         enter-active-class="transition duration-300 ease-out"
         enter-from-class="opacity-0 scale-95"
@@ -593,10 +596,12 @@
           </div>
         </div>
       </Transition>
-    </Teleport>
+      </Teleport>
+    </ClientOnly>
 
     <!-- Delete Message Confirmation Modal -->
-    <Teleport to="body">
+    <ClientOnly>
+      <Teleport to="body">
       <Transition
         enter-active-class="transition duration-300 ease-out"
         enter-from-class="opacity-0 scale-95"
@@ -644,7 +649,8 @@
           </div>
         </div>
       </Transition>
-    </Teleport>
+      </Teleport>
+    </ClientOnly>
 
     <HabitDetailsModal
       v-model="showHabitModal"

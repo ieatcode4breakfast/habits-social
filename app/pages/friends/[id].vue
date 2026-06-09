@@ -231,7 +231,8 @@
     />
 
     <!-- Unfriend Confirmation Modal -->
-    <Teleport to="body">
+    <ClientOnly>
+      <Teleport to="body">
       <Transition
         enter-active-class="transition duration-300 ease-out"
         enter-from-class="opacity-0 scale-95"
@@ -262,8 +263,10 @@
         </div>
       </Transition>
     </Teleport>
+    </ClientOnly>
     <!-- Cancel Request Confirmation Modal -->
-    <Teleport to="body">
+    <ClientOnly>
+      <Teleport to="body">
       <Transition
         enter-active-class="transition duration-300 ease-out"
         enter-from-class="opacity-0 scale-95"
@@ -293,10 +296,12 @@
           </div>
         </div>
       </Transition>
-    </Teleport>
+      </Teleport>
+    </ClientOnly>
 
     <!-- Block Confirmation Modal -->
-    <Teleport to="body">
+    <ClientOnly>
+      <Teleport to="body">
       <Transition
         enter-active-class="transition duration-300 ease-out"
         enter-from-class="opacity-0 scale-95"
@@ -327,7 +332,8 @@
           </div>
         </div>
       </Transition>
-    </Teleport>
+      </Teleport>
+    </ClientOnly>
 
     <!-- Friend Profile Menu Popover -->
     <FriendProfileMenu

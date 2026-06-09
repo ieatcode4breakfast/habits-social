@@ -9,7 +9,8 @@
     <HelpCenterModal />
 
     <!-- Global Toast Notification -->
-    <Teleport to="body">
+    <ClientOnly>
+      <Teleport to="body">
       <Transition
         enter-active-class="transition duration-300 ease-out"
         enter-from-class="opacity-0 translate-y-4 scale-95"
@@ -33,7 +34,8 @@
           <span class="text-sm font-bold tracking-tight text-white text-center">{{ message }}</span>
         </div>
       </Transition>
-    </Teleport>
+      </Teleport>
+    </ClientOnly>
   </div>
 </template>
 

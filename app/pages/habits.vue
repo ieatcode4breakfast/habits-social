@@ -67,9 +67,9 @@
     </div>
 
     <!-- Offline Banner -->
-    <div v-if="!isOnline" class="mx-4 sm:mx-0 my-2 px-4 py-2.5 bg-amber-500/10 border border-amber-500/20 rounded-xl flex items-center gap-2.5 text-amber-500 text-xs font-semibold">
+    <div v-if="!isOnlineMounted" class="mx-4 sm:mx-0 my-2 px-4 py-2.5 bg-amber-500/10 border border-amber-500/20 rounded-xl flex items-center gap-2.5 text-amber-500 text-xs font-semibold">
       <WifiOff class="w-4 h-4 shrink-0" />
-      <span>Offline. Changes are saved on this device and will sync when you’re back online.</span>
+      <span>Offline. Changes are saved on this device and will sync when youΓÇÖre back online.</span>
     </div>
 
     <!-- Habit List (Single Card) -->
@@ -205,126 +205,130 @@
     />
 
     <!-- Reply to Habit Friend Select Modal -->
-    <Teleport to="body">
-      <Transition
-        enter-active-class="transition duration-300 ease-out"
-        enter-from-class="opacity-0 scale-95"
-        enter-to-class="opacity-100 scale-100"
-        leave-active-class="transition duration-200 ease-in"
-        leave-from-class="opacity-100 scale-100"
-        leave-to-class="opacity-0 scale-95"
-      >
-        <div
-          v-if="showHabitReplyFriendSelectModal"
-          class="fixed inset-0 z-[150] flex items-center justify-center p-4"
+    <ClientOnly>
+      <Teleport to="body">
+        <Transition
+          enter-active-class="transition duration-300 ease-out"
+          enter-from-class="opacity-0 scale-95"
+          enter-to-class="opacity-100 scale-100"
+          leave-active-class="transition duration-200 ease-in"
+          leave-from-class="opacity-100 scale-100"
+          leave-to-class="opacity-0 scale-95"
         >
-          <div class="fixed inset-0 bg-black/80 backdrop-blur-sm touch-none" @click="showHabitReplyFriendSelectModal = false"></div>
+          <div
+            v-if="showHabitReplyFriendSelectModal"
+            class="fixed inset-0 z-[150] flex items-center justify-center p-4"
+          >
+            <div class="fixed inset-0 bg-black/80 backdrop-blur-sm touch-none" @click="showHabitReplyFriendSelectModal = false"></div>
 
-          <div class="relative w-full max-w-sm bg-zinc-925 border border-zinc-800 rounded-2xl shadow-2xl flex flex-col max-h-[80vh] overflow-hidden select-none">
-            <div class="p-4 border-b border-zinc-800/60 flex items-center justify-between">
-              <h3 class="text-sm font-bold text-white">Chat about this habit with</h3>
-              <button
-                @click="showHabitReplyFriendSelectModal = false"
-                class="p-1 hover:bg-zinc-850 rounded-lg text-zinc-400 hover:text-white transition-colors cursor-pointer"
-              >
-                <XIcon class="w-4 h-4" />
-              </button>
-            </div>
-
-            <div class="px-3 pt-2 pb-1">
-              <input
-                v-model="replyFriendSearchQuery"
-                type="text"
-                placeholder="Filter friends..."
-                class="w-full bg-zinc-900 border border-zinc-800 text-white text-sm rounded-xl px-4 py-2 focus:outline-none focus:border-zinc-700 transition-colors"
-              />
-            </div>
-
-            <div class="flex-1 overflow-y-auto p-2 space-y-1">
-              <div v-if="acceptedFriends.length === 0" class="py-12 text-center text-zinc-500 italic text-sm">
-                You don't have any friends yet. Go to the
-                <button type="button" @click="goToFriendsSection" class="text-zinc-200 hover:text-white underline underline-offset-2 transition-colors cursor-pointer">
-                  Friends
+            <div class="relative w-full max-w-sm bg-zinc-925 border border-zinc-800 rounded-2xl shadow-2xl flex flex-col max-h-[80vh] overflow-hidden select-none">
+              <div class="p-4 border-b border-zinc-800/60 flex items-center justify-between">
+                <h3 class="text-sm font-bold text-white">Chat about this habit with</h3>
+                <button
+                  @click="showHabitReplyFriendSelectModal = false"
+                  class="p-1 hover:bg-zinc-850 rounded-lg text-zinc-400 hover:text-white transition-colors cursor-pointer"
+                >
+                  <XIcon class="w-4 h-4" />
                 </button>
-                section to add them.
-              </div>
-              <div v-else-if="filteredReplyFriends.length === 0" class="py-12 text-center text-zinc-500 italic text-sm">
-                No friends found matching your filter.
               </div>
 
-              <button
-                v-for="friend in filteredReplyFriends"
-                :key="friend.id"
-                @click="selectFriendForHabitReply(friend)"
-                :disabled="replyFriendActionId === friend.id"
-                class="w-full text-left p-3 rounded-xl hover:bg-zinc-900/60 transition-colors flex items-center gap-3 cursor-pointer outline-none border border-transparent disabled:opacity-60 disabled:cursor-wait"
-              >
-                <UserAvatar
-                  :src="friend.photoUrl"
-                  container-class="w-9 h-9 bg-zinc-900"
-                  icon-class="w-5 h-5 text-zinc-600"
+              <div class="px-3 pt-2 pb-1">
+                <input
+                  v-model="replyFriendSearchQuery"
+                  type="text"
+                  placeholder="Filter friends..."
+                  class="w-full bg-zinc-900 border border-zinc-800 text-white text-sm rounded-xl px-4 py-2 focus:outline-none focus:border-zinc-700 transition-colors"
                 />
+              </div>
 
-                <div class="flex-1 min-w-0">
-                  <div class="flex items-center gap-1.5">
-                    <div class="text-sm font-bold text-white truncate">{{ friend.username || 'Unknown' }}</div>
-                    <Star v-if="isFriendFavorite(friend)" class="w-3 h-3 text-amber-400 fill-amber-400 shrink-0" />
-                    <div v-if="replyFriendActionId === friend.id" class="w-3 h-3 border-2 border-zinc-500/30 border-t-zinc-300 rounded-full animate-spin shrink-0"></div>
-                  </div>
+              <div class="flex-1 overflow-y-auto p-2 space-y-1">
+                <div v-if="acceptedFriends.length === 0" class="py-12 text-center text-zinc-500 italic text-sm">
+                  You don't have any friends yet. Go to the
+                  <button type="button" @click="goToFriendsSection" class="text-zinc-200 hover:text-white underline underline-offset-2 transition-colors cursor-pointer">
+                    Friends
+                  </button>
+                  section to add them.
                 </div>
-              </button>
+                <div v-else-if="filteredReplyFriends.length === 0" class="py-12 text-center text-zinc-500 italic text-sm">
+                  No friends found matching your filter.
+                </div>
+
+                <button
+                  v-for="friend in filteredReplyFriends"
+                  :key="friend.id"
+                  @click="selectFriendForHabitReply(friend)"
+                  :disabled="replyFriendActionId === friend.id"
+                  class="w-full text-left p-3 rounded-xl hover:bg-zinc-900/60 transition-colors flex items-center gap-3 cursor-pointer outline-none border border-transparent disabled:opacity-60 disabled:cursor-wait"
+                >
+                  <UserAvatar
+                    :src="friend.photoUrl"
+                    container-class="w-9 h-9 bg-zinc-900"
+                    icon-class="w-5 h-5 text-zinc-600"
+                  />
+
+                  <div class="flex-1 min-w-0">
+                    <div class="flex items-center gap-1.5">
+                      <div class="text-sm font-bold text-white truncate">{{ friend.username || 'Unknown' }}</div>
+                      <Star v-if="isFriendFavorite(friend)" class="w-3 h-3 text-amber-400 fill-amber-400 shrink-0" />
+                      <div v-if="replyFriendActionId === friend.id" class="w-3 h-3 border-2 border-zinc-500/30 border-t-zinc-300 rounded-full animate-spin shrink-0"></div>
+                    </div>
+                  </div>
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      </Transition>
-    </Teleport>
+        </Transition>
+      </Teleport>
+    </ClientOnly>
 
     <!-- Share Before Habit Reply Confirmation Modal -->
-    <Teleport to="body">
-      <Transition
-        enter-active-class="transition duration-300 ease-out"
-        enter-from-class="opacity-0 scale-95"
-        enter-to-class="opacity-100 scale-100"
-        leave-active-class="transition duration-200 ease-in"
-        leave-from-class="opacity-100 scale-100"
-        leave-to-class="opacity-0 scale-95"
-      >
-        <div v-if="showShareBeforeReplyModal" class="fixed inset-0 z-[160] flex items-center justify-center p-4">
-          <div class="absolute inset-0 bg-black/80 backdrop-blur-md touch-none" @click="closeShareBeforeReplyModal"></div>
-          <div class="relative w-full max-w-sm bg-zinc-925 border border-zinc-800 rounded-3xl shadow-2xl p-8 text-center">
-            <div class="w-16 h-16 bg-zinc-925 rounded-full flex items-center justify-center mx-auto mb-4">
-              <UserPlus class="w-8 h-8 text-zinc-200" />
-            </div>
-            <h2 class="text-xl font-bold text-white mb-2">Share habit with {{ pendingShareFriendName }}?</h2>
-            <p class="text-zinc-500 mb-8 text-sm">
-              This habit is not currently shared with <span class="text-zinc-200 font-medium">{{ pendingShareFriendName }}</span>.
-            </p>
-            <div class="flex gap-3 mt-2">
-              <button
-                @click="closeShareBeforeReplyModal"
-                :disabled="shareReplyLoading"
-                class="flex-1 px-5 py-3 bg-transparent hover:bg-zinc-800 text-zinc-400 hover:text-zinc-200 font-semibold rounded-xl transition-all cursor-pointer whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Cancel
-              </button>
-              <button
-                @click="executeShareBeforeHabitReply"
-                :disabled="shareReplyLoading"
-                class="flex-1 px-5 py-3 bg-white hover:bg-zinc-200 text-black font-semibold rounded-xl transition-all shadow-lg shadow-white/5 cursor-pointer whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-              >
-                <template v-if="shareReplyLoading">
-                  <div class="w-4 h-4 border-2 border-black/20 border-t-black rounded-full animate-spin"></div>
-                  Sharing...
-                </template>
-                <template v-else>
-                  Share
-                </template>
-              </button>
+    <ClientOnly>
+      <Teleport to="body">
+        <Transition
+          enter-active-class="transition duration-300 ease-out"
+          enter-from-class="opacity-0 scale-95"
+          enter-to-class="opacity-100 scale-100"
+          leave-active-class="transition duration-200 ease-in"
+          leave-from-class="opacity-100 scale-100"
+          leave-to-class="opacity-0 scale-95"
+        >
+          <div v-if="showShareBeforeReplyModal" class="fixed inset-0 z-[160] flex items-center justify-center p-4">
+            <div class="absolute inset-0 bg-black/80 backdrop-blur-md touch-none" @click="closeShareBeforeReplyModal"></div>
+            <div class="relative w-full max-w-sm bg-zinc-925 border border-zinc-800 rounded-3xl shadow-2xl p-8 text-center">
+              <div class="w-16 h-16 bg-zinc-925 rounded-full flex items-center justify-center mx-auto mb-4">
+                <UserPlus class="w-8 h-8 text-zinc-200" />
+              </div>
+              <h2 class="text-xl font-bold text-white mb-2">Share habit with {{ pendingShareFriendName }}?</h2>
+              <p class="text-zinc-500 mb-8 text-sm">
+                This habit is not currently shared with <span class="text-zinc-200 font-medium">{{ pendingShareFriendName }}</span>.
+              </p>
+              <div class="flex gap-3 mt-2">
+                <button
+                  @click="closeShareBeforeReplyModal"
+                  :disabled="shareReplyLoading"
+                  class="flex-1 px-5 py-3 bg-transparent hover:bg-zinc-850 text-zinc-400 hover:text-zinc-200 font-semibold rounded-xl transition-all cursor-pointer whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Cancel
+                </button>
+                <button
+                  @click="executeShareBeforeHabitReply"
+                  :disabled="shareReplyLoading"
+                  class="flex-1 px-5 py-3 bg-white hover:bg-zinc-200 text-black font-semibold rounded-xl transition-all shadow-lg shadow-white/5 cursor-pointer whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                >
+                  <template v-if="shareReplyLoading">
+                    <div class="w-4 h-4 border-2 border-black/20 border-t-black rounded-full animate-spin"></div>
+                    Sharing...
+                  </template>
+                  <template v-else>
+                    Share
+                  </template>
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      </Transition>
-    </Teleport>
+        </Transition>
+      </Teleport>
+    </ClientOnly>
   </div>
 </template>
 
@@ -392,6 +396,11 @@ const pullStyle = computed(() => {
 const { friends: rawFriends, refresh: refreshSocial, init: initSocial, cleanup: cleanupSocial } = useSocial();
 const showProfileModal = useState('showProfileModal', () => false);
 const { isOnline } = useNetwork();
+const isOnlineMounted = ref(true);
+
+watch(isOnline, (val) => {
+  isOnlineMounted.value = val;
+});
 
 const openProfileModal = () => {
   if (!isOnline.value) {
@@ -922,6 +931,7 @@ watch(showHabitReplyFriendSelectModal, (val) => {
 // Social integration is now handled by useSocial
 
 onMounted(() => {
+  isOnlineMounted.value = isOnline.value;
   // Social state is now initialized globally in default.vue layout
   load();
   if (isOnline.value) {

@@ -1,7 +1,8 @@
 <template>
   <div>
     <!-- Edit Profile Modal -->
-    <Teleport to="body">
+    <ClientOnly>
+      <Teleport to="body">
       <Transition
         enter-active-class="transition duration-300 ease-out"
         enter-from-class="opacity-0 scale-95"
@@ -220,10 +221,12 @@
           </div>
         </div>
       </Transition>
-    </Teleport>
+      </Teleport>
+    </ClientOnly>
 
     <!-- Unsaved Changes Warning Modal -->
-    <Teleport to="body">
+    <ClientOnly>
+      <Teleport to="body">
       <Transition
         enter-active-class="transition duration-300 ease-out"
         enter-from-class="opacity-0 scale-95"
@@ -262,10 +265,12 @@
           </div>
         </div>
       </Transition>
-    </Teleport>
+      </Teleport>
+    </ClientOnly>
 
     <!-- Confirm Profile Update Modal -->
-    <Teleport to="body">
+    <ClientOnly>
+      <Teleport to="body">
       <Transition
         enter-active-class="transition duration-300 ease-out"
         enter-from-class="opacity-0 scale-95"
@@ -308,10 +313,12 @@
           </div>
         </div>
       </Transition>
-    </Teleport>
+      </Teleport>
+    </ClientOnly>
 
     <!-- Delete Account Warning Modal -->
-    <Teleport to="body">
+    <ClientOnly>
+      <Teleport to="body">
       <Transition
         enter-active-class="transition duration-300 ease-out"
         enter-from-class="opacity-0 scale-95"
@@ -350,10 +357,12 @@
           </div>
         </div>
       </Transition>
-    </Teleport>
+      </Teleport>
+    </ClientOnly>
 
     <!-- Delete Account Password Modal -->
-    <Teleport to="body">
+    <ClientOnly>
+      <Teleport to="body">
       <Transition
         enter-active-class="transition duration-300 ease-out"
         enter-from-class="opacity-0 scale-95"
@@ -423,7 +432,8 @@
           </div>
         </div>
       </Transition>
-    </Teleport>
+      </Teleport>
+    </ClientOnly>
   </div>
 </template>
 

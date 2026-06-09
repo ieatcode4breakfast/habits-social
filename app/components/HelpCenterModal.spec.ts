@@ -58,7 +58,8 @@ const mountModal = async () => {
     global: {
       stubs: {
         HelpCenterUI: HelpCenterUIStub,
-        Teleport: true
+        Teleport: true,
+        ClientOnly: { template: '<slot />' }
       }
     }
   });

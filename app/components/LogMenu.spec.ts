@@ -38,6 +38,11 @@ const mountOpenLogMenu = async (overrides: {
       date: null,
       logs: [],
       referenceEl: null
+    },
+    global: {
+      stubs: {
+        ClientOnly: { template: '<slot />' }
+      }
     }
   });
 
