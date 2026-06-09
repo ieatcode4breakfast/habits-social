@@ -100,9 +100,4 @@ watch(() => user.value?.id, (newId) => {
 const { user } = useAuth();
 
 const isSessionReason = computed(() => props.reason === 'session');
-const hasOfflineSession = computed(() => {
-  if (user.value?.id) return true;
-  if (!import.meta.client) return false;
-  return hasCachedAuthUser(localStorage);
-});
 </script>

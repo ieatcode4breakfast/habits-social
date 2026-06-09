@@ -69,7 +69,7 @@
     <!-- Offline Banner -->
     <div v-if="!isOnlineMounted" class="mx-4 sm:mx-0 my-2 px-4 py-2.5 bg-amber-500/10 border border-amber-500/20 rounded-xl flex items-center gap-2.5 text-amber-500 text-xs font-semibold">
       <WifiOff class="w-4 h-4 shrink-0" />
-      <span>Offline. Changes are saved on this device and will sync when youΓÇÖre back online.</span>
+      <span>Offline. Changes are saved on this device and will sync when you're back online.</span>
     </div>
 
     <!-- Habit List (Single Card) -->
