@@ -21,7 +21,7 @@ For each day, the app looks at every habit log inside the bucket and picks the b
 | 4 | <span style="display:inline-flex;align-items:center;justify-content:center;width:1.25rem;height:1.25rem;border-radius:9999px;background:#71717a;color:white;font-size:.75rem;flex-shrink:0;">−</span> Skipped | More habits are skipped than on vacation (or the count is tied). |
 | 5 | <span style="display:inline-flex;align-items:center;justify-content:center;width:1.25rem;height:1.25rem;border-radius:9999px;background:#f59e0b;color:white;font-size:.75rem;flex-shrink:0;">🌴</span> Vacation | More habits are on vacation than skipped. |
 
-The app checks these conditions in order and stops at the first one that matches. This means that showing up and logging every habit matters, but completing them all is not required: as long as each habit in the bucket has a log for the day, completing just one habit is enough to mark the whole bucket as completed and extend the streak.
+The app checks these conditions in order and stops at the first one that matches. This means that showing up every day and logging every habit matters, but completing them all is not required: as long as each habit in the bucket has a log for the day, completing just one habit is enough to mark the whole bucket as completed and extend the streak.
 
 ## How bucket streaks work
 
