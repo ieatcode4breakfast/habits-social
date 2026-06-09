@@ -53,8 +53,7 @@
               day.status === 'completed' ? 'bg-emerald-500 border-emerald-500' :
               day.status === 'failed' ? 'bg-rose-500 border-rose-500' :
               day.status === 'skipped' ? 'bg-zinc-500 border-zinc-500' :
-              day.status === 'vacation' ? 'bg-amber-500 border-amber-500' :
-              'bg-transparent border-dashed border-zinc-800',
+              'bg-transparent border-dashed border-zinc-400 dark:border-zinc-600',
               
               // Normal shadows for boxes
               day.status === 'completed' ? 'shadow-md shadow-emerald-500/20' :

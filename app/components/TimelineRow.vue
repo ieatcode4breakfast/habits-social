@@ -21,8 +21,8 @@
               statusMap[format(day, 'yyyy-MM-dd')] === 'skipped' ? 'bg-zinc-500 border-zinc-500 shadow-none' :
               statusMap[format(day, 'yyyy-MM-dd')] === 'vacation' ? 'bg-amber-500 border-amber-500 shadow-md shadow-amber-500/20' :
               isMarkable(day, referenceDate) 
-                ? (interactive ? 'bg-transparent border-dashed border-zinc-800 hover:bg-zinc-925' : 'bg-transparent border-dashed border-zinc-800')
-                : 'bg-white/[0.03] border-dashed border-zinc-900',
+                ? (interactive ? 'bg-transparent border-dashed border-zinc-400 dark:border-zinc-600 hover:bg-zinc-100 dark:hover:bg-zinc-800' : 'bg-transparent border-dashed border-zinc-400 dark:border-zinc-600')
+                : 'bg-zinc-100 dark:bg-white/[0.03] border-dashed border-zinc-300 dark:border-zinc-800',
               !isMarkable(day, referenceDate) && statusMap[format(day, 'yyyy-MM-dd')] ? 'opacity-60' : ''
             ]"
           >

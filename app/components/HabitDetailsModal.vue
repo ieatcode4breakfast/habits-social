@@ -108,7 +108,7 @@
                           getStatus(day) === 'completed' ? 'bg-emerald-500 border-emerald-500 shadow-md shadow-emerald-500/20' :
                           getStatus(day) === 'failed' ? 'bg-rose-500 border-rose-500 shadow-md shadow-rose-500/20' :
                           getStatus(day) === 'skipped' ? 'bg-zinc-500 border-zinc-500 shadow-none' :
-                          'border-dashed border-zinc-800 bg-transparent'
+                          'border-dashed border-zinc-400 dark:border-zinc-600 bg-transparent'
                         ]"
                       >
                         <Check v-if="getStatus(day) === 'completed'" class="w-3 h-3 text-white" />

@@ -130,7 +130,7 @@
                             statusMap[format(day, 'yyyy-MM-dd')] === 'failed' ? 'bg-rose-500 border-rose-500 shadow-md shadow-rose-500/20' :
                             statusMap[format(day, 'yyyy-MM-dd')] === 'skipped' ? 'bg-zinc-500 border-zinc-500 shadow-none' :
                             statusMap[format(day, 'yyyy-MM-dd')] === 'vacation' ? 'bg-amber-500 border-amber-500 shadow-md shadow-amber-500/20' :
-                            isMarkable(day) ? 'border-dashed border-zinc-800 bg-transparent' : 'bg-white/[0.03] border-dashed border-zinc-900'
+                            isMarkable(day) ? 'border-dashed border-zinc-400 dark:border-zinc-600 bg-transparent' : 'bg-zinc-100 dark:bg-white/[0.03] border-dashed border-zinc-300 dark:border-zinc-800'
                           ]"
                         >
                           <Check v-if="statusMap[format(day, 'yyyy-MM-dd')] === 'completed'" class="w-4 h-4 text-white" />
