@@ -108,12 +108,14 @@
                           getStatus(day) === 'completed' ? 'bg-emerald-500 border-emerald-500 shadow-md shadow-emerald-500/20' :
                           getStatus(day) === 'failed' ? 'bg-rose-500 border-rose-500 shadow-md shadow-rose-500/20' :
                           getStatus(day) === 'skipped' ? 'bg-zinc-500 border-zinc-500 shadow-none' :
+                          getStatus(day) === 'vacation' ? 'bg-amber-500 border-amber-500 shadow-md shadow-amber-500/20' :
                           'border-dashed border-zinc-400 dark:border-zinc-600 bg-transparent'
                         ]"
                       >
                         <Check v-if="getStatus(day) === 'completed'" class="w-3 h-3 text-white" />
                         <XIcon v-else-if="getStatus(day) === 'failed'" class="w-3 h-3 text-white" />
                         <span v-else-if="getStatus(day) === 'skipped'" class="w-3 h-0.5 bg-white rounded-full"></span>
+                        <Palmtree v-else-if="getStatus(day) === 'vacation'" class="w-3 h-3 text-white" />
                       </div>
                       <div class="text-[9px] font-bold" :class="[
                         day.getMonth() === currentCalendarDate.getMonth() ? 'text-white' : 'text-zinc-600',
@@ -139,7 +141,7 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue';
 import { useModalHistory } from '~/composables/useModalHistory';
-import { ChevronLeft, ChevronRight, Check, X as XIcon, Flame } from 'lucide-vue-next';
+import { ChevronLeft, ChevronRight, Check, X as XIcon, Flame, Palmtree } from 'lucide-vue-next';
 import { format, parseISO, startOfMonth, endOfMonth, eachDayOfInterval, subDays, addDays, isAfter, startOfDay, subMonths, addMonths } from 'date-fns';
 
 const props = defineProps<{
