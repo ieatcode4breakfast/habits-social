@@ -156,7 +156,7 @@
         </div>
       </aside>
 
-      <main class="flex-1 min-w-0 bg-black overflow-y-auto">
+      <main class="flex-1 min-w-0 bg-zinc-950 overflow-y-auto">
         <div class="max-w-4xl mx-auto px-4 py-8 md:px-8 lg:px-12">
           <HelpArticleViewer
             :path="activePath"
