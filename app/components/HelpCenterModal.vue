@@ -29,7 +29,7 @@
             />
 
             <template #fallback>
-              <div class="min-h-[100dvh] bg-zinc-950 text-zinc-100 flex items-center justify-center">
+              <div class="min-h-[100dvh] text-zinc-100 flex items-center justify-center">
                 <h1 id="help-center-modal-title" class="sr-only">Help Center</h1>
                 <button
                   type="button"
