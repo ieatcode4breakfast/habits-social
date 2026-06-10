@@ -381,12 +381,14 @@ const api = useHabitsApi();
 const { user } = useAuth();
 const { lastSyncTime } = api;
 
+const isMounted = ref(false);
+
 const { pullDistance, isPulling, isRefreshing } = usePullToRefresh(async () => {
   await load();
 });
 
 const pullStyle = computed(() => {
-  const useTransition = !isPulling.value && !loading.value && !isRefreshing.value;
+  const useTransition = isMounted.value && !isPulling.value && !loading.value && !isRefreshing.value;
   return {
     transform: 'translateY(var(--pull-distance, 0px))',
     transition: useTransition ? 'transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)' : 'none'
@@ -931,6 +933,7 @@ watch(showHabitReplyFriendSelectModal, (val) => {
 // Social integration is now handled by useSocial
 
 onMounted(() => {
+  isMounted.value = true;
   isOnlineMounted.value = isOnline.value;
   // Social state is now initialized globally in default.vue layout
   load();

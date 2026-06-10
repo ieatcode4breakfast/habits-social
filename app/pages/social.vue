@@ -524,6 +524,8 @@ const requireOnlineAction = (): boolean => {
   return false;
 };
 
+const isMounted = ref(false);
+
 const { pullDistance, isPulling, isRefreshing } = usePullToRefresh(async () => {
   if (activeTab.value === 'activity') {
     await loadFeed({ force: true });
@@ -533,7 +535,7 @@ const { pullDistance, isPulling, isRefreshing } = usePullToRefresh(async () => {
 });
 
 const pullStyle = computed(() => {
-  const useTransition = !isPulling.value && !isLoading.value && !isRefreshing.value;
+  const useTransition = isMounted.value && !isPulling.value && !isLoading.value && !isRefreshing.value;
   return {
     transform: 'translateY(var(--pull-distance, 0px))',
     transition: useTransition ? 'transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)' : 'none'
@@ -1104,6 +1106,7 @@ const loadFriendships = async (silent = true) => {
 };
 
 onMounted(() => {
+  isMounted.value = true;
   if (!isOnline.value) return;
   initSocial();
   loadFeed();

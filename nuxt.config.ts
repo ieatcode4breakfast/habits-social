@@ -149,6 +149,9 @@ export default defineNuxtConfig({
 
   css: ['~/assets/css/main.css'],
   vite: {
-    plugins: [tailwindcss()]
+    plugins: [tailwindcss()],
+    define: {
+      __VUE_PROD_HYDRATION_MISMATCH_DETAILS__: 'true'
+    }
   }
 })

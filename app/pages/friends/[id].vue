@@ -606,12 +606,14 @@ const habits = ref<Habit[]>([]);
 const logs = ref<HabitLog[]>([]);
 const loading = ref(true);
 
+const isMounted = ref(false);
+
 const { pullDistance, isPulling, isRefreshing } = usePullToRefresh(async () => {
   await load();
 });
 
 const pullStyle = computed(() => {
-  const useTransition = !isPulling.value && !loading.value && !isRefreshing.value;
+  const useTransition = isMounted.value && !isPulling.value && !loading.value && !isRefreshing.value;
   return {
     transform: 'translateY(var(--pull-distance, 0px))',
     transition: useTransition ? 'transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)' : 'none'
@@ -827,6 +829,7 @@ const modalContent = ref<HTMLElement | null>(null);
 const shareModalContent = ref<HTMLElement | null>(null);
 
 onMounted(() => {
+  isMounted.value = true;
   if (isOnline.value) {
     load();
   }

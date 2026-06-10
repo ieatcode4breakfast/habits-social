@@ -1061,8 +1061,10 @@ const { isPulling: isPullingConversations, isRefreshing: isRefreshingConversatio
   { scrollContainer: conversationsScrollContainer }
 );
 
+const isMounted = ref(false);
+
 const conversationsPullStyle = computed(() => {
-  const useTransition = !isPullingConversations.value && !conversationsLoading.value && !isRefreshingConversations.value;
+  const useTransition = isMounted.value && !isPullingConversations.value && !conversationsLoading.value && !isRefreshingConversations.value;
   return {
     transform: 'translateY(var(--pull-distance, 0px))',
     transition: useTransition ? 'transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)' : 'none'
@@ -1523,6 +1525,7 @@ const handleReplyQuery = async () => {
 };
 
 onMounted(async () => {
+  isMounted.value = true;
   checkViewport();
   window.addEventListener('resize', checkViewport);
   window.addEventListener('popstate', handlePopState);

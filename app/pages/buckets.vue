@@ -304,12 +304,14 @@ const { isOnline } = useNetwork();
 const isOnlineMounted = ref(true);
 watch(isOnline, (val) => { isOnlineMounted.value = val; });
 
+const isMounted = ref(false);
+
 const { pullDistance, isPulling, isRefreshing } = usePullToRefresh(async () => {
   await load();
 });
 
 const pullStyle = computed(() => {
-  const useTransition = !isPulling.value && !loading.value && !isRefreshing.value;
+  const useTransition = isMounted.value && !isPulling.value && !loading.value && !isRefreshing.value;
   return {
     transform: 'translateY(var(--pull-distance, 0px))',
     transition: useTransition ? 'transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)' : 'none'
@@ -652,6 +654,7 @@ useModalHistory(isAnyModalOpen, () => {
 });
 
 onMounted(() => {
+  isMounted.value = true;
   isOnlineMounted.value = isOnline.value;
   load();
   if (isOnline.value) {
