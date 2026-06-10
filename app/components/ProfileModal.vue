@@ -13,16 +13,16 @@
       >
         <div v-if="modelValue" class="fixed inset-0 z-[100] flex flex-col items-center justify-start overflow-y-auto sm:py-8 py-0">
           <div class="fixed inset-0 bg-black/80 backdrop-blur-md touch-none" @click="handleProfileCloseAttempt"></div>
-          
-          <div class="relative my-auto w-full h-full sm:h-auto sm:max-w-md max-w-none bg-zinc-925 border-x-0 sm:border border-zinc-800 sm:rounded-3xl rounded-none shadow-2xl overflow-hidden transition-all duration-300 flex flex-col">
-            
+
+          <div class="relative my-auto w-full h-full sm:h-auto sm:max-w-md max-w-none bg-surface-raised border-x-0 sm:border border-border-muted sm:rounded-3xl rounded-none shadow-2xl overflow-hidden transition-all duration-300 flex flex-col">
+
             <!-- Sticky Header -->
-            <div class="sticky top-0 z-10 bg-zinc-925 px-4 sm:px-8 py-4 sm:py-6 border-b border-zinc-800/80 flex items-center gap-1 shrink-0">
-              <button @click="handleProfileCloseAttempt" class="p-2 -ml-2 text-zinc-500 hover:text-white transition-all cursor-pointer flex-shrink-0">
+            <div class="sticky top-0 z-10 bg-surface-raised px-4 sm:px-8 py-4 sm:py-6 border-b border-border-muted/80 flex items-center gap-1 shrink-0">
+              <button @click="handleProfileCloseAttempt" class="p-2 -ml-2 text-fg-subtle hover:text-fg transition-all cursor-pointer flex-shrink-0">
                 <ChevronLeft class="w-6 h-6" />
               </button>
               <div class="flex-1 min-w-0">
-                <h2 class="text-lg font-bold text-white truncate leading-none">Edit Profile</h2>
+                <h2 class="text-lg font-bold text-fg truncate leading-none">Edit Profile</h2>
               </div>
             </div>
 
@@ -39,46 +39,46 @@
 
               <form id="profileForm" @submit.prevent="triggerProfileUpdate" class="space-y-4">
                 <!-- Avatar Selection -->
-                <AvatarPicker 
-                  v-model="profileForm.photoUrl" 
+                <AvatarPicker
+                  v-model="profileForm.photoUrl"
                   label="Avatar"
                 />
 
                 <div class="space-y-1.5">
-                  <label class="text-xs font-bold text-zinc-500 uppercase tracking-widest ml-1">Username</label>
+                  <label class="text-xs font-bold text-fg-subtle uppercase tracking-widest ml-1">Username</label>
                   <div class="relative group">
-                    <UserIcon class="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-600 group-focus-within:text-white transition-colors" />
-                    <input 
+                    <UserIcon class="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-fg-subtle group-focus-within:text-fg transition-colors" />
+                    <input
                       v-model="profileForm.username"
                       type="text"
                       required
                       placeholder="Username"
                       @input="profileError = ''"
-                      class="w-full bg-black border rounded-xl py-3 pl-10 pr-4 text-white placeholder-zinc-700 focus:outline-none focus:ring-2 transition-all text-sm"
+                      class="w-full bg-surface-inset border rounded-xl py-3 pl-10 pr-4 text-fg placeholder-fg-subtle focus:outline-none focus:ring-2 transition-all text-sm"
                       :class="[
-                        profileError && (profileError.includes('username') || profileError.includes('taken')) 
-                          ? 'border-rose-500/50 focus:ring-rose-500/10 focus:border-rose-500' 
-                          : 'border-zinc-800 focus:ring-white/10 focus:border-zinc-700'
+                        profileError && (profileError.includes('username') || profileError.includes('taken'))
+                          ? 'border-rose-500/50 focus:ring-rose-500/10 focus:border-rose-500'
+                          : 'border-border-muted focus:ring-fg/10 focus:border-border-strong'
                       ]"
                     />
                   </div>
                 </div>
 
                 <div class="space-y-1.5">
-                  <label class="text-xs font-bold text-zinc-500 uppercase tracking-widest ml-1">Email Address</label>
+                  <label class="text-xs font-bold text-fg-subtle uppercase tracking-widest ml-1">Email Address</label>
                   <div class="relative group">
-                    <Mail class="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-600 group-focus-within:text-white transition-colors" />
-                    <input 
+                    <Mail class="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-fg-subtle group-focus-within:text-fg transition-colors" />
+                    <input
                       v-model="profileForm.email"
                       type="email"
                       required
                       placeholder="email@example.com"
                       @input="profileError = ''"
-                      class="w-full bg-black border rounded-xl py-3 pl-10 pr-4 text-white placeholder-zinc-700 focus:outline-none focus:ring-2 transition-all text-sm"
+                      class="w-full bg-surface-inset border rounded-xl py-3 pl-10 pr-4 text-fg placeholder-fg-subtle focus:outline-none focus:ring-2 transition-all text-sm"
                       :class="[
                         profileError && profileError.includes('email')
-                          ? 'border-rose-500/50 focus:ring-rose-500/10 focus:border-rose-500' 
-                          : 'border-zinc-800 focus:ring-white/10 focus:border-zinc-700'
+                          ? 'border-rose-500/50 focus:ring-rose-500/10 focus:border-rose-500'
+                          : 'border-border-muted focus:ring-fg/10 focus:border-border-strong'
                       ]"
                     />
                   </div>
@@ -98,23 +98,23 @@
                       Current Password Required
                     </label>
                     <div class="relative group">
-                      <Lock class="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-600 group-focus-within:text-white transition-colors" />
-                      <input 
+                      <Lock class="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-fg-subtle group-focus-within:text-fg transition-colors" />
+                      <input
                         v-model="profileForm.currentPassword"
                         :type="showPassword ? 'text' : 'password'"
                         placeholder="Enter current password"
                         @input="profileError = ''"
-                        class="w-full bg-black border border-amber-500/30 rounded-xl py-3 pl-10 pr-12 text-white placeholder-zinc-700 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all text-sm"
+                        class="w-full bg-surface-inset border border-amber-500/30 rounded-xl py-3 pl-10 pr-12 text-fg placeholder-fg-subtle focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all text-sm"
                         :class="[
                           profileError && profileError.toLowerCase().includes('current password')
-                            ? 'border-rose-500/50 focus:ring-rose-500/10 focus:border-rose-500' 
+                            ? 'border-rose-500/50 focus:ring-rose-500/10 focus:border-rose-500'
                             : ''
                         ]"
                       />
-                      <button 
+                      <button
                         type="button"
                         @click="showPassword = !showPassword"
-                        class="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-zinc-600 hover:text-white transition-colors cursor-pointer"
+                        class="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-fg-subtle hover:text-fg transition-colors cursor-pointer"
                       >
                         <Eye v-if="!showPassword" class="w-4 h-4" />
                         <EyeOff v-else class="w-4 h-4" />
@@ -124,25 +124,25 @@
                 </Transition>
 
                 <div class="space-y-1.5">
-                  <label class="text-xs font-bold text-zinc-500 uppercase tracking-widest ml-1">New Password (Optional)</label>
+                  <label class="text-xs font-bold text-fg-subtle uppercase tracking-widest ml-1">New Password (Optional)</label>
                   <div class="relative group">
-                    <Lock class="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-600 group-focus-within:text-white transition-colors" />
-                    <input 
+                    <Lock class="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-fg-subtle group-focus-within:text-fg transition-colors" />
+                    <input
                       v-model="profileForm.password"
                       :type="showPassword ? 'text' : 'password'"
                       placeholder="••••••••"
                       @input="profileError = ''"
-                      class="w-full bg-black border rounded-xl py-3 pl-10 pr-12 text-white placeholder-zinc-700 focus:outline-none focus:ring-2 transition-all text-sm"
+                      class="w-full bg-surface-inset border rounded-xl py-3 pl-10 pr-12 text-fg placeholder-fg-subtle focus:outline-none focus:ring-2 transition-all text-sm"
                       :class="[
                         profileError && profileError.includes('Password')
-                          ? 'border-rose-500/50 focus:ring-rose-500/10 focus:border-rose-500' 
-                          : 'border-zinc-800 focus:ring-white/10 focus:border-zinc-700'
+                          ? 'border-rose-500/50 focus:ring-rose-500/10 focus:border-rose-500'
+                          : 'border-border-muted focus:ring-fg/10 focus:border-border-strong'
                       ]"
                     />
-                    <button 
+                    <button
                       type="button"
                       @click="showPassword = !showPassword"
-                      class="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-zinc-600 hover:text-white transition-colors cursor-pointer"
+                      class="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-fg-subtle hover:text-fg transition-colors cursor-pointer"
                     >
                       <Eye v-if="!showPassword" class="w-4 h-4" />
                       <EyeOff v-else class="w-4 h-4" />
@@ -151,25 +151,25 @@
                 </div>
 
                 <div class="space-y-1.5">
-                  <label class="text-xs font-bold text-zinc-500 uppercase tracking-widest ml-1">Confirm New Password</label>
+                  <label class="text-xs font-bold text-fg-subtle uppercase tracking-widest ml-1">Confirm New Password</label>
                   <div class="relative group">
-                    <Lock class="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-600 group-focus-within:text-white transition-colors" />
-                    <input 
+                    <Lock class="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-fg-subtle group-focus-within:text-fg transition-colors" />
+                    <input
                       v-model="profileForm.confirmPassword"
                       :type="showPassword ? 'text' : 'password'"
                       placeholder="••••••••"
                       @input="profileError = ''"
-                      class="w-full bg-black border rounded-xl py-3 pl-10 pr-12 text-white placeholder-zinc-700 focus:outline-none focus:ring-2 transition-all text-sm"
+                      class="w-full bg-surface-inset border rounded-xl py-3 pl-10 pr-12 text-fg placeholder-fg-subtle focus:outline-none focus:ring-2 transition-all text-sm"
                       :class="[
                         profileError && profileError.includes('match')
-                          ? 'border-rose-500/50 focus:ring-rose-500/10 focus:border-rose-500' 
-                          : 'border-zinc-800 focus:ring-white/10 focus:border-zinc-700'
+                          ? 'border-rose-500/50 focus:ring-rose-500/10 focus:border-rose-500'
+                          : 'border-border-muted focus:ring-fg/10 focus:border-border-strong'
                       ]"
                     />
-                    <button 
+                    <button
                       type="button"
                       @click="showPassword = !showPassword"
-                      class="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-zinc-600 hover:text-white transition-colors cursor-pointer"
+                      class="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-fg-subtle hover:text-fg transition-colors cursor-pointer"
                     >
                       <Eye v-if="!showPassword" class="w-4 h-4" />
                       <EyeOff v-else class="w-4 h-4" />
@@ -195,11 +195,11 @@
             </div>
 
             <!-- Fixed Footer -->
-            <div class="px-8 py-4 border-t border-zinc-800 bg-zinc-925/80 backdrop-blur-md flex gap-3">
+            <div class="px-8 py-4 border-t border-border-muted bg-surface-raised/80 backdrop-blur-md flex gap-3">
               <button
                 type="button"
                 @click="handleProfileCloseAttempt"
-                class="flex-1 px-5 py-3 bg-transparent hover:bg-zinc-925 text-zinc-400 hover:text-zinc-200 font-semibold rounded-xl transition-all cursor-pointer whitespace-nowrap"
+                class="flex-1 px-5 py-3 bg-transparent hover:bg-surface-raised text-fg-muted hover:text-fg font-semibold rounded-xl transition-all cursor-pointer whitespace-nowrap"
               >
                 Cancel
               </button>
@@ -207,7 +207,7 @@
                 type="submit"
                 form="profileForm"
                 :disabled="isUpdating || !isOnline"
-                class="flex-1 px-5 py-3 bg-white hover:bg-zinc-200 text-black font-semibold rounded-xl transition-all shadow-lg shadow-white/5 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer whitespace-nowrap"
+                class="flex-1 px-5 py-3 bg-action-primary hover:bg-action-primary-hover text-action-primary-fg font-semibold rounded-xl transition-all shadow-lg shadow-fg-inverted/5 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer whitespace-nowrap"
               >
                 <template v-if="isUpdating">
                   <div class="w-4 h-4 border-2 border-black/20 border-t-black rounded-full animate-spin"></div>
@@ -237,27 +237,27 @@
       >
         <div v-if="showUnsavedChangesModal" class="fixed inset-0 z-[130] flex flex-col items-center justify-start overflow-y-auto p-4 sm:py-8">
           <div class="fixed inset-0 bg-black/95 backdrop-blur-sm touch-none" @click="showUnsavedChangesModal = false"></div>
-          
-          <div class="relative my-auto w-full max-w-sm bg-zinc-925 border border-zinc-800 rounded-3xl shadow-2xl p-8 text-center">
+
+          <div class="relative my-auto w-full max-w-sm bg-surface-raised border border-border-muted rounded-3xl shadow-2xl p-8 text-center">
             <div class="w-16 h-16 rounded-2xl bg-amber-500/10 border-2 border-amber-500/20 mx-auto mb-6 flex items-center justify-center">
               <RefreshCw class="w-8 h-8 text-amber-500" />
             </div>
-            
-            <h3 class="text-xl font-bold text-white mb-2">Unsaved Changes</h3>
-            <p class="text-zinc-500 text-sm mb-8 leading-relaxed">
+
+            <h3 class="text-xl font-bold text-fg mb-2">Unsaved Changes</h3>
+            <p class="text-fg-subtle text-sm mb-8 leading-relaxed">
               You have unsaved changes. Are you sure you want to discard them and exit?
             </p>
 
             <div class="flex flex-col gap-3">
-              <button 
+              <button
                 @click="discardChangesAndClose"
                 class="w-full py-4 bg-rose-500 text-white font-bold rounded-2xl hover:bg-rose-600 transition-all cursor-pointer whitespace-nowrap"
               >
                 Yes, Discard Changes
               </button>
-              <button 
+              <button
                 @click="showUnsavedChangesModal = false"
-                class="w-full py-4 bg-zinc-900 text-zinc-400 font-bold rounded-2xl hover:bg-zinc-800 hover:text-white transition-all cursor-pointer whitespace-nowrap"
+                class="w-full py-4 bg-surface-solid text-fg-muted font-bold rounded-2xl hover:bg-surface-hover hover:text-fg transition-all cursor-pointer whitespace-nowrap"
               >
                 Continue Editing
               </button>
@@ -281,31 +281,31 @@
       >
         <div v-if="showConfirmModal" class="fixed inset-0 z-[120] flex flex-col items-center justify-start overflow-y-auto p-4 sm:py-8">
           <div class="fixed inset-0 bg-black/95 backdrop-blur-sm touch-none" @click="showConfirmModal = false"></div>
-          
-          <div class="relative my-auto w-full max-w-sm bg-zinc-925 border border-zinc-800 rounded-3xl shadow-2xl p-8 text-center">
-            <UserAvatar 
-              :src="profileForm.photoUrl" 
-              container-class="w-24 h-24 rounded-3xl bg-white/5 border-2 border-zinc-800 mx-auto mb-6"
-              icon-class="w-10 h-10 text-zinc-500"
+
+          <div class="relative my-auto w-full max-w-sm bg-surface-raised border border-border-muted rounded-3xl shadow-2xl p-8 text-center">
+            <UserAvatar
+              :src="profileForm.photoUrl"
+              container-class="w-24 h-24 rounded-3xl bg-action-primary/5 border-2 border-border-muted mx-auto mb-6"
+              icon-class="w-10 h-10 text-fg-subtle"
             />
-            
-            <h3 class="text-xl font-bold text-white mb-2">Update Profile?</h3>
-            <p class="text-zinc-500 text-sm mb-8 leading-relaxed">
+
+            <h3 class="text-xl font-bold text-fg mb-2">Update Profile?</h3>
+            <p class="text-fg-subtle text-sm mb-8 leading-relaxed">
               Are you sure you want to save these changes?
             </p>
 
             <div class="flex flex-col gap-3">
-              <button 
+              <button
                 @click="confirmProfileUpdate"
                 :disabled="isUpdating"
-                class="w-full py-4 bg-white text-black font-bold rounded-2xl hover:bg-zinc-200 transition-all cursor-pointer flex items-center justify-center gap-2 whitespace-nowrap"
+                class="w-full py-4 bg-action-primary text-action-primary-fg font-bold rounded-2xl hover:bg-action-primary-hover transition-all cursor-pointer flex items-center justify-center gap-2 whitespace-nowrap"
               >
                 <Loader2 v-if="isUpdating" class="w-4 h-4 animate-spin" />
                 {{ isUpdating ? 'Saving...' : 'Yes, Update Profile' }}
               </button>
-              <button 
+              <button
                 @click="showConfirmModal = false"
-                class="w-full py-4 bg-zinc-900 text-zinc-400 font-bold rounded-2xl hover:bg-zinc-800 hover:text-white transition-all cursor-pointer whitespace-nowrap"
+                class="w-full py-4 bg-surface-solid text-fg-muted font-bold rounded-2xl hover:bg-surface-hover hover:text-fg transition-all cursor-pointer whitespace-nowrap"
               >
                 Cancel
               </button>
@@ -329,27 +329,27 @@
       >
         <div v-if="showDeleteWarning" class="fixed inset-0 z-[140] flex flex-col items-center justify-start overflow-y-auto p-4 sm:py-8">
           <div class="fixed inset-0 bg-black/95 backdrop-blur-sm touch-none" @click="showDeleteWarning = false"></div>
-          
-          <div class="relative my-auto w-full max-w-sm bg-zinc-925 border border-zinc-800 rounded-3xl shadow-2xl p-8 text-center">
+
+          <div class="relative my-auto w-full max-w-sm bg-surface-raised border border-border-muted rounded-3xl shadow-2xl p-8 text-center">
             <div class="w-16 h-16 rounded-2xl bg-rose-500/10 border-2 border-rose-500/20 mx-auto mb-6 flex items-center justify-center">
               <AlertTriangle class="w-8 h-8 text-rose-500" />
             </div>
-            
-            <h3 class="text-xl font-bold text-white mb-2">Delete Your Account?</h3>
-            <p class="text-zinc-500 text-sm mb-8 leading-relaxed">
+
+            <h3 class="text-xl font-bold text-fg mb-2">Delete Your Account?</h3>
+            <p class="text-fg-subtle text-sm mb-8 leading-relaxed">
               This action is irreversible. All your habits, logs, buckets, friendships, and messages will be permanently deleted. You will lose all your data.
             </p>
 
             <div class="flex flex-col gap-3">
-              <button 
+              <button
                 @click="closeDeleteWarningAndOpenPassword"
                 class="w-full py-4 bg-rose-600 text-white font-bold rounded-2xl hover:bg-rose-500 transition-all cursor-pointer whitespace-nowrap"
               >
                 Yes, Delete My Account
               </button>
-              <button 
+              <button
                 @click="showDeleteWarning = false"
-                class="w-full py-4 bg-zinc-900 text-zinc-400 font-bold rounded-2xl hover:bg-zinc-800 hover:text-white transition-all cursor-pointer whitespace-nowrap"
+                class="w-full py-4 bg-surface-solid text-fg-muted font-bold rounded-2xl hover:bg-surface-hover hover:text-fg transition-all cursor-pointer whitespace-nowrap"
               >
                 Cancel
               </button>
@@ -373,36 +373,36 @@
       >
         <div v-if="showDeletePassword" class="fixed inset-0 z-[150] flex flex-col items-center justify-start overflow-y-auto p-4 sm:py-8">
           <div class="fixed inset-0 bg-black/95 backdrop-blur-sm touch-none" @click="closeDeleteModals"></div>
-          
-          <div class="relative my-auto w-full max-w-sm bg-zinc-925 border border-zinc-800 rounded-3xl shadow-2xl p-8 text-center">
+
+          <div class="relative my-auto w-full max-w-sm bg-surface-raised border border-border-muted rounded-3xl shadow-2xl p-8 text-center">
             <div class="w-16 h-16 rounded-2xl bg-amber-500/10 border-2 border-amber-500/20 mx-auto mb-6 flex items-center justify-center">
               <Lock class="w-8 h-8 text-amber-500" />
             </div>
-            
-            <h3 class="text-xl font-bold text-white mb-2">Enter Your Password</h3>
-            <p class="text-zinc-500 text-sm mb-6 leading-relaxed">
+
+            <h3 class="text-xl font-bold text-fg mb-2">Enter Your Password</h3>
+            <p class="text-fg-subtle text-sm mb-6 leading-relaxed">
               For security, please enter your current password to confirm account deletion.
             </p>
 
             <div class="relative group mb-2 text-left">
-              <Lock class="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-600 group-focus-within:text-white transition-colors" />
-              <input 
+              <Lock class="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-fg-subtle group-focus-within:text-fg transition-colors" />
+              <input
                 v-model="deletePassword"
                 :type="showDeletePasswordField ? 'text' : 'password'"
                 placeholder="Current password"
                 @input="deleteError = ''"
                 @keyup.enter="confirmDeleteAccount"
-                class="w-full bg-black border rounded-xl py-3 pl-10 pr-12 text-white placeholder-zinc-700 focus:outline-none focus:ring-2 transition-all text-sm"
+                class="w-full bg-surface-inset border rounded-xl py-3 pl-10 pr-12 text-fg placeholder-fg-subtle focus:outline-none focus:ring-2 transition-all text-sm"
                 :class="[
                   deleteError
-                    ? 'border-rose-500/50 focus:ring-rose-500/10 focus:border-rose-500' 
-                    : 'border-zinc-800 focus:ring-white/10 focus:border-zinc-700'
+                    ? 'border-rose-500/50 focus:ring-rose-500/10 focus:border-rose-500'
+                    : 'border-border-muted focus:ring-fg/10 focus:border-border-strong'
                 ]"
               />
-              <button 
+              <button
                 type="button"
                 @click="showDeletePasswordField = !showDeletePasswordField"
-                class="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-zinc-600 hover:text-white transition-colors cursor-pointer"
+                class="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-fg-subtle hover:text-fg transition-colors cursor-pointer"
               >
                 <Eye v-if="!showDeletePasswordField" class="w-4 h-4" />
                 <EyeOff v-else class="w-4 h-4" />
@@ -414,7 +414,7 @@
             </div>
 
             <div class="flex flex-col gap-3 mt-6">
-              <button 
+              <button
                 @click="confirmDeleteAccount"
                 :disabled="!deletePassword || isDeleting"
                 class="w-full py-4 bg-rose-600 text-white font-bold rounded-2xl hover:bg-rose-500 transition-all cursor-pointer flex items-center justify-center gap-2 whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
@@ -422,9 +422,9 @@
                 <Loader2 v-if="isDeleting" class="w-4 h-4 animate-spin" />
                 {{ isDeleting ? 'Deleting...' : 'Delete My Account' }}
               </button>
-              <button 
+              <button
                 @click="closeDeleteModals"
-                class="w-full py-4 bg-zinc-900 text-zinc-400 font-bold rounded-2xl hover:bg-zinc-800 hover:text-white transition-all cursor-pointer whitespace-nowrap"
+                class="w-full py-4 bg-surface-solid text-fg-muted font-bold rounded-2xl hover:bg-surface-hover hover:text-fg transition-all cursor-pointer whitespace-nowrap"
               >
                 Cancel
               </button>
@@ -539,7 +539,7 @@ const triggerProfileUpdate = () => {
   }
 
   const isEmailChanged = initialProfileSnapshot.value && profileForm.email !== initialProfileSnapshot.value.email;
-  
+
   if (profileForm.password || isEmailChanged) {
     if (!profileForm.currentPassword) {
       profileError.value = 'Current password is required to update sensitive profile information';

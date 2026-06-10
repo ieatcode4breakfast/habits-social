@@ -1,25 +1,25 @@
 <template>
-  <div class="inbox-shell relative h-[calc(100dvh-57px)] md:h-[calc(100dvh-80px)] flex flex-col md:flex-row bg-black/60 backdrop-blur-xl sm:-mx-6 md:mx-0 md:rounded-2xl border border-zinc-800/80 border-x-0 border-t-0 overflow-hidden shadow-2xl md:mt-2 md:mb-2 md:bg-transparent md:backdrop-blur-none md:border-transparent md:overflow-visible md:shadow-none md:gap-2">
-    
+  <div class="inbox-shell relative h-[calc(100dvh-57px)] md:h-[calc(100dvh-80px)] flex flex-col md:flex-row bg-black/60 backdrop-blur-xl sm:-mx-6 md:mx-0 md:rounded-2xl border border-border-muted/80 border-x-0 border-t-0 overflow-hidden shadow-2xl md:mt-2 md:mb-2 md:bg-transparent md:backdrop-blur-none md:border-transparent md:overflow-visible md:shadow-none md:gap-2">
+
     <!-- Sidebar Pane: Conversations List -->
-    <div 
+    <div
       v-show="!activeFriend || !isMobile"
-      class="inbox-list-panel w-full md:w-80 shrink-0 flex flex-col bg-zinc-950/40 md:rounded-2xl md:border md:border-zinc-800/80 md:bg-black/60 md:backdrop-blur-xl md:shadow-2xl md:overflow-hidden"
+      class="inbox-list-panel w-full md:w-80 shrink-0 flex flex-col bg-surface-muted/40 md:rounded-2xl md:border md:border-border-muted/80 md:bg-black/60 md:backdrop-blur-xl md:shadow-2xl md:overflow-hidden"
       :class="{ 'h-full': isMobile }"
     >
       <!-- Sidebar Header -->
-      <div class="inbox-chat-chrome px-4 pt-2 py-2 flex items-end justify-between gap-4 bg-black shrink-0 md:bg-zinc-925/40 md:backdrop-blur-md md:border-b md:border-zinc-800/80">
+      <div class="inbox-chat-chrome px-4 pt-2 py-2 flex items-end justify-between gap-4 bg-surface-inset shrink-0 md:bg-surface-raised/40 md:backdrop-blur-md md:border-b md:border-border-muted/80">
         <div class="flex items-center gap-3">
-          <MessageCircle class="w-7 h-7 text-zinc-400 shrink-0" />
+          <MessageCircle class="w-7 h-7 text-fg-muted shrink-0" />
           <div>
-            <h1 class="text-base font-bold tracking-tight text-white">Inbox</h1>
-            <p class="text-zinc-400 text-xs">{{ conversations.length }} chat{{ conversations.length === 1 ? '' : 's' }}</p>
+            <h1 class="text-base font-bold tracking-tight text-fg">Inbox</h1>
+            <p class="text-fg-muted text-xs">{{ conversations.length }} chat{{ conversations.length === 1 ? '' : 's' }}</p>
           </div>
         </div>
-        
-        <button 
+
+        <button
           @click="showNewChatModal = true"
-          class="p-2 bg-white hover:bg-zinc-200 text-black rounded-lg transition-all shadow-md active:scale-95 cursor-pointer flex items-center justify-center"
+          class="p-2 bg-action-primary hover:bg-action-primary-hover text-action-primary-fg rounded-lg transition-all shadow-md active:scale-95 cursor-pointer flex items-center justify-center"
           title="New Conversation"
         >
           <SquarePen class="w-4 h-4" />
@@ -29,67 +29,67 @@
       <!-- Conversations Scroll List -->
       <div
         ref="conversationsScrollContainer"
-        class="flex-1 min-h-0 overflow-y-auto divide-y divide-zinc-900/60 p-2 space-y-1 will-change-transform transition-colors duration-300"
+        class="flex-1 min-h-0 overflow-y-auto divide-y divide-surface-solid/60 p-2 space-y-1 will-change-transform transition-colors duration-300"
         :style="conversationsPullStyle"
       >
         <div v-if="conversationsLoading || !viewportReady" class="flex justify-center py-10">
-          <div class="h-6 w-6 rounded-full border-b-2 border-white animate-spin"></div>
+          <div class="h-6 w-6 rounded-full border-b-2 border-fg animate-spin"></div>
         </div>
-        
+
         <template v-else>
           <div v-if="conversations.length === 0" class="py-12 px-4 text-center">
             <div v-if="isMobile" class="flex flex-col items-center justify-center min-h-[calc(100dvh-180px)] text-center select-none">
-              <div class="w-16 h-16 rounded-2xl bg-zinc-900/60 border border-zinc-800/80 flex items-center justify-center text-zinc-400 mb-4 shadow-xl relative animate-float">
-                <div class="absolute inset-0 bg-white/5 rounded-2xl filter blur-sm -z-10 animate-pulse"></div>
-                <MessageCircle class="w-7 h-7 text-zinc-400" />
+              <div class="w-16 h-16 rounded-2xl bg-surface-solid/60 border border-border-muted/80 flex items-center justify-center text-fg-muted mb-4 shadow-xl relative animate-float">
+                <div class="absolute inset-0 bg-action-primary/5 rounded-2xl filter blur-sm -z-10 animate-pulse"></div>
+                <MessageCircle class="w-7 h-7 text-fg-muted" />
               </div>
-              <p class="text-zinc-400 text-sm max-w-[280px] leading-relaxed">
+              <p class="text-fg-muted text-sm max-w-[280px] leading-relaxed">
                 Chat securely with friends, keep each other accountable, and achieve your habit goals together.
               </p>
               <button
                 @click="showNewChatModal = true"
-                class="mt-6 px-4 py-2 bg-white hover:bg-zinc-200 text-black text-sm font-bold rounded-xl shadow-lg shadow-white/5 transition-all duration-200 active:scale-95 cursor-pointer"
+                class="mt-6 px-4 py-2 bg-action-primary hover:bg-action-primary-hover text-action-primary-fg text-sm font-bold rounded-xl shadow-lg shadow-fg-inverted/5 transition-all duration-200 active:scale-95 cursor-pointer"
               >
                 Start a new chat
               </button>
             </div>
-            <p v-else class="text-sm text-zinc-500 italic">No conversations yet.</p>
+            <p v-else class="text-sm text-fg-subtle italic">No conversations yet.</p>
           </div>
 
           <button
-            v-for="conv in conversations" 
+            v-for="conv in conversations"
             :key="conv.id"
             @click="switchToConversation(conv)"
             class="w-full text-left p-3 rounded-xl transition-all duration-200 flex items-center gap-3 group relative cursor-pointer outline-none border border-transparent"
             :class="[
-              activeConversationId === conv.id 
-                ? 'inbox-conversation-active bg-white/10 border-white/5 shadow-md shadow-black/25' 
-                : 'hover:bg-zinc-900/50'
+              activeConversationId === conv.id
+                ? 'inbox-conversation-active bg-action-primary/10 border-fg/5 shadow-md shadow-black/25'
+                : 'hover:bg-surface-solid/50'
             ]"
           >
             <!-- Friend Avatar -->
             <div class="relative shrink-0">
-              <div 
+              <div
                 class="w-10 h-10 flex items-center justify-center font-bold text-xs uppercase transition-all"
                 :class="[
                   activeConversationId === conv.id
-                    ? 'text-black'
-                    : 'text-zinc-300'
+                    ? 'text-action-primary-fg'
+                    : 'text-fg-muted'
                 ]"
               >
-                <img 
-                  v-if="getFriendProfile(conv)?.photoUrl" 
-                  :src="getFriendProfile(conv)?.photoUrl" 
+                <img
+                  v-if="getFriendProfile(conv)?.photoUrl"
+                  :src="getFriendProfile(conv)?.photoUrl"
                   class="w-full h-full rounded-full object-cover shadow-sm"
                   alt="Avatar"
                 />
-                <div 
-                  v-else 
+                <div
+                  v-else
                   class="w-full h-full rounded-full flex items-center justify-center shadow-sm"
                   :class="[
                     activeConversationId === conv.id
-                      ? 'bg-white'
-                      : 'bg-zinc-900'
+                      ? 'bg-action-primary'
+                      : 'bg-surface-solid'
                   ]"
                 >
                   <span>{{ getFriendProfile(conv)?.username?.charAt(0) || '?' }}</span>
@@ -100,30 +100,30 @@
             <!-- Friend Name / Last Active Info -->
             <div class="flex-1 min-w-0">
               <div class="flex items-baseline justify-between gap-1">
-                <span 
+                <span
                   class="text-sm font-bold truncate transition-colors"
-                  :class="activeConversationId === conv.id ? 'text-white' : 'text-zinc-300 group-hover:text-white'"
+                  :class="activeConversationId === conv.id ? 'text-fg' : 'text-fg-muted group-hover:text-fg'"
                 >
                   {{ getFriendProfile(conv)?.username || 'Deleted User' }}
                 </span>
-                
-                <span v-if="conv.lastMessageAt" class="text-[10px] text-zinc-500 shrink-0 font-medium">
+
+                <span v-if="conv.lastMessageAt" class="text-[10px] text-fg-subtle shrink-0 font-medium">
                   {{ formatTime(conv.lastMessageAt) }}
                 </span>
               </div>
-              
+
               <div class="flex items-center justify-between gap-1 mt-0.5">
                 <span
                   class="text-[10px] truncate min-w-0"
-                  :class="conv.unreadCount > 0 ? 'text-zinc-200 font-bold' : 'text-zinc-500 font-medium'"
+                  :class="conv.unreadCount > 0 ? 'text-fg font-bold' : 'text-fg-subtle font-medium'"
                 >
                   {{ getConversationPreview(conv) }}
                 </span>
-                
+
                 <!-- Unread Badge -->
-                <span 
+                <span
                   v-if="conv.unreadCount > 0"
-                  class="h-4 min-w-[16px] px-1 bg-white text-black text-[9px] font-black tracking-tight rounded-full flex items-center justify-center shrink-0 shadow-lg border border-black/10 scale-105"
+                  class="h-4 min-w-[16px] px-1 bg-action-primary text-action-primary-fg text-[9px] font-black tracking-tight rounded-full flex items-center justify-center shrink-0 shadow-lg border border-black/10 scale-105"
                 >
                   {{ conv.unreadCount }}
                 </span>
@@ -135,43 +135,43 @@
     </div>
 
     <!-- Main Pane: Chat History & Input -->
-    <div 
+    <div
       v-show="activeFriend || (viewportReady && !isMobile)"
-      class="inbox-chat-panel flex-1 flex flex-col min-h-0 md:h-full bg-zinc-950/20 relative md:rounded-2xl md:border md:border-zinc-800/80 md:bg-black/60 md:backdrop-blur-xl md:shadow-2xl md:overflow-hidden"
+      class="inbox-chat-panel flex-1 flex flex-col min-h-0 md:h-full bg-surface-muted/20 relative md:rounded-2xl md:border md:border-border-muted/80 md:bg-black/60 md:backdrop-blur-xl md:shadow-2xl md:overflow-hidden"
     >
       <!-- Chat Header + Messages + Input (only when a conversation is active) -->
       <template v-if="activeFriend">
         <!-- Chat Header -->
-        <div class="inbox-chat-chrome sticky top-0 z-40 px-4 py-2 flex items-center justify-between gap-4 bg-black md:bg-black shrink-0">
+        <div class="inbox-chat-chrome sticky top-0 z-40 px-4 py-2 flex items-center justify-between gap-4 bg-surface-inset md:bg-surface-inset shrink-0">
           <div class="flex items-center gap-3 min-w-0">
-            <button 
-              v-if="isMobile" 
+            <button
+              v-if="isMobile"
               @click="deselectConversation"
-              class="inline-flex items-center justify-center p-1 -ml-1 text-zinc-500 hover:text-white transition-all flex-shrink-0 cursor-pointer"
+              class="inline-flex items-center justify-center p-1 -ml-1 text-fg-subtle hover:text-fg transition-all flex-shrink-0 cursor-pointer"
               title="Back to list"
             >
               <ChevronLeft class="w-6 h-6" />
             </button>
 
-            <div 
+            <div
               @click="navigateTo(`/friends/${activeFriend.id}?from=inbox`)"
               class="flex items-center gap-3 cursor-pointer group"
             >
               <UserAvatar
                 :src="activeFriend.photoUrl"
-                container-class="w-9 h-9 bg-zinc-900 border border-zinc-800 transition-transform group-active:scale-95 group-hover:opacity-80"
-                icon-class="w-4 h-4 text-zinc-500"
+                container-class="w-9 h-9 bg-surface-solid border border-border-muted transition-transform group-active:scale-95 group-hover:opacity-80"
+                icon-class="w-4 h-4 text-fg-subtle"
               />
 
               <div class="min-w-0">
-                <h2 class="text-sm font-bold text-white truncate leading-tight group-hover:text-zinc-300 transition-colors">{{ activeFriend.username }}</h2>
+                <h2 class="text-sm font-bold text-fg truncate leading-tight group-hover:text-fg-muted transition-colors">{{ activeFriend.username }}</h2>
               </div>
             </div>
           </div>
 
-          <button 
+          <button
             @click="showClearChatModal = true"
-            class="p-2 hover:bg-zinc-800 text-zinc-400 hover:text-rose-500 rounded-lg transition-all active:scale-95 cursor-pointer flex items-center justify-center shrink-0"
+            class="p-2 hover:bg-surface-hover text-fg-muted hover:text-rose-500 rounded-lg transition-all active:scale-95 cursor-pointer flex items-center justify-center shrink-0"
             title="Delete Chat"
           >
             <Trash2 class="w-4 h-4" />
@@ -179,14 +179,14 @@
         </div>
 
         <!-- Messages Stream Scroll Area -->
-        <div 
+        <div
           ref="scrollContainer"
           class="flex-1 min-h-0 overflow-y-auto p-4 flex flex-col gap-2"
           @scroll="handleScroll"
         >
           <!-- Loading Indicator -->
           <div v-if="messagesLoading && messages.length === 0" class="flex-1 flex items-center justify-center">
-            <div class="h-8 w-8 rounded-full border-b-2 border-white animate-spin"></div>
+            <div class="h-8 w-8 rounded-full border-b-2 border-fg animate-spin"></div>
           </div>
 
           <template v-else>
@@ -196,15 +196,15 @@
             </div>
 
             <!-- Message Bubbles -->
-            <div 
-              v-for="(msg, index) in reversedMessages" 
+            <div
+              v-for="(msg, index) in reversedMessages"
               :key="msg.id"
               class="flex items-end gap-2 group/msg relative"
               :class="[
                 msg.senderId === user?.id
                   ? 'w-full max-w-[calc(100%-36px)]'
                   : (msg.replyToActivity && !msg.deletedAt ? 'w-full' : 'max-w-[85%] md:max-w-[70%]'),
-                msg.senderId === user?.id 
+                msg.senderId === user?.id
                   ? 'self-end flex-row-reverse'
                   : 'self-start'
               ]"
@@ -215,7 +215,7 @@
                   v-if="shouldShowMessageAvatar(msg, index)"
                   data-testid="message-avatar"
                   @click="navigateTo(`/friends/${msg.senderId}?from=inbox`)"
-                  class="w-7 h-7 rounded-full bg-zinc-900 border border-zinc-800 flex items-center justify-center text-[10px] font-black uppercase text-zinc-300 overflow-hidden shadow-sm cursor-pointer transition-transform active:scale-95 hover:opacity-80"
+                  class="w-7 h-7 rounded-full bg-surface-solid border border-border-muted flex items-center justify-center text-[10px] font-black uppercase text-fg-muted overflow-hidden shadow-sm cursor-pointer transition-transform active:scale-95 hover:opacity-80"
                 >
                   <img
                     v-if="getMessageAvatarUrl(msg)"
@@ -228,23 +228,23 @@
               </div>
 
               <!-- Message Bubble -->
-              <div 
+              <div
                 class="inbox-message-bubble rounded-2xl text-sm shadow-md relative break-words select-text font-normal leading-relaxed"
                 :class="[
                   msg.senderId === user?.id
-                    ? 'inbox-message-bubble-own bg-zinc-100 text-zinc-950'
-                    : 'inbox-message-bubble-friend bg-zinc-900 border border-zinc-800/80 text-zinc-100',
+                    ? 'inbox-message-bubble-own bg-msg-own text-msg-own-fg'
+                    : 'inbox-message-bubble-friend bg-msg-friend border border-msg-friend-border text-msg-friend-fg',
                   msg.senderId === user?.id ? 'rounded-br-sm' : 'rounded-bl-sm',
-                  msg.replyToActivity && !msg.deletedAt 
-                    ? 'p-1 w-full flex-1 min-w-[280px] sm:min-w-[320px] flex flex-col' 
+                  msg.replyToActivity && !msg.deletedAt
+                    ? 'p-1 w-full flex-1 min-w-[280px] sm:min-w-[320px] flex flex-col'
                     : (msg.senderId === user?.id ? 'px-3.5 py-2.5 min-w-[50px] max-w-[85%] md:max-w-[70%]' : 'px-3.5 py-2.5 min-w-[50px]')
                 ]"
               >
                 <!-- Visual Activity Reply Card (Embedded permanently inside message with permanent dark background) -->
-                <div 
-                  v-if="msg.replyToActivity && !msg.deletedAt" 
-                  class="p-3 rounded-xl border border-zinc-800 bg-zinc-950 text-zinc-100 flex flex-col gap-2 select-none w-full"
-                  :class="hasReplyActivityHabit(msg.replyToActivity) ? 'cursor-pointer hover:bg-zinc-900/80 transition-colors active:scale-[0.99]' : ''"
+                <div
+                  v-if="msg.replyToActivity && !msg.deletedAt"
+                  class="p-3 rounded-xl border border-border-muted bg-surface-muted text-fg flex flex-col gap-2 select-none w-full"
+                  :class="hasReplyActivityHabit(msg.replyToActivity) ? 'cursor-pointer hover:bg-surface-solid/80 transition-colors active:scale-[0.99]' : ''"
                   :role="hasReplyActivityHabit(msg.replyToActivity) ? 'button' : undefined"
                   :tabindex="hasReplyActivityHabit(msg.replyToActivity) ? 0 : undefined"
                   :title="hasReplyActivityHabit(msg.replyToActivity) ? 'View habit details' : undefined"
@@ -255,26 +255,26 @@
                   <!-- Card Header: User Avatar + Name + Action Message -->
                   <div class="flex items-center gap-2 w-full">
                     <div class="flex items-center gap-2 min-w-0">
-                      <UserAvatar 
-                        :src="msg.replyToActivity.user.photoUrl" 
+                      <UserAvatar
+                        :src="msg.replyToActivity.user.photoUrl"
                         container-class="w-6 h-6"
-                        icon-class="w-3 h-3 text-zinc-700"
+                        icon-class="w-3 h-3 text-fg-subtle"
                       />
-                      <span class="text-[11px] leading-tight font-black text-white truncate">
+                      <span class="text-[11px] leading-tight font-black text-fg truncate">
                         {{ msg.replyToActivity.user.name }}
                       </span>
                     </div>
                     <div
-                      class="text-[11px] leading-tight min-w-0 break-words text-zinc-300 flex-1"
+                      class="text-[11px] leading-tight min-w-0 break-words text-fg-muted flex-1"
                       :class="msg.replyToActivity.type === 'HABIT_REPLY' ? 'text-right' : ''"
                     >
-                      <span v-if="msg.replyToActivity.type !== 'HABIT_REPLY'" class="font-black text-white mr-1"></span>
-                      <span class="text-zinc-500" v-html="formatActivityMessageInline(msg.replyToActivity.message)"></span>
+                      <span v-if="msg.replyToActivity.type !== 'HABIT_REPLY'" class="font-black text-fg mr-1"></span>
+                      <span class="text-fg-subtle" v-html="formatActivityMessageInline(msg.replyToActivity.message)"></span>
                     </div>
                   </div>
 
                   <!-- Card Body: Weekly status grid if available (Takes up whole width naturally) -->
-                  <HabitLogVisualizer 
+                  <HabitLogVisualizer
                     v-if="msg.replyToActivity.weeklyStatus"
                     :title="msg.replyToActivity.habit.title"
                     :streakCount="msg.replyToActivity.streakCount"
@@ -292,34 +292,34 @@
                   :class="msg.senderId === user?.id ? 'self-end' : 'self-start'"
                 >
                   <!-- Tombstone Deleted State / Message Body -->
-                  <div 
-                    v-if="msg.deletedAt" 
-                    class="text-zinc-500 italic select-none px-2.5 pt-2 pb-1"
+                  <div
+                    v-if="msg.deletedAt"
+                    class="text-fg-subtle italic select-none px-2.5 pt-2 pb-1"
                   >
                     This message was deleted.
                   </div>
-                  <div 
-                    v-else 
+                  <div
+                    v-else
                     class="whitespace-pre-wrap px-2.5 pt-2 pb-1"
                   >
                     {{ msg.body }}
                   </div>
-                  
+
                   <!-- Message Actions inside bubble -->
                   <div
                     class="flex items-center gap-1 px-2.5 pb-1"
                     :class="msg.senderId === user?.id ? 'justify-end' : 'justify-start'"
                   >
-                    <span 
+                    <span
                       class="block text-[10px] select-none font-bold tracking-tight shrink-0"
-                      :class="msg.senderId === user?.id ? 'text-zinc-600' : 'text-zinc-500'"
+                      :class="msg.senderId === user?.id ? 'text-fg-subtle' : 'text-fg-subtle'"
                     >
                       {{ formatTime(msg.createdAt) }}
                     </span>
                     <button
                       v-if="canQuickDeleteMessage(msg)"
                       @click.stop="requestDeleteMessage(msg)"
-                      class="p-0.5 -mr-0.5 text-zinc-500 hover:text-rose-500 transition-colors cursor-pointer rounded"
+                      class="p-0.5 -mr-0.5 text-fg-subtle hover:text-rose-500 transition-colors cursor-pointer rounded"
                       title="Delete message"
                     >
                       <Trash2 class="w-3 h-3" />
@@ -328,34 +328,34 @@
                 </div>
                 <template v-else>
                   <!-- Tombstone Deleted State / Message Body -->
-                  <div 
-                    v-if="msg.deletedAt" 
-                    class="text-zinc-500 italic select-none"
+                  <div
+                    v-if="msg.deletedAt"
+                    class="text-fg-subtle italic select-none"
                   >
                     This message was deleted.
                   </div>
-                  <div 
-                    v-else 
+                  <div
+                    v-else
                     class="whitespace-pre-wrap"
                   >
                     {{ msg.body }}
                   </div>
-                  
+
                   <!-- Message Actions inside bubble -->
                   <div
                     class="flex items-center gap-1 mt-1"
                     :class="msg.senderId === user?.id ? 'justify-end' : 'justify-start'"
                   >
-                    <span 
+                    <span
                       class="block text-[10px] select-none font-bold tracking-tight shrink-0"
-                      :class="msg.senderId === user?.id ? 'text-zinc-600' : 'text-zinc-500'"
+                      :class="msg.senderId === user?.id ? 'text-fg-subtle' : 'text-fg-subtle'"
                     >
                       {{ formatTime(msg.createdAt) }}
                     </span>
                     <button
                       v-if="canQuickDeleteMessage(msg)"
                       @click.stop="requestDeleteMessage(msg)"
-                      class="p-0.5 -mr-0.5 text-zinc-500 hover:text-rose-500 transition-colors cursor-pointer rounded"
+                      class="p-0.5 -mr-0.5 text-fg-subtle hover:text-rose-500 transition-colors cursor-pointer rounded"
                       title="Delete message"
                     >
                       <Trash2 class="w-3 h-3" />
@@ -370,16 +370,16 @@
         </div>
 
         <!-- Input Send Panel -->
-        <div class="inbox-chat-chrome z-40 p-2 bg-black md:bg-black shrink-0 flex flex-col gap-2">
+        <div class="inbox-chat-chrome z-40 p-2 bg-surface-inset md:bg-surface-inset shrink-0 flex flex-col gap-2">
           <!-- Static Reply Context Card Preview (IG Story style) -->
-          <div 
-            v-if="replyActivityContext" 
-            class="bg-zinc-925 border border-zinc-800 rounded-xl p-3 flex flex-col gap-2 shadow-xl relative select-none ml-[44px] mr-2"
+          <div
+            v-if="replyActivityContext"
+            class="bg-surface-raised border border-border-muted rounded-xl p-3 flex flex-col gap-2 shadow-xl relative select-none ml-[44px] mr-2"
           >
             <!-- Close Button -->
-            <button 
+            <button
               @click="clearReplyContext"
-              class="absolute top-2 right-2 p-1 hover:bg-zinc-800 rounded-lg text-zinc-400 hover:text-white transition-colors cursor-pointer"
+              class="absolute top-2 right-2 p-1 hover:bg-surface-hover rounded-lg text-fg-muted hover:text-fg transition-colors cursor-pointer"
               title="Cancel reply"
             >
               <X class="w-3.5 h-3.5" />
@@ -388,17 +388,17 @@
             <!-- Card Header: User Avatar + Name + Action Message -->
             <div class="flex items-center gap-2 pr-6">
               <div class="flex items-center gap-2 min-w-0">
-                <UserAvatar 
-                  :src="replyActivityContext.user.photoUrl" 
+                <UserAvatar
+                  :src="replyActivityContext.user.photoUrl"
                   container-class="w-6 h-6"
-                  icon-class="w-3 h-3 text-zinc-700"
+                  icon-class="w-3 h-3 text-fg-subtle"
                 />
-                <span class="text-[11px] leading-tight font-black text-white truncate">
+                <span class="text-[11px] leading-tight font-black text-fg truncate">
                   {{ replyActivityContext.user.name }}
                 </span>
               </div>
               <div
-                class="text-[11px] leading-tight min-w-0 truncate text-zinc-300 flex-1"
+                class="text-[11px] leading-tight min-w-0 truncate text-fg-muted flex-1"
                 :class="replyActivityContext.type === 'HABIT_REPLY' ? 'text-right' : ''"
               >
                 <span v-html="formatActivityMessageInline(replyActivityContext.message)"></span>
@@ -406,7 +406,7 @@
             </div>
 
             <!-- Card Body: Weekly status grid if available -->
-            <HabitLogVisualizer 
+            <HabitLogVisualizer
               v-if="replyActivityContext.weeklyStatus"
               :title="replyActivityContext.habit.title"
               :streakCount="replyActivityContext.streakCount"
@@ -418,12 +418,12 @@
             />
           </div>
 
-          <div class="flex items-end gap-2 bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 focus-within:border-zinc-700 transition-colors shadow-inner relative">
+          <div class="flex items-end gap-2 bg-surface-solid border border-border-muted rounded-xl px-3 py-2 focus-within:border-border-strong transition-colors shadow-inner relative">
             <textarea
               ref="messageTextareaRef"
               v-model="messageBody"
               placeholder="Type your message..."
-              class="flex-1 bg-transparent text-sm text-white placeholder-zinc-500 outline-none resize-none max-h-28 min-h-[20px] overflow-y-auto font-normal leading-normal self-center align-middle"
+              class="flex-1 bg-transparent text-sm text-fg placeholder-fg-subtle outline-none resize-none max-h-28 min-h-[20px] overflow-y-auto font-normal leading-normal self-center align-middle"
               rows="1"
               maxlength="5000"
               @input="syncMessageTextareaHeight"
@@ -433,9 +433,9 @@
             ></textarea>
 
             <div class="flex items-center gap-3 shrink-0 self-end">
-              <button 
+              <button
                 @click="sendMessage"
-                class="p-2 bg-white hover:bg-zinc-200 text-black rounded-lg transition-all shadow-md active:scale-95 disabled:opacity-40 disabled:hover:bg-white disabled:active:scale-100 cursor-pointer flex items-center justify-center"
+                class="p-2 bg-action-primary hover:bg-action-primary-hover text-action-primary-fg rounded-lg transition-all shadow-md active:scale-95 disabled:opacity-40 disabled:hover:bg-action-primary disabled:active:scale-100 cursor-pointer flex items-center justify-center"
                 :disabled="!canSend"
               >
                 <Send class="w-3.5 h-3.5" />
@@ -447,17 +447,17 @@
 
       <!-- Large Fallback Placeholder (when no friend/chat is open) -->
       <template v-else>
-        <div class="flex-1 flex flex-col items-center justify-center p-8 text-center select-none bg-zinc-950/20">
-          <div class="w-16 h-16 rounded-2xl bg-zinc-900/60 border border-zinc-800/80 flex items-center justify-center text-zinc-400 mb-4 shadow-xl relative animate-float">
-            <div class="absolute inset-0 bg-white/5 rounded-2xl filter blur-sm -z-10 animate-pulse"></div>
-            <MessageCircle class="w-7 h-7 text-zinc-400" />
+        <div class="flex-1 flex flex-col items-center justify-center p-8 text-center select-none bg-surface-muted/20">
+          <div class="w-16 h-16 rounded-2xl bg-surface-solid/60 border border-border-muted/80 flex items-center justify-center text-fg-muted mb-4 shadow-xl relative animate-float">
+            <div class="absolute inset-0 bg-action-primary/5 rounded-2xl filter blur-sm -z-10 animate-pulse"></div>
+            <MessageCircle class="w-7 h-7 text-fg-muted" />
           </div>
-          <p class="text-zinc-400 text-sm max-w-[280px] leading-relaxed">
+          <p class="text-fg-muted text-sm max-w-[280px] leading-relaxed">
             Chat securely with friends, keep each other accountable, and achieve your habit goals together.
           </p>
-          <button 
+          <button
             @click="showNewChatModal = true"
-            class="mt-6 px-4 py-2 bg-white hover:bg-zinc-200 text-black text-sm font-bold rounded-xl shadow-lg shadow-white/5 transition-all duration-200 active:scale-95 cursor-pointer"
+            class="mt-6 px-4 py-2 bg-action-primary hover:bg-action-primary-hover text-action-primary-fg text-sm font-bold rounded-xl shadow-lg shadow-fg-inverted/5 transition-all duration-200 active:scale-95 cursor-pointer"
           >
             Start a new chat
           </button>
@@ -476,19 +476,19 @@
         leave-from-class="opacity-100 scale-100"
         leave-to-class="opacity-0 scale-95"
       >
-        <div 
+        <div
           v-if="showNewChatModal"
           class="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm"
           @click.self="showNewChatModal = false"
         >
-          <div class="w-full max-w-sm bg-zinc-925 border border-zinc-800 rounded-2xl shadow-2xl flex flex-col max-h-[80vh] overflow-hidden select-none">
-            
+          <div class="w-full max-w-sm bg-surface-raised border border-border-muted rounded-2xl shadow-2xl flex flex-col max-h-[80vh] overflow-hidden select-none">
+
             <!-- Modal Header -->
-            <div class="p-4 border-b border-zinc-800/60 flex items-center justify-between">
-              <h3 class="text-sm font-bold text-white">Select a Friend</h3>
-              <button 
+            <div class="p-4 border-b border-border-muted/60 flex items-center justify-between">
+              <h3 class="text-sm font-bold text-fg">Select a Friend</h3>
+              <button
                 @click="showNewChatModal = false"
-                class="p-1 hover:bg-zinc-850 rounded-lg text-zinc-400 hover:text-white transition-colors cursor-pointer"
+                class="p-1 hover:bg-surface-hover rounded-lg text-fg-muted hover:text-fg transition-colors cursor-pointer"
               >
                 <X class="w-4 h-4" />
               </button>
@@ -500,41 +500,41 @@
                 v-model="friendSearchQuery"
                 type="text"
                 placeholder="Filter friends..."
-                class="w-full bg-zinc-900 border border-zinc-800 text-white text-sm rounded-xl px-4 py-2 focus:outline-none focus:border-zinc-700 transition-colors"
+                class="w-full bg-surface-solid border border-border-muted text-fg text-sm rounded-xl px-4 py-2 focus:outline-none focus:border-border-strong transition-colors"
               />
             </div>
 
             <div class="flex-1 overflow-y-auto p-2 space-y-1">
-              <div v-if="friends.length === 0" class="py-12 text-center text-zinc-500 italic text-sm">
+              <div v-if="friends.length === 0" class="py-12 text-center text-fg-subtle italic text-sm">
                 You don't have any friends yet. Go to the
-                <button type="button" @click="goToFriendsSection" class="text-zinc-200 hover:text-white underline underline-offset-2 transition-colors cursor-pointer">
+                <button type="button" @click="goToFriendsSection" class="text-fg hover:text-fg underline underline-offset-2 transition-colors cursor-pointer">
                   Friends
                 </button>
                 section to add them.
               </div>
-              <div v-else-if="filteredFriends.length === 0" class="py-12 text-center text-zinc-500 italic text-sm">
+              <div v-else-if="filteredFriends.length === 0" class="py-12 text-center text-fg-subtle italic text-sm">
                 No friends found matching your filter.
               </div>
-              
+
               <button
                 v-for="friend in filteredFriends"
                 :key="friend.id"
                 @click="selectFriend(friend)"
-                class="w-full text-left p-3 rounded-xl hover:bg-zinc-900/60 transition-colors flex items-center gap-3 cursor-pointer outline-none border border-transparent"
+                class="w-full text-left p-3 rounded-xl hover:bg-surface-solid/60 transition-colors flex items-center gap-3 cursor-pointer outline-none border border-transparent"
               >
-                <div class="w-9 h-9 rounded-full bg-zinc-900 border border-zinc-800 flex items-center justify-center font-bold text-xs uppercase text-zinc-300 shrink-0">
-                  <img 
-                    v-if="friend.photoUrl" 
-                    :src="friend.photoUrl" 
+                <div class="w-9 h-9 rounded-full bg-surface-solid border border-border-muted flex items-center justify-center font-bold text-xs uppercase text-fg-muted shrink-0">
+                  <img
+                    v-if="friend.photoUrl"
+                    :src="friend.photoUrl"
                     class="w-full h-full rounded-full object-cover"
                     alt="Avatar"
                   />
                   <span v-else>{{ friend.username.charAt(0) }}</span>
                 </div>
-                
+
                 <div class="flex-1 min-w-0">
                   <div class="flex items-center gap-1.5">
-                    <div class="text-sm font-bold text-white truncate">{{ friend.username }}</div>
+                    <div class="text-sm font-bold text-fg truncate">{{ friend.username }}</div>
                     <Star v-if="friend.isFavorite" class="w-3 h-3 text-amber-400 fill-amber-400 shrink-0" />
                   </div>
                 </div>
@@ -559,33 +559,33 @@
       >
         <div v-if="showClearChatModal" class="fixed inset-0 z-[150] flex flex-col items-center justify-start overflow-y-auto p-4 sm:py-8">
           <div class="fixed inset-0 bg-black/80 backdrop-blur-md touch-none" @click="showClearChatModal = false"></div>
-          
-          <div class="relative my-auto w-full max-w-sm bg-zinc-925 border border-zinc-800 rounded-3xl shadow-2xl p-8 text-center select-none">
-            <div class="w-16 h-16 bg-zinc-900 border border-zinc-800/50 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Trash2 class="w-8 h-8 text-zinc-400" />
+
+          <div class="relative my-auto w-full max-w-sm bg-surface-raised border border-border-muted rounded-3xl shadow-2xl p-8 text-center select-none">
+            <div class="w-16 h-16 bg-surface-solid border border-border-muted/50 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Trash2 class="w-8 h-8 text-fg-muted" />
             </div>
-            
-            <h2 class="text-xl font-bold text-white mb-2">Delete Chat?</h2>
-            
-            <p class="text-zinc-500 mb-8 text-sm">
+
+            <h2 class="text-xl font-bold text-fg mb-2">Delete Chat?</h2>
+
+            <p class="text-fg-subtle mb-8 text-sm">
               Your friend will still see the messages. Once your copy is deleted, it can no longer be undone.
             </p>
-            
+
             <div class="flex gap-3 mt-2">
-              <button 
+              <button
                 @click="showClearChatModal = false"
-                class="flex-1 px-5 py-3 bg-transparent hover:bg-zinc-900 text-zinc-400 hover:text-zinc-200 font-semibold rounded-xl transition-all cursor-pointer whitespace-nowrap"
+                class="flex-1 px-5 py-3 bg-transparent hover:bg-surface-solid text-fg-muted hover:text-fg font-semibold rounded-xl transition-all cursor-pointer whitespace-nowrap"
                 :disabled="isClearingChat"
               >
                 Cancel
               </button>
-              <button 
+              <button
                 @click="clearChat"
                 class="flex-1 px-5 py-3 bg-rose-500 hover:bg-rose-600 text-white font-semibold rounded-xl transition-all shadow-lg shadow-rose-500/20 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer whitespace-nowrap"
                 :disabled="isClearingChat"
               >
                 <template v-if="isClearingChat">
-                  <div class="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>
+                  <div class="w-4 h-4 border-2 border-fg/20 border-t-white rounded-full animate-spin"></div>
                   Deleting...
                 </template>
                 <template v-else>
@@ -612,33 +612,33 @@
       >
         <div v-if="messagePendingDelete" class="fixed inset-0 z-[150] flex flex-col items-center justify-start overflow-y-auto p-4 sm:py-8">
           <div class="fixed inset-0 bg-black/80 backdrop-blur-md touch-none" @click="messagePendingDelete = null"></div>
-          
-          <div class="relative my-auto w-full max-w-sm bg-zinc-925 border border-zinc-800 rounded-3xl shadow-2xl p-8 text-center select-none">
-            <div class="w-16 h-16 bg-zinc-900 border border-zinc-800/50 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Trash2 class="w-8 h-8 text-zinc-400" />
+
+          <div class="relative my-auto w-full max-w-sm bg-surface-raised border border-border-muted rounded-3xl shadow-2xl p-8 text-center select-none">
+            <div class="w-16 h-16 bg-surface-solid border border-border-muted/50 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Trash2 class="w-8 h-8 text-fg-muted" />
             </div>
-            
-            <h2 class="text-xl font-bold text-white mb-2">Delete Message?</h2>
-            
-            <p class="text-zinc-500 mb-8 text-sm">
+
+            <h2 class="text-xl font-bold text-fg mb-2">Delete Message?</h2>
+
+            <p class="text-fg-subtle mb-8 text-sm">
               This deletes the message for both you and your friend. Once deleted, it cannot be undone.
             </p>
-            
+
             <div class="flex gap-3 mt-2">
-              <button 
+              <button
                 @click="messagePendingDelete = null"
-                class="flex-1 px-5 py-3 bg-transparent hover:bg-zinc-900 text-zinc-400 hover:text-zinc-200 font-semibold rounded-xl transition-all cursor-pointer whitespace-nowrap"
+                class="flex-1 px-5 py-3 bg-transparent hover:bg-surface-solid text-fg-muted hover:text-fg font-semibold rounded-xl transition-all cursor-pointer whitespace-nowrap"
                 :disabled="isDeletingMessage"
               >
                 Cancel
               </button>
-              <button 
+              <button
                 @click="deletePendingMessage"
                 class="flex-1 px-5 py-3 bg-rose-500 hover:bg-rose-600 text-white font-semibold rounded-xl transition-all shadow-lg shadow-rose-500/20 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer whitespace-nowrap"
                 :disabled="isDeletingMessage"
               >
                 <template v-if="isDeletingMessage">
-                  <div class="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>
+                  <div class="w-4 h-4 border-2 border-fg/20 border-t-white rounded-full animate-spin"></div>
                   Deleting...
                 </template>
                 <template v-else>
@@ -665,12 +665,12 @@
 
 <script setup lang="ts">
 defineOptions({ name: 'inbox' });
-import { 
-  MessageCircle, 
-  SquarePen, 
-  Trash2, 
-  Send, 
-  X, 
+import {
+  MessageCircle,
+  SquarePen,
+  Trash2,
+  Send,
+  X,
   ChevronLeft,
   Star
 } from 'lucide-vue-next';
@@ -997,7 +997,7 @@ const handleMessagePaste = (event: ClipboardEvent) => {
   const currentLength = messageBody.value.length;
   // Account for any selected text that will be replaced
   const selectionLength = window.getSelection()?.toString().length || 0;
-  
+
   if (currentLength - selectionLength + pastedText.length > 5000) {
     showToast('You cannot exceed 5000 characters.', 'failed');
   }
@@ -1111,9 +1111,9 @@ const selectConversation = async (conv: ChatInboxConversation) => {
   activeChatLocked.value = false;
   messages.value = [];
   savedScrollTop.value = null; // Clear scroll memory for new conversation
-  
+
   await loadMessages();
-  
+
   // Mark as read after load
   if (conv.unreadCount > 0) {
     await markConversationRead(conv.id);
@@ -1135,13 +1135,13 @@ const restoreConversationFromHistory = async (friendId: string) => {
   }
   const friend = friends.value.find(f => f.id === friendId);
   if (!friend) return;
-  
+
   showNewChatModal.value = false;
   saveCurrentDraft();
-  
+
   activeFriend.value = friend;
   activeChatLocked.value = false;
-  
+
   const existingConv = conversations.value.find(conv => {
     const otherId = conv.user1Id === user.value?.id ? conv.user2Id : conv.user1Id;
     return otherId === friend.id;
@@ -1164,10 +1164,10 @@ const restoreConversationFromHistory = async (friendId: string) => {
 const selectFriend = async (friend: UserProfile) => {
   showNewChatModal.value = false;
   saveCurrentDraft();
-  
+
   activeFriend.value = friend;
   activeChatLocked.value = false;
-  
+
   // Check if we already have an active conversation with this friend
   const existingConv = conversations.value.find(conv => {
     const otherId = conv.user1Id === user.value?.id ? conv.user2Id : conv.user1Id;
@@ -1208,7 +1208,7 @@ const deselectConversation = () => {
 const loadMessages = async (cursor: string | null = null, autoScroll = true) => {
   if (!isOnline.value) return;
   if (!activeConversationId.value) return;
-  
+
   const isPaginating = !!cursor;
   if (isPaginating) {
     loadingMore.value = true;
@@ -1221,7 +1221,7 @@ const loadMessages = async (cursor: string | null = null, autoScroll = true) => 
     if (cursor) query.cursor = cursor;
 
     const data = await $fetch<PaginatedMessagesResponse>(`/api/chat/conversations/${activeConversationId.value}/messages`, { query });
-    
+
     if (isPaginating) {
       // Append older messages — they go to the end of the array so they appear at the visual top when reversed
       const prevScrollHeight = scrollContainer.value?.scrollHeight ?? 0;
@@ -1282,7 +1282,7 @@ const getMessageAvatarInitial = (msg: InboxMessage) => {
 const sendMessage = async () => {
   if (!requireOnlineAction()) return;
   if (!canSend.value || !activeFriend.value || !user.value?.id) return;
-  
+
   const text = messageBody.value.trim();
   const targetFriendId = activeFriend.value.id;
   const replyToActivity = replyActivityContext.value ? { ...replyActivityContext.value } : null;
@@ -1309,7 +1309,7 @@ const sendMessage = async () => {
   try {
     const response = await $fetch<InboxMessage>(`/api/chat/conversations/by-friend/${targetFriendId}/messages`, {
       method: 'POST',
-      body: { 
+      body: {
         body: text,
         replyToActivity: replyToActivity || undefined
       }
@@ -1319,7 +1319,7 @@ const sendMessage = async () => {
     if (optimisticIndex !== -1) {
       messages.value[optimisticIndex] = response;
     }
-    
+
     // Set active conversation ID if it wasn't set (first message)
     if (!activeConversationId.value && activeFriend.value?.id === targetFriendId) {
       activeConversationId.value = response.conversationId;
@@ -1357,11 +1357,11 @@ const sendMessage = async () => {
 const clearChat = async () => {
   if (!requireOnlineAction()) return;
   if (!activeConversationId.value || isClearingChat.value) return;
-  
+
   isClearingChat.value = true;
   try {
     await $fetch(`/api/chat/conversations/${activeConversationId.value}/clear`, { method: 'POST' });
-    
+
     showToast('Chat history cleared', 'completed');
     showClearChatModal.value = false;
     deselectConversation();
@@ -1405,7 +1405,7 @@ const confirmDeleteMessage = async (messageId: string): Promise<boolean> => {
   if (!requireOnlineAction()) return false;
   try {
     await $fetch(`/api/chat/messages/${messageId}`, { method: 'DELETE' });
-    
+
     // Local updates
     const msgIndex = messages.value.findIndex(m => m.id === messageId);
     const existingMessage = messages.value[msgIndex];
@@ -1476,7 +1476,7 @@ const scrollToBottomSettled = async () => {
 
 const handleScroll = (event: Event) => {
   const target = event.target as HTMLElement;
-  
+
   // Save the scroll position in real time
   if (activeConversationId.value) {
     savedScrollTop.value = target.scrollTop;
@@ -1530,20 +1530,20 @@ onMounted(async () => {
   window.addEventListener('resize', checkViewport);
   window.addEventListener('popstate', handlePopState);
   window.addEventListener('reset-inbox', deselectConversation);
-  
+
   if (!isOnline.value) return;
 
   // Hydrate global social profiles first
   initSocial();
 
   await loadConversations();
-  
+
   if (window.history.state?.inboxChat && window.history.state?.friendId) {
     if (!activeFriend.value || activeFriend.value.id !== window.history.state.friendId) {
       await restoreConversationFromHistory(window.history.state.friendId);
     }
   }
-  
+
   await handleReplyQuery();
 });
 
@@ -1551,7 +1551,7 @@ onActivated(async () => {
   if (!isOnline.value) return;
   if (activeConversationId.value) {
     sharedActiveConversationId.value = activeConversationId.value;
-    
+
     // Restore the saved scroll position or scroll to bottom if none exists
     await nextTick();
     if (scrollContainer.value) {

@@ -1,38 +1,38 @@
 <template>
   <div key="social-page-root" class="relative">
     <!-- Sticky Header + Tabs -->
-    <div class="sticky top-0 md:top-[57px] z-40 bg-black">
+    <div class="sticky top-0 md:top-[57px] z-40 bg-surface-inset">
       <div class="px-4 sm:px-0 flex items-end justify-between gap-4 pt-2 pb-2 sm:pt-4">
         <div class="flex items-center gap-3">
-          <Users class="w-7 h-7 text-zinc-400 shrink-0" />
+          <Users class="w-7 h-7 text-fg-muted shrink-0" />
           <div>
-            <h1 class="text-base font-bold tracking-tight text-white">Social</h1>
-            <p class="text-zinc-400 text-xs">{{ displayFriends.length }} friend{{ displayFriends.length === 1 ? '' : 's' }}</p>
+            <h1 class="text-base font-bold tracking-tight text-fg">Social</h1>
+            <p class="text-fg-muted text-xs">{{ displayFriends.length }} friend{{ displayFriends.length === 1 ? '' : 's' }}</p>
           </div>
         </div>
       </div>
 
       <!-- Tab Navigation -->
       <div class="px-4 sm:px-0 pb-2">
-        <div class="flex p-1 bg-zinc-925 border border-zinc-800 rounded-xl relative">
+        <div class="flex p-1 bg-surface-raised border border-border-muted rounded-xl relative">
           <button
           @click="activeTab = 'activity'"
           class="flex-1 py-2.5 text-[11px] font-bold tracking-widest uppercase rounded-lg transition-all relative z-10 cursor-pointer"
-          :class="activeTab === 'activity' ? 'text-white' : 'text-zinc-500 hover:text-zinc-300'"
+          :class="activeTab === 'activity' ? 'text-fg' : 'text-fg-subtle hover:text-fg-muted'"
         >
           Activity
         </button>
         <button
           @click="activeTab = 'friends'"
           class="flex-1 py-2.5 text-[11px] font-bold tracking-widest uppercase rounded-lg transition-all relative z-10 cursor-pointer flex items-center justify-center gap-2"
-          :class="activeTab === 'friends' ? 'text-white' : 'text-zinc-500 hover:text-zinc-300'"
+          :class="activeTab === 'friends' ? 'text-fg' : 'text-fg-subtle hover:text-fg-muted'"
         >
           Friends
           <span v-if="pendingIncoming.length > 0" class="flex w-2 h-2 bg-rose-500 rounded-full"></span>
         </button>
         <!-- Sliding Indicator -->
         <div
-          class="absolute top-1 bottom-1 w-[calc(50%-6px)] bg-zinc-800 rounded-lg transition-all duration-300 ease-out z-0 shadow-sm"
+          class="absolute top-1 bottom-1 w-[calc(50%-6px)] bg-surface-hover rounded-lg transition-all duration-300 ease-out z-0 shadow-sm"
           :class="activeTab === 'activity' ? 'left-1' : 'left-[calc(50%+2px)]'"
         ></div>
       </div>
@@ -42,21 +42,21 @@
     <div :style="pullStyle" class="will-change-transform">
     <div v-if="activeTab === 'activity'" v-motion-fade class="space-y-6">
       <div v-if="feedLoading" class="flex justify-center p-12">
-        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
+        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-fg"></div>
       </div>
 
       <template v-else>
-        <div v-if="!feed || feed.length === 0" class="activity-content-surface bg-zinc-925/80 backdrop-blur-sm sm:rounded-2xl rounded-none border-y border-x-0 sm:border border-zinc-800/80 p-10 text-center shadow-2xl flex flex-col items-center">
-        <div class="w-16 h-16 bg-zinc-950 rounded-full flex items-center justify-center mx-auto mb-4 border border-zinc-800">
-          <Activity class="w-8 h-8 text-zinc-500" />
+        <div v-if="!feed || feed.length === 0" class="activity-content-surface bg-surface-raised/80 backdrop-blur-sm sm:rounded-2xl rounded-none border-y border-x-0 sm:border border-border-muted/80 p-10 text-center shadow-2xl flex flex-col items-center">
+        <div class="w-16 h-16 bg-surface-muted rounded-full flex items-center justify-center mx-auto mb-4 border border-border-muted">
+          <Activity class="w-8 h-8 text-fg-subtle" />
         </div>
-        <h2 class="text-lg font-bold text-white mb-2">Welcome to Habits Social! 👋</h2>
-        <p class="text-zinc-400 text-sm max-w-sm mx-auto leading-relaxed mb-6">
+        <h2 class="text-lg font-bold text-fg mb-2">Welcome to Habits Social! 👋</h2>
+        <p class="text-fg-muted text-sm max-w-sm mx-auto leading-relaxed mb-6">
           Commit to new habits, add some friends, and start building streaks to bring this space to life!
         </p>
         <button
           @click="navigateTo('/habits?action=add')"
-          class="px-6 py-3 bg-white text-black font-bold rounded-xl hover:bg-zinc-200 transition-colors shadow-lg cursor-pointer"
+          class="px-6 py-3 bg-action-primary text-action-primary-fg font-bold rounded-xl hover:bg-action-primary-hover transition-colors shadow-lg cursor-pointer"
         >
           Commit to a new habit
         </button>
@@ -64,7 +64,7 @@
 
       <div v-else class="space-y-2 px-0 sm:px-0">
         <div v-for="(group, date, index) in groupedFeed" :key="date" class="space-y-0">
-          <h3 class="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-600 px-4 sm:px-1 pb-2" :class="index === 0 ? 'mt-2' : 'mt-4'">
+          <h3 class="text-[10px] font-black uppercase tracking-[0.2em] text-fg-subtle px-4 sm:px-1 pb-2" :class="index === 0 ? 'mt-2' : 'mt-4'">
             {{ formatFeedDate(String(date)) }}
           </h3>
 
@@ -73,7 +73,7 @@
               v-for="(item, itemIndex) in group"
               :key="item.id"
               @click="item.habit?.id ? openHabitDetails(item.habit.id) : (String(item.user.id) !== String(user?.id) ? navigateTo(`/friends/${item.user.id}?from=${activeTab}`) : null)"
-              class="activity-content-surface group bg-zinc-925/50 hover:bg-zinc-900/80 border-b border-zinc-800/50 last:border-b-0 sm:border-x sm:border-b sm:border-zinc-800/50 p-4 transition-all duration-300 cursor-pointer flex flex-col gap-3 shadow-sm"
+              class="activity-content-surface group bg-surface-raised/50 hover:bg-surface-solid/80 border-b border-border-muted/50 last:border-b-0 sm:border-x sm:border-b sm:border-border-muted/50 p-4 transition-all duration-300 cursor-pointer flex flex-col gap-3 shadow-sm"
               :class="[
                 itemIndex === 0 ? 'sm:rounded-t-2xl sm:border-t' : '',
                 itemIndex === group.length - 1 ? 'sm:rounded-b-2xl' : ''
@@ -85,9 +85,9 @@
                 <UserAvatar
                   @click="String(item.user.id) !== String(user?.id) ? ($event.stopPropagation(), navigateTo(`/friends/${item.user.id}?from=${activeTab}`)) : null"
                   :src="item.user.photoUrl"
-                  container-class="w-10 h-10 bg-zinc-950 border border-zinc-800 transition-transform cursor-pointer"
+                  container-class="w-10 h-10 bg-surface-muted border border-border-muted transition-transform cursor-pointer"
                   :class="{ 'active:scale-95': String(item.user.id) !== String(user?.id) }"
-                  icon-class="w-5 h-5 text-zinc-700"
+                  icon-class="w-5 h-5 text-fg-subtle"
                 />
 
                 <!-- Content -->
@@ -95,12 +95,12 @@
                   <div class="text-sm leading-relaxed min-w-0 break-words">
                     <span
                       @click="String(item.user.id) !== String(user?.id) ? ($event.stopPropagation(), navigateTo(`/friends/${item.user.id}?from=${activeTab}`)) : null"
-                      class="font-bold text-zinc-100 transition-colors cursor-pointer mr-1.5"
-                      :class="{ 'hover:text-zinc-400': String(item.user.id) !== String(user?.id) }"
+                      class="font-bold text-fg transition-colors cursor-pointer mr-1.5"
+                      :class="{ 'hover:text-fg-muted': String(item.user.id) !== String(user?.id) }"
                     >
                       {{ item.user.name }}
                     </span>
-                    <span class="text-zinc-400" v-html="formatMessage(item.message)" @click="handleMessageClick">
+                    <span class="text-fg-muted" v-html="formatMessage(item.message)" @click="handleMessageClick">
                     </span>
                   </div>
                 </div>
@@ -121,7 +121,7 @@
               <div class="flex items-center justify-end w-full">
                 <button
                   @click.stop="replyToActivity(item)"
-                  class="p-1 text-zinc-500 hover:text-zinc-300 transition-all active:scale-95 cursor-pointer flex items-center justify-center gap-1.5"
+                  class="p-1 text-fg-subtle hover:text-fg-muted transition-all active:scale-95 cursor-pointer flex items-center justify-center gap-1.5"
                   title="Reply privately"
                 >
                   <span class="text-xs font-medium">Chat about this activity</span>
@@ -139,7 +139,7 @@
 
         <!-- Loading indicator for load more -->
         <div v-if="hasMore" class="flex justify-center p-4 h-14">
-          <div v-if="loadingMore" class="animate-spin rounded-full h-6 w-6 border-b-2 border-white"></div>
+          <div v-if="loadingMore" class="animate-spin rounded-full h-6 w-6 border-b-2 border-fg"></div>
         </div>
       </div>
     </template>
@@ -147,41 +147,41 @@
 
     <div v-if="activeTab === 'friends'" class="space-y-3">
       <div v-if="isLoading" class="flex justify-center p-12">
-        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
+        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-fg"></div>
       </div>
       <template v-else>
         <!-- Incoming Requests Accordion -->
-      <div v-if="pendingIncoming.length > 0" v-motion-fade class="bg-zinc-925/80 backdrop-blur-sm sm:rounded-2xl rounded-none border-y border-x-0 sm:border border-zinc-800/80 overflow-hidden shadow-2xl">
+      <div v-if="pendingIncoming.length > 0" v-motion-fade class="bg-surface-raised/80 backdrop-blur-sm sm:rounded-2xl rounded-none border-y border-x-0 sm:border border-border-muted/80 overflow-hidden shadow-2xl">
       <button @click="isRequestsExpanded = !isRequestsExpanded"
-        class="w-full flex items-center justify-between p-6 hover:bg-white/5 transition-colors cursor-pointer group"
+        class="w-full flex items-center justify-between p-6 hover:bg-action-primary/5 transition-colors cursor-pointer group"
       >
         <div class="flex items-center gap-3">
-          <h2 class="text-sm font-bold uppercase tracking-wider text-zinc-500 group-hover:text-zinc-300 transition-colors">
+          <h2 class="text-sm font-bold uppercase tracking-wider text-fg-subtle group-hover:text-fg-muted transition-colors">
             Friend Requests
           </h2>
           <span class="bg-rose-500 text-white text-[10px] font-black px-2 py-0.5 rounded-full shadow-lg shadow-rose-500/20">
             {{ pendingIncoming.length }}
           </span>
         </div>
-        <ChevronDown class="w-4 h-4 text-zinc-600 transition-transform duration-300" :class="{ 'rotate-180': isRequestsExpanded }" />
+        <ChevronDown class="w-4 h-4 text-fg-subtle transition-transform duration-300" :class="{ 'rotate-180': isRequestsExpanded }" />
       </button>
 
       <div v-show="isRequestsExpanded" class="sm:px-6 px-0 pb-6 pt-2">
         <div class="gap-0 flex flex-col max-h-[380px] overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-zinc-800 scrollbar-track-transparent">
-          <div v-for="req in pendingIncoming" :key="req.id" class="flex items-center justify-between bg-transparent border-none p-4 hover:bg-white/5 transition-colors rounded-none md:rounded-xl">
+          <div v-for="req in pendingIncoming" :key="req.id" class="flex items-center justify-between bg-transparent border-none p-4 hover:bg-action-primary/5 transition-colors rounded-none md:rounded-xl">
             <NuxtLink :to="`/friends/${req.initiatorId}?from=${activeTab}`" class="flex items-center gap-3 hover:opacity-80 transition-opacity">
               <UserAvatar
                 :src="profilesMap[req.initiatorId]?.photoUrl"
-                container-class="w-10 h-10 bg-zinc-950"
-                icon-class="w-5 h-5 text-zinc-600"
+                container-class="w-10 h-10 bg-surface-muted"
+                icon-class="w-5 h-5 text-fg-subtle"
               />
               <div>
-                <div class="font-semibold text-zinc-200 text-sm">{{ profilesMap[req.initiatorId]?.username || 'Unknown' }}</div>
+                <div class="font-semibold text-fg text-sm">{{ profilesMap[req.initiatorId]?.username || 'Unknown' }}</div>
               </div>
             </NuxtLink>
             <div class="flex gap-2">
-              <button @click="acceptRequest(req.id)" class="p-2 bg-white hover:bg-zinc-200 text-black rounded-lg transition-colors cursor-pointer"><Check class="w-4 h-4" /></button>
-              <button @click="declineRequest(req.id)" class="p-2 bg-zinc-925 hover:bg-zinc-800 text-zinc-400 rounded-lg transition-colors cursor-pointer"><XIcon class="w-4 h-4" /></button>
+              <button @click="acceptRequest(req.id)" class="p-2 bg-action-primary hover:bg-action-primary-hover text-action-primary-fg rounded-lg transition-colors cursor-pointer"><Check class="w-4 h-4" /></button>
+              <button @click="declineRequest(req.id)" class="p-2 bg-surface-raised hover:bg-surface-hover text-fg-muted rounded-lg transition-colors cursor-pointer"><XIcon class="w-4 h-4" /></button>
             </div>
           </div>
         </div>
@@ -189,31 +189,31 @@
     </div>
 
     <!-- Combined Social Sections -->
-    <div v-motion-fade class="bg-zinc-925/80 backdrop-blur-sm sm:rounded-2xl rounded-none shadow-2xl border-y border-x-0 sm:border border-zinc-800/80 overflow-hidden">
+    <div v-motion-fade class="bg-surface-raised/80 backdrop-blur-sm sm:rounded-2xl rounded-none shadow-2xl border-y border-x-0 sm:border border-border-muted/80 overflow-hidden">
       <!-- Search Users -->
       <div class="sm:p-6 sm:pb-0 py-6 pb-0">
-        <h2 class="text-sm font-bold uppercase tracking-wider text-zinc-500 mb-2 px-6 sm:px-0">Search Users</h2>
+        <h2 class="text-sm font-bold uppercase tracking-wider text-fg-subtle mb-2 px-6 sm:px-0">Search Users</h2>
         <form @submit.prevent="handleSearch" class="flex gap-3 px-6 sm:px-0">
           <div class="relative w-full max-w-md">
-            <Search class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" />
+            <Search class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-fg-subtle" />
             <input v-model="searchQuery" type="text" placeholder="Search by username..."
-              class="w-full pl-10 pr-4 py-2.5 bg-black border border-zinc-925 rounded-xl focus:outline-none focus:ring-2 focus:ring-zinc-600 text-white placeholder-zinc-600 text-sm transition-all" />
+              class="w-full pl-10 pr-4 py-2.5 bg-surface-inset border border-surface-raised rounded-xl focus:outline-none focus:ring-2 focus:ring-border-strong text-fg placeholder-fg-subtle text-sm transition-all" />
           </div>
         </form>
 
         <div v-if="searchResults.length > 0" class="mt-4 gap-0 flex flex-col max-h-[380px] overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-zinc-800 scrollbar-track-transparent pb-4">
-          <div v-for="res in searchResults" :key="res.id" class="flex items-center justify-between bg-transparent border-none p-4 hover:bg-white/5 transition-colors rounded-none md:rounded-xl">
+          <div v-for="res in searchResults" :key="res.id" class="flex items-center justify-between bg-transparent border-none p-4 hover:bg-action-primary/5 transition-colors rounded-none md:rounded-xl">
             <NuxtLink :to="`/friends/${res.id}?from=${activeTab}`" class="flex items-center gap-3 hover:opacity-80 transition-opacity">
               <UserAvatar
                 :src="res.photoUrl"
-                container-class="w-10 h-10 bg-zinc-950"
-                icon-class="w-5 h-5 text-zinc-600"
+                container-class="w-10 h-10 bg-surface-muted"
+                icon-class="w-5 h-5 text-fg-subtle"
               />
               <div>
-                <div class="font-semibold text-zinc-200 text-sm">{{ res.username }}</div>
+                <div class="font-semibold text-fg text-sm">{{ res.username }}</div>
               </div>
             </NuxtLink>
-            <span v-if="getRelationship(res.id)" class="text-xs font-semibold text-zinc-500 bg-zinc-925 px-3 py-1.5 rounded-full">
+            <span v-if="getRelationship(res.id)" class="text-xs font-semibold text-fg-subtle bg-surface-raised px-3 py-1.5 rounded-full">
               {{ getRelationship(res.id) === 'accepted' ? 'Friends' : 'Pending' }}
             </span>
             <button
@@ -223,7 +223,7 @@
               class="flex items-center justify-center gap-2 px-4 py-2 bg-rose-500 hover:bg-rose-600 disabled:opacity-50 text-white rounded-xl transition-colors font-semibold text-sm cursor-pointer min-w-[80px]"
             >
               <template v-if="unblockingUserId === res.id">
-                <div class="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>
+                <div class="w-4 h-4 border-2 border-fg/20 border-t-white rounded-full animate-spin"></div>
               </template>
               <template v-else>
                 <ShieldBan class="w-4 h-4" /> Unblock
@@ -233,7 +233,7 @@
               v-else
               @click="executeSendRequest(res)"
               :disabled="addingFriendId === res.id"
-              class="flex items-center justify-center gap-2 px-4 py-2 bg-white hover:bg-zinc-200 disabled:opacity-50 text-black rounded-xl transition-colors font-semibold text-sm cursor-pointer min-w-[80px]"
+              class="flex items-center justify-center gap-2 px-4 py-2 bg-action-primary hover:bg-action-primary-hover disabled:opacity-50 text-action-primary-fg rounded-xl transition-colors font-semibold text-sm cursor-pointer min-w-[80px]"
             >
               <template v-if="addingFriendId === res.id">
                 <div class="w-4 h-4 border-2 border-black/20 border-t-black rounded-full animate-spin"></div>
@@ -249,37 +249,37 @@
       <!-- Friends List -->
       <div class="sm:p-6 py-6">
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2 sm:pr-1 px-6 sm:px-0">
-          <h2 class="text-sm font-bold uppercase tracking-wider text-zinc-500">My Friends</h2>
+          <h2 class="text-sm font-bold uppercase tracking-wider text-fg-subtle">My Friends</h2>
           <div class="relative w-full sm:max-w-[240px]">
-            <Search class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
+            <Search class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-fg-subtle" />
             <input
               v-model="friendsSearchQuery"
               type="text"
               placeholder="Filter friends..."
-              class="w-full pl-10 pr-4 py-2.5 bg-black border border-zinc-925 rounded-xl focus:outline-none focus:ring-2 focus:ring-zinc-600 text-white placeholder-zinc-600 text-sm transition-all"
+              class="w-full pl-10 pr-4 py-2.5 bg-surface-inset border border-surface-raised rounded-xl focus:outline-none focus:ring-2 focus:ring-border-strong text-fg placeholder-fg-subtle text-sm transition-all"
             />
           </div>
         </div>
 
-        <p v-if="displayFriends.length === 0" class="text-zinc-600 text-sm italic px-6 sm:px-0">No friends yet. Search for people above!</p>
-        <p v-else-if="filteredDisplayFriends.length === 0" class="text-zinc-600 text-sm italic px-6 sm:px-0">No friends found matching your filter.</p>
+        <p v-if="displayFriends.length === 0" class="text-fg-subtle text-sm italic px-6 sm:px-0">No friends yet. Search for people above!</p>
+        <p v-else-if="filteredDisplayFriends.length === 0" class="text-fg-subtle text-sm italic px-6 sm:px-0">No friends found matching your filter.</p>
         <div v-else class="grid grid-cols-1 md:grid-cols-2 gap-0 max-h-[480px] overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-zinc-800 scrollbar-track-transparent">
           <div
             v-for="f in filteredDisplayFriends" :key="f.id"
             @click="handleFriendClick(f)"
-            class="flex items-center gap-4 p-4 bg-transparent border-none transition-all group cursor-pointer hover:bg-white/5 rounded-none md:rounded-xl"
+            class="flex items-center gap-4 p-4 bg-transparent border-none transition-all group cursor-pointer hover:bg-action-primary/5 rounded-none md:rounded-xl"
           >
             <UserAvatar
               :src="profilesMap[getFriendId(f)]?.photoUrl"
-              container-class="w-12 h-12 bg-zinc-950"
-              icon-class="w-6 h-6 text-zinc-600"
+              container-class="w-12 h-12 bg-surface-muted"
+              icon-class="w-6 h-6 text-fg-subtle"
             />
             <div class="flex-1 min-w-0">
               <div class="flex items-center gap-2">
-                <div class="font-semibold text-zinc-200 truncate transition-colors text-sm" :class="{ 'group-hover:text-zinc-400': f.status === 'accepted' }">
+                <div class="font-semibold text-fg truncate transition-colors text-sm" :class="{ 'group-hover:text-fg-muted': f.status === 'accepted' }">
                   {{ profilesMap[getFriendId(f)]?.username || 'Unknown' }}
                 </div>
-                <span v-if="f.status === 'pending'" class="text-[10px] font-bold uppercase tracking-widest text-zinc-600 bg-zinc-925 px-2 py-0.5 rounded-md shrink-0">
+                <span v-if="f.status === 'pending'" class="text-[10px] font-bold uppercase tracking-widest text-fg-subtle bg-surface-raised px-2 py-0.5 rounded-md shrink-0">
                   Pending
                 </span>
               </div>
@@ -289,14 +289,14 @@
                 v-if="f.status === 'accepted'"
                 @click.stop="handleToggleFavorite(f)"
                 class="p-2 transition-all cursor-pointer rounded-xl"
-                :class="isFriendshipFavorite(f) ? 'text-amber-400 bg-amber-400/10' : 'text-zinc-600 hover:text-amber-400 hover:bg-amber-400/5'"
+                :class="isFriendshipFavorite(f) ? 'text-amber-400 bg-amber-400/10' : 'text-fg-subtle hover:text-amber-400 hover:bg-amber-400/5'"
                 title="Favorite"
               >
                 <Star class="w-4 h-4" :class="{ 'fill-amber-400': isFriendshipFavorite(f) }" />
               </button>
               <button
                 @click.stop="confirmUnfriend(f)"
-                class="p-2 text-zinc-600 hover:text-rose-500 hover:bg-rose-500/10 rounded-xl transition-all cursor-pointer"
+                class="p-2 text-fg-subtle hover:text-rose-500 hover:bg-rose-500/10 rounded-xl transition-all cursor-pointer"
                 :title="f.status === 'pending' ? 'Cancel Request' : 'Unfriend'"
               >
                 <XIcon class="w-4 h-4" />
@@ -323,19 +323,19 @@
       >
         <div v-if="showUnfriendModal" class="fixed inset-0 z-[110] flex flex-col items-center justify-start overflow-y-auto p-4 sm:py-8">
           <div class="fixed inset-0 bg-black/80 backdrop-blur-md touch-none" @click="showUnfriendModal = false"></div>
-          <div class="relative my-auto w-full max-w-sm bg-zinc-925 border border-zinc-800 rounded-3xl shadow-2xl p-8 text-center">
-            <div class="w-16 h-16 bg-zinc-925 rounded-full flex items-center justify-center mx-auto mb-4">
+          <div class="relative my-auto w-full max-w-sm bg-surface-raised border border-border-muted rounded-3xl shadow-2xl p-8 text-center">
+            <div class="w-16 h-16 bg-surface-raised rounded-full flex items-center justify-center mx-auto mb-4">
               <User class="w-8 h-8 text-rose-500" />
             </div>
-            <h2 class="text-xl font-bold text-white mb-2">{{ friendshipToUnfriend?.status === 'pending' ? 'Cancel Request?' : 'Unfriend?' }}</h2>
-            <p class="text-zinc-500 mb-8 text-sm">
+            <h2 class="text-xl font-bold text-fg mb-2">{{ friendshipToUnfriend?.status === 'pending' ? 'Cancel Request?' : 'Unfriend?' }}</h2>
+            <p class="text-fg-subtle mb-8 text-sm">
               {{ friendshipToUnfriend?.status === 'pending'
                 ? `Cancel your friend request to ${unfriendDisplayName}?`
                 : `Are you sure you want to unfriend ${unfriendDisplayName}?`
               }}
             </p>
             <div class="flex gap-3 mt-2">
-              <button @click="showUnfriendModal = false" class="flex-1 px-5 py-3 bg-transparent hover:bg-zinc-800 text-zinc-400 hover:text-zinc-200 font-semibold rounded-xl transition-all cursor-pointer whitespace-nowrap">
+              <button @click="showUnfriendModal = false" class="flex-1 px-5 py-3 bg-transparent hover:bg-surface-hover text-fg-muted hover:text-fg font-semibold rounded-xl transition-all cursor-pointer whitespace-nowrap">
                 Cancel
               </button>
               <button @click="executeUnfriend" class="flex-1 px-5 py-3 bg-rose-500 hover:bg-rose-600 text-white font-semibold rounded-xl transition-all shadow-lg shadow-rose-500/20 cursor-pointer whitespace-nowrap">
@@ -367,14 +367,14 @@
           <div class="fixed inset-0 bg-black/80 backdrop-blur-sm touch-none" @click="showActivityReplyFriendSelectModal = false"></div>
 
           <!-- Sibling Modal Card -->
-          <div class="relative w-full max-w-sm bg-zinc-925 border border-zinc-800 rounded-2xl shadow-2xl flex flex-col max-h-[80vh] overflow-hidden select-none">
+          <div class="relative w-full max-w-sm bg-surface-raised border border-border-muted rounded-2xl shadow-2xl flex flex-col max-h-[80vh] overflow-hidden select-none">
 
             <!-- Modal Header -->
-            <div class="p-4 border-b border-zinc-800/60 flex items-center justify-between">
-              <h3 class="text-sm font-bold text-white">Chat about this activity with</h3>
+            <div class="p-4 border-b border-border-muted/60 flex items-center justify-between">
+              <h3 class="text-sm font-bold text-fg">Chat about this activity with</h3>
               <button
                 @click="showActivityReplyFriendSelectModal = false"
-                class="p-1 hover:bg-zinc-850 rounded-lg text-zinc-400 hover:text-white transition-colors cursor-pointer"
+                class="p-1 hover:bg-surface-hover rounded-lg text-fg-muted hover:text-fg transition-colors cursor-pointer"
               >
                 <XIcon class="w-4 h-4" />
               </button>
@@ -386,19 +386,19 @@
                 v-model="replyFriendSearchQuery"
                 type="text"
                 placeholder="Filter friends..."
-                class="w-full bg-zinc-900 border border-zinc-800 text-white text-sm rounded-xl px-4 py-2 focus:outline-none focus:border-zinc-700 transition-colors"
+                class="w-full bg-surface-solid border border-border-muted text-fg text-sm rounded-xl px-4 py-2 focus:outline-none focus:border-border-strong transition-colors"
               />
             </div>
 
             <div class="flex-1 overflow-y-auto p-2 space-y-1">
-              <div v-if="acceptedFriends.length === 0" class="py-12 text-center text-zinc-500 italic text-sm">
+              <div v-if="acceptedFriends.length === 0" class="py-12 text-center text-fg-subtle italic text-sm">
                 You don't have any friends yet. Go to the
-                <button type="button" @click="goToFriendsSection" class="text-zinc-200 hover:text-white underline underline-offset-2 transition-colors cursor-pointer">
+                <button type="button" @click="goToFriendsSection" class="text-fg hover:text-fg underline underline-offset-2 transition-colors cursor-pointer">
                   Friends
                 </button>
                 section to add them.
               </div>
-              <div v-else-if="filteredReplyFriends.length === 0" class="py-12 text-center text-zinc-500 italic text-sm">
+              <div v-else-if="filteredReplyFriends.length === 0" class="py-12 text-center text-fg-subtle italic text-sm">
                 No friends found matching your filter.
               </div>
 
@@ -407,17 +407,17 @@
                 :key="friend.id"
                 @click="selectFriendForReply(friend)"
                 :disabled="replyFriendActionId === getFriendId(friend)"
-                class="w-full text-left p-3 rounded-xl hover:bg-zinc-900/60 transition-colors flex items-center gap-3 cursor-pointer outline-none border border-transparent disabled:opacity-60 disabled:cursor-wait"
+                class="w-full text-left p-3 rounded-xl hover:bg-surface-solid/60 transition-colors flex items-center gap-3 cursor-pointer outline-none border border-transparent disabled:opacity-60 disabled:cursor-wait"
               >
                 <UserAvatar
                   :src="profilesMap[getFriendId(friend)]?.photoUrl"
-                  container-class="w-9 h-9 bg-zinc-900"
-                  icon-class="w-5 h-5 text-zinc-600"
+                  container-class="w-9 h-9 bg-surface-solid"
+                  icon-class="w-5 h-5 text-fg-subtle"
                 />
 
                 <div class="flex-1 min-w-0">
                   <div class="flex items-center gap-1.5">
-                    <div class="text-sm font-bold text-white truncate">{{ profilesMap[getFriendId(friend)]?.username || 'Unknown' }}</div>
+                    <div class="text-sm font-bold text-fg truncate">{{ profilesMap[getFriendId(friend)]?.username || 'Unknown' }}</div>
                     <Star v-if="isFriendshipFavorite(friend)" class="w-3 h-3 text-amber-400 fill-amber-400 shrink-0" />
                     <div v-if="replyFriendActionId === getFriendId(friend)" class="w-3 h-3 border-2 border-zinc-500/30 border-t-zinc-300 rounded-full animate-spin shrink-0"></div>
                   </div>
@@ -443,26 +443,26 @@
       >
         <div v-if="showShareBeforeReplyModal" class="fixed inset-0 z-[160] flex items-center justify-center p-4">
           <div class="absolute inset-0 bg-black/80 backdrop-blur-md touch-none" @click="closeShareBeforeReplyModal"></div>
-          <div class="relative w-full max-w-sm bg-zinc-925 border border-zinc-800 rounded-3xl shadow-2xl p-8 text-center">
-            <div class="w-16 h-16 bg-zinc-925 rounded-full flex items-center justify-center mx-auto mb-4">
-              <UserPlus class="w-8 h-8 text-zinc-200" />
+          <div class="relative w-full max-w-sm bg-surface-raised border border-border-muted rounded-3xl shadow-2xl p-8 text-center">
+            <div class="w-16 h-16 bg-surface-raised rounded-full flex items-center justify-center mx-auto mb-4">
+              <UserPlus class="w-8 h-8 text-fg" />
             </div>
-            <h2 class="text-xl font-bold text-white mb-2">Share habit with {{ pendingShareFriendName }}?</h2>
-            <p class="text-zinc-500 mb-8 text-sm">
-              This habit is not currently shared with <span class="text-zinc-200 font-medium">{{ pendingShareFriendName }}</span>.
+            <h2 class="text-xl font-bold text-fg mb-2">Share habit with {{ pendingShareFriendName }}?</h2>
+            <p class="text-fg-subtle mb-8 text-sm">
+              This habit is not currently shared with <span class="text-fg font-medium">{{ pendingShareFriendName }}</span>.
             </p>
             <div class="flex gap-3 mt-2">
               <button
                 @click="closeShareBeforeReplyModal"
                 :disabled="shareReplyLoading"
-                class="flex-1 px-5 py-3 bg-transparent hover:bg-zinc-800 text-zinc-400 hover:text-zinc-200 font-semibold rounded-xl transition-all cursor-pointer whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
+                class="flex-1 px-5 py-3 bg-transparent hover:bg-surface-hover text-fg-muted hover:text-fg font-semibold rounded-xl transition-all cursor-pointer whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Cancel
               </button>
               <button
                 @click="executeShareBeforeReply"
                 :disabled="shareReplyLoading"
-                class="flex-1 px-5 py-3 bg-white hover:bg-zinc-200 text-black font-semibold rounded-xl transition-all shadow-lg shadow-white/5 cursor-pointer whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                class="flex-1 px-5 py-3 bg-action-primary hover:bg-action-primary-hover text-action-primary-fg font-semibold rounded-xl transition-all shadow-lg shadow-fg-inverted/5 cursor-pointer whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
                 <template v-if="shareReplyLoading">
                   <div class="w-4 h-4 border-2 border-black/20 border-t-black rounded-full animate-spin"></div>
@@ -799,13 +799,13 @@ const formatMessage = (msg: string) => {
   content = content.replace(/\[U:(.*?)\](.*?)\[\/U\]/g, (match, id, label) => {
     const isMe = id === String(user.value?.id);
     if (isMe) {
-      return `<span class="font-bold text-zinc-100">${label}</span>`;
+      return `<span class="font-bold text-fg">${label}</span>`;
     }
-    return `<span class="font-bold text-zinc-100 hover:text-zinc-400 transition-colors cursor-pointer" data-user-id="${id}">${label}</span>`;
+    return `<span class="font-bold text-fg hover:text-fg-muted transition-colors cursor-pointer" data-user-id="${id}">${label}</span>`;
   });
 
   // Legacy support for [U]...[/U] without ID
-  content = content.replace(/\[U\](.*?)\[\/U\]/g, '<strong class="text-zinc-100 font-bold">$1</strong>');
+  content = content.replace(/\[U\](.*?)\[\/U\]/g, '<strong class="text-fg font-bold">$1</strong>');
 
   // 3. Process Streaks [S:count]...[/S] -> Dynamic Color
   content = content.replace(/\[S:(\d+)(?::(broken))?\](.*?)\[\/S\]/g, (_, countStr, broken, text) => {

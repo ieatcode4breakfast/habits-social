@@ -1,22 +1,22 @@
 <template>
   <div class="min-h-screen flex flex-col items-center justify-center px-4 py-8 relative">
-    <button @click="toggleThemeMode" class="fixed top-4 right-4 p-2 rounded-lg hover:bg-zinc-900 transition-colors z-50" :title="themeToggleTitle">
-      <MoonIcon v-if="isLightMode" class="w-5 h-5 text-white" />
-      <SunIcon v-else class="w-5 h-5 text-white" />
+    <button @click="toggleThemeMode" class="fixed top-4 right-4 p-2 rounded-lg hover:bg-surface-solid transition-colors z-50" :title="themeToggleTitle">
+      <MoonIcon v-if="isLightMode" class="w-5 h-5 text-fg" />
+      <SunIcon v-else class="w-5 h-5 text-fg" />
     </button>
     <div class="w-full max-w-md">
       <div class="flex flex-col items-center mb-8">
-        <div class="w-14 h-14 bg-transparent rounded-full flex items-center justify-center shadow-lg shadow-white/10 mb-4 overflow-hidden">
+        <div class="w-14 h-14 bg-transparent rounded-full flex items-center justify-center shadow-lg shadow-fg-inverted/10 mb-4 overflow-hidden">
           <img src="/icons/icon-192.png" class="w-full h-full object-cover scale-[1.35] transform-gpu" alt="Logo" />
         </div>
-        <h1 class="text-2xl font-bold text-white tracking-tight">Habits Social</h1>
+        <h1 class="text-2xl font-bold text-fg tracking-tight">Habits Social</h1>
       </div>
 
-      <div class="bg-zinc-925/80 backdrop-blur-xl rounded-2xl shadow-2xl border border-zinc-800 overflow-hidden">
+      <div class="bg-surface-raised/80 backdrop-blur-xl rounded-2xl shadow-2xl border border-border-muted overflow-hidden">
         <div class="p-6 sm:p-8">
           <NuxtLink
             to="/login"
-            class="inline-flex items-center gap-2 text-sm text-zinc-500 hover:text-zinc-300 transition-colors mb-6"
+            class="inline-flex items-center gap-2 text-sm text-fg-subtle hover:text-fg-muted transition-colors mb-6"
           >
             <ArrowLeft class="w-4 h-4" />
             Back to login
@@ -27,15 +27,15 @@
               <CheckCircle2 class="w-6 h-6 text-emerald-400" />
             </div>
             <div>
-              <h2 class="text-xl font-bold text-white mb-2 text-center">Check your email</h2>
-              <p class="text-sm text-zinc-500 leading-6 text-left mt-2">
+              <h2 class="text-xl font-bold text-fg mb-2 text-center">Check your email</h2>
+              <p class="text-sm text-fg-subtle leading-6 text-left mt-2">
                 If an account exists for that email, password reset instructions have been sent.
               </p>
             </div>
             <button
               type="button"
               @click="resetForm"
-              class="w-full py-3 text-sm font-semibold text-black bg-white hover:bg-zinc-200 rounded-xl transition-colors cursor-pointer shadow-lg shadow-white/10"
+              class="w-full py-3 text-sm font-semibold text-action-primary-fg bg-action-primary hover:bg-action-primary-hover rounded-xl transition-colors cursor-pointer shadow-lg shadow-fg-inverted/10"
             >
               Try another email
             </button>
@@ -43,14 +43,14 @@
 
           <form v-else class="space-y-4" @submit.prevent="handleSubmit">
             <div>
-              <h2 class="text-xl font-bold text-white mb-1 text-center">Forgot password?</h2>
-              <p class="text-sm text-zinc-500 text-left mt-1">
+              <h2 class="text-xl font-bold text-fg mb-1 text-center">Forgot password?</h2>
+              <p class="text-sm text-fg-subtle text-left mt-1">
                 Enter your email address and we'll send reset instructions.
               </p>
             </div>
 
             <div class="relative">
-              <Mail class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
+              <Mail class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-fg-subtle" />
               <input
                 v-model="email"
                 type="email"
@@ -58,7 +58,7 @@
                 required
                 maxlength="255"
                 autocomplete="email"
-                class="w-full pl-10 pr-4 py-3 bg-black border border-zinc-800 rounded-xl text-white placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-zinc-600 focus:border-transparent transition-all text-sm"
+                class="w-full pl-10 pr-4 py-3 bg-surface-inset border border-border-muted rounded-xl text-fg placeholder-fg-subtle focus:outline-none focus:ring-2 focus:ring-border-strong focus:border-transparent transition-all text-sm"
               />
             </div>
 
@@ -67,7 +67,7 @@
             <button
               type="submit"
               :disabled="loading"
-              class="w-full py-3 text-sm font-semibold text-black bg-white hover:bg-zinc-200 disabled:opacity-50 rounded-xl transition-colors cursor-pointer shadow-lg shadow-white/10"
+              class="w-full py-3 text-sm font-semibold text-action-primary-fg bg-action-primary hover:bg-action-primary-hover disabled:opacity-50 rounded-xl transition-colors cursor-pointer shadow-lg shadow-fg-inverted/10"
             >
               {{ loading ? 'Sending...' : 'Send reset link' }}
             </button>

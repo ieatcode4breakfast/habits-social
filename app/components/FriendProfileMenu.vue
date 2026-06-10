@@ -24,32 +24,32 @@
         ></div>
         <div 
           ref="floatingRef"
-          class="fixed z-[200] w-max max-w-[calc(100vw-1.25rem)] bg-zinc-900/95 backdrop-blur-xl border border-zinc-800 rounded-2xl shadow-2xl p-1.5 flex flex-col gap-1.5 min-w-[160px]"
+          class="fixed z-[200] w-max max-w-[calc(100vw-1.25rem)] bg-surface-solid/95 backdrop-blur-xl border border-border-muted rounded-2xl shadow-2xl p-1.5 flex flex-col gap-1.5 min-w-[160px]"
           :style="floatingStyles"
           @click.stop
         >
           <button
             v-if="showShare"
             @click.stop="handleAction('share')"
-            class="w-full text-left px-3 py-2.5 rounded-xl hover:bg-zinc-800 transition-colors flex items-center gap-3 cursor-pointer outline-none border border-transparent group"
+            class="w-full text-left px-3 py-2.5 rounded-xl hover:bg-surface-hover transition-colors flex items-center gap-3 cursor-pointer outline-none border border-transparent group"
           >
-            <Share2 class="w-4 h-4 text-white group-hover:text-white" />
-            <span class="text-sm font-semibold text-white">Share habits</span>
+            <Share2 class="w-4 h-4 text-fg group-hover:text-fg" />
+            <span class="text-sm font-semibold text-fg">Share habits</span>
           </button>
 
           <button
             @click.stop="handleAction(isBlocked ? 'unblock' : 'block')"
-            class="w-full text-left px-3 py-2.5 rounded-xl hover:bg-zinc-800 transition-colors flex items-center gap-3 cursor-pointer outline-none border border-transparent group"
-            :class="isBlocked ? 'text-zinc-200' : 'text-rose-500 hover:text-rose-500'"
+            class="w-full text-left px-3 py-2.5 rounded-xl hover:bg-surface-hover transition-colors flex items-center gap-3 cursor-pointer outline-none border border-transparent group"
+            :class="isBlocked ? 'text-fg' : 'text-rose-500 hover:text-rose-500'"
           >
-            <ShieldBan class="w-4 h-4" :class="isBlocked ? 'text-zinc-400 group-hover:text-white' : 'text-rose-500 group-hover:text-rose-500'" />
+            <ShieldBan class="w-4 h-4" :class="isBlocked ? 'text-fg-muted group-hover:text-fg' : 'text-rose-500 group-hover:text-rose-500'" />
             <span class="text-sm font-semibold">{{ isBlocked ? 'Unblock user' : 'Block user' }}</span>
           </button>
 
           <!-- Arrow -->
           <div 
             ref="arrowRef"
-            class="absolute w-3 h-3 bg-zinc-900 border-r border-b border-zinc-800 rotate-45"
+            class="absolute w-3 h-3 bg-surface-solid border-r border-b border-border-muted rotate-45"
             :style="arrowStyles"
           ></div>
         </div>

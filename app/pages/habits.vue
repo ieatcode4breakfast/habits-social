@@ -1,26 +1,26 @@
 <template>
   <div key="habits-page-root" class="relative">
     <!-- Sticky Header + Date Row -->
-    <div class="sticky top-0 md:top-[57px] z-40 bg-black">
-    <div class="px-4 sm:px-0 flex items-end justify-between gap-4 bg-black pt-2 pb-2 sm:pt-4">
+    <div class="sticky top-0 md:top-[57px] z-40 bg-surface-inset">
+    <div class="px-4 sm:px-0 flex items-end justify-between gap-4 bg-surface-inset pt-2 pb-2 sm:pt-4">
       <div class="flex items-center gap-4">
         <UserAvatar 
           v-if="user"
           :src="user.photoUrl" 
-          container-class="w-10 h-10 bg-zinc-925 rounded-xl shadow-sm cursor-pointer hover:opacity-80 transition-opacity"
-          icon-class="w-6 h-6 text-zinc-600"
+          container-class="w-10 h-10 bg-surface-raised rounded-xl shadow-sm cursor-pointer hover:opacity-80 transition-opacity"
+          icon-class="w-6 h-6 text-fg-subtle"
           @click="openProfileModal"
         />
         <div>
-          <h1 class="text-base font-bold tracking-tight text-white">My Habits</h1>
-          <p class="text-zinc-400 text-xs">{{ habits.length }} habit{{ habits.length === 1 ? '' : 's' }}</p>
+          <h1 class="text-base font-bold tracking-tight text-fg">My Habits</h1>
+          <p class="text-fg-muted text-xs">{{ habits.length }} habit{{ habits.length === 1 ? '' : 's' }}</p>
         </div>
       </div>
       <div class="flex items-center gap-2">
         <button
           v-if="habits.length > 1"
           @click="showReorderModal = true"
-          class="w-11 sm:w-28 py-2.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 hover:text-white font-semibold rounded-xl transition-all cursor-pointer text-sm flex items-center justify-center gap-2 active:scale-95 border border-zinc-700/60"
+          class="w-11 sm:w-28 py-2.5 bg-surface-hover hover:bg-surface-hover text-fg-muted hover:text-fg font-semibold rounded-xl transition-all cursor-pointer text-sm flex items-center justify-center gap-2 active:scale-95 border border-border-strong/60"
           title="Reorder"
         >
           <ArrowUpDown class="w-4 h-4" />
@@ -28,7 +28,7 @@
         </button>
         <button 
           @click="openAddModal" 
-          class="w-11 sm:w-28 py-2.5 bg-white hover:bg-zinc-200 text-black font-semibold rounded-xl transition-all shadow-lg shadow-white/5 cursor-pointer text-sm flex items-center justify-center gap-2 active:scale-95"
+          class="w-11 sm:w-28 py-2.5 bg-action-primary hover:bg-action-primary-hover text-action-primary-fg font-semibold rounded-xl transition-all shadow-lg shadow-fg-inverted/5 cursor-pointer text-sm flex items-center justify-center gap-2 active:scale-95"
           title="Add Habit"
         >
           <Plus class="w-4 h-4" />
@@ -37,7 +37,7 @@
       </div>
     </div>
     <!-- Date Header -->
-    <div class="bg-date-header-bg border-b sm:border-t border-x-0 sm:border-x border-zinc-800/80 py-2 sm:rounded-t-2xl flex flex-col items-stretch sm:flex-row sm:items-center sm:justify-between gap-x-4 gap-y-2 sm:px-4">
+    <div class="bg-date-header-bg border-b sm:border-t border-x-0 sm:border-x border-border-muted/80 py-2 sm:rounded-t-2xl flex flex-col items-stretch sm:flex-row sm:items-center sm:justify-between gap-x-4 gap-y-2 sm:px-4">
         <div class="w-full px-4 sm:px-0 sm:flex-1 sm:min-w-[200px] hidden sm:block sm:pr-2"></div>
         <div class="w-full sm:w-[320px] lg:w-[400px] shrink-0 px-2 sm:px-0">
           <div class="flex items-end w-full">
@@ -45,17 +45,17 @@
               <!-- Sunday Divider -->
               <div 
                 v-if="i > 0 && day.getDay() === 0" 
-                class="absolute left-0 top-0 bottom-0 w-px bg-zinc-800/80"
+                class="absolute left-0 top-0 bottom-0 w-px bg-surface-hover/80"
               ></div>
               <div 
                 class="text-[10px] uppercase tracking-tighter font-black transition-colors"
-                :class="isSameDay(day, today) ? 'text-white' : 'text-zinc-500'"
+                :class="isSameDay(day, today) ? 'text-fg' : 'text-fg-subtle'"
               >
                 {{ format(day, 'EEE') }}
               </div>
               <div 
                 class="text-[10px] sm:text-xs font-bold transition-colors"
-                :class="isSameDay(day, today) ? 'text-white' : 'text-zinc-500'"
+                :class="isSameDay(day, today) ? 'text-fg' : 'text-fg-subtle'"
               >
                 {{ format(day, 'd') }}
               </div>
@@ -75,32 +75,32 @@
     <!-- Habit List (Single Card) -->
     <div v-motion-fade :style="pullStyle" 
          class="habits-content-surface sm:rounded-b-2xl rounded-none overflow-hidden border-b border-x-0 sm:border-x sm:border-b relative will-change-transform transition-colors duration-300"
-         :class="!loading ? 'backdrop-blur-md bg-zinc-925/80 border-zinc-800/80 shadow-2xl' : 'border-transparent'">
+         :class="!loading ? 'backdrop-blur-md bg-surface-raised/80 border-border-muted/80 shadow-2xl' : 'border-transparent'">
 
       <div class="w-full relative">
         <div v-if="loading" class="flex justify-center items-center p-12 min-h-[150px] w-full">
-          <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
+          <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-fg"></div>
         </div>
-        <div v-else-if="habits.length === 0" class="flex justify-center items-center p-10 text-center text-zinc-500 italic text-sm w-full min-h-[150px]">
+        <div v-else-if="habits.length === 0" class="flex justify-center items-center p-10 text-center text-fg-subtle italic text-sm w-full min-h-[150px]">
           No habits yet. Add one above!
         </div>
       
-        <div v-else ref="sortableContainer" class="divide-y divide-zinc-800/80 w-full">
+        <div v-else ref="sortableContainer" class="divide-y divide-border-muted/80 w-full">
           <div 
             v-for="habit in habits" :key="habit.id"
             :data-habit-id="habit.id"
             @click="openEditModal(habit)"
-            class="relative py-3 group transition-colors flex flex-col items-stretch sm:flex-row sm:flex-nowrap sm:items-center sm:justify-between gap-x-4 gap-y-2 cursor-pointer hover:bg-zinc-800/40 sm:px-4 bg-zinc-925/80 sortable-item"
+            class="relative py-3 group transition-colors flex flex-col items-stretch sm:flex-row sm:flex-nowrap sm:items-center sm:justify-between gap-x-4 gap-y-2 cursor-pointer hover:bg-surface-hover/40 sm:px-4 bg-surface-raised/80 sortable-item"
           >
         <div class="w-full px-4 sm:px-0 sm:flex-1 sm:min-w-[200px] flex flex-col gap-1 sm:pr-2">
           <div class="flex justify-between items-start gap-4">
             <div class="flex-1 min-w-0">
-              <h3 class="text-sm font-bold text-zinc-200 leading-tight break-all group-hover:text-white transition-colors">
+              <h3 class="text-sm font-bold text-fg leading-tight break-all group-hover:text-fg transition-colors">
                 {{ habit.title }}
                 <!-- Compact Streak Badge -->
                 <span 
                   v-if="(habit.currentStreak ?? 0) >= 2"
-                  class="inline-flex items-center gap-1 px-1.5 py-0.5 bg-black border rounded-md shrink-0 align-middle ml-1.5"
+                  class="inline-flex items-center gap-1 px-1.5 py-0.5 bg-surface-inset border rounded-md shrink-0 align-middle ml-1.5"
                   :class="[
                     isFaded(habit) ? 'opacity-30' : 'opacity-100',
                     getStreakTheme(habit.currentStreak ?? 0).border
@@ -127,7 +127,7 @@
             <div class="shrink-0 flex items-start justify-end sm:hidden">
               <button
                 @click.stop="chatAboutHabit(habit)"
-                class="text-zinc-500 hover:text-white transition-all active:scale-95 cursor-pointer opacity-70 group-hover:opacity-100 p-1 -mr-1 -mt-1"
+                class="text-fg-subtle hover:text-fg transition-all active:scale-95 cursor-pointer opacity-70 group-hover:opacity-100 p-1 -mr-1 -mt-1"
                 title="Chat about this habit"
               >
                 <MessageCircle class="w-5 h-5" />
@@ -135,7 +135,7 @@
             </div>
           </div>
           <!-- Frequency Text -->
-          <div class="text-[10px] font-semibold tracking-tight text-zinc-500 mt-0.5">
+          <div class="text-[10px] font-semibold tracking-tight text-fg-subtle mt-0.5">
             {{ getFrequencyText(habit) }}
           </div>
         </div>
@@ -152,7 +152,7 @@
         <div class="hidden sm:flex w-7 shrink-0 items-center justify-center">
           <button
             @click.stop="chatAboutHabit(habit)"
-            class="text-zinc-500 hover:text-white transition-all active:scale-95 cursor-pointer opacity-70 group-hover:opacity-100 p-1"
+            class="text-fg-subtle hover:text-fg transition-all active:scale-95 cursor-pointer opacity-70 group-hover:opacity-100 p-1"
             title="Chat about this habit"
           >
             <MessageCircle class="w-5 h-5" />
@@ -221,12 +221,12 @@
           >
             <div class="fixed inset-0 bg-black/80 backdrop-blur-sm touch-none" @click="showHabitReplyFriendSelectModal = false"></div>
 
-            <div class="relative w-full max-w-sm bg-zinc-925 border border-zinc-800 rounded-2xl shadow-2xl flex flex-col max-h-[80vh] overflow-hidden select-none">
-              <div class="p-4 border-b border-zinc-800/60 flex items-center justify-between">
-                <h3 class="text-sm font-bold text-white">Chat about this habit with</h3>
+            <div class="relative w-full max-w-sm bg-surface-raised border border-border-muted rounded-2xl shadow-2xl flex flex-col max-h-[80vh] overflow-hidden select-none">
+              <div class="p-4 border-b border-border-muted/60 flex items-center justify-between">
+                <h3 class="text-sm font-bold text-fg">Chat about this habit with</h3>
                 <button
                   @click="showHabitReplyFriendSelectModal = false"
-                  class="p-1 hover:bg-zinc-850 rounded-lg text-zinc-400 hover:text-white transition-colors cursor-pointer"
+                  class="p-1 hover:bg-surface-hover rounded-lg text-fg-muted hover:text-fg transition-colors cursor-pointer"
                 >
                   <XIcon class="w-4 h-4" />
                 </button>
@@ -237,19 +237,19 @@
                   v-model="replyFriendSearchQuery"
                   type="text"
                   placeholder="Filter friends..."
-                  class="w-full bg-zinc-900 border border-zinc-800 text-white text-sm rounded-xl px-4 py-2 focus:outline-none focus:border-zinc-700 transition-colors"
+                  class="w-full bg-surface-solid border border-border-muted text-fg text-sm rounded-xl px-4 py-2 focus:outline-none focus:border-border-strong transition-colors"
                 />
               </div>
 
               <div class="flex-1 overflow-y-auto p-2 space-y-1">
-                <div v-if="acceptedFriends.length === 0" class="py-12 text-center text-zinc-500 italic text-sm">
+                <div v-if="acceptedFriends.length === 0" class="py-12 text-center text-fg-subtle italic text-sm">
                   You don't have any friends yet. Go to the
-                  <button type="button" @click="goToFriendsSection" class="text-zinc-200 hover:text-white underline underline-offset-2 transition-colors cursor-pointer">
+                  <button type="button" @click="goToFriendsSection" class="text-fg hover:text-fg underline underline-offset-2 transition-colors cursor-pointer">
                     Friends
                   </button>
                   section to add them.
                 </div>
-                <div v-else-if="filteredReplyFriends.length === 0" class="py-12 text-center text-zinc-500 italic text-sm">
+                <div v-else-if="filteredReplyFriends.length === 0" class="py-12 text-center text-fg-subtle italic text-sm">
                   No friends found matching your filter.
                 </div>
 
@@ -258,17 +258,17 @@
                   :key="friend.id"
                   @click="selectFriendForHabitReply(friend)"
                   :disabled="replyFriendActionId === friend.id"
-                  class="w-full text-left p-3 rounded-xl hover:bg-zinc-900/60 transition-colors flex items-center gap-3 cursor-pointer outline-none border border-transparent disabled:opacity-60 disabled:cursor-wait"
+                  class="w-full text-left p-3 rounded-xl hover:bg-surface-solid/60 transition-colors flex items-center gap-3 cursor-pointer outline-none border border-transparent disabled:opacity-60 disabled:cursor-wait"
                 >
                   <UserAvatar
                     :src="friend.photoUrl"
-                    container-class="w-9 h-9 bg-zinc-900"
-                    icon-class="w-5 h-5 text-zinc-600"
+                    container-class="w-9 h-9 bg-surface-solid"
+                    icon-class="w-5 h-5 text-fg-subtle"
                   />
 
                   <div class="flex-1 min-w-0">
                     <div class="flex items-center gap-1.5">
-                      <div class="text-sm font-bold text-white truncate">{{ friend.username || 'Unknown' }}</div>
+                      <div class="text-sm font-bold text-fg truncate">{{ friend.username || 'Unknown' }}</div>
                       <Star v-if="isFriendFavorite(friend)" class="w-3 h-3 text-amber-400 fill-amber-400 shrink-0" />
                       <div v-if="replyFriendActionId === friend.id" class="w-3 h-3 border-2 border-zinc-500/30 border-t-zinc-300 rounded-full animate-spin shrink-0"></div>
                     </div>
@@ -294,26 +294,26 @@
         >
           <div v-if="showShareBeforeReplyModal" class="fixed inset-0 z-[160] flex items-center justify-center p-4">
             <div class="absolute inset-0 bg-black/80 backdrop-blur-md touch-none" @click="closeShareBeforeReplyModal"></div>
-            <div class="relative w-full max-w-sm bg-zinc-925 border border-zinc-800 rounded-3xl shadow-2xl p-8 text-center">
-              <div class="w-16 h-16 bg-zinc-925 rounded-full flex items-center justify-center mx-auto mb-4">
-                <UserPlus class="w-8 h-8 text-zinc-200" />
+            <div class="relative w-full max-w-sm bg-surface-raised border border-border-muted rounded-3xl shadow-2xl p-8 text-center">
+              <div class="w-16 h-16 bg-surface-raised rounded-full flex items-center justify-center mx-auto mb-4">
+                <UserPlus class="w-8 h-8 text-fg" />
               </div>
-              <h2 class="text-xl font-bold text-white mb-2">Share habit with {{ pendingShareFriendName }}?</h2>
-              <p class="text-zinc-500 mb-8 text-sm">
-                This habit is not currently shared with <span class="text-zinc-200 font-medium">{{ pendingShareFriendName }}</span>.
+              <h2 class="text-xl font-bold text-fg mb-2">Share habit with {{ pendingShareFriendName }}?</h2>
+              <p class="text-fg-subtle mb-8 text-sm">
+                This habit is not currently shared with <span class="text-fg font-medium">{{ pendingShareFriendName }}</span>.
               </p>
               <div class="flex gap-3 mt-2">
                 <button
                   @click="closeShareBeforeReplyModal"
                   :disabled="shareReplyLoading"
-                  class="flex-1 px-5 py-3 bg-transparent hover:bg-zinc-850 text-zinc-400 hover:text-zinc-200 font-semibold rounded-xl transition-all cursor-pointer whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
+                  class="flex-1 px-5 py-3 bg-transparent hover:bg-surface-hover text-fg-muted hover:text-fg font-semibold rounded-xl transition-all cursor-pointer whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Cancel
                 </button>
                 <button
                   @click="executeShareBeforeHabitReply"
                   :disabled="shareReplyLoading"
-                  class="flex-1 px-5 py-3 bg-white hover:bg-zinc-200 text-black font-semibold rounded-xl transition-all shadow-lg shadow-white/5 cursor-pointer whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  class="flex-1 px-5 py-3 bg-action-primary hover:bg-action-primary-hover text-action-primary-fg font-semibold rounded-xl transition-all shadow-lg shadow-fg-inverted/5 cursor-pointer whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
                   <template v-if="shareReplyLoading">
                     <div class="w-4 h-4 border-2 border-black/20 border-t-black rounded-full animate-spin"></div>

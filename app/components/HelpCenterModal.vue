@@ -9,7 +9,7 @@
       leave-from-class="opacity-100"
       leave-to-class="opacity-0"
     >
-      <div v-if="isOpen" class="fixed inset-0 z-[180] bg-black">
+      <div v-if="isOpen" class="fixed inset-0 z-[180] bg-surface-inset">
         <div
           ref="dialogRef"
           role="dialog"
@@ -29,11 +29,11 @@
             />
 
             <template #fallback>
-              <div class="min-h-[100dvh] text-zinc-100 flex items-center justify-center">
+              <div class="min-h-[100dvh] text-fg flex items-center justify-center">
                 <h1 id="help-center-modal-title" class="sr-only">Help Center</h1>
                 <button
                   type="button"
-                  class="px-4 py-2 rounded-lg bg-zinc-900 text-zinc-200 hover:bg-zinc-800 transition-colors"
+                  class="px-4 py-2 rounded-lg bg-surface-solid text-fg hover:bg-surface-hover transition-colors"
                   @click="close"
                 >
                   Loading...

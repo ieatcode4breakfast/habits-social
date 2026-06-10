@@ -1,8 +1,8 @@
 <template>
   <div class="min-h-screen flex flex-col items-center justify-center px-4 py-8 relative">
-    <button @click="toggleThemeMode" class="fixed top-4 right-4 p-2 rounded-lg hover:bg-zinc-900 transition-colors z-50" :title="themeToggleTitle">
-      <MoonIcon v-if="isLightMode" class="w-5 h-5 text-white" />
-      <SunIcon v-else class="w-5 h-5 text-white" />
+    <button @click="toggleThemeMode" class="fixed top-4 right-4 p-2 rounded-lg hover:bg-surface-solid transition-colors z-50" :title="themeToggleTitle">
+      <MoonIcon v-if="isLightMode" class="w-5 h-5 text-fg" />
+      <SunIcon v-else class="w-5 h-5 text-fg" />
     </button>
     <div class="w-full max-w-md">
       <!-- Logo -->
@@ -10,15 +10,15 @@
         <div class="w-12 h-12 rounded-lg bg-transparent flex items-center justify-center mb-3">
           <img src="/icons/icon-192.png" class="w-full h-full object-contain" alt="Logo" />
         </div>
-        <h1 class="text-2xl font-bold text-white tracking-tight">Habits Social</h1>
+        <h1 class="text-2xl font-bold text-fg tracking-tight">Habits Social</h1>
       </div>
 
       <!-- Card -->
-      <div class="bg-zinc-925/80 backdrop-blur-xl rounded-2xl shadow-2xl border border-zinc-800 overflow-hidden">
+      <div class="bg-surface-raised/80 backdrop-blur-xl rounded-2xl shadow-2xl border border-border-muted overflow-hidden">
         <div class="p-6 sm:p-8">
           <NuxtLink
             to="/login"
-            class="inline-flex items-center gap-2 text-sm text-zinc-500 hover:text-zinc-300 transition-colors mb-6"
+            class="inline-flex items-center gap-2 text-sm text-fg-subtle hover:text-fg-muted transition-colors mb-6"
           >
             <ArrowLeft class="w-4 h-4" />
             Back to login
@@ -30,14 +30,14 @@
               <AlertCircle class="w-6 h-6 text-rose-400" />
             </div>
             <div>
-              <h2 class="text-xl font-bold text-white mb-2">Invalid Reset Link</h2>
-              <p class="text-sm text-zinc-500 leading-6 text-left mt-2">
+              <h2 class="text-xl font-bold text-fg mb-2">Invalid Reset Link</h2>
+              <p class="text-sm text-fg-subtle leading-6 text-left mt-2">
                 This password reset link is invalid or has expired. Please request a new link to reset your password.
               </p>
             </div>
             <NuxtLink
               to="/forgot-password"
-              class="block w-full py-3 text-center text-sm font-semibold text-black bg-white hover:bg-zinc-200 rounded-xl transition-colors cursor-pointer shadow-lg shadow-white/10"
+              class="block w-full py-3 text-center text-sm font-semibold text-action-primary-fg bg-action-primary hover:bg-action-primary-hover rounded-xl transition-colors cursor-pointer shadow-lg shadow-fg-inverted/10"
             >
               Request new link
             </NuxtLink>
@@ -49,14 +49,14 @@
               <CheckCircle2 class="w-6 h-6 text-emerald-400" />
             </div>
             <div>
-              <h2 class="text-xl font-bold text-white mb-2">Password Reset</h2>
-              <p class="text-sm text-zinc-500 leading-6 text-left mt-2">
+              <h2 class="text-xl font-bold text-fg mb-2">Password Reset</h2>
+              <p class="text-sm text-fg-subtle leading-6 text-left mt-2">
                 Your password has been successfully reset. You can now log in to your account with your new password.
               </p>
             </div>
             <NuxtLink
               to="/login"
-              class="block w-full py-3 text-center text-sm font-semibold text-black bg-white hover:bg-zinc-200 rounded-xl transition-colors cursor-pointer shadow-lg shadow-white/10"
+              class="block w-full py-3 text-center text-sm font-semibold text-action-primary-fg bg-action-primary hover:bg-action-primary-hover rounded-xl transition-colors cursor-pointer shadow-lg shadow-fg-inverted/10"
             >
               Go to login
             </NuxtLink>
@@ -65,15 +65,15 @@
           <!-- State 3: Reset Form -->
           <form v-else class="space-y-4" @submit.prevent="handleSubmit">
             <div>
-              <h2 class="text-xl font-bold text-white mb-1 text-center">Reset Password</h2>
-              <p class="text-sm text-zinc-500 text-left mt-1">
+              <h2 class="text-xl font-bold text-fg mb-1 text-center">Reset Password</h2>
+              <p class="text-sm text-fg-subtle text-left mt-1">
                 Enter your new secure password below to update your account credentials.
               </p>
             </div>
 
             <!-- New Password -->
             <div class="relative">
-              <Lock class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
+              <Lock class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-fg-subtle" />
               <input
                 v-model="password"
                 :type="showPassword ? 'text' : 'password'"
@@ -81,9 +81,9 @@
                 required
                 minlength="8"
                 maxlength="72"
-                class="w-full pl-10 pr-12 py-3 bg-black border border-zinc-800 rounded-xl text-white placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-zinc-600 focus:border-transparent transition-all text-sm"
+                class="w-full pl-10 pr-12 py-3 bg-surface-inset border border-border-muted rounded-xl text-fg placeholder-fg-subtle focus:outline-none focus:ring-2 focus:ring-border-strong focus:border-transparent transition-all text-sm"
               />
-              <button type="button" @click="showPassword = !showPassword" class="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300 cursor-pointer">
+              <button type="button" @click="showPassword = !showPassword" class="absolute right-3 top-1/2 -translate-y-1/2 text-fg-subtle hover:text-fg-muted cursor-pointer">
                 <Eye v-if="!showPassword" class="w-4 h-4" />
                 <EyeOff v-else class="w-4 h-4" />
               </button>
@@ -91,7 +91,7 @@
 
             <!-- Confirm Password -->
             <div class="relative">
-              <Lock class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
+              <Lock class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-fg-subtle" />
               <input
                 v-model="confirmPassword"
                 :type="showPassword ? 'text' : 'password'"
@@ -99,9 +99,9 @@
                 required
                 minlength="8"
                 maxlength="72"
-                class="w-full pl-10 pr-12 py-3 bg-black border border-zinc-800 rounded-xl text-white placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-zinc-600 focus:border-transparent transition-all text-sm"
+                class="w-full pl-10 pr-12 py-3 bg-surface-inset border border-border-muted rounded-xl text-fg placeholder-fg-subtle focus:outline-none focus:ring-2 focus:ring-border-strong focus:border-transparent transition-all text-sm"
               />
-              <button type="button" @click="showPassword = !showPassword" class="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300 cursor-pointer">
+              <button type="button" @click="showPassword = !showPassword" class="absolute right-3 top-1/2 -translate-y-1/2 text-fg-subtle hover:text-fg-muted cursor-pointer">
                 <Eye v-if="!showPassword" class="w-4 h-4" />
                 <EyeOff v-else class="w-4 h-4" />
               </button>
@@ -112,7 +112,7 @@
             <button
               type="submit"
               :disabled="loading"
-              class="w-full py-3 text-sm font-semibold text-black bg-white hover:bg-zinc-200 disabled:opacity-50 rounded-xl transition-colors cursor-pointer shadow-lg shadow-white/10"
+              class="w-full py-3 text-sm font-semibold text-action-primary-fg bg-action-primary hover:bg-action-primary-hover disabled:opacity-50 rounded-xl transition-colors cursor-pointer shadow-lg shadow-fg-inverted/10"
             >
               {{ loading ? 'Resetting...' : 'Reset password' }}
             </button>

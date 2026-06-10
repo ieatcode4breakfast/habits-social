@@ -13,16 +13,16 @@
         <div class="fixed inset-0 bg-black/80 backdrop-blur-md touch-none" @click="$emit('update:modelValue', false)"></div>
 
         <!-- Modal Content -->
-        <div class="relative my-auto w-full sm:max-w-sm bg-zinc-925 border-t sm:border border-zinc-800 sm:rounded-3xl rounded-3xl shadow-2xl overflow-hidden flex flex-col" style="max-height: 80vh">
+        <div class="relative my-auto w-full sm:max-w-sm bg-surface-raised border-t sm:border border-border-muted sm:rounded-3xl rounded-3xl shadow-2xl overflow-hidden flex flex-col" style="max-height: 80vh">
           <!-- Header -->
-          <div class="flex items-center justify-between px-5 py-4 border-b border-zinc-800/80 shrink-0">
+          <div class="flex items-center justify-between px-5 py-4 border-b border-border-muted/80 shrink-0">
             <div>
-              <h2 class="text-base font-bold text-white">{{ title }}</h2>
-              <p class="text-[11px] text-zinc-500 mt-0.5">Drag to rearrange</p>
+              <h2 class="text-base font-bold text-fg">{{ title }}</h2>
+              <p class="text-[11px] text-fg-subtle mt-0.5">Drag to rearrange</p>
             </div>
             <button
               @click="$emit('update:modelValue', false)"
-              class="px-4 py-2 bg-white hover:bg-zinc-200 text-black text-xs font-bold rounded-lg transition-all cursor-pointer whitespace-nowrap"
+              class="px-4 py-2 bg-action-primary hover:bg-action-primary-hover text-action-primary-fg text-xs font-bold rounded-lg transition-all cursor-pointer whitespace-nowrap"
             >
               Done
             </button>
@@ -34,12 +34,12 @@
               v-for="item in internalItems"
               :key="item.id"
               :data-id="item.id"
-              class="flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors select-none hover:bg-zinc-800/60 bg-zinc-925 sortable-item cursor-grab active:cursor-grabbing"
+              class="flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors select-none hover:bg-surface-hover/60 bg-surface-raised sortable-item cursor-grab active:cursor-grabbing"
             >
-              <div class="shrink-0 text-zinc-500 transition-colors">
+              <div class="shrink-0 text-fg-subtle transition-colors">
                 <GripVertical class="w-4 h-4" />
               </div>
-              <span class="text-sm font-semibold text-zinc-200 truncate flex-1">{{ item.title }}</span>
+              <span class="text-sm font-semibold text-fg truncate flex-1">{{ item.title }}</span>
             </div>
           </div>
         </div>

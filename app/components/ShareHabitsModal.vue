@@ -13,26 +13,26 @@
         class="fixed inset-0 z-[110] flex flex-col items-center justify-start overflow-y-auto sm:py-8 py-0"
       >
         <div class="fixed inset-0 bg-black/80 backdrop-blur-md touch-none" @click="close"></div>
-        <div class="relative my-auto w-full h-full sm:h-auto sm:max-w-md max-w-none bg-zinc-925 border-x-0 sm:border border-zinc-800 sm:rounded-3xl rounded-none shadow-2xl overflow-hidden transition-all duration-300 flex flex-col">
+        <div class="relative my-auto w-full h-full sm:h-auto sm:max-w-md max-w-none bg-surface-raised border-x-0 sm:border border-border-muted sm:rounded-3xl rounded-none shadow-2xl overflow-hidden transition-all duration-300 flex flex-col">
           
           <div class="flex-1 overflow-y-auto p-4 sm:p-8">
             <div class="text-center mb-6">
-              <div class="w-16 h-16 bg-zinc-925 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Check class="w-8 h-8 text-white" />
+              <div class="w-16 h-16 bg-surface-raised rounded-full flex items-center justify-center mx-auto mb-4">
+                <Check class="w-8 h-8 text-fg" />
               </div>
-              <h2 class="text-xl font-bold text-white mb-2">{{ title }}</h2>
-              <p class="text-zinc-500 text-sm">
-                Which habits would you like to share with <span class="text-zinc-200 font-medium">{{ targetUser?.username }}</span>?
+              <h2 class="text-xl font-bold text-fg mb-2">{{ title }}</h2>
+              <p class="text-fg-subtle text-sm">
+                Which habits would you like to share with <span class="text-fg font-medium">{{ targetUser?.username }}</span>?
               </p>
             </div>
             
             <!-- Selection Controls -->
             <div class="flex items-center justify-between mb-3 px-1">
-              <label class="text-[10px] font-bold uppercase tracking-widest text-zinc-500">My Habits</label>
+              <label class="text-[10px] font-bold uppercase tracking-widest text-fg-subtle">My Habits</label>
               <button 
                 @click="toggleSelectAllHabits"
                 title="Select/Unselect All"
-                class="p-1 text-zinc-500 hover:text-white transition-colors cursor-pointer"
+                class="p-1 text-fg-subtle hover:text-fg transition-colors cursor-pointer"
               >
                 <CheckSquare class="w-4 h-4" />
               </button>
@@ -41,15 +41,15 @@
             <div class="space-y-2 mb-2">
               <div v-for="habit in sortedHabits" :key="habit.id" 
                 @click="toggleHabitSelection(habit.id)"
-                class="flex items-center gap-3 p-3 bg-black border border-zinc-925 rounded-xl cursor-pointer hover:border-zinc-800 transition-colors group"
-                :class="{ 'border-zinc-800/50 bg-white/[0.02]': selectedHabitIds.includes(habit.id) }"
+                class="flex items-center gap-3 p-3 bg-surface-inset border border-surface-raised rounded-xl cursor-pointer hover:border-border-muted transition-colors group"
+                :class="{ 'border-border-muted/50 bg-action-primary/[0.02]': selectedHabitIds.includes(habit.id) }"
               >
-                <div class="flex-1 text-sm text-zinc-200 font-medium truncate min-w-0">{{ habit.title }}</div>
+                <div class="flex-1 text-sm text-fg font-medium truncate min-w-0">{{ habit.title }}</div>
                 <div class="w-6 h-6 rounded-lg flex items-center justify-center transition-all"
                   :class="[
                     selectedHabitIds.includes(habit.id) 
                       ? 'bg-indigo-500 shadow-lg shadow-indigo-500/20' 
-                      : 'bg-zinc-925'
+                      : 'bg-surface-raised'
                   ]"
                 >
                   <Check v-if="selectedHabitIds.includes(habit.id)" class="w-3.5 h-3.5 text-white" />
@@ -58,11 +58,11 @@
             </div>
           </div>
 
-          <div class="px-4 sm:px-8 py-4 border-t border-zinc-800 bg-zinc-925/80 backdrop-blur-md flex gap-3 shrink-0">
-            <button @click="close" class="flex-1 px-5 py-3 bg-transparent hover:bg-zinc-925 text-zinc-400 hover:text-zinc-200 font-semibold rounded-xl transition-all cursor-pointer whitespace-nowrap">
+          <div class="px-4 sm:px-8 py-4 border-t border-border-muted bg-surface-raised/80 backdrop-blur-md flex gap-3 shrink-0">
+            <button @click="close" class="flex-1 px-5 py-3 bg-transparent hover:bg-surface-raised text-fg-muted hover:text-fg font-semibold rounded-xl transition-all cursor-pointer whitespace-nowrap">
               Cancel
             </button>
-            <button @click="executeBatchShare" :disabled="sharing" class="flex-1 px-5 py-3 bg-white hover:bg-zinc-200 text-black font-semibold rounded-xl transition-all shadow-lg shadow-white/5 cursor-pointer disabled:opacity-50 flex items-center justify-center gap-2 whitespace-nowrap">
+            <button @click="executeBatchShare" :disabled="sharing" class="flex-1 px-5 py-3 bg-action-primary hover:bg-action-primary-hover text-action-primary-fg font-semibold rounded-xl transition-all shadow-lg shadow-fg-inverted/5 cursor-pointer disabled:opacity-50 flex items-center justify-center gap-2 whitespace-nowrap">
               <template v-if="sharing">
                 <div class="w-4 h-4 border-2 border-black/20 border-t-black rounded-full animate-spin"></div>
                 Saving...

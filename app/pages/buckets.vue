@@ -1,20 +1,20 @@
 <template>
   <div class="relative">
     <!-- Sticky Header + Date Row -->
-    <div class="sticky top-0 md:top-[57px] z-40 bg-black">
-    <div class="px-4 sm:px-0 flex items-end justify-between gap-4 bg-black pt-2 pb-2 sm:pt-4">
+    <div class="sticky top-0 md:top-[57px] z-40 bg-surface-inset">
+    <div class="px-4 sm:px-0 flex items-end justify-between gap-4 bg-surface-inset pt-2 pb-2 sm:pt-4">
       <div class="flex items-center gap-3">
-        <PaintBucket class="w-7 h-7 text-zinc-400 shrink-0" />
+        <PaintBucket class="w-7 h-7 text-fg-muted shrink-0" />
         <div>
-          <h1 class="text-base font-bold tracking-tight text-white">Buckets</h1>
-          <p class="text-zinc-400 text-xs">{{ buckets.length }} bucket{{ buckets.length === 1 ? '' : 's' }}</p>
+          <h1 class="text-base font-bold tracking-tight text-fg">Buckets</h1>
+          <p class="text-fg-muted text-xs">{{ buckets.length }} bucket{{ buckets.length === 1 ? '' : 's' }}</p>
         </div>
       </div>
       <div class="flex items-center gap-2">
         <button
           v-if="buckets.length > 1"
           @click="showReorderModal = true"
-          class="w-11 sm:w-28 py-2.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 hover:text-white font-semibold rounded-xl transition-all cursor-pointer text-sm flex items-center justify-center gap-2 active:scale-95 border border-zinc-700/60"
+          class="w-11 sm:w-28 py-2.5 bg-surface-hover hover:bg-surface-hover text-fg-muted hover:text-fg font-semibold rounded-xl transition-all cursor-pointer text-sm flex items-center justify-center gap-2 active:scale-95 border border-border-strong/60"
           title="Reorder"
         >
           <ArrowUpDown class="w-4 h-4" />
@@ -22,7 +22,7 @@
         </button>
         <button 
           @click="openAddModal" 
-          class="w-11 sm:w-28 py-2.5 bg-white hover:bg-zinc-200 text-black font-semibold rounded-xl transition-all shadow-lg shadow-white/5 cursor-pointer text-sm flex items-center justify-center gap-2 active:scale-95"
+          class="w-11 sm:w-28 py-2.5 bg-action-primary hover:bg-action-primary-hover text-action-primary-fg font-semibold rounded-xl transition-all shadow-lg shadow-fg-inverted/5 cursor-pointer text-sm flex items-center justify-center gap-2 active:scale-95"
           title="Add Bucket"
         >
           <Plus class="w-4 h-4" />
@@ -31,7 +31,7 @@
       </div>
     </div>
     <!-- Date Header -->
-    <div class="bg-date-header-bg border-b sm:border-t border-x-0 sm:border-x border-zinc-800/80 py-2 sm:rounded-t-2xl flex flex-col items-stretch sm:flex-row sm:items-center sm:justify-between gap-x-4 gap-y-2 sm:px-4">
+    <div class="bg-date-header-bg border-b sm:border-t border-x-0 sm:border-x border-border-muted/80 py-2 sm:rounded-t-2xl flex flex-col items-stretch sm:flex-row sm:items-center sm:justify-between gap-x-4 gap-y-2 sm:px-4">
         <div class="w-full px-4 sm:px-0 sm:flex-1 sm:min-w-[200px] hidden sm:block sm:pr-2"></div>
         <div class="w-full sm:w-[320px] lg:w-[400px] shrink-0 px-2 sm:px-0">
           <div class="flex items-end w-full">
@@ -39,17 +39,17 @@
               <!-- Sunday Divider -->
               <div 
                 v-if="i > 0 && day.getDay() === 0" 
-                class="absolute left-0 top-0 bottom-0 w-px bg-zinc-800/80"
+                class="absolute left-0 top-0 bottom-0 w-px bg-surface-hover/80"
               ></div>
               <div 
                 class="text-[10px] uppercase tracking-tighter font-black transition-colors"
-                :class="isSameDay(day, today) ? 'text-white' : 'text-zinc-500'"
+                :class="isSameDay(day, today) ? 'text-fg' : 'text-fg-subtle'"
               >
                 {{ format(day, 'EEE') }}
               </div>
               <div 
                 class="text-[10px] sm:text-xs font-bold transition-colors"
-                :class="isSameDay(day, today) ? 'text-white' : 'text-zinc-500'"
+                :class="isSameDay(day, today) ? 'text-fg' : 'text-fg-subtle'"
               >
                 {{ format(day, 'd') }}
               </div>
@@ -108,40 +108,40 @@
     <!-- Bucket List -->
     <div v-motion-fade :style="pullStyle" 
          class="buckets-content-surface sm:rounded-b-2xl rounded-none overflow-hidden border-b border-x-0 sm:border-x sm:border-b relative will-change-transform transition-colors duration-300"
-         :class="!loading ? 'backdrop-blur-md bg-zinc-925/80 border-zinc-800/80 shadow-2xl' : 'border-transparent'">
+         :class="!loading ? 'backdrop-blur-md bg-surface-raised/80 border-border-muted/80 shadow-2xl' : 'border-transparent'">
 
       <div class="w-full relative">
         <div v-if="loading" class="flex justify-center items-center p-12 min-h-[150px] w-full">
-          <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
+          <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-fg"></div>
         </div>
-        <div v-else-if="buckets.length === 0" class="flex justify-center items-center p-10 text-center text-zinc-500 italic text-sm w-full min-h-[150px]">
+        <div v-else-if="buckets.length === 0" class="flex justify-center items-center p-10 text-center text-fg-subtle italic text-sm w-full min-h-[150px]">
           No buckets yet. Add one above!
         </div>
       
-        <div v-else ref="sortableContainer" class="w-full divide-y divide-zinc-800/80">
+        <div v-else ref="sortableContainer" class="w-full divide-y divide-border-muted/80">
           <div 
             v-for="bucket in buckets" :key="bucket.id"
             :data-bucket-id="bucket.id"
-            class="relative transition-colors bg-zinc-925/80 sortable-item"
+            class="relative transition-colors bg-surface-raised/80 sortable-item"
           >
           <!-- Bucket Header Row -->
           <div 
             @click="toggleExpand(bucket.id)"
-            class="relative py-3 group transition-all duration-300 ease-out flex flex-col items-stretch sm:flex-row sm:items-center sm:justify-between gap-x-4 gap-y-2 cursor-pointer hover:bg-zinc-800/40 sm:px-4"
+            class="relative py-3 group transition-all duration-300 ease-out flex flex-col items-stretch sm:flex-row sm:items-center sm:justify-between gap-x-4 gap-y-2 cursor-pointer hover:bg-surface-hover/40 sm:px-4"
           >
             <div class="w-full px-4 sm:px-0 sm:flex-1 sm:min-w-[200px] flex flex-col gap-0.5 sm:pr-2">
               <div class="flex items-start gap-2">
                 <ChevronRight 
-                  class="w-4 h-4 text-zinc-600 transition-transform duration-300 mt-0.5 shrink-0"
-                  :class="expandedBucketId === bucket.id ? 'rotate-90 text-white' : ''"
+                  class="w-4 h-4 text-fg-subtle transition-transform duration-300 mt-0.5 shrink-0"
+                  :class="expandedBucketId === bucket.id ? 'rotate-90 text-fg' : ''"
                 />
-                <h3 class="text-sm font-bold text-zinc-200 leading-tight break-all group-hover:text-white transition-colors flex-1 min-w-0">
+                <h3 class="text-sm font-bold text-fg leading-tight break-all group-hover:text-fg transition-colors flex-1 min-w-0">
                   {{ bucket.title }}
                   
                   <!-- Streak Badge -->
                   <span 
                     v-if="(bucket.currentStreak ?? 0) >= 2"
-                    class="inline-flex items-center gap-1 px-1.5 py-0.5 bg-black border rounded-md shrink-0 align-middle ml-1.5"
+                    class="inline-flex items-center gap-1 px-1.5 py-0.5 bg-surface-inset border rounded-md shrink-0 align-middle ml-1.5"
                     :class="[
                       isFaded(bucket) ? 'opacity-30' : 'opacity-100',
                       getStreakTheme(bucket.currentStreak ?? 0).border
@@ -166,13 +166,13 @@
               </div>
               
               <div class="hidden sm:flex items-center gap-2">
-                <div class="flex items-center gap-2 text-[10px] text-zinc-500 font-medium ml-6">
+                <div class="flex items-center gap-2 text-[10px] text-fg-subtle font-medium ml-6">
                   <span>{{ getHabitsInBucket(bucket).length }} habits</span>
                   <button 
                     @click.stop="openEditModal(bucket)"
-                    class="p-1 hover:bg-white/10 rounded transition-colors cursor-pointer"
+                    class="p-1 hover:bg-action-primary/10 rounded transition-colors cursor-pointer"
                   >
-                    <Edit2 class="w-3 h-3 text-zinc-600" />
+                    <Edit2 class="w-3 h-3 text-fg-subtle" />
                   </button>
                 </div>
               </div>
@@ -188,13 +188,13 @@
 
             <!-- Mobile Habit Count: below timeline -->
             <div class="sm:hidden px-4 pt-1">
-              <div class="flex items-center gap-2 text-[10px] text-zinc-500 font-medium ml-6">
+              <div class="flex items-center gap-2 text-[10px] text-fg-subtle font-medium ml-6">
                 <span>{{ getHabitsInBucket(bucket).length }} habits</span>
                 <button 
                   @click.stop="openEditModal(bucket)"
-                  class="p-1 hover:bg-white/10 rounded transition-colors cursor-pointer"
+                  class="p-1 hover:bg-action-primary/10 rounded transition-colors cursor-pointer"
                 >
-                  <Edit2 class="w-3 h-3 text-zinc-600" />
+                  <Edit2 class="w-3 h-3 text-fg-subtle" />
                 </button>
               </div>
             </div>
@@ -210,14 +210,14 @@
             leave-from-class="max-h-[1000px] opacity-100"
             leave-to-class="max-h-0 opacity-0"
           >
-            <div v-if="expandedBucketId === bucket.id" class="border-t border-zinc-800/50">
+            <div v-if="expandedBucketId === bucket.id" class="border-t border-border-muted/50">
 
-              <div v-if="getHabitsInBucket(bucket).length === 0" class="py-6 text-center text-zinc-500 text-sm italic">
+              <div v-if="getHabitsInBucket(bucket).length === 0" class="py-6 text-center text-fg-subtle text-sm italic">
                 No habits in this bucket.
               </div>
-              <div v-else class="divide-y divide-zinc-800/30">
+              <div v-else class="divide-y divide-border-muted/30">
                   <div v-for="(habit, hIdx) in getHabitsInBucket(bucket)" :key="habit.id" 
-                    class="flex flex-col items-stretch sm:flex-row sm:items-center sm:justify-between gap-x-4 gap-y-2 py-3 rounded-xl transition-all hover:bg-white/[0.03] group/habit-row sm:px-4"
+                    class="flex flex-col items-stretch sm:flex-row sm:items-center sm:justify-between gap-x-4 gap-y-2 py-3 rounded-xl transition-all hover:bg-action-primary/[0.03] group/habit-row sm:px-4"
                   >
                     <div 
                       class="w-full px-4 sm:px-0 sm:flex-1 sm:min-w-[200px] flex items-center gap-2 cursor-pointer group/habit"
@@ -225,12 +225,12 @@
                     >
                       <div class="w-4 h-4 shrink-0"></div>
                       <div class="min-w-0 flex-1 flex items-center gap-2">
-                        <span class="text-xs sm:text-sm font-bold text-zinc-400 group-hover/habit:text-white transition-colors truncate">{{ habit.title }}</span>
+                        <span class="text-xs sm:text-sm font-bold text-fg-muted group-hover/habit:text-fg transition-colors truncate">{{ habit.title }}</span>
                         
                         <!-- Habit Streak Pill -->
                         <div 
                           v-if="(habit.currentStreak ?? 0) >= 2"
-                          class="flex items-center gap-1 px-1.5 py-0.5 bg-black border rounded-md shrink-0"
+                          class="flex items-center gap-1 px-1.5 py-0.5 bg-surface-inset border rounded-md shrink-0"
                           :class="[
                             isFaded(habit) ? 'opacity-30' : 'opacity-100',
                             getStreakTheme(habit.currentStreak ?? 0).border

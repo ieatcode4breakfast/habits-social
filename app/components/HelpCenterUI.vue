@@ -1,10 +1,10 @@
 <template>
-  <div class="h-[100dvh] overflow-hidden bg-zinc-950 text-zinc-100 flex flex-col transition-colors duration-200">
-    <header class="flex items-center justify-between p-4 border-b border-zinc-800 bg-zinc-950/80 backdrop-blur-md sticky top-0 z-30">
+  <div class="h-[100dvh] overflow-hidden bg-surface-muted text-fg flex flex-col transition-colors duration-200">
+    <header class="flex items-center justify-between p-4 border-b border-border-muted bg-surface-muted/80 backdrop-blur-md sticky top-0 z-30">
       <div class="flex items-center gap-3">
         <button
           type="button"
-          class="p-2 -ml-2 rounded-lg hover:bg-zinc-900 transition-colors md:hidden"
+          class="p-2 -ml-2 rounded-lg hover:bg-surface-solid transition-colors md:hidden"
           aria-label="Open help navigation"
           @click="isSidebarOpen = true"
         >
@@ -20,10 +20,10 @@
           <div class="w-8 h-8 rounded-lg bg-transparent flex items-center justify-center transition-shadow">
             <img :src="'/icons/icon-192.png'" class="w-full h-full object-contain" alt="Logo" />
           </div>
-          <span class="font-bold text-lg tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-zinc-200 to-zinc-400 hidden sm:inline">
+          <span class="font-bold text-lg tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-fg to-fg-muted hidden sm:inline">
             Habits Social
           </span>
-          <span class="text-zinc-400 mx-1 hidden sm:inline">|</span>
+          <span class="text-fg-muted mx-1 hidden sm:inline">|</span>
           <span :id="titleId" class="font-bold text-lg">Help Center</span>
         </button>
 
@@ -31,10 +31,10 @@
           <div class="w-8 h-8 rounded-lg bg-transparent flex items-center justify-center transition-shadow">
             <img :src="'/icons/icon-192.png'" class="w-full h-full object-contain" alt="Logo" />
           </div>
-          <span class="font-bold text-lg tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-zinc-200 to-zinc-400 hidden sm:inline">
+          <span class="font-bold text-lg tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-fg to-fg-muted hidden sm:inline">
             Habits Social
           </span>
-          <span class="text-zinc-400 mx-1 hidden sm:inline">|</span>
+          <span class="text-fg-muted mx-1 hidden sm:inline">|</span>
           <span :id="titleId" class="font-bold text-lg">Help Center</span>
         </NuxtLink>
       </div>
@@ -42,7 +42,7 @@
       <div class="flex items-center gap-1">
         <button
           type="button"
-          class="p-2 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-900 transition-colors"
+          class="p-2 rounded-lg hover:bg-cell-markable-hover transition-colors"
           :title="themeToggleTitle"
           :aria-label="themeToggleTitle"
           @click="toggleThemeMode"
@@ -52,7 +52,7 @@
         </button>
         <button
           type="button"
-          class="p-2 rounded-lg hover:bg-zinc-900 transition-colors"
+          class="p-2 rounded-lg hover:bg-surface-solid transition-colors"
           :aria-label="mode === 'modal' ? 'Close help center' : 'Return to app'"
           @click="emit('close')"
         >
@@ -71,16 +71,16 @@
 
       <aside
         :class="[
-          'fixed inset-y-0 left-0 z-50 md:z-20 w-80 max-w-[85vw] bg-zinc-950 border-r border-zinc-800 transition-transform duration-300 ease-in-out md:translate-x-0 md:sticky md:top-[65px] md:h-[calc(100dvh-65px)] md:self-start md:w-80 lg:w-[350px]',
+          'fixed inset-y-0 left-0 z-50 md:z-20 w-80 max-w-[85vw] bg-surface-muted border-r border-border-muted transition-transform duration-300 ease-in-out md:translate-x-0 md:sticky md:top-[65px] md:h-[calc(100dvh-65px)] md:self-start md:w-80 lg:w-[350px]',
           isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
         ]"
       >
         <div class="h-full flex flex-col">
-          <div class="p-4 flex items-center justify-between border-b border-zinc-800 md:hidden">
+          <div class="p-4 flex items-center justify-between border-b border-border-muted md:hidden">
             <span class="font-bold text-lg">Help Center</span>
             <button
               type="button"
-              class="p-2 -mr-2 rounded-lg hover:bg-zinc-900 transition-colors"
+              class="p-2 -mr-2 rounded-lg hover:bg-surface-solid transition-colors"
               aria-label="Close help navigation"
               @click="isSidebarOpen = false"
             >
@@ -89,14 +89,14 @@
           </div>
 
           <nav class="flex-1 overflow-y-auto p-4 space-y-1">
-            <div v-if="pending" class="px-3 py-2 text-sm text-zinc-500">Loading...</div>
+            <div v-if="pending" class="px-3 py-2 text-sm text-fg-subtle">Loading...</div>
             <div v-else-if="error" class="px-3 py-2 text-sm text-rose-500">Error loading navigation</div>
 
             <template v-else>
               <div v-for="link in navigationLinks" :key="link.path" class="mb-1">
                 <div
                   class="flex items-center rounded-lg transition-colors"
-                  :class="currentArticlePath === link.path ? 'bg-emerald-500/10 text-emerald-400 font-medium' : 'text-zinc-400 hover:text-zinc-100 hover:bg-zinc-900'"
+                  :class="currentArticlePath === link.path ? 'bg-emerald-500/10 text-emerald-400 font-medium' : 'text-fg-muted hover:text-fg hover:bg-surface-solid'"
                 >
                   <button
                     v-if="mode === 'modal'"
@@ -119,7 +119,7 @@
                   <button
                     v-if="link.tocLinks.length"
                     type="button"
-                    class="p-2 mr-1 rounded-md text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800 transition-colors"
+                    class="p-2 mr-1 rounded-md text-fg-muted hover:text-fg hover:bg-surface-hover transition-colors"
                     :aria-expanded="isExpanded(link.path)"
                     :aria-label="isExpanded(link.path) ? `Hide ${link.title} subheaders` : `Show ${link.title} subheaders`"
                     @click="toggleAccordion(link.path)"
@@ -129,12 +129,12 @@
                   </button>
                 </div>
 
-                <div v-if="isExpanded(link.path) && link.tocLinks.length" class="ml-4 mt-1 space-y-1 border-l border-zinc-800 pl-2">
+                <div v-if="isExpanded(link.path) && link.tocLinks.length" class="ml-4 mt-1 space-y-1 border-l border-border-muted pl-2">
                   <template v-for="tocLink in link.tocLinks" :key="tocLink.id">
                     <button
                       v-if="mode === 'modal'"
                       type="button"
-                      class="block w-full truncate rounded-md px-2 py-1.5 text-left text-sm text-zinc-400 transition-colors hover:bg-zinc-800/50 hover:text-white"
+                      class="block w-full truncate rounded-md px-2 py-1.5 text-left text-sm text-fg-muted transition-colors hover:bg-surface-hover/50 hover:text-fg"
                       @click="navigateInModal(`${link.path}#${tocLink.id}`)"
                     >
                       {{ tocLink.text }}
@@ -143,7 +143,7 @@
                     <NuxtLink
                       v-else
                       :to="`${link.path}#${tocLink.id}`"
-                      class="block truncate rounded-md px-2 py-1.5 text-sm text-zinc-400 transition-colors hover:bg-zinc-800/50 hover:text-white"
+                      class="block truncate rounded-md px-2 py-1.5 text-sm text-fg-muted transition-colors hover:bg-surface-hover/50 hover:text-fg"
                       @click="isSidebarOpen = false"
                     >
                       {{ tocLink.text }}
@@ -156,7 +156,7 @@
         </div>
       </aside>
 
-      <main class="flex-1 min-w-0 bg-zinc-950 overflow-y-auto">
+      <main class="flex-1 min-w-0 bg-surface-muted overflow-y-auto">
         <div class="max-w-4xl mx-auto px-4 py-8 md:px-8 lg:px-12">
           <HelpArticleViewer
             :path="activePath"

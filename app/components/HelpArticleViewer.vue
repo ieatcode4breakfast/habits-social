@@ -1,13 +1,13 @@
 <template>
   <div
     ref="contentRoot"
-    class="prose max-w-none prose-headings:font-bold prose-a:text-emerald-400 hover:prose-a:text-emerald-300 prose-pre:bg-transparent prose-hr:border-zinc-800 custom-prose-theme"
+    class="prose max-w-none prose-headings:font-bold prose-a:text-emerald-400 hover:prose-a:text-emerald-300 prose-pre:bg-transparent prose-hr:border-border-muted custom-prose-theme"
     @click.capture="handleContentClick"
   >
     <ContentRenderer v-if="page" :value="page" />
     <div v-else class="text-center py-12">
-      <h1 class="text-2xl font-bold mb-4 text-white">Article Not Found</h1>
-      <p class="text-zinc-400">The help article you are looking for does not exist.</p>
+      <h1 class="text-2xl font-bold mb-4 text-fg">Article Not Found</h1>
+      <p class="text-fg-muted">The help article you are looking for does not exist.</p>
       <NuxtLink
         v-if="mode === 'page'"
         to="/help-center"
@@ -109,22 +109,22 @@ watch(
 
 <style scoped>
 .custom-prose-theme {
-  --tw-prose-body: var(--color-zinc-300);
-  --tw-prose-headings: var(--color-white);
-  --tw-prose-lead: var(--color-zinc-400);
+  --tw-prose-body: var(--fg-muted);
+  --tw-prose-headings: var(--fg);
+  --tw-prose-lead: var(--fg-muted);
   --tw-prose-links: var(--color-emerald-400);
-  --tw-prose-bold: var(--color-white);
-  --tw-prose-counters: var(--color-zinc-400);
-  --tw-prose-bullets: var(--color-zinc-500);
-  --tw-prose-hr: var(--color-zinc-800);
-  --tw-prose-quotes: var(--color-white);
-  --tw-prose-quote-borders: var(--color-zinc-800);
-  --tw-prose-captions: var(--color-zinc-400);
-  --tw-prose-code: var(--color-white);
-  --tw-prose-pre-code: var(--color-zinc-200);
+  --tw-prose-bold: var(--fg);
+  --tw-prose-counters: var(--fg-muted);
+  --tw-prose-bullets: var(--fg-subtle);
+  --tw-prose-hr: var(--border-muted);
+  --tw-prose-quotes: var(--fg);
+  --tw-prose-quote-borders: var(--border-muted);
+  --tw-prose-captions: var(--fg-muted);
+  --tw-prose-code: var(--fg);
+  --tw-prose-pre-code: var(--fg-muted);
   --tw-prose-pre-bg: transparent;
-  --tw-prose-th-borders: var(--color-zinc-800);
-  --tw-prose-td-borders: var(--color-zinc-800);
+  --tw-prose-th-borders: var(--border-muted);
+  --tw-prose-td-borders: var(--border-muted);
 }
 
 :deep(h1 a),

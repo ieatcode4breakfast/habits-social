@@ -2,39 +2,39 @@
   <div class="relative">
     <!-- Header -->
     <!-- Sticky Wrapper -->
-    <div class="sticky top-0 md:top-[57px] z-40 bg-black">
+    <div class="sticky top-0 md:top-[57px] z-40 bg-surface-inset">
       <!-- Profile Header -->
-      <div class="px-4 sm:px-0 flex items-end justify-between gap-4 bg-black pt-2 pb-2 sm:pt-4">
+      <div class="px-4 sm:px-0 flex items-end justify-between gap-4 bg-surface-inset pt-2 pb-2 sm:pt-4">
         <div class="flex items-center gap-1">
-          <button @click="handleBack" class="inline-flex items-center justify-center p-1 -ml-1 text-zinc-500 hover:text-white transition-all flex-shrink-0 cursor-pointer">
+          <button @click="handleBack" class="inline-flex items-center justify-center p-1 -ml-1 text-fg-subtle hover:text-fg transition-all flex-shrink-0 cursor-pointer">
             <ChevronLeft class="w-6 h-6" />
           </button>
           <div v-if="!profile && !loading" class="flex items-center gap-4 ml-2 mt-1">
             <div>
-              <h1 class="text-lg font-bold tracking-tight text-white">User not found</h1>
-              <p class="text-zinc-400 text-sm">This profile is unavailable.</p>
+              <h1 class="text-lg font-bold tracking-tight text-fg">User not found</h1>
+              <p class="text-fg-muted text-sm">This profile is unavailable.</p>
             </div>
           </div>
           <div v-if="profile" class="flex items-center gap-4 ml-1">
             <UserAvatar 
               :src="profile.photoUrl" 
-              container-class="w-12 h-12 bg-zinc-925 rounded-2xl shadow-sm"
-              icon-class="w-6 h-6 text-zinc-600"
+              container-class="w-12 h-12 bg-surface-raised rounded-2xl shadow-sm"
+              icon-class="w-6 h-6 text-fg-subtle"
             />
             <div>
               <div class="flex items-center gap-2 mb-1">
-                <h1 class="text-base font-bold tracking-tight text-white">{{ profile.username }}</h1>
+                <h1 class="text-base font-bold tracking-tight text-fg">{{ profile.username }}</h1>
                 <button 
                   v-if="relationshipStatus === 'friends'"
                   @click="handleToggleFavorite"
                   class="p-2 transition-all cursor-pointer rounded-xl -ml-1"
-                  :class="isFavorite ? 'text-amber-400 bg-amber-400/10' : 'text-zinc-600 hover:text-amber-400 hover:bg-amber-400/5'"
+                  :class="isFavorite ? 'text-amber-400 bg-amber-400/10' : 'text-fg-subtle hover:text-amber-400 hover:bg-amber-400/5'"
                   title="Toggle Favorite"
                 >
                   <Star class="w-4 h-4" :class="{ 'fill-amber-400': isFavorite }" />
                 </button>
               </div>
-              <p class="text-zinc-400 text-xs">{{ habits.length }} habit{{ habits.length === 1 ? '' : 's' }} shared with you</p>
+              <p class="text-fg-muted text-xs">{{ habits.length }} habit{{ habits.length === 1 ? '' : 's' }} shared with you</p>
             </div>
           </div>
         </div>
@@ -49,7 +49,7 @@
             v-if="relationshipStatus === 'none' && !profile.blockedByMe"
             @click="executeSendRequest" 
             :disabled="isProcessing"
-            class="w-11 sm:w-auto py-2.5 sm:px-4 bg-white hover:bg-zinc-200 disabled:opacity-50 text-black font-semibold rounded-xl border border-transparent transition-all shadow-lg shadow-white/5 cursor-pointer text-sm flex items-center justify-center gap-2 active:scale-95"
+            class="w-11 sm:w-auto py-2.5 sm:px-4 bg-action-primary hover:bg-action-primary-hover disabled:opacity-50 text-action-primary-fg font-semibold rounded-xl border border-transparent transition-all shadow-lg shadow-fg-inverted/5 cursor-pointer text-sm flex items-center justify-center gap-2 active:scale-95"
           >
             <template v-if="isProcessing">
               <div class="w-4 h-4 border-2 border-black/20 border-t-black rounded-full animate-spin"></div>
@@ -66,21 +66,21 @@
             class="w-11 sm:w-auto py-2.5 sm:px-4 bg-emerald-500 hover:bg-emerald-600 disabled:opacity-50 text-white font-semibold rounded-xl border border-transparent transition-all shadow-lg shadow-emerald-500/20 cursor-pointer text-sm flex items-center justify-center gap-2 active:scale-95"
           >
             <template v-if="isProcessing">
-              <div class="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>
+              <div class="w-4 h-4 border-2 border-fg/20 border-t-white rounded-full animate-spin"></div>
             </template>
             <template v-else>
               <Check class="w-4 h-4" />
               <span class="hidden sm:inline">Accept</span>
             </template>
           </button>
-          <button v-else-if="relationshipStatus === 'pending_outgoing'" @click="showCancelRequestModal = true" class="py-2.5 px-4 bg-zinc-925 hover:bg-zinc-900 text-zinc-500 font-semibold rounded-xl border border-zinc-800 transition-all cursor-pointer text-sm flex items-center justify-center gap-2 active:scale-95">
+          <button v-else-if="relationshipStatus === 'pending_outgoing'" @click="showCancelRequestModal = true" class="py-2.5 px-4 bg-surface-raised hover:bg-surface-solid text-fg-subtle font-semibold rounded-xl border border-border-muted transition-all cursor-pointer text-sm flex items-center justify-center gap-2 active:scale-95">
             Pending
           </button>
 
           <!-- More Options Menu Button -->
           <button
             @click="openMenu"
-            class="w-11 py-2.5 bg-zinc-925 hover:bg-zinc-900 text-zinc-400 hover:text-white font-semibold rounded-xl border border-zinc-800 transition-all cursor-pointer flex items-center justify-center active:scale-95"
+            class="w-11 py-2.5 bg-surface-raised hover:bg-surface-solid text-fg-muted hover:text-fg font-semibold rounded-xl border border-border-muted transition-all cursor-pointer flex items-center justify-center active:scale-95"
             title="More options"
           >
             <MoreVertical class="w-5 h-5" />
@@ -89,7 +89,7 @@
       </div>
 
       <!-- Date Header -->
-      <div v-if="profile && habits.length > 0" class="bg-date-header-bg border-b sm:border-t border-x-0 sm:border-x border-zinc-800/80 py-2 sm:rounded-t-2xl flex flex-col items-stretch sm:flex-row sm:items-center sm:justify-between gap-x-4 gap-y-2 sm:px-4">
+      <div v-if="profile && habits.length > 0" class="bg-date-header-bg border-b sm:border-t border-x-0 sm:border-x border-border-muted/80 py-2 sm:rounded-t-2xl flex flex-col items-stretch sm:flex-row sm:items-center sm:justify-between gap-x-4 gap-y-2 sm:px-4">
           <div class="w-full px-4 sm:px-0 sm:flex-1 sm:min-w-[200px] hidden sm:block sm:pr-2"></div>
           <div class="w-full sm:w-[320px] lg:w-[400px] shrink-0 px-2 sm:px-0">
             <div class="flex items-end w-full">
@@ -97,17 +97,17 @@
                 <!-- Sunday Divider -->
                 <div 
                   v-if="i > 0 && day.getDay() === 0" 
-                  class="absolute left-0 top-0 bottom-0 w-px bg-zinc-800/80"
+                  class="absolute left-0 top-0 bottom-0 w-px bg-surface-hover/80"
                 ></div>
                 <div 
                   class="text-[10px] uppercase tracking-tighter font-black transition-colors"
-                  :class="isSameDay(day, today) ? 'text-white' : 'text-zinc-500'"
+                  :class="isSameDay(day, today) ? 'text-fg' : 'text-fg-subtle'"
                 >
                   {{ format(day, 'EEE') }}
                 </div>
                 <div 
                   class="text-[10px] sm:text-xs font-bold transition-colors"
-                  :class="isSameDay(day, today) ? 'text-white' : 'text-zinc-500'"
+                  :class="isSameDay(day, today) ? 'text-fg' : 'text-fg-subtle'"
                 >
                   {{ format(day, 'd') }}
                 </div>
@@ -124,13 +124,13 @@
       v-motion-fade
       :style="pullStyle"
       class="friend-content-surface sm:rounded-b-2xl rounded-none overflow-hidden border-b border-x-0 sm:border-x sm:border-b relative will-change-transform transition-colors duration-300"
-      :class="!loading ? 'backdrop-blur-md bg-zinc-925/80 border-zinc-800/80 shadow-2xl divide-y divide-zinc-800/80' : 'border-transparent'"
+      :class="!loading ? 'backdrop-blur-md bg-surface-raised/80 border-border-muted/80 shadow-2xl divide-y divide-border-muted/80' : 'border-transparent'"
     >
       <div v-if="loading" class="flex justify-center p-12">
-        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
+        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-fg"></div>
       </div>
       <template v-else>
-        <div v-if="habits.length === 0" class="p-10 text-center text-zinc-500 italic text-sm">
+        <div v-if="habits.length === 0" class="p-10 text-center text-fg-subtle italic text-sm">
           <template v-if="profile?.blockedByMe">
             You have blocked this user.
           </template>
@@ -141,18 +141,18 @@
       
       <div v-for="habit in habits" :key="habit.id" 
            @click="openHabitDetails(habit)"
-           class="relative py-3 group transition-all flex flex-col items-stretch sm:flex-row sm:flex-nowrap sm:items-center sm:justify-between gap-x-4 gap-y-2 cursor-pointer hover:bg-zinc-800/40 sm:px-4">
+           class="relative py-3 group transition-all flex flex-col items-stretch sm:flex-row sm:flex-nowrap sm:items-center sm:justify-between gap-x-4 gap-y-2 cursor-pointer hover:bg-surface-hover/40 sm:px-4">
         
         <!-- Title Section -->
         <div class="w-full px-4 sm:px-0 sm:flex-1 sm:min-w-[200px] flex flex-col gap-1 sm:pr-2">
           <div class="flex justify-between items-start gap-4">
             <div class="flex-1 min-w-0">
-              <h3 class="text-sm font-bold text-zinc-200 leading-tight break-all group-hover:text-white transition-colors">
+              <h3 class="text-sm font-bold text-fg leading-tight break-all group-hover:text-fg transition-colors">
                 {{ habit.title }}
                 <!-- Compact Streak Badge -->
                 <span 
                   v-if="(habit.currentStreak ?? 0) >= 2"
-                  class="inline-flex items-center gap-1 px-1.5 py-0.5 bg-black border rounded-md shrink-0 align-middle ml-1.5"
+                  class="inline-flex items-center gap-1 px-1.5 py-0.5 bg-surface-inset border rounded-md shrink-0 align-middle ml-1.5"
                   :class="[
                     isFaded(habit) ? 'opacity-30' : 'opacity-100',
                     getStreakTheme(habit.currentStreak ?? 0).border
@@ -179,7 +179,7 @@
             <div class="shrink-0 flex items-start justify-end sm:hidden">
               <button
                 @click.stop="chatAboutHabit(habit)"
-                class="text-zinc-500 hover:text-white transition-all active:scale-95 cursor-pointer opacity-70 group-hover:opacity-100 p-1 -mr-1 -mt-1"
+                class="text-fg-subtle hover:text-fg transition-all active:scale-95 cursor-pointer opacity-70 group-hover:opacity-100 p-1 -mr-1 -mt-1"
                 title="Chat about this habit"
               >
                 <MessageCircle class="w-5 h-5" />
@@ -187,7 +187,7 @@
             </div>
           </div>
           <!-- Frequency Text -->
-          <div class="text-[10px] font-semibold tracking-tight text-zinc-500 mt-0.5">
+          <div class="text-[10px] font-semibold tracking-tight text-fg-subtle mt-0.5">
             {{ getFrequencyText(habit) }}
           </div>
         </div>
@@ -201,7 +201,7 @@
         <div class="hidden sm:flex w-7 shrink-0 items-center justify-center">
           <button
             @click.stop="chatAboutHabit(habit)"
-            class="text-zinc-500 hover:text-white transition-all active:scale-95 cursor-pointer opacity-70 group-hover:opacity-100 p-1"
+            class="text-fg-subtle hover:text-fg transition-all active:scale-95 cursor-pointer opacity-70 group-hover:opacity-100 p-1"
             title="Chat about this habit"
           >
             <MessageCircle class="w-5 h-5" />
@@ -243,16 +243,16 @@
       >
         <div v-if="showUnfriendModal" class="fixed inset-0 z-[120] flex items-center justify-center p-4">
           <div class="absolute inset-0 bg-black/80 backdrop-blur-md touch-none" @click="showUnfriendModal = false"></div>
-          <div class="relative w-full max-w-sm bg-zinc-925 border border-zinc-800 rounded-3xl shadow-2xl p-8 text-center">
-            <div class="w-16 h-16 bg-zinc-925 rounded-full flex items-center justify-center mx-auto mb-4">
+          <div class="relative w-full max-w-sm bg-surface-raised border border-border-muted rounded-3xl shadow-2xl p-8 text-center">
+            <div class="w-16 h-16 bg-surface-raised rounded-full flex items-center justify-center mx-auto mb-4">
               <UserMinus class="w-8 h-8 text-rose-500" />
             </div>
-            <h2 class="text-xl font-bold text-white mb-2">Unfriend?</h2>
-            <p class="text-zinc-500 mb-8 text-sm">
-              Are you sure you want to unfriend <span class="text-zinc-200 font-medium">{{ profile?.username }}</span>?
+            <h2 class="text-xl font-bold text-fg mb-2">Unfriend?</h2>
+            <p class="text-fg-subtle mb-8 text-sm">
+              Are you sure you want to unfriend <span class="text-fg font-medium">{{ profile?.username }}</span>?
             </p>
             <div class="flex gap-3 mt-2">
-              <button @click="showUnfriendModal = false" class="flex-1 px-5 py-3 bg-transparent hover:bg-zinc-800 text-zinc-400 hover:text-zinc-200 font-semibold rounded-xl transition-all cursor-pointer whitespace-nowrap">
+              <button @click="showUnfriendModal = false" class="flex-1 px-5 py-3 bg-transparent hover:bg-surface-hover text-fg-muted hover:text-fg font-semibold rounded-xl transition-all cursor-pointer whitespace-nowrap">
                 Cancel
               </button>
               <button @click="executeUnfriend" class="flex-1 px-5 py-3 bg-rose-500 hover:bg-rose-600 text-white font-semibold rounded-xl transition-all shadow-lg shadow-rose-500/20 cursor-pointer whitespace-nowrap">
@@ -277,16 +277,16 @@
       >
         <div v-if="showCancelRequestModal" class="fixed inset-0 z-[120] flex items-center justify-center p-4">
           <div class="absolute inset-0 bg-black/80 backdrop-blur-md touch-none" @click="showCancelRequestModal = false"></div>
-          <div class="relative w-full max-w-sm bg-zinc-925 border border-zinc-800 rounded-3xl shadow-2xl p-8 text-center">
-            <div class="w-16 h-16 bg-zinc-925 rounded-full flex items-center justify-center mx-auto mb-4">
+          <div class="relative w-full max-w-sm bg-surface-raised border border-border-muted rounded-3xl shadow-2xl p-8 text-center">
+            <div class="w-16 h-16 bg-surface-raised rounded-full flex items-center justify-center mx-auto mb-4">
               <UserMinus class="w-8 h-8 text-rose-500" />
             </div>
-            <h2 class="text-xl font-bold text-white mb-2">Cancel Request?</h2>
-            <p class="text-zinc-500 mb-8 text-sm">
-              Do you want to cancel your friend request to <span class="text-zinc-200 font-medium">{{ profile?.username }}</span>?
+            <h2 class="text-xl font-bold text-fg mb-2">Cancel Request?</h2>
+            <p class="text-fg-subtle mb-8 text-sm">
+              Do you want to cancel your friend request to <span class="text-fg font-medium">{{ profile?.username }}</span>?
             </p>
             <div class="flex gap-3 mt-2">
-              <button @click="showCancelRequestModal = false" class="flex-1 px-5 py-3 bg-transparent hover:bg-zinc-800 text-zinc-400 hover:text-zinc-200 font-semibold rounded-xl transition-all cursor-pointer whitespace-nowrap">
+              <button @click="showCancelRequestModal = false" class="flex-1 px-5 py-3 bg-transparent hover:bg-surface-hover text-fg-muted hover:text-fg font-semibold rounded-xl transition-all cursor-pointer whitespace-nowrap">
                 Go Back
               </button>
               <button @click="executeCancelRequest" class="flex-1 px-5 py-3 bg-rose-500 hover:bg-rose-600 text-white font-semibold rounded-xl transition-all shadow-lg shadow-rose-500/20 cursor-pointer whitespace-nowrap">
@@ -312,20 +312,20 @@
       >
         <div v-if="showBlockModal" class="fixed inset-0 z-[120] flex items-center justify-center p-4">
           <div class="absolute inset-0 bg-black/80 backdrop-blur-md touch-none" @click="showBlockModal = false"></div>
-          <div class="relative w-full max-w-sm bg-zinc-925 border border-zinc-800 rounded-3xl shadow-2xl p-8 text-center">
-            <div class="w-16 h-16 bg-zinc-925 rounded-full flex items-center justify-center mx-auto mb-4">
+          <div class="relative w-full max-w-sm bg-surface-raised border border-border-muted rounded-3xl shadow-2xl p-8 text-center">
+            <div class="w-16 h-16 bg-surface-raised rounded-full flex items-center justify-center mx-auto mb-4">
               <ShieldBan class="w-8 h-8 text-rose-500" />
             </div>
-            <h2 class="text-xl font-bold text-white mb-2">Block User?</h2>
-            <p class="text-zinc-500 mb-8 text-sm">
-              Are you sure you want to block <span class="text-zinc-200 font-medium">{{ profile?.username }}</span>? This will unfriend them and hide their activity.
+            <h2 class="text-xl font-bold text-fg mb-2">Block User?</h2>
+            <p class="text-fg-subtle mb-8 text-sm">
+              Are you sure you want to block <span class="text-fg font-medium">{{ profile?.username }}</span>? This will unfriend them and hide their activity.
             </p>
             <div class="flex gap-3 mt-2">
-              <button @click="showBlockModal = false" :disabled="isProcessing" class="flex-1 px-5 py-3 bg-transparent hover:bg-zinc-800 text-zinc-400 hover:text-zinc-200 font-semibold rounded-xl transition-all cursor-pointer whitespace-nowrap">
+              <button @click="showBlockModal = false" :disabled="isProcessing" class="flex-1 px-5 py-3 bg-transparent hover:bg-surface-hover text-fg-muted hover:text-fg font-semibold rounded-xl transition-all cursor-pointer whitespace-nowrap">
                 Cancel
               </button>
               <button @click="executeBlock" :disabled="isProcessing" class="flex-1 px-5 py-3 bg-rose-500 hover:bg-rose-600 disabled:opacity-50 text-white font-semibold rounded-xl transition-all shadow-lg shadow-rose-500/20 cursor-pointer whitespace-nowrap flex items-center justify-center gap-2">
-                <div v-if="isProcessing" class="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>
+                <div v-if="isProcessing" class="w-4 h-4 border-2 border-fg/20 border-t-white rounded-full animate-spin"></div>
                 <span>Block</span>
               </button>
             </div>

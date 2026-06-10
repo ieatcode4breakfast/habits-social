@@ -12,17 +12,17 @@
       <div v-if="modelValue" class="fixed inset-0 z-[150] flex items-center justify-center sm:p-4">
         <!-- Backdrop -->
         <div class="absolute inset-0 bg-black/95 backdrop-blur-xl" @click="handleClose"></div>
-        
+
         <!-- Modal Card -->
-        <div class="relative w-full h-full sm:h-auto max-w-xl bg-zinc-925 sm:border border-zinc-800 sm:rounded-3xl shadow-2xl p-6 sm:p-8 flex flex-col overflow-hidden v-motion-slide-top">
+        <div class="relative w-full h-full sm:h-auto max-w-xl bg-surface-raised sm:border border-border-muted sm:rounded-3xl shadow-2xl p-6 sm:p-8 flex flex-col overflow-hidden v-motion-slide-top">
           <!-- Header -->
           <div class="flex items-start justify-between mb-6 shrink-0 pt-8 sm:pt-0">
             <div>
-              <h2 class="text-2xl font-bold text-white tracking-tight leading-tight">Choose Avatar</h2>
+              <h2 class="text-2xl font-bold text-fg tracking-tight leading-tight">Choose Avatar</h2>
             </div>
-            <button 
+            <button
               @click="generateAvatars"
-              class="p-2 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded-xl transition-all cursor-pointer flex items-center gap-1.5 text-xs font-bold whitespace-nowrap bg-zinc-900 border border-zinc-800/50"
+              class="p-2 text-fg-muted hover:text-fg hover:bg-surface-hover rounded-xl transition-all cursor-pointer flex items-center gap-1.5 text-xs font-bold whitespace-nowrap bg-surface-solid border border-border-muted/50"
             >
               <RefreshCw class="w-3.5 h-3.5" />
               Refresh
@@ -30,14 +30,14 @@
           </div>
 
           <!-- Preview & Info -->
-          <div class="flex items-center gap-4 bg-zinc-950/60 border border-zinc-900 rounded-2xl p-4 mb-6 shrink-0">
-            <UserAvatar 
-              :src="selectedAvatar" 
-              container-class="w-16 h-16 rounded-2xl bg-zinc-900 border border-zinc-800 shadow-inner flex-shrink-0"
-              icon-class="w-8 h-8 text-zinc-600"
+          <div class="flex items-center gap-4 bg-surface-muted/60 border border-surface-solid rounded-2xl p-4 mb-6 shrink-0">
+            <UserAvatar
+              :src="selectedAvatar"
+              container-class="w-16 h-16 rounded-2xl bg-surface-solid border border-border-muted shadow-inner flex-shrink-0"
+              icon-class="w-8 h-8 text-fg-subtle"
             />
             <div class="min-w-0">
-              <span class="text-sm font-bold text-white block">Currently Selected</span>
+              <span class="text-sm font-bold text-fg block">Currently Selected</span>
             </div>
           </div>
 
@@ -45,30 +45,30 @@
           <div class="flex-1 overflow-y-auto pr-1 custom-scrollbar sm:max-h-[45vh]">
             <div class="grid grid-cols-4 sm:grid-cols-5 gap-4 auto-rows-max">
               <!-- Clear/Default Option -->
-              <button 
+              <button
                 @click="selectedAvatar = ''"
-                class="w-full aspect-square min-w-0 min-h-0 rounded-full bg-zinc-950 border-2 flex flex-col items-center justify-center hover:border-zinc-500 transition-all cursor-pointer group relative overflow-hidden"
-                :class="selectedAvatar === '' ? 'border-white bg-zinc-900 ring-2 ring-white/10' : 'border-zinc-850'"
+                class="w-full aspect-square min-w-0 min-h-0 rounded-full bg-surface-muted border-2 flex flex-col items-center justify-center hover:border-border-strong transition-all cursor-pointer group relative overflow-hidden"
+                :class="selectedAvatar === '' ? 'border-fg bg-surface-solid ring-2 ring-fg/10' : 'border-border-muted'"
               >
-                <div class="w-10 h-10 rounded-full bg-zinc-900 flex items-center justify-center mb-1 group-hover:scale-110 transition-transform">
-                  <UserIcon class="w-5 h-5 text-zinc-500" />
+                <div class="w-10 h-10 rounded-full bg-surface-solid flex items-center justify-center mb-1 group-hover:scale-110 transition-transform">
+                  <UserIcon class="w-5 h-5 text-fg-subtle" />
                 </div>
-                <span class="text-[10px] font-bold text-zinc-500 uppercase tracking-tighter">Default</span>
+                <span class="text-[10px] font-bold text-fg-subtle uppercase tracking-tighter">Default</span>
               </button>
 
               <!-- Dynamic Avatars -->
               <button
-                v-for="(avatar, index) in suggestedAvatars" 
+                v-for="(avatar, index) in suggestedAvatars"
                 :key="index"
                 @click="selectedAvatar = avatar"
-                class="w-full aspect-square min-w-0 min-h-0 rounded-full bg-zinc-950 border-2 transition-all cursor-pointer group relative overflow-hidden"
-                :class="selectedAvatar === avatar ? 'border-white bg-zinc-900 ring-2 ring-white/10' : 'border-zinc-850 hover:border-zinc-500'"
+                class="w-full aspect-square min-w-0 min-h-0 rounded-full bg-surface-muted border-2 transition-all cursor-pointer group relative overflow-hidden"
+                :class="selectedAvatar === avatar ? 'border-fg bg-surface-solid ring-2 ring-fg/10' : 'border-border-muted hover:border-border-strong'"
               >
-                <UserAvatar 
+                <UserAvatar
                   :src="avatar"
                   container-class="w-full h-full !rounded-full border-0"
                   img-class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                  icon-class="w-6 h-6 text-zinc-700"
+                  icon-class="w-6 h-6 text-fg-subtle"
                   @error="handleAvatarError"
                 />
               </button>
@@ -77,16 +77,16 @@
 
           <!-- Bottom Actions -->
           <div class="mt-auto sm:mt-8 pt-6 sm:pt-0 flex flex-col sm:flex-row items-center gap-3 shrink-0 pb-8 sm:pb-0">
-            <button 
+            <button
               @click="handleClose"
-              class="w-full sm:w-1/3 py-4 bg-transparent hover:bg-zinc-900 text-zinc-400 hover:text-zinc-200 font-bold rounded-2xl transition-all cursor-pointer text-center"
+              class="w-full sm:w-1/3 py-4 bg-transparent hover:bg-surface-solid text-fg-muted hover:text-fg font-bold rounded-2xl transition-all cursor-pointer text-center"
             >
               Skip for now
             </button>
-            <button 
+            <button
               @click="saveAvatar"
               :disabled="saving"
-              class="w-full sm:w-2/3 py-4 bg-white hover:bg-zinc-200 disabled:opacity-50 text-black font-bold rounded-2xl transition-all cursor-pointer shadow-lg shadow-white/5 flex items-center justify-center gap-2"
+              class="w-full sm:w-2/3 py-4 bg-action-primary hover:bg-action-primary-hover disabled:opacity-50 text-action-primary-fg font-bold rounded-2xl transition-all cursor-pointer shadow-lg shadow-fg-inverted/5 flex items-center justify-center gap-2"
             >
               <Loader2 v-if="saving" class="w-4 h-4 animate-spin" />
               {{ saving ? 'Saving Avatar...' : 'Save and Continue' }}
@@ -120,10 +120,10 @@ const generateAvatars = () => {
   avatarLoadError.value = false;
   const styles = ['avataaars', 'big-smile', 'bottts-neutral', 'notionists-neutral'];
   const bgColors = [
-    'b6e3f4', 'c0aede', 'd1d4f9', 'ffd5dc', 'ffdfbf', 
+    'b6e3f4', 'c0aede', 'd1d4f9', 'ffd5dc', 'ffdfbf',
     'f1f4f9', 'e2e8f0', 'fce7f3', 'ffedd5', 'dcfce7'
   ];
-  
+
   const newAvatars = [];
   for (let i = 0; i < 11; i++) {
     const style = styles[Math.floor(Math.random() * styles.length)];

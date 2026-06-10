@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen bg-zinc-950" aria-hidden="true"></div>
+  <div class="min-h-screen bg-surface-muted" aria-hidden="true"></div>
 </template>
 
 <script setup lang="ts">

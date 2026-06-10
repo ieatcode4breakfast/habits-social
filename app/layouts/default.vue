@@ -1,13 +1,13 @@
 <template>
-  <div class="min-h-[100dvh] text-zinc-100 flex flex-col transition-colors duration-300">
-    <header class="sticky top-0 z-50 h-[57px] bg-nav-bg border-b border-white/10 hidden md:block">
+  <div class="min-h-[100dvh] text-fg flex flex-col transition-colors duration-300">
+    <header class="sticky top-0 z-50 h-[57px] bg-nav-bg border-b border-fg/10 hidden md:block">
       <div class="h-full max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between">
         <div class="flex items-center gap-2">
           <NuxtLink to="/habits" class="flex items-center gap-2 group">
             <div class="w-8 h-8 rounded-lg bg-transparent flex items-center justify-center transition-shadow">
               <img src="/icons/icon-192.png" class="w-full h-full object-contain" alt="Logo" />
             </div>
-            <span class="font-bold text-lg tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-zinc-200 to-zinc-400">
+            <span class="font-bold text-lg tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-fg to-fg-muted">
               Habits Social
             </span>
           </NuxtLink>
@@ -31,33 +31,33 @@
         <div v-if="user" class="flex items-center gap-0">
           <button 
             @click="handleEditProfile"
-            class="flex items-center gap-2 group text-sm font-medium text-zinc-400 hover:text-white transition-colors cursor-pointer px-3 py-2 rounded-xl hover:bg-zinc-900"
+            class="flex items-center gap-2 group text-sm font-medium text-fg-muted hover:text-fg transition-colors cursor-pointer px-3 py-2 rounded-xl hover:bg-surface-solid"
           >
             Hi, {{ user.username }}!
           </button>
-          <div class="w-px h-6 bg-zinc-800 mx-2 shrink-0"></div>
+          <div class="w-px h-6 bg-surface-hover mx-2 shrink-0"></div>
           <button
             type="button"
-            class="p-2 text-zinc-500 hover:text-white hover:bg-zinc-925 rounded-lg transition-colors flex items-center justify-center cursor-pointer"
+            class="p-2 text-fg-subtle hover:text-fg hover:bg-surface-raised rounded-lg transition-colors flex items-center justify-center cursor-pointer"
             title="Help Center"
             aria-label="Help Center"
             @click="openHelpCenter"
           >
             <CircleHelp class="w-5 h-5" />
           </button>
-          <div class="w-px h-6 bg-zinc-800 mx-2 shrink-0"></div>
+          <div class="w-px h-6 bg-surface-hover mx-2 shrink-0"></div>
           <button
             type="button"
             @click="toggleThemeMode"
-            class="p-2 text-zinc-500 hover:text-white hover:bg-zinc-925 rounded-lg transition-colors flex items-center justify-center cursor-pointer"
+            class="p-2 text-fg-subtle hover:text-fg hover:bg-surface-raised rounded-lg transition-colors flex items-center justify-center cursor-pointer"
             :title="themeToggleTitle"
             :aria-label="themeToggleTitle"
           >
             <Moon v-if="isLightMode" class="w-5 h-5" />
             <Sun v-else class="w-5 h-5" />
           </button>
-          <div class="w-px h-6 bg-zinc-800 mx-2 shrink-0"></div>
-          <button @click="logout" class="p-2 text-zinc-500 hover:text-white hover:bg-zinc-925 rounded-lg transition-colors flex items-center justify-center cursor-pointer" title="Logout">
+          <div class="w-px h-6 bg-surface-hover mx-2 shrink-0"></div>
+          <button @click="logout" class="p-2 text-fg-subtle hover:text-fg hover:bg-surface-raised rounded-lg transition-colors flex items-center justify-center cursor-pointer" title="Logout">
             <LogOut class="w-5 h-5" />
           </button>
         </div>
@@ -75,33 +75,33 @@
       <slot />
     </main>
     <!-- Mobile Bottom Navigation -->
-    <nav v-if="user" class="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-nav-bg border-t border-white/5 px-6 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))]">
+    <nav v-if="user" class="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-nav-bg border-t border-fg/5 px-6 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))]">
       <div class="flex items-center justify-around">
-        <NuxtLink to="/habits" class="flex items-center group transition-colors" :class="($route.path === '/habits' && !showMobileMenu) ? 'text-white' : 'text-zinc-500'" @click="showMobileMenu = false">
-          <div class="p-2 rounded-xl transition-all duration-300" :class="($route.path === '/habits' && !showMobileMenu) ? 'bg-white/10 scale-110' : 'group-hover:bg-white/5'">
+        <NuxtLink to="/habits" class="flex items-center group transition-colors" :class="($route.path === '/habits' && !showMobileMenu) ? 'text-fg' : 'text-fg-subtle'" @click="showMobileMenu = false">
+          <div class="p-2 rounded-xl transition-all duration-300" :class="($route.path === '/habits' && !showMobileMenu) ? 'bg-action-primary/10 scale-110' : 'group-hover:bg-action-primary/5'">
             <ListChecks class="w-6 h-6" />
           </div>
         </NuxtLink>
-        <NuxtLink to="/buckets" class="flex items-center group transition-colors" :class="($route.path === '/buckets' && !showMobileMenu) ? 'text-white' : 'text-zinc-500'" @click="showMobileMenu = false">
-          <div class="p-2 rounded-xl transition-all duration-300" :class="($route.path === '/buckets' && !showMobileMenu) ? 'bg-white/10 scale-110' : 'group-hover:bg-white/5'">
+        <NuxtLink to="/buckets" class="flex items-center group transition-colors" :class="($route.path === '/buckets' && !showMobileMenu) ? 'text-fg' : 'text-fg-subtle'" @click="showMobileMenu = false">
+          <div class="p-2 rounded-xl transition-all duration-300" :class="($route.path === '/buckets' && !showMobileMenu) ? 'bg-action-primary/10 scale-110' : 'group-hover:bg-action-primary/5'">
             <PaintBucket class="w-6 h-6" />
           </div>
         </NuxtLink>
-        <NuxtLink to="/social" class="flex items-center group transition-colors relative" :class="($route.path === '/social' && !showMobileMenu) ? 'text-white' : 'text-zinc-500'" @click="showMobileMenu = false">
-          <div class="p-2 rounded-xl transition-all duration-300" :class="($route.path === '/social' && !showMobileMenu) ? 'bg-white/10 scale-110' : 'group-hover:bg-white/5'">
+        <NuxtLink to="/social" class="flex items-center group transition-colors relative" :class="($route.path === '/social' && !showMobileMenu) ? 'text-fg' : 'text-fg-subtle'" @click="showMobileMenu = false">
+          <div class="p-2 rounded-xl transition-all duration-300" :class="($route.path === '/social' && !showMobileMenu) ? 'bg-action-primary/10 scale-110' : 'group-hover:bg-action-primary/5'">
             <Users class="w-6 h-6" />
           </div>
           <!-- Badge -->
-          <div v-if="pendingCount > 0" class="absolute top-1 right-1 w-2.5 h-2.5 bg-rose-500 rounded-full border-2 border-zinc-950"></div>
+          <div v-if="pendingCount > 0" class="absolute top-1 right-1 w-2.5 h-2.5 bg-rose-500 rounded-full border-2 border-surface-muted"></div>
         </NuxtLink>
-        <NuxtLink to="/inbox" class="flex items-center group transition-colors relative" :class="($route.path === '/inbox' && !showMobileMenu) ? 'text-white' : 'text-zinc-500'" @click="() => { showMobileMenu = false; handleInboxNavClick(); }">
-          <div class="p-2 rounded-xl transition-all duration-300" :class="($route.path === '/inbox' && !showMobileMenu) ? 'bg-white/10 scale-110' : 'group-hover:bg-white/5'">
+        <NuxtLink to="/inbox" class="flex items-center group transition-colors relative" :class="($route.path === '/inbox' && !showMobileMenu) ? 'text-fg' : 'text-fg-subtle'" @click="() => { showMobileMenu = false; handleInboxNavClick(); }">
+          <div class="p-2 rounded-xl transition-all duration-300" :class="($route.path === '/inbox' && !showMobileMenu) ? 'bg-action-primary/10 scale-110' : 'group-hover:bg-action-primary/5'">
             <MessageCircle class="w-6 h-6" />
           </div>
-          <div v-if="totalUnreadCount > 0" class="absolute top-1 right-1 w-2.5 h-2.5 bg-rose-500 rounded-full border-2 border-zinc-950"></div>
+          <div v-if="totalUnreadCount > 0" class="absolute top-1 right-1 w-2.5 h-2.5 bg-rose-500 rounded-full border-2 border-surface-muted"></div>
         </NuxtLink>
-        <button @click="showMobileMenu = !showMobileMenu" class="flex items-center group transition-colors" :class="showMobileMenu ? 'text-white' : 'text-zinc-500'">
-          <div class="p-2 rounded-xl transition-all duration-300" :class="showMobileMenu ? 'bg-white/10 scale-110' : 'group-hover:bg-white/5 active:bg-white/10'">
+        <button @click="showMobileMenu = !showMobileMenu" class="flex items-center group transition-colors" :class="showMobileMenu ? 'text-fg' : 'text-fg-subtle'">
+          <div class="p-2 rounded-xl transition-all duration-300" :class="showMobileMenu ? 'bg-action-primary/10 scale-110' : 'group-hover:bg-action-primary/5 active:bg-action-primary/10'">
             <Menu class="w-6 h-6" />
           </div>
         </button>
@@ -133,54 +133,54 @@
         leave-to-class="translate-y-full"
       >
         <div v-if="showMobileMenu" class="fixed inset-x-0 bottom-[calc(4rem-6px+env(safe-area-inset-bottom,0px))] z-[45] flex flex-col justify-end md:hidden pointer-events-none">
-          <div class="relative w-full bg-zinc-950 border-t border-zinc-800 rounded-t-3xl shadow-2xl overflow-hidden pointer-events-auto">
-            <div class="p-4 border-b border-zinc-800 flex flex-col items-center gap-4">
+          <div class="relative w-full bg-surface-muted border-t border-border-muted rounded-t-3xl shadow-2xl overflow-hidden pointer-events-auto">
+            <div class="p-4 border-b border-border-muted flex flex-col items-center gap-4">
               <div class="w-full flex items-center justify-between">
                 <div class="flex items-center gap-3">
                   <div class="w-10 h-10 rounded-lg bg-transparent flex items-center justify-center">
                     <img src="/icons/icon-192.png" class="w-full h-full object-contain" alt="Logo" />
                   </div>
-                  <span class="font-bold text-lg tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-zinc-200 to-zinc-400">
+                  <span class="font-bold text-lg tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-fg to-fg-muted">
                     Habits Social
                   </span>
                 </div>
-                <div class="text-sm font-medium text-zinc-400">
+                <div class="text-sm font-medium text-fg-muted">
                   Hi, {{ user?.username }}!
                 </div>
               </div>
             </div>
 
-            <div class="p-2 flex flex-col gap-1 bg-black">
+            <div class="p-2 flex flex-col gap-1 bg-surface-inset">
               <button 
                 @click="() => { suppressNextHistoryBack(); showMobileMenu = false; handleEditProfile(); }"
-                class="w-full p-2 flex items-center gap-3 text-zinc-300 hover:bg-zinc-900 rounded-xl transition-colors cursor-pointer"
+                class="w-full p-2 flex items-center gap-3 text-fg-muted hover:bg-surface-solid rounded-xl transition-colors cursor-pointer"
               >
-                <UserIcon class="w-5 h-5 text-zinc-400" />
+                <UserIcon class="w-5 h-5 text-fg-muted" />
                 <span class="font-semibold">Edit Profile</span>
               </button>
 
               <button
                 type="button"
                 @click="toggleThemeMode"
-                class="w-full p-2 flex items-center gap-3 text-zinc-300 hover:bg-zinc-900 rounded-xl transition-colors cursor-pointer"
+                class="w-full p-2 flex items-center gap-3 text-fg-muted hover:bg-surface-solid rounded-xl transition-colors cursor-pointer"
               >
-                <Moon v-if="isLightMode" class="w-5 h-5 text-zinc-400" />
-                <Sun v-else class="w-5 h-5 text-zinc-400" />
+                <Moon v-if="isLightMode" class="w-5 h-5 text-fg-muted" />
+                <Sun v-else class="w-5 h-5 text-fg-muted" />
                 <span class="font-semibold">{{ themeToggleText }}</span>
               </button>
               
               <button
                 type="button"
                 @click="() => { suppressNextHistoryBack(); showMobileMenu = false; openHelpCenter(); }"
-                class="w-full p-2 flex items-center gap-3 text-zinc-300 hover:bg-zinc-900 rounded-xl transition-colors cursor-pointer"
+                class="w-full p-2 flex items-center gap-3 text-fg-muted hover:bg-surface-solid rounded-xl transition-colors cursor-pointer"
               >
-                <CircleHelp class="w-5 h-5 text-zinc-400" />
+                <CircleHelp class="w-5 h-5 text-fg-muted" />
                 <span class="font-semibold">Help Center</span>
               </button>
 
               <button 
                 @click="() => { suppressNextHistoryBack(); showMobileMenu = false; logout(); }"
-                class="w-full p-2 flex items-center gap-3 text-rose-500 hover:bg-zinc-900 rounded-xl transition-colors cursor-pointer"
+                class="w-full p-2 flex items-center gap-3 text-rose-500 hover:bg-surface-solid rounded-xl transition-colors cursor-pointer"
               >
                 <LogOut class="w-5 h-5 opacity-80" />
                 <span class="font-semibold">Log out</span>
@@ -345,22 +345,15 @@ const logout = async () => {
   font-size: 0.875rem;
   font-weight: 500;
   border-radius: 0.5rem;
-  color: #71717a;
+  color: var(--nav-link-fg-inactive);
   transition: color 150ms, background-color 150ms;
 }
 .nav-link:hover {
-  color: white;
-  background-color: rgba(39, 39, 42, 0.5);
+  color: var(--nav-link-fg-active);
+  background-color: var(--nav-link-bg-hover);
 }
-.nav-link-active { color: white; background-color: rgba(63, 63, 70, 0.5); }
-</style>
-
-<style>
-/* Unscoped block so it can read the global html.light class without scoping conflicts */
-html.light .nav-link:hover {
-  background-color: #000000;
-}
-html.light .nav-link-active {
-  background-color: #000000;
+.nav-link-active {
+  color: var(--nav-link-fg-active);
+  background-color: var(--nav-link-bg-active);
 }
 </style>

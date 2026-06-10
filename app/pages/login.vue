@@ -1,8 +1,8 @@
 <template>
   <div class="min-h-screen flex flex-col items-center justify-center px-4 py-8 relative">
-    <button @click="toggleThemeMode" class="fixed top-4 right-4 p-2 rounded-lg hover:bg-zinc-900 transition-colors z-50" :title="themeToggleTitle">
-      <MoonIcon v-if="isLightMode" class="w-5 h-5 text-white" />
-      <SunIcon v-else class="w-5 h-5 text-white" />
+    <button @click="toggleThemeMode" class="fixed top-4 right-4 p-2 rounded-lg hover:bg-surface-solid transition-colors z-50" :title="themeToggleTitle">
+      <MoonIcon v-if="isLightMode" class="w-5 h-5 text-fg" />
+      <SunIcon v-else class="w-5 h-5 text-fg" />
     </button>
     <div class="w-full max-w-md">
       <!-- Logo -->
@@ -10,22 +10,22 @@
         <div class="w-12 h-12 rounded-lg bg-transparent flex items-center justify-center mb-3">
           <img src="/icons/icon-192.png" class="w-full h-full object-contain" alt="Logo" />
         </div>
-        <h1 class="text-2xl font-bold text-white tracking-tight">Habits Social</h1>
-        <p class="text-zinc-500 text-sm mt-1">A social habit tracking app.</p>
+        <h1 class="text-2xl font-bold text-fg tracking-tight">Habits Social</h1>
+        <p class="text-fg-subtle text-sm mt-1">A social habit tracking app.</p>
       </div>
 
       <!-- Card -->
-      <div class="bg-zinc-925/80 backdrop-blur-xl rounded-2xl shadow-2xl border border-zinc-800 overflow-hidden">
+      <div class="bg-surface-raised/80 backdrop-blur-xl rounded-2xl shadow-2xl border border-border-muted overflow-hidden">
         <!-- Main Form (Login / Signup) -->
         <div v-show="!showGoogleSignup">
           <!-- Tabs -->
-          <div class="flex border-b border-zinc-925">
+          <div class="flex border-b border-surface-raised">
             <button
               @click="tab = 'login'"
               class="flex-1 py-4 text-sm font-semibold transition-colors cursor-pointer"
               :class="tab === 'login'
-                ? 'text-white border-b-2 border-white'
-                : 'text-zinc-500 hover:text-zinc-300'"
+                ? 'text-fg border-b-2 border-fg'
+                : 'text-fg-subtle hover:text-fg-muted'"
             >
               Log In
             </button>
@@ -33,18 +33,18 @@
               @click="tab = 'signup'"
               class="flex-1 py-4 text-sm font-semibold transition-colors cursor-pointer"
               :class="tab === 'signup'
-                ? 'text-white border-b-2 border-white'
-                : 'text-zinc-500 hover:text-zinc-300'"
+                ? 'text-fg border-b-2 border-fg'
+                : 'text-fg-subtle hover:text-fg-muted'"
             >
               Sign Up
             </button>
           </div>
 
           <div class="p-6 sm:p-8">
-            <h2 class="text-xl font-bold text-white mb-1">
+            <h2 class="text-xl font-bold text-fg mb-1">
               {{ tab === 'login' ? 'Log In' : 'Create Account' }}
             </h2>
-            <p class="text-sm text-zinc-500">
+            <p class="text-sm text-fg-subtle">
               {{ tab === 'login' ? 'Enter your credentials to continue.' : 'Sign up to start tracking your habits.' }}
             </p>
 
@@ -52,7 +52,7 @@
 
               <!-- Username -->
               <div v-if="tab === 'signup'" class="relative" v-motion-slide-top>
-                <User class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
+                <User class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-fg-subtle" />
                 <input
                   v-model="username"
                   type="text"
@@ -60,25 +60,25 @@
                   required
                   minlength="3"
                   maxlength="20"
-                  class="w-full pl-10 pr-4 py-3 bg-black border border-zinc-800 rounded-xl text-white placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-zinc-600 focus:border-transparent transition-all text-sm"
+                  class="w-full pl-10 pr-4 py-3 bg-surface-inset border border-border-muted rounded-xl text-fg placeholder-fg-subtle focus:outline-none focus:ring-2 focus:ring-border-strong focus:border-transparent transition-all text-sm"
                 />
               </div>
 
               <!-- Email / Username -->
               <div class="relative">
-                <component :is="tab === 'login' ? User : Mail" class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
+                <component :is="tab === 'login' ? User : Mail" class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-fg-subtle" />
                 <input
                   v-model="email"
                   :type="tab === 'login' ? 'text' : 'email'"
                   :placeholder="tab === 'login' ? 'Email or Username' : 'Email'"
                   required
-                  class="w-full pl-10 pr-4 py-3 bg-black border border-zinc-800 rounded-xl text-white placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-zinc-600 focus:border-transparent transition-all text-sm"
+                  class="w-full pl-10 pr-4 py-3 bg-surface-inset border border-border-muted rounded-xl text-fg placeholder-fg-subtle focus:outline-none focus:ring-2 focus:ring-border-strong focus:border-transparent transition-all text-sm"
                 />
               </div>
 
               <!-- Password -->
               <div class="relative">
-                <Lock class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
+                <Lock class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-fg-subtle" />
                 <input
                   v-model="password"
                   :type="showPassword ? 'text' : 'password'"
@@ -86,31 +86,31 @@
                   required
                   minlength="8"
                   maxlength="128"
-                  class="w-full pl-10 pr-12 py-3 bg-black border border-zinc-800 rounded-xl text-white placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-zinc-600 focus:border-transparent transition-all text-sm"
+                  class="w-full pl-10 pr-12 py-3 bg-surface-inset border border-border-muted rounded-xl text-fg placeholder-fg-subtle focus:outline-none focus:ring-2 focus:ring-border-strong focus:border-transparent transition-all text-sm"
                 />
-                <button type="button" @click="showPassword = !showPassword" class="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300 cursor-pointer">
+                <button type="button" @click="showPassword = !showPassword" class="absolute right-3 top-1/2 -translate-y-1/2 text-fg-subtle hover:text-fg-muted cursor-pointer">
                   <Eye v-if="!showPassword" class="w-4 h-4" />
                   <EyeOff v-else class="w-4 h-4" />
                 </button>
               </div>
               <div v-if="tab === 'login'" class="flex justify-end -mt-1">
-                <NuxtLink to="/forgot-password" class="text-xs font-semibold text-zinc-500 hover:text-zinc-300 transition-colors">
+                <NuxtLink to="/forgot-password" class="text-xs font-semibold text-fg-subtle hover:text-fg-muted transition-colors">
                   Forgot password?
                 </NuxtLink>
               </div>
 
               <!-- Confirm Password -->
               <div v-if="tab === 'signup'" class="relative" v-motion-slide-top>
-                <Lock class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
+                <Lock class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-fg-subtle" />
                 <input
                   v-model="confirmPassword"
                   :type="showPassword ? 'text' : 'password'"
                   placeholder="Confirm Password"
                   required
                   maxlength="128"
-                  class="w-full pl-10 pr-12 py-3 bg-black border border-zinc-800 rounded-xl text-white placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-zinc-600 focus:border-transparent transition-all text-sm"
+                  class="w-full pl-10 pr-12 py-3 bg-surface-inset border border-border-muted rounded-xl text-fg placeholder-fg-subtle focus:outline-none focus:ring-2 focus:ring-border-strong focus:border-transparent transition-all text-sm"
                 />
-                <button type="button" @click="showPassword = !showPassword" class="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300 cursor-pointer">
+                <button type="button" @click="showPassword = !showPassword" class="absolute right-3 top-1/2 -translate-y-1/2 text-fg-subtle hover:text-fg-muted cursor-pointer">
                   <Eye v-if="!showPassword" class="w-4 h-4" />
                   <EyeOff v-else class="w-4 h-4" />
                 </button>
@@ -124,14 +124,14 @@
                 <button
                   type="button"
                   @click="email = ''; username = ''; password = ''; confirmPassword = ''; photourl = ''; error = ''"
-                  class="flex-1 py-3 text-sm font-semibold text-zinc-400 bg-transparent hover:bg-zinc-925 rounded-xl transition-colors cursor-pointer"
+                  class="flex-1 py-3 text-sm font-semibold text-fg-muted bg-transparent hover:bg-surface-raised rounded-xl transition-colors cursor-pointer"
                 >
                   Reset
                 </button>
                 <button
                   type="submit"
                   :disabled="loading"
-                  class="flex-1 py-3 text-sm font-semibold text-black bg-white hover:bg-zinc-200 disabled:opacity-50 rounded-xl transition-colors cursor-pointer shadow-lg shadow-white/10"
+                  class="flex-1 py-3 text-sm font-semibold text-action-primary-fg bg-action-primary hover:bg-action-primary-hover disabled:opacity-50 rounded-xl transition-colors cursor-pointer shadow-lg shadow-fg-inverted/10"
                 >
                   {{ loading ? 'Please wait...' : (tab === 'login' ? 'Log In' : 'Sign Up') }}
                 </button>
@@ -140,9 +140,9 @@
 
             <!-- Google OAuth Divider -->
             <div class="relative flex py-5 items-center">
-              <div class="flex-grow border-t border-zinc-800"></div>
-              <span class="flex-shrink mx-4 text-zinc-500 text-xs uppercase tracking-wider">Or continue with</span>
-              <div class="flex-grow border-t border-zinc-800"></div>
+              <div class="flex-grow border-t border-border-muted"></div>
+              <span class="flex-shrink mx-4 text-fg-subtle text-xs uppercase tracking-wider">Or continue with</span>
+              <div class="flex-grow border-t border-border-muted"></div>
             </div>
 
             <!-- Google Button Container -->
@@ -151,11 +151,11 @@
             </div>
 
             <!-- Legal Disclaimer -->
-            <p class="text-[11px] text-zinc-500 text-center mt-6">
+            <p class="text-[11px] text-fg-subtle text-center mt-6">
               By continuing, you agree to our
-              <NuxtLink to="/help-center/terms-of-service" class="underline hover:text-zinc-300 transition-colors">Terms of Service</NuxtLink>
+              <NuxtLink to="/help-center/terms-of-service" class="underline hover:text-fg-muted transition-colors">Terms of Service</NuxtLink>
               and acknowledge our
-              <NuxtLink to="/help-center/privacy-policy" class="underline hover:text-zinc-300 transition-colors">Privacy Policy</NuxtLink>.
+              <NuxtLink to="/help-center/privacy-policy" class="underline hover:text-fg-muted transition-colors">Privacy Policy</NuxtLink>.
             </p>
           </div>
         </div>
@@ -164,14 +164,14 @@
         <div v-show="showGoogleSignup">
           <div class="p-6 sm:p-8" v-motion-fade>
             <div class="flex flex-col items-center mb-6">
-              <h2 class="text-xl font-bold text-white text-center">Complete Profile</h2>
-              <p class="text-xs text-zinc-500 text-center mt-1">Choose a username and password to finalize your profile.</p>
+              <h2 class="text-xl font-bold text-fg text-center">Complete Profile</h2>
+              <p class="text-xs text-fg-subtle text-center mt-1">Choose a username and password to finalize your profile.</p>
             </div>
 
             <form @submit.prevent="handleGoogleSignupSubmit" class="space-y-4">
               <!-- Username -->
               <div class="relative">
-                <User class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
+                <User class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-fg-subtle" />
                 <input
                   v-model="googleUsername"
                   type="text"
@@ -179,13 +179,13 @@
                   required
                   minlength="3"
                   maxlength="20"
-                  class="w-full pl-10 pr-4 py-3 bg-black border border-zinc-800 rounded-xl text-white placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-zinc-600 focus:border-transparent transition-all text-sm"
+                  class="w-full pl-10 pr-4 py-3 bg-surface-inset border border-border-muted rounded-xl text-fg placeholder-fg-subtle focus:outline-none focus:ring-2 focus:ring-border-strong focus:border-transparent transition-all text-sm"
                 />
               </div>
 
               <!-- Password -->
               <div class="relative">
-                <Lock class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
+                <Lock class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-fg-subtle" />
                 <input
                   v-model="googlePassword"
                   :type="showPassword ? 'text' : 'password'"
@@ -193,9 +193,9 @@
                   required
                   minlength="8"
                   maxlength="128"
-                  class="w-full pl-10 pr-12 py-3 bg-black border border-zinc-800 rounded-xl text-white placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-zinc-600 focus:border-transparent transition-all text-sm"
+                  class="w-full pl-10 pr-12 py-3 bg-surface-inset border border-border-muted rounded-xl text-fg placeholder-fg-subtle focus:outline-none focus:ring-2 focus:ring-border-strong focus:border-transparent transition-all text-sm"
                 />
-                <button type="button" @click="showPassword = !showPassword" class="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300 cursor-pointer">
+                <button type="button" @click="showPassword = !showPassword" class="absolute right-3 top-1/2 -translate-y-1/2 text-fg-subtle hover:text-fg-muted cursor-pointer">
                   <Eye v-if="!showPassword" class="w-4 h-4" />
                   <EyeOff v-else class="w-4 h-4" />
                 </button>
@@ -203,16 +203,16 @@
 
               <!-- Confirm Password -->
               <div class="relative">
-                <Lock class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
+                <Lock class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-fg-subtle" />
                 <input
                   v-model="googleConfirmPassword"
                   :type="showPassword ? 'text' : 'password'"
                   placeholder="Confirm Password"
                   required
                   maxlength="128"
-                  class="w-full pl-10 pr-12 py-3 bg-black border border-zinc-800 rounded-xl text-white placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-zinc-600 focus:border-transparent transition-all text-sm"
+                  class="w-full pl-10 pr-12 py-3 bg-surface-inset border border-border-muted rounded-xl text-fg placeholder-fg-subtle focus:outline-none focus:ring-2 focus:ring-border-strong focus:border-transparent transition-all text-sm"
                 />
-                <button type="button" @click="showPassword = !showPassword" class="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300 cursor-pointer">
+                <button type="button" @click="showPassword = !showPassword" class="absolute right-3 top-1/2 -translate-y-1/2 text-fg-subtle hover:text-fg-muted cursor-pointer">
                   <Eye v-if="!showPassword" class="w-4 h-4" />
                   <EyeOff v-else class="w-4 h-4" />
                 </button>
@@ -226,14 +226,14 @@
                 <button
                   type="button"
                   @click="showGoogleSignup = false; error = ''; googlePassword = ''; googleConfirmPassword = ''"
-                  class="flex-1 py-3 text-sm font-semibold text-zinc-400 bg-transparent hover:bg-zinc-925 rounded-xl transition-colors cursor-pointer"
+                  class="flex-1 py-3 text-sm font-semibold text-fg-muted bg-transparent hover:bg-surface-raised rounded-xl transition-colors cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   :disabled="loading"
-                  class="flex-1 py-3 text-sm font-semibold text-black bg-white hover:bg-zinc-200 disabled:opacity-50 rounded-xl transition-colors cursor-pointer shadow-lg shadow-white/10"
+                  class="flex-1 py-3 text-sm font-semibold text-action-primary-fg bg-action-primary hover:bg-action-primary-hover disabled:opacity-50 rounded-xl transition-colors cursor-pointer shadow-lg shadow-fg-inverted/10"
                 >
                   {{ loading ? 'Finalizing...' : 'Complete Signup' }}
                 </button>
@@ -241,11 +241,11 @@
             </form>
 
             <!-- Legal Disclaimer -->
-            <p class="text-[11px] text-zinc-500 text-center mt-6">
+            <p class="text-[11px] text-fg-subtle text-center mt-6">
               By continuing, you agree to our
-              <NuxtLink to="/help-center/terms-of-service" class="underline hover:text-zinc-300 transition-colors">Terms of Service</NuxtLink>
+              <NuxtLink to="/help-center/terms-of-service" class="underline hover:text-fg-muted transition-colors">Terms of Service</NuxtLink>
               and acknowledge our
-              <NuxtLink to="/help-center/privacy-policy" class="underline hover:text-zinc-300 transition-colors">Privacy Policy</NuxtLink>.
+              <NuxtLink to="/help-center/privacy-policy" class="underline hover:text-fg-muted transition-colors">Privacy Policy</NuxtLink>.
             </p>
           </div>
         </div>

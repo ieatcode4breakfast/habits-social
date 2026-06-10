@@ -1,131 +1,142 @@
 @import "tailwindcss";
 @plugin "@tailwindcss/typography";
-@custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
-  --color-zinc-925: #101013;
+  --color-app: var(--app-bg);
+  --color-app-bg: var(--app-bg);
   --color-nav-bg: var(--nav-bg);
   --color-date-header-bg: var(--date-header-bg);
+
+  --color-surface: var(--surface);
+  --color-surface-muted: var(--surface-muted);
+  --color-surface-raised: var(--surface-raised);
+  --color-surface-solid: var(--surface-solid);
+  --color-surface-inset: var(--surface-inset);
+  --color-surface-hover: var(--surface-hover);
+
+  --color-fg: var(--fg);
+  --color-fg-muted: var(--fg-muted);
+  --color-fg-subtle: var(--fg-subtle);
+  --color-fg-inverted: var(--fg-inverted);
+
+  --color-border-theme: var(--border-theme);
+  --color-border-muted: var(--border-muted);
+  --color-border-strong: var(--border-strong);
+
+  --color-action-primary: var(--action-primary-bg);
+  --color-action-primary-hover: var(--action-primary-bg-hover);
+  --color-action-primary-fg: var(--action-primary-fg);
+
+  --color-msg-own: var(--msg-own-bg);
+  --color-msg-own-fg: var(--msg-own-fg);
+  --color-msg-friend: var(--msg-friend-bg);
+  --color-msg-friend-fg: var(--msg-friend-fg);
+  --color-msg-friend-border: var(--msg-friend-border);
+
+  --color-cell-markable-border: var(--cell-markable-border);
+  --color-cell-markable-hover: var(--cell-markable-hover);
+  --color-cell-inactive-bg: var(--cell-inactive-bg);
+  --color-cell-inactive-border: var(--cell-inactive-border);
 }
 
 :root {
   --font-sans: "Inter", system-ui, sans-serif;
-  --color-app-bg: #000000;
-  --color-card-bg: rgba(16, 16, 19, 0.8);
+  --app-bg: #000000;
   --nav-bg: #000000;
   --date-header-bg: #101013;
+
+  --surface: rgba(16, 16, 19, 0.8);
+  --surface-muted: #09090b;
+  --surface-raised: #101013;
+  --surface-solid: #18181b;
+  --surface-inset: #000000;
+  --surface-hover: #27272a;
+
+  --fg: #ffffff;
+  --fg-muted: #a1a1aa;
+  --fg-subtle: #71717a;
+  --fg-inverted: #18181b;
+
+  --border-theme: rgba(255, 255, 255, 0.1);
+  --border-muted: #27272a;
+  --border-strong: #3f3f46;
+
+  --action-primary-bg: #ffffff;
+  --action-primary-bg-hover: #e4e4e7;
+  --action-primary-fg: #18181b;
+
+  --msg-own-bg: #f4f4f5;
+  --msg-own-fg: #09090b;
+  --msg-friend-bg: #18181b;
+  --msg-friend-fg: #f4f4f5;
+  --msg-friend-border: #27272a;
+
+  --nav-link-fg-inactive: #71717a;
+  --nav-link-fg-active: #ffffff;
+  --nav-link-bg-hover: rgba(39, 39, 42, 0.5);
+  --nav-link-bg-active: rgba(63, 63, 70, 0.5);
+
+  --cell-markable-border: #52525b;
+  --cell-markable-hover: #27272a;
+  --cell-inactive-bg: rgba(255, 255, 255, 0.03);
+  --cell-inactive-border: #27272a;
 }
 
 html.light {
   color-scheme: light;
-  --color-app-bg: #f6f7fb;
-  --color-card-bg: rgba(255, 255, 255, 0.86);
+  --app-bg: #f6f7fb;
   --nav-bg: #ffffff;
   --date-header-bg: #e2e8f0;
-  --color-white: #18181b;
-  --color-zinc-50: #111827;
-  --color-zinc-100: #18181b;
-  --color-zinc-200: #27272a;
-  --color-zinc-300: #3f3f46;
-  --color-zinc-400: #52525b;
-  --color-zinc-500: #71717a;
-  --color-zinc-600: #64748b;
-  --color-zinc-700: #cbd5e1;
-  --color-zinc-800: #e2e8f0;
-  --color-zinc-900: #f1f5f9;
-  --color-zinc-925: #f8fafc;
-  --color-zinc-950: #ffffff;
+
+  --surface: rgba(255, 255, 255, 0.86);
+  --surface-muted: #ffffff;
+  --surface-raised: #f8fafc;
+  --surface-solid: #f1f5f9;
+  --surface-inset: #f6f7fb;
+  --surface-hover: #e2e8f0;
+
+  --fg: #18181b;
+  --fg-muted: #52525b;
+  --fg-subtle: #71717a;
+  --fg-inverted: #ffffff;
+
+  --border-theme: rgba(0, 0, 0, 0.1);
+  --border-muted: #e2e8f0;
+  --border-strong: #cbd5e1;
+
+  --action-primary-bg: #18181b;
+  --action-primary-bg-hover: #27272a;
+  --action-primary-fg: #ffffff;
+
+  --msg-own-bg: #f8fafc;
+  --msg-own-fg: #18181b;
+  --msg-friend-bg: #18181b;
+  --msg-friend-fg: #f8fafc;
+  --msg-friend-border: #27272a;
+
+  --nav-link-fg-inactive: #71717a;
+  --nav-link-fg-active: #ffffff;
+  --nav-link-bg-hover: #000000;
+  --nav-link-bg-active: #000000;
+
+  --cell-markable-border: #a1a1aa;
+  --cell-markable-hover: #f4f4f5;
+  --cell-inactive-bg: #f4f4f5;
+  --cell-inactive-border: #d4d4d8;
 }
 
 html, body {
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background-color: var(--color-app-bg);
-  color: #F8FAFC;
+  background-color: var(--app-bg);
+  color: var(--fg);
   touch-action: manipulation;
   overflow-x: clip;
   -webkit-user-select: none;
   -moz-user-select: none;
   -ms-user-select: none;
   user-select: none;
-}
-
-html.light body {
-  color: #18181b;
-}
-
-html.light .bg-black {
-  background-color: #f6f7fb;
-}
-
-@media (min-width: 48rem) {
-  html.light .md\:bg-black {
-    background-color: #f6f7fb;
-  }
-
-  html.light .md\:bg-black\/60 {
-    background-color: rgba(255, 255, 255, 0.72);
-  }
-}
-
-html.light .text-black {
-  color: #ffffff;
-}
-
-html.light .inbox-shell,
-html.light .inbox-list-panel,
-html.light .inbox-chat-panel,
-html.light .inbox-chat-chrome,
-html.light .inbox-conversation-active {
-  background-color: #ffffff;
-}
-
-html.light .inbox-conversation-active {
-  border-color: #ffffff;
-  box-shadow: none;
-}
-
-html.light .inbox-message-bubble-own {
-  background-color: #f8fafc;
-  color: #18181b;
-}
-
-html.light .inbox-message-bubble-friend {
-  background-color: #18181b;
-  border-color: #27272a;
-  color: #f8fafc;
-}
-
-html.light .habits-content-surface,
-html.light .buckets-content-surface,
-html.light .friend-content-surface,
-html.light .activity-content-surface {
-  box-shadow: none;
-}
-
-@media (min-width: 48rem) {
-  html.light .inbox-shell,
-  html.light .inbox-list-panel,
-  html.light .inbox-chat-panel,
-  html.light .inbox-chat-chrome {
-    background-color: #f6f7fb;
-  }
-
-  html.light .inbox-list-panel .inbox-conversation-active {
-    background-color: #f1f5f9;
-    border-color: #e2e8f0;
-  }
-}
-
-html.light :where(.bg-emerald-500, .bg-rose-500, .bg-amber-500, .bg-indigo-500, .bg-zinc-500).text-white,
-html.light :where(.bg-emerald-500, .bg-rose-500, .bg-amber-500, .bg-indigo-500, .bg-zinc-500) .text-white {
-  color: #ffffff;
-}
-
-html.light :where(.bg-emerald-500, .bg-rose-500, .bg-amber-500, .bg-indigo-500, .bg-zinc-500).bg-white,
-html.light :where(.bg-emerald-500, .bg-rose-500, .bg-amber-500, .bg-indigo-500, .bg-zinc-500) .bg-white {
-  background-color: #ffffff;
 }
 
 ::-webkit-scrollbar {

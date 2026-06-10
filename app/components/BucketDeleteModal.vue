@@ -13,19 +13,19 @@
           <div class="fixed inset-0 bg-black/80 backdrop-blur-md touch-none" @click="$emit('update:modelValue', false)"></div>
           
           <!-- Modal Content -->
-          <div class="relative my-auto w-full max-w-sm bg-zinc-925 border border-zinc-800 rounded-3xl shadow-2xl p-8 text-center">
-            <div class="w-16 h-16 bg-zinc-925 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Trash2 class="w-8 h-8 text-zinc-400" />
+          <div class="relative my-auto w-full max-w-sm bg-surface-raised border border-border-muted rounded-3xl shadow-2xl p-8 text-center">
+            <div class="w-16 h-16 bg-surface-raised rounded-full flex items-center justify-center mx-auto mb-4">
+              <Trash2 class="w-8 h-8 text-fg-muted" />
             </div>
-            <h2 class="text-xl font-bold text-white mb-2">Delete Bucket?</h2>
-            <p class="text-zinc-500 mb-8 text-sm">
-              This will permanently remove "<span class="text-zinc-200 font-medium">{{ bucketTitle }}</span>" and its streak history. The underlying habits will NOT be deleted.
+            <h2 class="text-xl font-bold text-fg mb-2">Delete Bucket?</h2>
+            <p class="text-fg-subtle mb-8 text-sm">
+              This will permanently remove "<span class="text-fg font-medium">{{ bucketTitle }}</span>" and its streak history. The underlying habits will NOT be deleted.
             </p>
             
             <div class="flex gap-3 mt-2">
               <button
                 @click="$emit('update:modelValue', false)"
-                class="flex-1 px-5 py-3 bg-transparent hover:bg-zinc-925 text-zinc-400 hover:text-zinc-200 font-semibold rounded-xl transition-all cursor-pointer whitespace-nowrap"
+                class="flex-1 px-5 py-3 bg-transparent hover:bg-surface-raised text-fg-muted hover:text-fg font-semibold rounded-xl transition-all cursor-pointer whitespace-nowrap"
               >
                 Keep Bucket
               </button>
@@ -35,7 +35,7 @@
                 class="flex-1 px-5 py-3 bg-rose-500 hover:bg-rose-600 text-white font-semibold rounded-xl transition-all shadow-lg shadow-rose-500/20 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer whitespace-nowrap"
               >
                 <template v-if="loading">
-                  <div class="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>
+                  <div class="w-4 h-4 border-2 border-fg/20 border-t-white rounded-full animate-spin"></div>
                   Deleting...
                 </template>
                 <template v-else>

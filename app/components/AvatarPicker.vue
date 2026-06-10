@@ -1,18 +1,18 @@
 <template>
   <div class="space-y-4 flex flex-col items-center pb-2">
-    <label v-if="label" class="text-xs font-bold text-zinc-500 uppercase tracking-widest">{{ label }}</label>
-    
+    <label v-if="label" class="text-xs font-bold text-fg-subtle uppercase tracking-widest">{{ label }}</label>
+
     <div class="flex flex-col items-center gap-4">
-      <UserAvatar 
-        :src="modelValue" 
-        :container-class="avatarClass || 'w-24 h-24 rounded-3xl bg-black border-2 border-zinc-800 shadow-inner'"
-        :icon-class="iconClass || 'w-10 h-10 text-zinc-800'"
+      <UserAvatar
+        :src="modelValue"
+        :container-class="avatarClass || 'w-24 h-24 rounded-3xl bg-surface-inset border-2 border-border-muted shadow-inner'"
+        :icon-class="iconClass || 'w-10 h-10 text-fg-subtle'"
       />
 
-      <button 
-        type="button" 
+      <button
+        type="button"
         @click="openAvatarModal"
-        class="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-white text-xs font-bold rounded-xl transition-all cursor-pointer flex items-center gap-2 whitespace-nowrap"
+        class="px-4 py-2 bg-surface-hover hover:bg-surface-hover text-fg text-xs font-bold rounded-xl transition-all cursor-pointer flex items-center gap-2 whitespace-nowrap"
       >
         <RefreshCw class="w-3.5 h-3.5" />
         Change Avatar
@@ -32,27 +32,27 @@
         >
           <div v-if="showAvatarModal" class="fixed inset-0 z-[110] flex items-center justify-center sm:p-4">
             <div class="absolute inset-0 bg-black/90 backdrop-blur-xl" @click="showAvatarModal = false"></div>
-            
-            <div class="relative w-full h-full sm:h-auto max-w-lg bg-zinc-925 sm:border border-zinc-800 sm:rounded-3xl shadow-2xl p-6 sm:p-8 flex flex-col">
+
+            <div class="relative w-full h-full sm:h-auto max-w-lg bg-surface-raised sm:border border-border-muted sm:rounded-3xl shadow-2xl p-6 sm:p-8 flex flex-col">
               <div class="flex flex-col sm:flex-row sm:items-center justify-between mb-8 gap-4 shrink-0 pt-8 sm:pt-0">
                 <div class="flex items-start justify-between w-full sm:w-auto">
                   <div>
-                    <h2 class="text-2xl font-bold text-white leading-tight">Choose Avatar</h2>
+                    <h2 class="text-2xl font-bold text-fg leading-tight">Choose Avatar</h2>
                   </div>
-                  <button @click="showAvatarModal = false" class="p-2 text-zinc-500 hover:text-white hover:bg-zinc-800 rounded-xl transition-all cursor-pointer sm:hidden">
+                  <button @click="showAvatarModal = false" class="p-2 text-fg-subtle hover:text-fg hover:bg-surface-hover rounded-xl transition-all cursor-pointer sm:hidden">
                     <XIcon class="w-5 h-5" />
                   </button>
                 </div>
-                
+
                 <div class="flex items-center gap-2">
-                  <button 
+                  <button
                     @click="generateAvatars"
-                    class="p-2 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded-xl transition-all cursor-pointer flex items-center gap-2 text-sm font-bold whitespace-nowrap"
+                    class="p-2 text-fg-muted hover:text-fg hover:bg-surface-hover rounded-xl transition-all cursor-pointer flex items-center gap-2 text-sm font-bold whitespace-nowrap"
                   >
                     <RefreshCw class="w-4 h-4" />
                     Refresh
                   </button>
-                  <button @click="showAvatarModal = false" class="hidden sm:block p-2 text-zinc-500 hover:text-white hover:bg-zinc-800 rounded-xl transition-all cursor-pointer">
+                  <button @click="showAvatarModal = false" class="hidden sm:block p-2 text-fg-subtle hover:text-fg hover:bg-surface-hover rounded-xl transition-all cursor-pointer">
                     <XIcon class="w-5 h-5" />
                   </button>
                 </div>
@@ -61,24 +61,24 @@
               <div class="flex-1 overflow-y-auto pr-2 custom-scrollbar sm:max-h-[60vh]">
                 <div class="grid grid-cols-4 sm:grid-cols-5 gap-4 auto-rows-max">
                   <!-- Clear/Default Option -->
-                  <button 
+                  <button
                     @click="selectAvatar('')"
-                    class="w-full aspect-square min-w-0 min-h-0 rounded-full bg-zinc-950 border-2 border-zinc-800 flex flex-col items-center justify-center hover:border-white transition-all cursor-pointer group relative overflow-hidden"
+                    class="w-full aspect-square min-w-0 min-h-0 rounded-full bg-surface-muted border-2 border-border-muted flex flex-col items-center justify-center hover:border-fg transition-all cursor-pointer group relative overflow-hidden"
                   >
-                    <div class="w-10 h-10 rounded-full bg-zinc-900 flex items-center justify-center mb-1 group-hover:scale-110 transition-transform">
-                      <UserIcon class="w-5 h-5 text-zinc-500" />
+                    <div class="w-10 h-10 rounded-full bg-surface-solid flex items-center justify-center mb-1 group-hover:scale-110 transition-transform">
+                      <UserIcon class="w-5 h-5 text-fg-subtle" />
                     </div>
-                    <span class="text-[10px] font-bold text-zinc-500 uppercase tracking-tighter">Default</span>
-                    <div class="absolute inset-0 bg-white/0 group-hover:bg-white/5 transition-colors"></div>
+                    <span class="text-[10px] font-bold text-fg-subtle uppercase tracking-tighter">Default</span>
+                    <div class="absolute inset-0 bg-action-primary/0 group-hover:bg-action-primary/5 transition-colors"></div>
                   </button>
 
                   <button
-                    v-for="(avatar, index) in suggestedAvatars" 
+                    v-for="(avatar, index) in suggestedAvatars"
                     :key="index"
                     @click="selectAvatar(avatar)"
-                    class="w-full aspect-square min-w-0 min-h-0 rounded-full bg-zinc-950 border-2 border-zinc-800 hover:border-white transition-all cursor-pointer group relative overflow-hidden"
+                    class="w-full aspect-square min-w-0 min-h-0 rounded-full bg-surface-muted border-2 border-border-muted hover:border-fg transition-all cursor-pointer group relative overflow-hidden"
                   >
-                    <UserAvatar 
+                    <UserAvatar
                       :src="avatar"
                       container-class="w-full h-full !rounded-full border-0"
                       img-class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
@@ -89,9 +89,9 @@
               </div>
 
               <div class="mt-auto sm:mt-8 pt-6 sm:pt-0 shrink-0 pb-8 sm:pb-0">
-                <button 
+                <button
                   @click="showAvatarModal = false"
-                  class="w-full py-4 bg-zinc-900 text-white font-bold rounded-2xl hover:bg-zinc-800 transition-all cursor-pointer whitespace-nowrap"
+                  class="w-full py-4 bg-surface-solid text-fg font-bold rounded-2xl hover:bg-surface-hover transition-all cursor-pointer whitespace-nowrap"
                 >
                   Cancel
                 </button>
@@ -126,10 +126,10 @@ const generateAvatars = () => {
   avatarLoadError.value = false;
   const styles = ['avataaars', 'big-smile', 'bottts-neutral', 'notionists-neutral'];
   const bgColors = [
-    'b6e3f4', 'c0aede', 'd1d4f9', 'ffd5dc', 'ffdfbf', 
+    'b6e3f4', 'c0aede', 'd1d4f9', 'ffd5dc', 'ffdfbf',
     'f1f4f9', 'e2e8f0', 'fce7f3', 'ffedd5', 'dcfce7'
   ];
-  
+
   const newAvatars = [];
   for (let i = 0; i < 12; i++) {
     const style = styles[Math.floor(Math.random() * styles.length)];

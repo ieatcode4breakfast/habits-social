@@ -22,9 +22,9 @@
           @wheel.stop.prevent
           @touchmove.stop.prevent
         ></div>
-        <div 
+        <div
           ref="floatingRef"
-          class="fixed z-[200] w-max max-w-[calc(100vw-1.25rem)] bg-zinc-900/95 backdrop-blur-xl border border-zinc-800 rounded-2xl shadow-2xl p-1.5 flex flex-row gap-1.5"
+          class="fixed z-[200] w-max max-w-[calc(100vw-1.25rem)] bg-surface-solid/95 backdrop-blur-xl border border-border-muted rounded-2xl shadow-2xl p-1.5 flex flex-row gap-1.5"
           :style="floatingStyles"
           @click.stop
         >
@@ -40,9 +40,9 @@
           </button>
 
           <!-- Arrow -->
-          <div 
+          <div
             ref="arrowRef"
-            class="absolute w-3 h-3 bg-zinc-900 border-r border-b border-zinc-800 rotate-45"
+            class="absolute w-3 h-3 bg-surface-solid border-r border-b border-border-muted rotate-45"
             :style="arrowStyles"
           ></div>
         </div>
@@ -129,14 +129,14 @@ const options = computed<LogMenuOption[]>(() => {
 
   const dateStr = format(selectedDate, 'yyyy-MM-dd');
   const currentStatus = props.logs.find(l => l.habitId === habit.id && l.date === dateStr)?.status;
-  
+
   // Use effective settings if provided, otherwise fallback to habit's own settings
   const skipsPeriod = props.skipsPeriod || habit.skipsPeriod;
   const skipsCount = props.skipsCount ?? (habit.skipsCount ?? 2);
 
   let maxSkips = 0;
   let usedSkips = 0;
-  
+
   if (skipsPeriod === 'disabled' || ((skipsPeriod === 'weekly' || skipsPeriod === 'monthly') && skipsCount === 0)) {
     maxSkips = 0;
     usedSkips = 0;
@@ -145,16 +145,16 @@ const options = computed<LogMenuOption[]>(() => {
     usedSkips = 0;
   } else if (skipsPeriod === 'weekly') {
     maxSkips = skipsCount || 0;
-    usedSkips = props.logs.filter(l => 
-      l.habitId === habit.id && 
-      l.status === 'skipped' && 
+    usedSkips = props.logs.filter(l =>
+      l.habitId === habit.id &&
+      l.status === 'skipped' &&
       isSameWeek(new Date(l.date), selectedDate, { weekStartsOn: 0 })
     ).length;
   } else if (skipsPeriod === 'monthly') {
     maxSkips = skipsCount || 0;
-    usedSkips = props.logs.filter(l => 
-      l.habitId === habit.id && 
-      l.status === 'skipped' && 
+    usedSkips = props.logs.filter(l =>
+      l.habitId === habit.id &&
+      l.status === 'skipped' &&
       isSameMonth(new Date(l.date), selectedDate)
     ).length;
   }
@@ -163,52 +163,52 @@ const options = computed<LogMenuOption[]>(() => {
   const canSkip = usedSkips < maxSkips;
 
   if (currentStatus !== 'completed') {
-    opts.push({ 
-      label: 'Complete', 
-      status: 'completed', 
-      icon: Check, 
-      color: 'text-white', 
-      bgColor: 'bg-emerald-500 border-emerald-500 shadow-md shadow-emerald-500/20' 
+    opts.push({
+      label: 'Complete',
+      status: 'completed',
+      icon: Check,
+      color: 'text-fg',
+      bgColor: 'bg-emerald-500 border-emerald-500 shadow-md shadow-emerald-500/20'
     });
   }
 
   if (currentStatus !== 'skipped' && canSkip) {
-    opts.push({ 
-      label: 'Skip', 
-      status: 'skipped', 
-      icon: Minus, 
-      color: 'text-white', 
-      bgColor: 'bg-zinc-500 border-zinc-500 shadow-none' 
+    opts.push({
+      label: 'Skip',
+      status: 'skipped',
+      icon: Minus,
+      color: 'text-fg',
+      bgColor: 'bg-zinc-500 border-zinc-500 shadow-none'
     });
   }
 
   if (currentStatus !== 'failed' && !canSkip) {
-    opts.push({ 
-      label: 'Fail', 
-      status: 'failed', 
-      icon: XIcon, 
-      color: 'text-white', 
-      bgColor: 'bg-rose-500 border-rose-500 shadow-md shadow-rose-500/20' 
+    opts.push({
+      label: 'Fail',
+      status: 'failed',
+      icon: XIcon,
+      color: 'text-fg',
+      bgColor: 'bg-rose-500 border-rose-500 shadow-md shadow-rose-500/20'
     });
   }
 
   if (currentStatus !== 'vacation' && !canSkip) {
-    opts.push({ 
-      label: 'Vacation', 
-      status: 'vacation', 
-      icon: Palmtree, 
-      color: 'text-white', 
-      bgColor: 'bg-amber-500 border-amber-500 shadow-md shadow-amber-500/20' 
+    opts.push({
+      label: 'Vacation',
+      status: 'vacation',
+      icon: Palmtree,
+      color: 'text-fg',
+      bgColor: 'bg-amber-500 border-amber-500 shadow-md shadow-amber-500/20'
     });
   }
 
   if (currentStatus && currentStatus !== 'cleared') {
-    opts.push({ 
-      label: 'Clear', 
-      status: null, 
-      icon: Trash2, 
-      color: 'text-zinc-400', 
-      bgColor: 'bg-zinc-800 border-zinc-700' 
+    opts.push({
+      label: 'Clear',
+      status: null,
+      icon: Trash2,
+      color: 'text-fg-muted',
+      bgColor: 'bg-surface-hover border-border-strong'
     });
   }
 

@@ -13,23 +13,23 @@
         class="fixed inset-0 z-[100] flex flex-col items-center justify-start overflow-y-auto sm:py-8 py-0"
       >
         <div class="fixed inset-0 bg-black/80 backdrop-blur-md touch-none" @click="close"></div>
-        <div class="relative my-auto w-full h-full sm:h-auto sm:max-w-md max-w-none bg-zinc-925 border-x-0 sm:border border-zinc-800 sm:rounded-3xl rounded-none shadow-2xl overflow-hidden transition-all duration-300 flex flex-col">
+        <div class="relative my-auto w-full h-full sm:h-auto sm:max-w-md max-w-none bg-surface-raised border-x-0 sm:border border-border-muted sm:rounded-3xl rounded-none shadow-2xl overflow-hidden transition-all duration-300 flex flex-col">
           <div v-if="loading && (!logs || !logs.length)" class="flex justify-center p-12">
-            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
+            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-fg"></div>
           </div>
           <template v-else>
             <!-- Sticky Header -->
-            <div class="sticky top-0 z-10 bg-zinc-925 px-4 sm:px-8 py-4 sm:py-6 border-b border-zinc-800/80 flex items-center gap-1 shrink-0">
-              <button @click="close" class="p-2 -ml-2 text-zinc-500 hover:text-white transition-all cursor-pointer flex-shrink-0">
+            <div class="sticky top-0 z-10 bg-surface-raised px-4 sm:px-8 py-4 sm:py-6 border-b border-border-muted/80 flex items-center gap-1 shrink-0">
+              <button @click="close" class="p-2 -ml-2 text-fg-subtle hover:text-fg transition-all cursor-pointer flex-shrink-0">
                 <ChevronLeft class="w-6 h-6" />
               </button>
               <div class="flex-1 min-w-0">
                 <div class="flex items-center gap-2 min-w-0">
-                  <h2 class="text-lg font-bold text-white truncate leading-none min-w-0">{{ habit.title }}</h2>
+                  <h2 class="text-lg font-bold text-fg truncate leading-none min-w-0">{{ habit.title }}</h2>
                   <!-- Streak Badge -->
                   <div 
                     v-if="(habit.currentStreak ?? 0) >= 2"
-                    class="flex items-center gap-1 px-2 py-0.5 bg-black border rounded-full shrink-0"
+                    class="flex items-center gap-1 px-2 py-0.5 bg-surface-inset border rounded-full shrink-0"
                     :class="[
                       isFaded(habit) ? 'opacity-30' : 'opacity-100',
                       getStreakTheme(habit.currentStreak ?? 0).border
@@ -51,7 +51,7 @@
                     />
                   </div>
                 </div>
-                <div class="text-[10px] font-bold uppercase tracking-widest text-zinc-500 mt-1">
+                <div class="text-[10px] font-bold uppercase tracking-widest text-fg-subtle mt-1">
                   {{ getSkipSettingsText(habit) }}
                 </div>
               </div>
@@ -59,27 +59,27 @@
 
             <!-- Scrollable Content -->
             <div class="flex-1 overflow-y-auto p-4 sm:p-8 sm:py-6">
-              <p v-if="habit.description" class="text-zinc-400 text-sm mb-6 italic break-words whitespace-pre-wrap">
+              <p v-if="habit.description" class="text-fg-muted text-sm mb-6 italic break-words whitespace-pre-wrap">
                 {{ habit.description }}
               </p>
 
               <!-- Monthly Calendar View -->
               <div class="space-y-4">
                 <div class="flex items-center justify-between px-2">
-                  <h3 class="text-sm font-bold uppercase tracking-widest text-white">
+                  <h3 class="text-sm font-bold uppercase tracking-widest text-fg">
                     {{ format(currentCalendarDate, 'MMMM yyyy') }}
                   </h3>
                   <div class="flex gap-2">
-                    <button type="button" @click="prevMonth" class="p-2 hover:bg-zinc-800 rounded-lg text-zinc-400 hover:text-zinc-200 transition-colors cursor-pointer">
+                    <button type="button" @click="prevMonth" class="p-2 hover:bg-surface-hover rounded-lg text-fg-muted hover:text-fg transition-colors cursor-pointer">
                       <ChevronLeft class="w-4 h-4" />
                     </button>
-                    <button type="button" @click="nextMonth" class="p-2 hover:bg-zinc-800 rounded-lg text-zinc-400 hover:text-zinc-200 transition-colors cursor-pointer">
+                    <button type="button" @click="nextMonth" class="p-2 hover:bg-surface-hover rounded-lg text-fg-muted hover:text-fg transition-colors cursor-pointer">
                       <ChevronRight class="w-4 h-4" />
                     </button>
                   </div>
                 </div>
 
-                <div class="bg-black rounded-2xl p-4 border border-zinc-800 relative overflow-hidden">
+                <div class="bg-surface-inset rounded-2xl p-4 border border-border-muted relative overflow-hidden">
                   <!-- Loading Overlay -->
                   <Transition
                     enter-active-class="transition duration-200 ease-out"
@@ -90,12 +90,12 @@
                     leave-to-class="opacity-0"
                   >
                     <div v-if="loading" class="absolute inset-0 z-10 bg-black/40 backdrop-blur-[2px] flex items-center justify-center">
-                      <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-white"></div>
+                      <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-fg"></div>
                     </div>
                   </Transition>
                   <div class="grid grid-cols-7 gap-y-4 gap-x-1">
                     <!-- Day Headers -->
-                    <div v-for="dayName in ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']" :key="dayName" class="text-[10px] text-center font-black uppercase tracking-tighter text-zinc-600 mb-1">
+                    <div v-for="dayName in ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']" :key="dayName" class="text-[10px] text-center font-black uppercase tracking-tighter text-fg-subtle mb-1">
                       {{ dayName }}
                     </div>
 
@@ -109,16 +109,16 @@
                           getStatus(day) === 'failed' ? 'bg-rose-500 border-rose-500 shadow-md shadow-rose-500/20' :
                           getStatus(day) === 'skipped' ? 'bg-zinc-500 border-zinc-500 shadow-none' :
                           getStatus(day) === 'vacation' ? 'bg-amber-500 border-amber-500 shadow-md shadow-amber-500/20' :
-                          'border-dashed border-zinc-400 dark:border-zinc-600 bg-transparent'
+                          'border-dashed border-cell-markable-border bg-transparent'
                         ]"
                       >
-                        <Check v-if="getStatus(day) === 'completed'" class="w-3 h-3 text-white" />
-                        <XIcon v-else-if="getStatus(day) === 'failed'" class="w-3 h-3 text-white" />
-                        <span v-else-if="getStatus(day) === 'skipped'" class="w-3 h-0.5 bg-white rounded-full"></span>
-                        <Palmtree v-else-if="getStatus(day) === 'vacation'" class="w-3 h-3 text-white" />
+                        <Check v-if="getStatus(day) === 'completed'" class="w-3 h-3 text-fg" />
+                        <XIcon v-else-if="getStatus(day) === 'failed'" class="w-3 h-3 text-fg" />
+                        <span v-else-if="getStatus(day) === 'skipped'" class="w-3 h-0.5 bg-action-primary rounded-full"></span>
+                        <Palmtree v-else-if="getStatus(day) === 'vacation'" class="w-3 h-3 text-fg" />
                       </div>
                       <div class="text-[9px] font-bold" :class="[
-                        day.getMonth() === currentCalendarDate.getMonth() ? 'text-white' : 'text-zinc-600',
+                        day.getMonth() === currentCalendarDate.getMonth() ? 'text-fg' : 'text-fg-subtle',
                         day.getMonth() !== currentCalendarDate.getMonth() ? 'opacity-30' : ''
                       ]">
                         {{ format(day, 'd') }}

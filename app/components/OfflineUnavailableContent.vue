@@ -1,23 +1,23 @@
 <template>
-  <div class="fixed inset-0 md:top-[57px] z-40 bg-zinc-950 overflow-y-auto select-none flex flex-col">
+  <div class="fixed inset-0 md:top-[57px] z-40 bg-surface-muted overflow-y-auto select-none flex flex-col">
     <div class="flex-1 flex items-center justify-center px-4 py-12 pb-24 md:pb-12">
-      <div class="w-full max-w-md bg-zinc-900 border border-zinc-800 rounded-3xl p-8 shadow-2xl space-y-8 relative overflow-hidden">
-      <div class="absolute -top-20 -left-20 w-40 h-40 bg-zinc-800/10 rounded-full blur-3xl pointer-events-none"></div>
+      <div class="w-full max-w-md bg-surface-solid border border-border-muted rounded-3xl p-8 shadow-2xl space-y-8 relative overflow-hidden">
+      <div class="absolute -top-20 -left-20 w-40 h-40 bg-surface-hover/10 rounded-full blur-3xl pointer-events-none"></div>
 
       <div class="text-center space-y-4 relative">
-        <div class="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-zinc-800/50 border border-zinc-700/30 mb-2 relative">
+        <div class="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-surface-hover/50 border border-border-strong/30 mb-2 relative">
           <Wifi v-if="isOnlineMounted" class="w-8 h-8 text-emerald-400" />
-          <WifiOff v-else class="w-8 h-8 text-zinc-500" />
+          <WifiOff v-else class="w-8 h-8 text-fg-subtle" />
 
-          <div v-if="isOnlineMounted" class="absolute -top-1 -right-1 w-3 h-3 bg-emerald-500 rounded-full border-2 border-zinc-900"></div>
-          <div v-else class="absolute -top-1 -right-1 w-3 h-3 bg-zinc-650 rounded-full border-2 border-zinc-900"></div>
+          <div v-if="isOnlineMounted" class="absolute -top-1 -right-1 w-3 h-3 bg-emerald-500 rounded-full border-2 border-surface-solid"></div>
+          <div v-else class="absolute -top-1 -right-1 w-3 h-3 bg-fg-subtle rounded-full border-2 border-surface-solid"></div>
         </div>
 
-        <h1 class="text-2xl font-bold tracking-tight text-white">
+        <h1 class="text-2xl font-bold tracking-tight text-fg">
           {{ isSessionReason ? 'Offline sign-in required' : 'This page is not available offline' }}
         </h1>
 
-        <p class="text-zinc-400 text-sm leading-relaxed">
+        <p class="text-fg-muted text-sm leading-relaxed">
           {{
             isSessionReason
               ? 'You need an internet connection to sign in before offline access is available on this device.'
@@ -38,8 +38,8 @@
             :class="[
               'w-full py-3 flex items-center justify-center gap-2 font-semibold rounded-xl transition-all text-sm border shadow-lg cursor-pointer active:scale-[0.98]',
               isOnlineMounted
-                ? 'bg-white hover:bg-zinc-200 text-black border-white shadow-white/5'
-                : 'bg-zinc-850 text-zinc-500 border-zinc-800 shadow-none cursor-not-allowed opacity-50'
+                ? 'bg-action-primary hover:bg-action-primary-hover text-action-primary-fg border-fg shadow-fg-inverted/5'
+                : 'bg-surface-solid text-fg-subtle border-border-muted shadow-none cursor-not-allowed opacity-50'
             ]"
             :style="!isOnlineMounted ? 'pointer-events: none;' : ''"
           >
@@ -52,16 +52,16 @@
           <div class="grid grid-cols-2 gap-3">
             <NuxtLink
               to="/habits"
-              class="py-3 px-4 bg-zinc-800 hover:bg-zinc-750 text-white font-semibold rounded-xl transition-all border border-zinc-700/50 flex items-center justify-center gap-2 text-sm cursor-pointer active:scale-[0.98]"
+              class="py-3 px-4 bg-surface-hover hover:bg-surface-hover text-fg font-semibold rounded-xl transition-all border border-border-strong/50 flex items-center justify-center gap-2 text-sm cursor-pointer active:scale-[0.98]"
             >
-              <ListChecks class="w-4 h-4 text-zinc-400" />
+              <ListChecks class="w-4 h-4 text-fg-muted" />
               Habits
             </NuxtLink>
             <NuxtLink
               to="/buckets"
-              class="py-3 px-4 bg-zinc-800 hover:bg-zinc-750 text-white font-semibold rounded-xl transition-all border border-zinc-700/50 flex items-center justify-center gap-2 text-sm cursor-pointer active:scale-[0.98]"
+              class="py-3 px-4 bg-surface-hover hover:bg-surface-hover text-fg font-semibold rounded-xl transition-all border border-border-strong/50 flex items-center justify-center gap-2 text-sm cursor-pointer active:scale-[0.98]"
             >
-              <PaintBucket class="w-4 h-4 text-zinc-400" />
+              <PaintBucket class="w-4 h-4 text-fg-muted" />
               Buckets
             </NuxtLink>
           </div>
