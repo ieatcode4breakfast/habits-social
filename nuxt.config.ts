@@ -2,6 +2,7 @@ import { readdirSync } from 'node:fs';
 import { join, parse } from 'node:path';
 import tailwindcss from '@tailwindcss/vite';
 import { buildContentSecurityPolicy } from './utils/securityHeaders';
+import { getThemeModeBootstrapScript } from './app/utils/theme';
 
 const contentSecurityPolicy = buildContentSecurityPolicy({
   realtimeEnabled: process.env.NUXT_PUBLIC_REALTIME_ENABLED,
@@ -84,6 +85,9 @@ export default defineNuxtConfig({
   app: {
     head: {
       viewport: 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0, viewport-fit=cover',
+      script: [
+        { innerHTML: getThemeModeBootstrapScript() },
+      ],
     }
   },
   site: {
