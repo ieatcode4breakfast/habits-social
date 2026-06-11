@@ -1,6 +1,21 @@
 <template>
   <ClientOnly>
     <Teleport to="body">
+    <!-- Overlay -->
+    <Transition
+      enter-active-class="transition-none"
+      leave-active-class="transition duration-200 ease-in"
+      leave-from-class="opacity-100"
+      leave-to-class="opacity-0"
+    >
+      <div
+        v-if="modelValue && habit"
+        class="fixed inset-0 z-[100] bg-black/80 backdrop-blur-md touch-none"
+        @click="close"
+      ></div>
+    </Transition>
+
+    <!-- Content -->
     <Transition
       enter-active-class="transition duration-300 ease-out"
       enter-from-class="opacity-0 scale-95"
@@ -10,15 +25,12 @@
       leave-to-class="opacity-0 scale-95"
     >
       <div v-if="modelValue && habit" 
-        class="fixed inset-0 z-[100] flex flex-col items-center justify-start overflow-y-auto sm:py-8 py-0"
+        class="fixed inset-0 z-[100] pointer-events-none flex flex-col items-center justify-start overflow-y-auto sm:py-8 py-0"
       >
-        <!-- Backdrop -->
-        <div class="fixed inset-0 bg-black/80 backdrop-blur-md touch-none" @click="close"></div>
-        
         <!-- Modal Content -->
         <div 
           ref="modalContent"
-          class="relative my-auto w-full h-full sm:h-auto sm:max-w-lg max-w-none bg-surface-raised border-x-0 sm:border border-border-muted sm:rounded-3xl rounded-none shadow-2xl overflow-hidden transition-all duration-300 flex flex-col"
+          class="relative my-auto w-full h-full sm:h-auto sm:max-w-lg max-w-none bg-surface-raised border-x-0 sm:border border-border-muted sm:rounded-3xl rounded-none shadow-2xl overflow-hidden transition-all duration-300 flex flex-col pointer-events-auto"
         >
           <!-- Sticky Header -->
           <div class="sticky top-0 z-10 bg-surface-raised px-4 sm:px-8 py-4 sm:py-6 border-b border-border-muted/80 flex items-center gap-1 shrink-0">
@@ -260,6 +272,21 @@
   <!-- Delete Confirmation Modal -->
   <ClientOnly>
     <Teleport to="body">
+    <!-- Overlay -->
+    <Transition
+      enter-active-class="transition-none"
+      leave-active-class="transition duration-200 ease-in"
+      leave-from-class="opacity-100"
+      leave-to-class="opacity-0"
+    >
+      <div
+        v-if="showDeleteModal"
+        class="fixed inset-0 z-[110] bg-black/95 backdrop-blur-sm touch-none"
+        @click="showDeleteModal = false"
+      ></div>
+    </Transition>
+
+    <!-- Content -->
     <Transition
       enter-active-class="transition duration-300 ease-out"
       enter-from-class="opacity-0 scale-95"
@@ -268,12 +295,9 @@
       leave-from-class="opacity-100 scale-100"
       leave-to-class="opacity-0 scale-95"
     >
-    <div v-if="showDeleteModal" class="fixed inset-0 z-[110] flex flex-col items-center justify-start overflow-y-auto p-4 sm:py-8">
-      <!-- Backdrop -->
-      <div class="fixed inset-0 bg-black/95 backdrop-blur-sm touch-none" @click="showDeleteModal = false"></div>
-        
+    <div v-if="showDeleteModal" class="fixed inset-0 z-[110] pointer-events-none flex flex-col items-center justify-start overflow-y-auto p-4 sm:py-8">
         <!-- Modal Content -->
-        <div class="relative my-auto w-full max-w-sm bg-surface-raised border border-border-muted rounded-3xl shadow-2xl p-8 text-center">
+        <div class="relative my-auto w-full max-w-sm bg-surface-raised border border-border-muted rounded-3xl shadow-2xl p-8 text-center pointer-events-auto">
           <div class="w-16 h-16 bg-surface-raised rounded-full flex items-center justify-center mx-auto mb-4">
             <Trash2 class="w-8 h-8 text-fg-muted" />
           </div>

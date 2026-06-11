@@ -8,7 +8,7 @@
       :class="{ 'h-full': isMobile }"
     >
       <!-- Sidebar Header -->
-      <div class="inbox-chat-chrome px-4 pt-2 py-2 flex items-end justify-between gap-4 bg-surface-inset shrink-0 md:bg-surface-raised/40 md:backdrop-blur-md md:border-b md:border-border-muted/80">
+      <div class="inbox-header inbox-chat-chrome px-4 pt-2 py-2 flex items-end justify-between gap-4 bg-surface-inset shrink-0 md:bg-surface-raised/40 md:backdrop-blur-md md:border-b md:border-border-muted/80">
         <div class="flex items-center gap-3">
           <MessageCircle class="w-7 h-7 text-fg-muted shrink-0" />
           <div>
@@ -142,7 +142,7 @@
       <!-- Chat Header + Messages + Input (only when a conversation is active) -->
       <template v-if="activeFriend">
         <!-- Chat Header -->
-        <div class="inbox-chat-chrome sticky top-0 z-40 px-4 py-2 flex items-center justify-between gap-4 bg-surface-inset md:bg-surface-inset shrink-0">
+        <div class="friend-header inbox-chat-chrome sticky top-0 z-40 px-4 py-2 flex items-center justify-between gap-4 bg-surface-inset md:bg-surface-inset shrink-0">
           <div class="flex items-center gap-3 min-w-0">
             <button
               v-if="isMobile"
@@ -468,187 +468,233 @@
     <!-- New Chat Modal -->
     <ClientOnly>
       <Teleport to="body">
-      <Transition
-        enter-active-class="transition duration-300 ease-out"
-        enter-from-class="opacity-0 scale-95"
-        enter-to-class="opacity-100 scale-100"
-        leave-active-class="transition duration-200 ease-in"
-        leave-from-class="opacity-100 scale-100"
-        leave-to-class="opacity-0 scale-95"
-      >
-        <div
-          v-if="showNewChatModal"
-          class="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm"
-          @click.self="showNewChatModal = false"
+        <!-- Overlay -->
+        <Transition
+          enter-active-class="transition-none"
+          leave-active-class="transition duration-200 ease-in"
+          leave-from-class="opacity-100"
+          leave-to-class="opacity-0"
         >
-          <div class="w-full max-w-sm bg-surface-raised border border-border-muted rounded-2xl shadow-2xl flex flex-col max-h-[80vh] overflow-hidden select-none">
+          <div
+            v-if="showNewChatModal"
+            class="fixed inset-0 z-[150] bg-black/80 backdrop-blur-sm touch-none"
+            @click="showNewChatModal = false"
+          ></div>
+        </Transition>
 
-            <!-- Modal Header -->
-            <div class="p-4 border-b border-border-muted/60 flex items-center justify-between">
-              <h3 class="text-sm font-bold text-fg">Select a Friend</h3>
-              <button
-                @click="showNewChatModal = false"
-                class="p-1 hover:bg-surface-hover rounded-lg text-fg-muted hover:text-fg transition-colors cursor-pointer"
-              >
-                <X class="w-4 h-4" />
-              </button>
-            </div>
+        <!-- Content -->
+        <Transition
+          enter-active-class="transition duration-300 ease-out"
+          enter-from-class="opacity-0 scale-95"
+          enter-to-class="opacity-100 scale-100"
+          leave-active-class="transition duration-200 ease-in"
+          leave-from-class="opacity-100 scale-100"
+          leave-to-class="opacity-0 scale-95"
+        >
+          <div
+            v-if="showNewChatModal"
+            class="fixed inset-0 z-[150] pointer-events-none flex items-center justify-center p-4"
+          >
+            <div class="w-full max-w-sm bg-surface-raised border border-border-muted rounded-2xl shadow-2xl flex flex-col max-h-[80vh] overflow-hidden select-none pointer-events-auto">
 
-            <!-- Modal Content/Friends List -->
-            <div class="px-3 pt-2 pb-1">
-              <input
-                v-model="friendSearchQuery"
-                type="text"
-                placeholder="Filter friends..."
-                class="w-full bg-surface-solid border border-border-muted text-fg text-sm rounded-xl px-4 py-2 focus:outline-none focus:border-border-strong transition-colors"
-              />
-            </div>
-
-            <div class="flex-1 overflow-y-auto p-2 space-y-1">
-              <div v-if="friends.length === 0" class="py-12 text-center text-fg-subtle italic text-sm">
-                You don't have any friends yet. Go to the
-                <button type="button" @click="goToFriendsSection" class="text-fg hover:text-fg underline underline-offset-2 transition-colors cursor-pointer">
-                  Friends
+              <!-- Modal Header -->
+              <div class="p-4 border-b border-border-muted/60 flex items-center justify-between">
+                <h3 class="text-sm font-bold text-fg">Select a Friend</h3>
+                <button
+                  @click="showNewChatModal = false"
+                  class="p-1 hover:bg-surface-hover rounded-lg text-fg-muted hover:text-fg transition-colors cursor-pointer"
+                >
+                  <X class="w-4 h-4" />
                 </button>
-                section to add them.
-              </div>
-              <div v-else-if="filteredFriends.length === 0" class="py-12 text-center text-fg-subtle italic text-sm">
-                No friends found matching your filter.
               </div>
 
-              <button
-                v-for="friend in filteredFriends"
-                :key="friend.id"
-                @click="selectFriend(friend)"
-                class="w-full text-left p-3 rounded-xl hover:bg-surface-solid/60 transition-colors flex items-center gap-3 cursor-pointer outline-none border border-transparent"
-              >
-                <div class="w-9 h-9 rounded-full bg-surface-solid border border-border-muted flex items-center justify-center font-bold text-xs uppercase text-fg-muted shrink-0">
-                  <img
-                    v-if="friend.photoUrl"
-                    :src="friend.photoUrl"
-                    class="w-full h-full rounded-full object-cover"
-                    alt="Avatar"
-                  />
-                  <span v-else>{{ friend.username.charAt(0) }}</span>
+              <!-- Modal Content/Friends List -->
+              <div class="px-3 pt-2 pb-1">
+                <input
+                  v-model="friendSearchQuery"
+                  type="text"
+                  placeholder="Filter friends..."
+                  class="w-full bg-surface-solid border border-border-muted text-fg text-sm rounded-xl px-4 py-2 focus:outline-none focus:border-border-strong transition-colors"
+                />
+              </div>
+
+              <div class="flex-1 overflow-y-auto p-2 space-y-1">
+                <div v-if="friends.length === 0" class="py-12 text-center text-fg-subtle italic text-sm">
+                  You don't have any friends yet. Go to the
+                  <button type="button" @click="goToFriendsSection" class="text-fg hover:text-fg underline underline-offset-2 transition-colors cursor-pointer">
+                    Friends
+                  </button>
+                  section to add them.
+                </div>
+                <div v-else-if="filteredFriends.length === 0" class="py-12 text-center text-fg-subtle italic text-sm">
+                  No friends found matching your filter.
                 </div>
 
-                <div class="flex-1 min-w-0">
-                  <div class="flex items-center gap-1.5">
-                    <div class="text-sm font-bold text-fg truncate">{{ friend.username }}</div>
-                    <Star v-if="friend.isFavorite" class="w-3 h-3 text-amber-400 fill-amber-400 shrink-0" />
+                <button
+                  v-for="friend in filteredFriends"
+                  :key="friend.id"
+                  @click="selectFriend(friend)"
+                  class="w-full text-left p-3 rounded-xl hover:bg-surface-solid/60 transition-colors flex items-center gap-3 cursor-pointer outline-none border border-transparent"
+                >
+                  <div class="w-9 h-9 rounded-full bg-surface-solid border border-border-muted flex items-center justify-center font-bold text-xs uppercase text-fg-muted shrink-0">
+                    <img
+                      v-if="friend.photoUrl"
+                      :src="friend.photoUrl"
+                      class="w-full h-full rounded-full object-cover"
+                      alt="Avatar"
+                    />
+                    <span v-else>{{ friend.username.charAt(0) }}</span>
                   </div>
-                </div>
-              </button>
+
+                  <div class="flex-1 min-w-0">
+                    <div class="flex items-center gap-1.5">
+                      <div class="text-sm font-bold text-fg truncate">{{ friend.username }}</div>
+                      <Star v-if="friend.isFavorite" class="w-3 h-3 text-amber-400 fill-amber-400 shrink-0" />
+                    </div>
+                  </div>
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      </Transition>
+        </Transition>
     </Teleport>
     </ClientOnly>
 
     <!-- Clear Chat Modal -->
     <ClientOnly>
       <Teleport to="body">
-      <Transition
-        enter-active-class="transition duration-300 ease-out"
-        enter-from-class="opacity-0 scale-95"
-        enter-to-class="opacity-100 scale-100"
-        leave-active-class="transition duration-200 ease-in"
-        leave-from-class="opacity-100 scale-100"
-        leave-to-class="opacity-0 scale-95"
-      >
-        <div v-if="showClearChatModal" class="fixed inset-0 z-[150] flex flex-col items-center justify-start overflow-y-auto p-4 sm:py-8">
-          <div class="fixed inset-0 bg-black/80 backdrop-blur-md touch-none" @click="showClearChatModal = false"></div>
+        <!-- Overlay -->
+        <Transition
+          enter-active-class="transition-none"
+          leave-active-class="transition duration-200 ease-in"
+          leave-from-class="opacity-100"
+          leave-to-class="opacity-0"
+        >
+          <div
+            v-if="showClearChatModal"
+            class="fixed inset-0 z-[150] bg-black/80 backdrop-blur-md touch-none"
+            @click="showClearChatModal = false"
+          ></div>
+        </Transition>
 
-          <div class="relative my-auto w-full max-w-sm bg-surface-raised border border-border-muted rounded-3xl shadow-2xl p-8 text-center select-none">
-            <div class="w-16 h-16 bg-surface-solid border border-border-muted/50 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Trash2 class="w-8 h-8 text-fg-muted" />
-            </div>
+        <!-- Content -->
+        <Transition
+          enter-active-class="transition duration-300 ease-out"
+          enter-from-class="opacity-0 scale-95"
+          enter-to-class="opacity-100 scale-100"
+          leave-active-class="transition duration-200 ease-in"
+          leave-from-class="opacity-100 scale-100"
+          leave-to-class="opacity-0 scale-95"
+        >
+          <div
+            v-if="showClearChatModal"
+            class="fixed inset-0 z-[150] pointer-events-none flex flex-col items-center justify-start overflow-y-auto p-4 sm:py-8"
+          >
+            <div class="relative my-auto w-full max-w-sm bg-surface-raised border border-border-muted rounded-3xl shadow-2xl p-8 text-center select-none pointer-events-auto">
+              <div class="w-16 h-16 bg-surface-solid border border-border-muted/50 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Trash2 class="w-8 h-8 text-fg-muted" />
+              </div>
 
-            <h2 class="text-xl font-bold text-fg mb-2">Delete Chat?</h2>
+              <h2 class="text-xl font-bold text-fg mb-2">Delete Chat?</h2>
 
-            <p class="text-fg-subtle mb-8 text-sm">
-              Your friend will still see the messages. Once your copy is deleted, it can no longer be undone.
-            </p>
+              <p class="text-fg-subtle mb-8 text-sm">
+                Your friend will still see the messages. Once your copy is deleted, it can no longer be undone.
+              </p>
 
-            <div class="flex gap-3 mt-2">
-              <button
-                @click="showClearChatModal = false"
-                class="flex-1 px-5 py-3 bg-transparent hover:bg-surface-solid text-fg-muted hover:text-fg font-semibold rounded-xl transition-all cursor-pointer whitespace-nowrap"
-                :disabled="isClearingChat"
-              >
-                Cancel
-              </button>
-              <button
-                @click="clearChat"
-                class="flex-1 px-5 py-3 bg-rose-500 hover:bg-rose-600 text-white font-semibold rounded-xl transition-all shadow-lg shadow-rose-500/20 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer whitespace-nowrap"
-                :disabled="isClearingChat"
-              >
-                <template v-if="isClearingChat">
-                  <div class="w-4 h-4 border-2 border-fg/20 border-t-white rounded-full animate-spin"></div>
-                  Deleting...
-                </template>
-                <template v-else>
-                  Delete Chat
-                </template>
-              </button>
+              <div class="flex gap-3 mt-2">
+                <button
+                  @click="showClearChatModal = false"
+                  class="flex-1 px-5 py-3 bg-transparent hover:bg-surface-solid text-fg-muted hover:text-fg font-semibold rounded-xl transition-all cursor-pointer whitespace-nowrap"
+                  :disabled="isClearingChat"
+                >
+                  Cancel
+                </button>
+                <button
+                  @click="clearChat"
+                  class="flex-1 px-5 py-3 bg-rose-500 hover:bg-rose-600 text-white font-semibold rounded-xl transition-all shadow-lg shadow-rose-500/20 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer whitespace-nowrap"
+                  :disabled="isClearingChat"
+                >
+                  <template v-if="isClearingChat">
+                    <div class="w-4 h-4 border-2 border-fg/20 border-t-white rounded-full animate-spin"></div>
+                    Deleting...
+                  </template>
+                  <template v-else>
+                    Delete Chat
+                  </template>
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      </Transition>
+        </Transition>
       </Teleport>
     </ClientOnly>
 
     <!-- Delete Message Confirmation Modal -->
     <ClientOnly>
       <Teleport to="body">
-      <Transition
-        enter-active-class="transition duration-300 ease-out"
-        enter-from-class="opacity-0 scale-95"
-        enter-to-class="opacity-100 scale-100"
-        leave-active-class="transition duration-200 ease-in"
-        leave-from-class="opacity-100 scale-100"
-        leave-to-class="opacity-0 scale-95"
-      >
-        <div v-if="messagePendingDelete" class="fixed inset-0 z-[150] flex flex-col items-center justify-start overflow-y-auto p-4 sm:py-8">
-          <div class="fixed inset-0 bg-black/80 backdrop-blur-md touch-none" @click="messagePendingDelete = null"></div>
+        <!-- Overlay -->
+        <Transition
+          enter-active-class="transition-none"
+          leave-active-class="transition duration-200 ease-in"
+          leave-from-class="opacity-100"
+          leave-to-class="opacity-0"
+        >
+          <div
+            v-if="messagePendingDelete"
+            class="fixed inset-0 z-[150] bg-black/80 backdrop-blur-md touch-none"
+            @click="messagePendingDelete = null"
+          ></div>
+        </Transition>
 
-          <div class="relative my-auto w-full max-w-sm bg-surface-raised border border-border-muted rounded-3xl shadow-2xl p-8 text-center select-none">
-            <div class="w-16 h-16 bg-surface-solid border border-border-muted/50 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Trash2 class="w-8 h-8 text-fg-muted" />
-            </div>
+        <!-- Content -->
+        <Transition
+          enter-active-class="transition duration-300 ease-out"
+          enter-from-class="opacity-0 scale-95"
+          enter-to-class="opacity-100 scale-100"
+          leave-active-class="transition duration-200 ease-in"
+          leave-from-class="opacity-100 scale-100"
+          leave-to-class="opacity-0 scale-95"
+        >
+          <div
+            v-if="messagePendingDelete"
+            class="fixed inset-0 z-[150] pointer-events-none flex flex-col items-center justify-start overflow-y-auto p-4 sm:py-8"
+          >
+            <div class="relative my-auto w-full max-w-sm bg-surface-raised border border-border-muted rounded-3xl shadow-2xl p-8 text-center select-none pointer-events-auto">
+              <div class="w-16 h-16 bg-surface-solid border border-border-muted/50 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Trash2 class="w-8 h-8 text-fg-muted" />
+              </div>
 
-            <h2 class="text-xl font-bold text-fg mb-2">Delete Message?</h2>
+              <h2 class="text-xl font-bold text-fg mb-2">Delete Message?</h2>
 
-            <p class="text-fg-subtle mb-8 text-sm">
-              This deletes the message for both you and your friend. Once deleted, it cannot be undone.
-            </p>
+              <p class="text-fg-subtle mb-8 text-sm">
+                This deletes the message for both you and your friend. Once deleted, it cannot be undone.
+              </p>
 
-            <div class="flex gap-3 mt-2">
-              <button
-                @click="messagePendingDelete = null"
-                class="flex-1 px-5 py-3 bg-transparent hover:bg-surface-solid text-fg-muted hover:text-fg font-semibold rounded-xl transition-all cursor-pointer whitespace-nowrap"
-                :disabled="isDeletingMessage"
-              >
-                Cancel
-              </button>
-              <button
-                @click="deletePendingMessage"
-                class="flex-1 px-5 py-3 bg-rose-500 hover:bg-rose-600 text-white font-semibold rounded-xl transition-all shadow-lg shadow-rose-500/20 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer whitespace-nowrap"
-                :disabled="isDeletingMessage"
-              >
-                <template v-if="isDeletingMessage">
-                  <div class="w-4 h-4 border-2 border-fg/20 border-t-white rounded-full animate-spin"></div>
-                  Deleting...
-                </template>
-                <template v-else>
-                  Delete
-                </template>
-              </button>
+              <div class="flex gap-3 mt-2">
+                <button
+                  @click="messagePendingDelete = null"
+                  class="flex-1 px-5 py-3 bg-transparent hover:bg-surface-solid text-fg-muted hover:text-fg font-semibold rounded-xl transition-all cursor-pointer whitespace-nowrap"
+                  :disabled="isDeletingMessage"
+                >
+                  Cancel
+                </button>
+                <button
+                  @click="deletePendingMessage"
+                  class="flex-1 px-5 py-3 bg-rose-500 hover:bg-rose-600 text-white font-semibold rounded-xl transition-all shadow-lg shadow-rose-500/20 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer whitespace-nowrap"
+                  :disabled="isDeletingMessage"
+                >
+                  <template v-if="isDeletingMessage">
+                    <div class="w-4 h-4 border-2 border-fg/20 border-t-white rounded-full animate-spin"></div>
+                    Deleting...
+                  </template>
+                  <template v-else>
+                    Delete
+                  </template>
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      </Transition>
+        </Transition>
       </Teleport>
     </ClientOnly>
 
@@ -1623,5 +1669,50 @@ watch(chatRefreshSequence, async () => {
 }
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 255, 255, 0.2);
+}
+
+/* Light Mode Overrides for Inbox and Chat Panels */
+:global(html.light .inbox-shell) {
+  background-color: transparent !important;
+  background: transparent !important;
+  backdrop-filter: none !important;
+  border-color: var(--border-muted) !important;
+}
+@media (max-width: 767px) {
+  :global(html.light .inbox-shell) {
+    background-color: #ffffff !important;
+    background: #ffffff !important;
+  }
+}
+
+:global(html.light .inbox-list-panel) {
+  background-color: #ffffff !important;
+  background: #ffffff !important;
+  backdrop-filter: none !important;
+  border-color: var(--border-muted) !important;
+}
+
+:global(html.light .inbox-chat-panel) {
+  background-color: #ffffff !important;
+  background: #ffffff !important;
+  backdrop-filter: none !important;
+  border-color: var(--border-muted) !important;
+}
+
+/* Header Background Synchronization */
+:global(html.light .inbox-header),
+:global(html.light .friend-header) {
+  background-color: #f8fafc !important;
+  background: #f8fafc !important;
+  backdrop-filter: none !important;
+  border-bottom: 1px solid var(--border-muted) !important;
+}
+
+/* Scrollbar light mode adjustment */
+:global(html.light) ::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.1) !important;
+}
+:global(html.light) ::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.2) !important;
 }
 </style>

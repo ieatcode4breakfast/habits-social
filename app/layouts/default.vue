@@ -46,16 +46,21 @@
             <CircleHelp class="w-5 h-5" />
           </button>
           <div class="w-px h-6 bg-surface-hover mx-2 shrink-0"></div>
-          <button
-            type="button"
-            @click="toggleThemeMode"
-            class="p-2 text-fg-subtle hover:text-fg hover:bg-surface-raised rounded-lg transition-colors flex items-center justify-center cursor-pointer"
-            :title="themeToggleTitle"
-            :aria-label="themeToggleTitle"
-          >
-            <Moon v-if="isLightMode" class="w-5 h-5" />
-            <Sun v-else class="w-5 h-5" />
-          </button>
+          <ClientOnly>
+            <button
+              type="button"
+              @click="toggleThemeMode"
+              class="p-2 text-fg-subtle hover:text-fg hover:bg-surface-raised rounded-lg transition-colors flex items-center justify-center cursor-pointer"
+              :title="themeToggleTitle"
+              :aria-label="themeToggleTitle"
+            >
+              <Moon v-if="isLightMode" class="w-5 h-5" />
+              <Sun v-else class="w-5 h-5" />
+            </button>
+            <template #fallback>
+              <div class="p-2 w-9 h-9" aria-hidden="true" />
+            </template>
+          </ClientOnly>
           <div class="w-px h-6 bg-surface-hover mx-2 shrink-0"></div>
           <button @click="logout" class="p-2 text-fg-subtle hover:text-fg hover:bg-surface-raised rounded-lg transition-colors flex items-center justify-center cursor-pointer" title="Logout">
             <LogOut class="w-5 h-5" />
@@ -159,15 +164,17 @@
                 <span class="font-semibold">Edit Profile</span>
               </button>
 
-              <button
-                type="button"
-                @click="toggleThemeMode"
-                class="w-full p-2 flex items-center gap-3 text-fg-muted hover:bg-surface-solid rounded-xl transition-colors cursor-pointer"
-              >
-                <Moon v-if="isLightMode" class="w-5 h-5 text-fg-muted" />
-                <Sun v-else class="w-5 h-5 text-fg-muted" />
-                <span class="font-semibold">{{ themeToggleText }}</span>
-              </button>
+              <ClientOnly>
+                <button
+                  type="button"
+                  @click="toggleThemeMode"
+                  class="w-full p-2 flex items-center gap-3 text-fg-muted hover:bg-surface-solid rounded-xl transition-colors cursor-pointer"
+                >
+                  <Moon v-if="isLightMode" class="w-5 h-5 text-fg-muted" />
+                  <Sun v-else class="w-5 h-5 text-fg-muted" />
+                  <span class="font-semibold">{{ themeToggleText }}</span>
+                </button>
+              </ClientOnly>
               
               <button
                 type="button"

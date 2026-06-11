@@ -1,6 +1,21 @@
 <template>
   <ClientOnly>
     <Teleport to="body">
+      <!-- Overlay -->
+      <Transition
+        enter-active-class="transition-none"
+        leave-active-class="transition duration-200 ease-in"
+        leave-from-class="opacity-100"
+        leave-to-class="opacity-0"
+      >
+        <div
+          v-if="modelValue"
+          class="fixed inset-0 z-[110] bg-black/80 backdrop-blur-md touch-none"
+          @click="$emit('update:modelValue', false)"
+        ></div>
+      </Transition>
+
+      <!-- Content -->
       <Transition
         enter-active-class="transition duration-300 ease-out"
         enter-from-class="opacity-0 scale-95"
@@ -9,11 +24,10 @@
         leave-from-class="opacity-100 scale-100"
         leave-to-class="opacity-0 scale-95"
       >
-        <div v-if="modelValue" class="fixed inset-0 z-[110] flex flex-col items-center justify-start overflow-y-auto p-4 sm:py-8">
-          <div class="fixed inset-0 bg-black/80 backdrop-blur-md touch-none" @click="$emit('update:modelValue', false)"></div>
+        <div v-if="modelValue" class="fixed inset-0 z-[110] pointer-events-none flex flex-col items-center justify-start overflow-y-auto p-4 sm:py-8">
           
           <!-- Modal Content -->
-          <div class="relative my-auto w-full max-w-sm bg-surface-raised border border-border-muted rounded-3xl shadow-2xl p-8 text-center">
+          <div class="relative my-auto w-full max-w-sm bg-surface-raised border border-border-muted rounded-3xl shadow-2xl p-8 text-center pointer-events-auto">
             <div class="w-16 h-16 bg-surface-raised rounded-full flex items-center justify-center mx-auto mb-4">
               <Trash2 class="w-8 h-8 text-fg-muted" />
             </div>

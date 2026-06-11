@@ -3,6 +3,21 @@
     <!-- Edit Profile Modal -->
     <ClientOnly>
       <Teleport to="body">
+      <!-- Overlay -->
+      <Transition
+        enter-active-class="transition-none"
+        leave-active-class="transition duration-200 ease-in"
+        leave-from-class="opacity-100"
+        leave-to-class="opacity-0"
+      >
+        <div
+          v-if="modelValue"
+          class="fixed inset-0 z-[100] bg-black/80 backdrop-blur-md touch-none"
+          @click="handleProfileCloseAttempt"
+        ></div>
+      </Transition>
+
+      <!-- Content -->
       <Transition
         enter-active-class="transition duration-300 ease-out"
         enter-from-class="opacity-0 scale-95"
@@ -11,10 +26,8 @@
         leave-from-class="opacity-100 scale-100"
         leave-to-class="opacity-0 scale-95"
       >
-        <div v-if="modelValue" class="fixed inset-0 z-[100] flex flex-col items-center justify-start overflow-y-auto sm:py-8 py-0">
-          <div class="fixed inset-0 bg-black/80 backdrop-blur-md touch-none" @click="handleProfileCloseAttempt"></div>
-
-          <div class="relative my-auto w-full h-full sm:h-auto sm:max-w-md max-w-none bg-surface-raised border-x-0 sm:border border-border-muted sm:rounded-3xl rounded-none shadow-2xl overflow-hidden transition-all duration-300 flex flex-col">
+        <div v-if="modelValue" class="fixed inset-0 z-[100] pointer-events-none flex flex-col items-center justify-start overflow-y-auto sm:py-8 py-0">
+          <div class="relative my-auto w-full h-full sm:h-auto sm:max-w-md max-w-none bg-surface-raised border-x-0 sm:border border-border-muted sm:rounded-3xl rounded-none shadow-2xl overflow-hidden transition-all duration-300 flex flex-col pointer-events-auto">
 
             <!-- Sticky Header -->
             <div class="sticky top-0 z-10 bg-surface-raised px-4 sm:px-8 py-4 sm:py-6 border-b border-border-muted/80 flex items-center gap-1 shrink-0">
@@ -227,18 +240,31 @@
     <!-- Unsaved Changes Warning Modal -->
     <ClientOnly>
       <Teleport to="body">
-      <Transition
-        enter-active-class="transition duration-300 ease-out"
-        enter-from-class="opacity-0 scale-95"
-        enter-to-class="opacity-100 scale-100"
-        leave-active-class="transition duration-200 ease-in"
-        leave-from-class="opacity-100 scale-100"
-        leave-to-class="opacity-0 scale-95"
-      >
-        <div v-if="showUnsavedChangesModal" class="fixed inset-0 z-[130] flex flex-col items-center justify-start overflow-y-auto p-4 sm:py-8">
-          <div class="fixed inset-0 bg-black/95 backdrop-blur-sm touch-none" @click="showUnsavedChangesModal = false"></div>
+        <!-- Overlay -->
+        <Transition
+          enter-active-class="transition-none"
+          leave-active-class="transition duration-200 ease-in"
+          leave-from-class="opacity-100"
+          leave-to-class="opacity-0"
+        >
+          <div
+            v-if="showUnsavedChangesModal"
+            class="fixed inset-0 z-[130] bg-black/95 backdrop-blur-sm touch-none"
+            @click="showUnsavedChangesModal = false"
+          ></div>
+        </Transition>
 
-          <div class="relative my-auto w-full max-w-sm bg-surface-raised border border-border-muted rounded-3xl shadow-2xl p-8 text-center">
+        <!-- Content -->
+        <Transition
+          enter-active-class="transition duration-300 ease-out"
+          enter-from-class="opacity-0 scale-95"
+          enter-to-class="opacity-100 scale-100"
+          leave-active-class="transition duration-200 ease-in"
+          leave-from-class="opacity-100 scale-100"
+          leave-to-class="opacity-0 scale-95"
+        >
+          <div v-if="showUnsavedChangesModal" class="fixed inset-0 z-[130] pointer-events-none flex flex-col items-center justify-start overflow-y-auto p-4 sm:py-8">
+            <div class="relative my-auto w-full max-w-sm bg-surface-raised border border-border-muted rounded-3xl shadow-2xl p-8 text-center pointer-events-auto">
             <div class="w-16 h-16 rounded-2xl bg-amber-500/10 border-2 border-amber-500/20 mx-auto mb-6 flex items-center justify-center">
               <RefreshCw class="w-8 h-8 text-amber-500" />
             </div>
@@ -271,18 +297,31 @@
     <!-- Confirm Profile Update Modal -->
     <ClientOnly>
       <Teleport to="body">
-      <Transition
-        enter-active-class="transition duration-300 ease-out"
-        enter-from-class="opacity-0 scale-95"
-        enter-to-class="opacity-100 scale-100"
-        leave-active-class="transition duration-200 ease-in"
-        leave-from-class="opacity-100 scale-100"
-        leave-to-class="opacity-0 scale-95"
-      >
-        <div v-if="showConfirmModal" class="fixed inset-0 z-[120] flex flex-col items-center justify-start overflow-y-auto p-4 sm:py-8">
-          <div class="fixed inset-0 bg-black/95 backdrop-blur-sm touch-none" @click="showConfirmModal = false"></div>
+        <!-- Overlay -->
+        <Transition
+          enter-active-class="transition-none"
+          leave-active-class="transition duration-200 ease-in"
+          leave-from-class="opacity-100"
+          leave-to-class="opacity-0"
+        >
+          <div
+            v-if="showConfirmModal"
+            class="fixed inset-0 z-[120] bg-black/95 backdrop-blur-sm touch-none"
+            @click="showConfirmModal = false"
+          ></div>
+        </Transition>
 
-          <div class="relative my-auto w-full max-w-sm bg-surface-raised border border-border-muted rounded-3xl shadow-2xl p-8 text-center">
+        <!-- Content -->
+        <Transition
+          enter-active-class="transition duration-300 ease-out"
+          enter-from-class="opacity-0 scale-95"
+          enter-to-class="opacity-100 scale-100"
+          leave-active-class="transition duration-200 ease-in"
+          leave-from-class="opacity-100 scale-100"
+          leave-to-class="opacity-0 scale-95"
+        >
+          <div v-if="showConfirmModal" class="fixed inset-0 z-[120] pointer-events-none flex flex-col items-center justify-start overflow-y-auto p-4 sm:py-8">
+            <div class="relative my-auto w-full max-w-sm bg-surface-raised border border-border-muted rounded-3xl shadow-2xl p-8 text-center pointer-events-auto">
             <UserAvatar
               :src="profileForm.photoUrl"
               container-class="w-24 h-24 rounded-3xl bg-action-primary/5 border-2 border-border-muted mx-auto mb-6"
@@ -319,18 +358,31 @@
     <!-- Delete Account Warning Modal -->
     <ClientOnly>
       <Teleport to="body">
-      <Transition
-        enter-active-class="transition duration-300 ease-out"
-        enter-from-class="opacity-0 scale-95"
-        enter-to-class="opacity-100 scale-100"
-        leave-active-class="transition duration-200 ease-in"
-        leave-from-class="opacity-100 scale-100"
-        leave-to-class="opacity-0 scale-95"
-      >
-        <div v-if="showDeleteWarning" class="fixed inset-0 z-[140] flex flex-col items-center justify-start overflow-y-auto p-4 sm:py-8">
-          <div class="fixed inset-0 bg-black/95 backdrop-blur-sm touch-none" @click="showDeleteWarning = false"></div>
+        <!-- Overlay -->
+        <Transition
+          enter-active-class="transition-none"
+          leave-active-class="transition duration-200 ease-in"
+          leave-from-class="opacity-100"
+          leave-to-class="opacity-0"
+        >
+          <div
+            v-if="showDeleteWarning"
+            class="fixed inset-0 z-[140] bg-black/95 backdrop-blur-sm touch-none"
+            @click="showDeleteWarning = false"
+          ></div>
+        </Transition>
 
-          <div class="relative my-auto w-full max-w-sm bg-surface-raised border border-border-muted rounded-3xl shadow-2xl p-8 text-center">
+        <!-- Content -->
+        <Transition
+          enter-active-class="transition duration-300 ease-out"
+          enter-from-class="opacity-0 scale-95"
+          enter-to-class="opacity-100 scale-100"
+          leave-active-class="transition duration-200 ease-in"
+          leave-from-class="opacity-100 scale-100"
+          leave-to-class="opacity-0 scale-95"
+        >
+          <div v-if="showDeleteWarning" class="fixed inset-0 z-[140] pointer-events-none flex flex-col items-center justify-start overflow-y-auto p-4 sm:py-8">
+            <div class="relative my-auto w-full max-w-sm bg-surface-raised border border-border-muted rounded-3xl shadow-2xl p-8 text-center pointer-events-auto">
             <div class="w-16 h-16 rounded-2xl bg-rose-500/10 border-2 border-rose-500/20 mx-auto mb-6 flex items-center justify-center">
               <AlertTriangle class="w-8 h-8 text-rose-500" />
             </div>
@@ -363,18 +415,31 @@
     <!-- Delete Account Password Modal -->
     <ClientOnly>
       <Teleport to="body">
-      <Transition
-        enter-active-class="transition duration-300 ease-out"
-        enter-from-class="opacity-0 scale-95"
-        enter-to-class="opacity-100 scale-100"
-        leave-active-class="transition duration-200 ease-in"
-        leave-from-class="opacity-100 scale-100"
-        leave-to-class="opacity-0 scale-95"
-      >
-        <div v-if="showDeletePassword" class="fixed inset-0 z-[150] flex flex-col items-center justify-start overflow-y-auto p-4 sm:py-8">
-          <div class="fixed inset-0 bg-black/95 backdrop-blur-sm touch-none" @click="closeDeleteModals"></div>
+        <!-- Overlay -->
+        <Transition
+          enter-active-class="transition-none"
+          leave-active-class="transition duration-200 ease-in"
+          leave-from-class="opacity-100"
+          leave-to-class="opacity-0"
+        >
+          <div
+            v-if="showDeletePassword"
+            class="fixed inset-0 z-[150] bg-black/95 backdrop-blur-sm touch-none"
+            @click="closeDeleteModals"
+          ></div>
+        </Transition>
 
-          <div class="relative my-auto w-full max-w-sm bg-surface-raised border border-border-muted rounded-3xl shadow-2xl p-8 text-center">
+        <!-- Content -->
+        <Transition
+          enter-active-class="transition duration-300 ease-out"
+          enter-from-class="opacity-0 scale-95"
+          enter-to-class="opacity-100 scale-100"
+          leave-active-class="transition duration-200 ease-in"
+          leave-from-class="opacity-100 scale-100"
+          leave-to-class="opacity-0 scale-95"
+        >
+          <div v-if="showDeletePassword" class="fixed inset-0 z-[150] pointer-events-none flex flex-col items-center justify-start overflow-y-auto p-4 sm:py-8">
+            <div class="relative my-auto w-full max-w-sm bg-surface-raised border border-border-muted rounded-3xl shadow-2xl p-8 text-center pointer-events-auto">
             <div class="w-16 h-16 rounded-2xl bg-amber-500/10 border-2 border-amber-500/20 mx-auto mb-6 flex items-center justify-center">
               <Lock class="w-8 h-8 text-amber-500" />
             </div>

@@ -1,6 +1,21 @@
 <template>
   <ClientOnly>
     <Teleport to="body">
+    <!-- Overlay -->
+    <Transition
+      enter-active-class="transition-none"
+      leave-active-class="transition duration-200 ease-in"
+      leave-from-class="opacity-100"
+      leave-to-class="opacity-0"
+    >
+      <div
+        v-if="modelValue"
+        class="fixed inset-0 z-[100] bg-black/80 backdrop-blur-md touch-none"
+        @click="$emit('update:modelValue', false)"
+      ></div>
+    </Transition>
+
+    <!-- Content -->
     <Transition
       enter-active-class="transition duration-300 ease-out"
       enter-from-class="opacity-0 scale-95"
@@ -9,11 +24,9 @@
       leave-from-class="opacity-100 scale-100"
       leave-to-class="opacity-0 scale-95"
     >
-      <div v-if="modelValue" class="fixed inset-0 z-[100] flex flex-col items-center justify-start overflow-y-auto sm:py-8 py-0">
-        <div class="fixed inset-0 bg-black/80 backdrop-blur-md touch-none" @click="$emit('update:modelValue', false)"></div>
-        
+      <div v-if="modelValue" class="fixed inset-0 z-[100] pointer-events-none flex flex-col items-center justify-start overflow-y-auto sm:py-8 py-0">
         <div 
-          class="relative my-auto w-full h-full sm:h-auto sm:max-w-md max-w-none bg-surface-raised border-x-0 sm:border border-border-muted sm:rounded-3xl rounded-none shadow-2xl overflow-hidden transition-all duration-300 flex flex-col"
+          class="relative my-auto w-full h-full sm:h-auto sm:max-w-md max-w-none bg-surface-raised border-x-0 sm:border border-border-muted sm:rounded-3xl rounded-none shadow-2xl overflow-hidden transition-all duration-300 flex flex-col pointer-events-auto"
         >
           <!-- Sticky Header -->
           <div class="sticky top-0 z-10 bg-surface-raised px-4 sm:px-8 py-4 sm:py-6 border-b border-border-muted/80 flex items-center gap-1 shrink-0">

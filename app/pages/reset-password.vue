@@ -1,9 +1,11 @@
 <template>
   <div class="min-h-screen flex flex-col items-center justify-center px-4 py-8 relative">
-    <button @click="toggleThemeMode" class="fixed top-4 right-4 p-2 rounded-lg hover:bg-surface-solid transition-colors z-50" :title="themeToggleTitle">
-      <MoonIcon v-if="isLightMode" class="w-5 h-5 text-fg" />
-      <SunIcon v-else class="w-5 h-5 text-fg" />
-    </button>
+    <ClientOnly>
+      <button @click="toggleThemeMode" class="fixed top-4 right-4 p-2 rounded-lg hover:bg-surface-solid transition-colors z-50" :title="themeToggleTitle">
+        <MoonIcon v-if="isLightMode" class="w-5 h-5 text-fg" />
+        <SunIcon v-else class="w-5 h-5 text-fg" />
+      </button>
+    </ClientOnly>
     <div class="w-full max-w-md">
       <!-- Logo -->
       <div class="flex flex-col items-center mb-8">

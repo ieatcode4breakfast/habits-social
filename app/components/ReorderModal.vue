@@ -1,6 +1,21 @@
 <template>
   <ClientOnly>
   <Teleport to="body">
+    <!-- Overlay -->
+    <Transition
+      enter-active-class="transition-none"
+      leave-active-class="transition duration-200 ease-in"
+      leave-from-class="opacity-100"
+      leave-to-class="opacity-0"
+    >
+      <div
+        v-if="modelValue"
+        class="fixed inset-0 z-[100] bg-black/80 backdrop-blur-md touch-none"
+        @click="$emit('update:modelValue', false)"
+      ></div>
+    </Transition>
+
+    <!-- Content -->
     <Transition
       enter-active-class="transition duration-300 ease-out"
       enter-from-class="opacity-0 scale-95"
@@ -9,11 +24,9 @@
       leave-from-class="opacity-100 scale-100"
       leave-to-class="opacity-0 scale-95"
     >
-      <div v-if="modelValue" class="fixed inset-0 z-[100] flex flex-col items-center justify-start overflow-y-auto sm:p-4 p-0 sm:py-8">
-        <div class="fixed inset-0 bg-black/80 backdrop-blur-md touch-none" @click="$emit('update:modelValue', false)"></div>
-
+      <div v-if="modelValue" class="fixed inset-0 z-[100] pointer-events-none flex flex-col items-center justify-start overflow-y-auto sm:p-4 p-0 sm:py-8">
         <!-- Modal Content -->
-        <div class="relative my-auto w-full sm:max-w-sm bg-surface-raised border-t sm:border border-border-muted sm:rounded-3xl rounded-3xl shadow-2xl overflow-hidden flex flex-col" style="max-height: 80vh">
+        <div class="relative my-auto w-full sm:max-w-sm bg-surface-raised border-t sm:border border-border-muted sm:rounded-3xl rounded-3xl shadow-2xl overflow-hidden flex flex-col pointer-events-auto" style="max-height: 80vh">
           <!-- Header -->
           <div class="flex items-center justify-between px-5 py-4 border-b border-border-muted/80 shrink-0">
             <div>

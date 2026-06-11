@@ -40,16 +40,21 @@
       </div>
 
       <div class="flex items-center gap-1">
-        <button
-          type="button"
-          class="p-2 rounded-lg hover:bg-cell-markable-hover transition-colors"
-          :title="themeToggleTitle"
-          :aria-label="themeToggleTitle"
-          @click="toggleThemeMode"
-        >
-          <SunIcon v-if="isLightMode" class="w-5 h-5" />
-          <MoonIcon v-else class="w-5 h-5" />
-        </button>
+        <ClientOnly>
+          <button
+            type="button"
+            class="p-2 rounded-lg hover:bg-cell-markable-hover transition-colors"
+            :title="themeToggleTitle"
+            :aria-label="themeToggleTitle"
+            @click="toggleThemeMode"
+          >
+            <SunIcon v-if="isLightMode" class="w-5 h-5" />
+            <MoonIcon v-else class="w-5 h-5" />
+          </button>
+          <template #fallback>
+            <div class="p-2 w-9 h-9" aria-hidden="true" />
+          </template>
+        </ClientOnly>
         <button
           type="button"
           class="p-2 rounded-lg hover:bg-surface-solid transition-colors"
