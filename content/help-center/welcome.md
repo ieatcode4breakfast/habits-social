@@ -12,3 +12,4 @@ Habits Social is a simple app for tracking habits, building streaks, and sharing
 - [Social and Chat](/help-center/social-and-chat)
 - [Terms of Service](/help-center/terms-of-service)
 - [Privacy Policy](/help-center/privacy-policy)
+- [Contact Support](/help-center/contact-support)
