@@ -17,6 +17,6 @@ const route = useRoute();
 const activePath = computed(() => `${route.path}${route.hash}`);
 
 const returnToApp = () => {
-  void navigateTo('/', { replace: true });
+  void navigateTo('/habits', { replace: true });
 };
 </script>

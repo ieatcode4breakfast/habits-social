@@ -1,5 +1,5 @@
-export type StartupRoute = '/habits' | '/social';
+export type StartupRoute = '/habits';
 
-export const resolveStartupRoute = (isOnline: boolean): StartupRoute => {
-  return isOnline ? '/social' : '/habits';
+export const resolveStartupRoute = (_isOnline: boolean): StartupRoute => {
+  return '/habits';
 };

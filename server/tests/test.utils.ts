@@ -4,10 +4,14 @@ import ws from 'ws';
 import { drizzle } from 'drizzle-orm/neon-serverless';
 
 neonConfig.webSocketConstructor = ws;
-import { eq, sql } from 'drizzle-orm';
+import { eq, sql, or } from 'drizzle-orm';
+import { afterAll } from 'vitest';
 import { users, habits, buckets, friendships } from '../db/schema';
 import * as schema from '../db/schema';
 import { InferSelectModel } from 'drizzle-orm';
+
+export const createdUserIds = new Set<string>();
+export const createdConversationIds = new Set<string>();
 
 export type User = InferSelectModel<typeof users>;
 export type Habit = InferSelectModel<typeof habits>;
@@ -35,11 +39,19 @@ export const createTestUser = async (username: string, email: string): Promise<U
     })
     .returning();
   if (!result[0]) throw new Error('Failed to create test user');
+  createdUserIds.add(result[0].id);
   return result[0];
 };
 
 export const deleteTestUser = async (userId: string) => {
+  await db.delete(schema.chatConversations).where(
+    or(
+      eq(schema.chatConversations.user1Id, userId),
+      eq(schema.chatConversations.user2Id, userId)
+    )
+  );
   await db.delete(users).where(eq(users.id, userId));
+  createdUserIds.delete(userId);
 };
 
 export const createMockEvent = (userId: string, body: any = {}, cookies: any = {}, params: any = {}, query: any = {}, method: string = 'GET', ip: string = '127.0.0.1') => {
@@ -193,6 +205,7 @@ export const createTestConversation = async (user1Id: string, user2Id: string): 
     })
     .returning();
   if (!result[0]) throw new Error('Failed to create test conversation');
+  createdConversationIds.add(result[0].id);
   return result[0];
 };
 
@@ -224,4 +237,34 @@ export const createTestParticipant = async (conversationId: string, userId: stri
 
 export const deleteTestConversation = async (conversationId: string) => {
   await db.delete(schema.chatConversations).where(eq(schema.chatConversations.id, conversationId));
+  createdConversationIds.delete(conversationId);
 };
+
+afterAll(async () => {
+  // 1. Clean up explicitly tracked chat conversations first
+  for (const conversationId of createdConversationIds) {
+    try {
+      await db.delete(schema.chatConversations).where(eq(schema.chatConversations.id, conversationId));
+    } catch (err) {
+      console.warn(`[Teardown] Failed to delete conversation ${conversationId}:`, err);
+    }
+  }
+  createdConversationIds.clear();
+
+  // 2. Clean up explicitly tracked users (which now deletes their conversations first, cascading down to habits, logs, friendships, etc.)
+  for (const userId of createdUserIds) {
+    try {
+      // Delete conversations involving this user first to prevent orphans
+      await db.delete(schema.chatConversations).where(
+        or(
+          eq(schema.chatConversations.user1Id, userId),
+          eq(schema.chatConversations.user2Id, userId)
+        )
+      );
+      await db.delete(users).where(eq(users.id, userId));
+    } catch (err) {
+      console.warn(`[Teardown] Failed to delete user ${userId}:`, err);
+    }
+  }
+  createdUserIds.clear();
+});

@@ -170,7 +170,7 @@ watch(() => props.modelValue, (open) => {
     selectedAvatar.value = '';
     generateAvatars();
   }
-});
+}, { immediate: true });
 
 useModalHistory(computed(() => props.modelValue), handleClose);
 </script>

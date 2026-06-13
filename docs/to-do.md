@@ -1,3 +1,3 @@
 - Make My Habits page the default again
-- Onboarding/tutorial
+- Click Help Center
 - Notification system

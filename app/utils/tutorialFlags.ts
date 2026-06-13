@@ -1,4 +1,4 @@
-export const TUTORIAL_STORAGE_PREFIX = 'habits-social:tutorial:my-habits:v1:';
+export const TUTORIAL_STORAGE_PREFIX = 'habits-social:tutorial:initial:v1:';
 
 export interface TutorialFlag {
   status: 'completed';

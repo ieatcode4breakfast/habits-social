@@ -1,6 +1,6 @@
 import './setup';
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import { createTestUser, deleteTestUser, createMockEvent, db } from './test.utils';
+import { createTestUser, deleteTestUser, createMockEvent, db, createdUserIds } from './test.utils';
 import { SignJWT } from 'jose';
 import { eq } from 'drizzle-orm';
 import { users } from '../db/schema';
@@ -102,6 +102,19 @@ describe('Google Authentication and Registration Flow', () => {
 
     const registerResponse = (await registerGoogleHandler(registerEvent)) as any;
 
+    if (registerResponse?.data?.id) {
+      createdUserIds.add(registerResponse.data.id);
+    } else {
+      try {
+        const dbUser = await db.select().from(users).where(eq(users.email, freshEmail)).limit(1);
+        if (dbUser[0]?.id) {
+          createdUserIds.add(dbUser[0].id);
+        }
+      } catch (err) {
+        // Ignore
+      }
+    }
+
     expect(registerResponse.data).toBeDefined();
     expect(registerResponse.data.email).toBe(freshEmail);
     expect(registerResponse.data.username).toBe(username);
@@ -109,11 +122,13 @@ describe('Google Authentication and Registration Flow', () => {
     expect(setCookieCalled).toBe(true);
 
     // Verify database emailVerifiedAt is set for new signup
-    const dbUser = await db.select().from(users).where(eq(users.id, registerResponse.data.id)).limit(1);
-    expect(dbUser[0]?.emailVerifiedAt).not.toBeNull();
-
-    // Cleanup
-    await deleteTestUser(registerResponse.data.id);
+    const registeredId = registerResponse?.data?.id || (await db.select().from(users).where(eq(users.email, freshEmail)).limit(1))[0]?.id;
+    if (registeredId) {
+      const dbUser = await db.select().from(users).where(eq(users.id, registeredId)).limit(1);
+      expect(dbUser[0]?.emailVerifiedAt).not.toBeNull();
+    } else {
+      expect(registerResponse.data?.id).toBeDefined();
+    }
   });
 
   it('should reject registration if the username is already taken', async () => {

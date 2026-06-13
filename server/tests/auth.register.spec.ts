@@ -1,6 +1,8 @@
 import './setup';
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import { createTestUser, deleteTestUser, createMockEvent } from './test.utils';
+import { createTestUser, deleteTestUser, createMockEvent, createdUserIds, db } from './test.utils';
+import { users } from '../db/schema';
+import { eq } from 'drizzle-orm';
 
 describe('POST /api/auth/register', () => {
   let handler: any;
@@ -20,12 +22,22 @@ describe('POST /api/auth/register', () => {
 
     const response = (await handler(event)) as any;
 
+    if (response?.data?.id) {
+      createdUserIds.add(response.data.id);
+    } else {
+      try {
+        const dbUser = await db.select().from(users).where(eq(users.email, email)).limit(1);
+        if (dbUser[0]?.id) {
+          createdUserIds.add(dbUser[0].id);
+        }
+      } catch (err) {
+        // Ignore
+      }
+    }
+
     expect(response.data).toBeDefined();
     expect(response.data.email).toBe(email);
     expect(response.data.username).toBe(username);
-
-    // Cleanup
-    await deleteTestUser(response.data.id);
   });
 
   it('should reject duplicate email', async () => {

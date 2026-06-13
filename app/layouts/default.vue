@@ -204,12 +204,17 @@
 
     <!-- Choose Avatar Modal on Signup -->
     <ChooseAvatarModal v-model="showChooseAvatarModal" />
+    <InitialTutorialDemo 
+      v-if="showInitialTutorial" 
+      @close="showInitialTutorial = false" 
+    />
   </div>
 </template>
 
 <script setup lang="ts">
 import { LogOut, ListChecks, Users, User as UserIcon, PaintBucket, MessageCircle, Menu, Moon, Sun, CircleHelp } from 'lucide-vue-next';
 import { clearCachedAuthUser, flushPendingServerLogout, markPendingServerLogout } from '~/utils/cachedAuth';
+import { isTutorialCompleted } from '~/utils/tutorialFlags';
 
 const { user } = useAuth();
 const { showToast } = useToast();
@@ -252,7 +257,6 @@ onMounted(() => {
   if (user.value && isOnline.value) {
     startServices();
   }
-  checkJustSignedUp();
 });
 
 onUnmounted(() => {
@@ -274,25 +278,34 @@ const route = useRoute();
 const showProfileModal = useState('showProfileModal', () => false);
 const showChooseAvatarModal = useState<boolean>('signup-avatar-modal-open', () => false);
 const showMobileMenu = ref(false);
+const showInitialTutorial = ref(false);
 
 const { suppressNextHistoryBack } = useModalHistory(showMobileMenu);
 
-const checkJustSignedUp = () => {
-  if (import.meta.client && user.value && sessionStorage.getItem('just-signed-up') === 'true') {
-    showChooseAvatarModal.value = true;
-    sessionStorage.removeItem('just-signed-up');
-  }
-};
 
 watch(() => route.path, () => {
   showMobileMenu.value = false;
 });
 
-watch(() => user.value?.id, (newId) => {
-  if (newId) {
-    checkJustSignedUp();
-  }
-});
+watch(
+  [() => user.value?.id, showChooseAvatarModal],
+  ([userId, isAvatarModalOpen]) => {
+    if (import.meta.client && userId) {
+      if (sessionStorage.getItem('just-signed-up') === 'true') {
+        showChooseAvatarModal.value = true;
+        sessionStorage.removeItem('just-signed-up');
+        return;
+      }
+      
+      if (!isAvatarModalOpen && !isTutorialCompleted(userId)) {
+        showInitialTutorial.value = true;
+      }
+    }
+  },
+  { immediate: true }
+);
+
+
 
 const handleInboxNavClick = () => {
   if (route.path === '/inbox' && import.meta.client) {

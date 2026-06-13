@@ -1034,15 +1034,7 @@ const tryGetCoachElement = (target: string): Element | null =>
  * desktop nav uses 'md:block' (≥768px) and the mobile menu uses
  * 'lg:hidden' (<1024px).  We resolve the first visible match.
  */
-const resolveTutorialHelpCenterTarget = (): string => {
-  const desktopEl = document.querySelector(
-    coachSelector(MY_HABITS_TUTORIAL_TARGETS.desktopHelpCenter),
-  );
-  if (desktopEl instanceof HTMLElement && desktopEl.offsetParent !== null) {
-    return MY_HABITS_TUTORIAL_TARGETS.desktopHelpCenter;
-  }
-  return MY_HABITS_TUTORIAL_TARGETS.mobileHelpCenter;
-};
+
 
 const waitForCoachElement = async (target: string, timeoutMs = 2000): Promise<Element | null> => {
   const selector = coachSelector(target);
@@ -1126,8 +1118,7 @@ const startTutorial = async (options: { force?: boolean } = {}) => {
   const addStepIndex = 0;
   const saveStepIndex = 5;
   const statusIntroStepIndex = 7;
-  const replayHelpStepIndex = 8 + MY_HABITS_TUTORIAL_STATUS_STEPS.length;
-  const helpCenterStepIndex = replayHelpStepIndex + 1;
+
 
   const advanceFromAddStep = async (d: Driver) => {
     showTutorialAddModal.value = true;
@@ -1169,33 +1160,6 @@ const startTutorial = async (options: { force?: boolean } = {}) => {
     d.moveNext();
   };
 
-const advanceFromReplayHelpStep = async (d: Driver) => {
-    tutorialShowHelpCenterMenu.value = true;
-    await nextTick();
-    const target = resolveTutorialHelpCenterTarget();
-    const helpCenterTarget = await waitForCoachElement(target);
-    if (!helpCenterTarget) {
-      completeTutorial();
-      return;
-    }
-    d.moveNext();
-  };
-
-  const movePreviousToHelpCenter = async (d: Driver) => {
-    showTutorialAddModal.value = false;
-    isTutorialActive.value = false;
-    tutorialLogMenuStatus.value = null;
-    tutorialShowHelpCenterMenu.value = true;
-    await nextTick();
-    const target = resolveTutorialHelpCenterTarget();
-    const helpCenterTarget = await waitForCoachElement(target);
-    if (!helpCenterTarget) {
-      completeTutorial();
-      return;
-    }
-    d.movePrevious();
-  };
-
   const movePreviousWithStatusMenu = async (d: Driver, status: MyHabitsTutorialStatusKey) => {
     showTutorialAddModal.value = false;
     isTutorialActive.value = false;
@@ -1215,19 +1179,7 @@ const advanceFromReplayHelpStep = async (d: Driver) => {
     d.movePrevious();
   };
 
-  const movePreviousToReplayHelp = async (d: Driver) => {
-    showTutorialAddModal.value = false;
-    isTutorialActive.value = false;
-    tutorialLogMenuStatus.value = null;
-    tutorialShowHelpCenterMenu.value = false;
-    await nextTick();
-    const replayTarget = await waitForCoachElement(getTutorialLayout().replayHelp.target);
-    if (!replayTarget) {
-      completeTutorial();
-      return;
-    }
-    d.movePrevious();
-  };
+
 
   const advanceTutorialFromOverlay = async (d: Driver) => {
     if (d.isLastStep()) return;
@@ -1245,14 +1197,7 @@ const advanceFromReplayHelpStep = async (d: Driver) => {
       await advanceFromStatusIntroStep(d);
       return;
     }
-    if (activeIndex === replayHelpStepIndex) {
-      await advanceFromReplayHelpStep(d);
-      return;
-    }
-    if (activeIndex === helpCenterStepIndex) {
-      const needsBottomSheet = resolveTutorialHelpCenterTarget() === MY_HABITS_TUTORIAL_TARGETS.mobileHelpCenter;
-      tutorialShowHelpCenterMenu.value = needsBottomSheet;
-    }
+
 
     d.moveNext();
   };
@@ -1355,6 +1300,7 @@ const advanceFromReplayHelpStep = async (d: Driver) => {
           title: MY_HABITS_TUTORIAL_STEP_COPY.welcome.title,
           description: MY_HABITS_TUTORIAL_STEP_COPY.welcome.description,
           side: 'bottom',
+          align: 'end',
           showButtons: ['next', 'close'],
           onNextClick: async (_, __, { driver: d }) => {
             await advanceFromAddStep(d);
@@ -1492,14 +1438,11 @@ const advanceFromReplayHelpStep = async (d: Driver) => {
       },
       ...statusCoachSteps,
       {
-        element: () => getCoachElement(getTutorialLayout().replayHelp.target),
         popover: {
-          description: MY_HABITS_TUTORIAL_STEP_COPY.replayHelp.description,
-          side: getTutorialLayout().replayHelp.side,
-          align: getTutorialLayout().replayHelp.align,
+          description: MY_HABITS_TUTORIAL_STEP_COPY.streakHelp.description,
           showButtons: ['next', 'previous', 'close'],
-          onNextClick: async (_, __, { driver: d }) => {
-            await advanceFromReplayHelpStep(d);
+          onNextClick: () => {
+            completeTutorial();
           },
           onPrevClick: async (_, __, { driver: d }) => {
             const lastStatus = MY_HABITS_TUTORIAL_STATUS_STEPS.at(-1)?.status;
@@ -1508,44 +1451,6 @@ const advanceFromReplayHelpStep = async (d: Driver) => {
               return;
             }
             await movePreviousWithStatusMenu(d, lastStatus);
-          },
-        },
-        onHighlightStarted: () => {
-          showTutorialAddModal.value = false;
-          isTutorialActive.value = false;
-          tutorialLogMenuStatus.value = null;
-          tutorialShowHelpCenterMenu.value = false;
-        },
-      },
-      {
-        element: () => getCoachElement(resolveTutorialHelpCenterTarget()),
-        popover: {
-          description: MY_HABITS_TUTORIAL_STEP_COPY.helpCenter.description,
-          side: getTutorialLayout().helpCenter.side,
-          align: getTutorialLayout().helpCenter.align,
-          showButtons: ['next', 'previous', 'close'],
-          onPrevClick: async (_, __, { driver: d }) => {
-            await movePreviousToReplayHelp(d);
-          },
-        },
-        onHighlightStarted: (el, _, { driver: d }) => {
-          showTutorialAddModal.value = false;
-          isTutorialActive.value = false;
-          tutorialLogMenuStatus.value = null;
-          const needsBottomSheet = resolveTutorialHelpCenterTarget() === MY_HABITS_TUTORIAL_TARGETS.mobileHelpCenter;
-          tutorialShowHelpCenterMenu.value = needsBottomSheet;
-          if (!el) setTimeout(() => d.refresh(), 100);
-        },
-      },
-      {
-        popover: {
-          description: MY_HABITS_TUTORIAL_STEP_COPY.streakHelp.description,
-          showButtons: ['next', 'previous', 'close'],
-          onNextClick: () => {
-            completeTutorial();
-          },
-          onPrevClick: async (_, __, { driver: d }) => {
-            await movePreviousToHelpCenter(d);
           },
         },
         onHighlightStarted: () => {
@@ -1566,17 +1471,7 @@ const replayTutorial = () => {
   void startTutorial({ force: true });
 };
 
-if (import.meta.client) {
-  watch([
-    () => loading.value,
-    () => signupAvatarOpen.value,
-    () => isTutorialBlocked.value,
-    () => user.value?.id,
-    () => route.path
-  ], () => {
-    void startTutorial();
-  });
-}
+
 
 onMounted(() => {
   isMounted.value = true;
@@ -1593,8 +1488,6 @@ onMounted(() => {
     delete newQuery.action;
     router.replace({ query: newQuery });
   }
-
-  void startTutorial();
 });
 
 onUnmounted(() => {
