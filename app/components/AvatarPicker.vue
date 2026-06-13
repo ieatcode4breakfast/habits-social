@@ -33,7 +33,7 @@
           <div v-if="showAvatarModal" class="fixed inset-0 z-[110] flex items-center justify-center sm:p-4">
             <div class="absolute inset-0 bg-black/90 backdrop-blur-xl" @click="showAvatarModal = false"></div>
 
-            <div class="relative w-full h-full sm:h-auto max-w-lg bg-surface-raised sm:border border-border-muted sm:rounded-3xl shadow-2xl p-6 sm:p-8 flex flex-col">
+            <div class="relative w-full h-full sm:h-auto max-w-lg bg-surface-raised sm:border border-border-muted sm:rounded-3xl p-6 sm:p-8 flex flex-col">
               <div class="flex flex-col sm:flex-row sm:items-center justify-between mb-8 gap-4 shrink-0 pt-8 sm:pt-0">
                 <div class="flex items-start justify-between w-full sm:w-auto">
                   <div>

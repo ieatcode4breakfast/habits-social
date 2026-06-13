@@ -16,7 +16,7 @@
       </div>
 
       <!-- Card -->
-      <div class="bg-surface-raised/80 backdrop-blur-xl rounded-2xl shadow-2xl border border-border-muted overflow-hidden">
+      <div class="bg-surface-raised/80 backdrop-blur-xl rounded-2xl border border-border-muted overflow-hidden">
         <div class="p-6 sm:p-8">
           <NuxtLink
             to="/login"

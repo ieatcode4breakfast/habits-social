@@ -27,7 +27,7 @@
       <div v-if="modelValue" 
         class="fixed inset-0 z-[110] pointer-events-none flex flex-col items-center justify-start overflow-y-auto sm:py-8 py-0"
       >
-        <div class="relative my-auto w-full h-full sm:h-auto sm:max-w-md max-w-none bg-surface-raised border-x-0 sm:border border-border-muted sm:rounded-3xl rounded-none shadow-2xl overflow-hidden transition-all duration-300 flex flex-col pointer-events-auto">
+        <div class="relative my-auto w-full h-full sm:h-auto sm:max-w-md max-w-none bg-surface-raised border-x-0 sm:border border-border-muted sm:rounded-3xl rounded-none overflow-hidden transition-all duration-300 flex flex-col pointer-events-auto">
           
           <div class="flex-1 overflow-y-auto p-4 sm:p-8">
             <div class="text-center mb-6">

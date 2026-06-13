@@ -115,7 +115,7 @@
         </div>
       </div>
 
-      <div class="habits-content-surface sm:rounded-b-2xl rounded-none overflow-hidden border-b border-x-0 sm:border-x sm:border-b relative backdrop-blur-md bg-surface-raised/80 border-border-muted/80 shadow-2xl">
+      <div class="habits-content-surface sm:rounded-b-2xl rounded-none overflow-hidden border-b border-x-0 sm:border-x sm:border-b relative backdrop-blur-md bg-surface-raised/80 border-border-muted/80">
         <div class="divide-y divide-border-muted/80 w-full">
           <div
             v-for="habit in demoHabits"
@@ -182,7 +182,7 @@
       v-if="showHelpCenterMenu"
       class="fixed inset-x-0 bottom-[calc(4rem-6px+env(safe-area-inset-bottom,0px))] z-[93] flex flex-col justify-end lg:hidden pointer-events-none"
     >
-      <div class="relative w-full bg-surface-muted border-t border-border-muted rounded-t-3xl shadow-2xl overflow-hidden pointer-events-auto">
+      <div class="relative w-full bg-surface-muted border-t border-border-muted rounded-t-3xl overflow-hidden pointer-events-auto">
         <div class="p-4 border-b border-border-muted">
           <div class="flex items-center gap-3">
             <div class="w-10 h-10 rounded-lg bg-transparent flex items-center justify-center">

@@ -17,7 +17,7 @@
       </div>
 
       <!-- Card -->
-      <div class="bg-surface-raised/80 backdrop-blur-xl rounded-2xl shadow-2xl border border-border-muted overflow-hidden">
+      <div class="bg-surface-raised/80 backdrop-blur-xl rounded-2xl border border-border-muted overflow-hidden">
         <!-- Main Form (Login / Signup) -->
         <div v-show="!showGoogleSignup">
           <!-- Tabs -->

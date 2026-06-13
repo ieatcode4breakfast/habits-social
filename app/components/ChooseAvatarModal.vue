@@ -14,7 +14,7 @@
         <div class="absolute inset-0 bg-black/95 backdrop-blur-xl" @click="handleClose"></div>
 
         <!-- Modal Card -->
-        <div class="relative w-full h-full sm:h-auto max-w-xl bg-surface-raised sm:border border-border-muted sm:rounded-3xl shadow-2xl p-6 sm:p-8 flex flex-col overflow-hidden v-motion-slide-top">
+        <div class="relative w-full h-full sm:h-auto max-w-xl bg-surface-raised sm:border border-border-muted sm:rounded-3xl p-6 sm:p-8 flex flex-col overflow-hidden v-motion-slide-top">
           <!-- Header -->
           <div class="flex items-start justify-between mb-6 shrink-0 pt-8 sm:pt-0">
             <div>

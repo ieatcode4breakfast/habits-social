@@ -84,7 +84,7 @@
     <!-- Habit List (Single Card) -->
     <div v-motion-fade :style="pullStyle" 
          class="habits-content-surface sm:rounded-b-2xl rounded-none overflow-hidden border-b border-x-0 sm:border-x sm:border-b relative will-change-transform transition-colors duration-300"
-         :class="!loading ? 'backdrop-blur-md bg-surface-raised/80 border-border-muted/80 shadow-2xl' : 'border-transparent'">
+         :class="!loading ? 'backdrop-blur-md bg-surface-raised/80 border-border-muted/80' : 'border-transparent'">
 
       <div class="w-full relative">
         <div v-if="loading" class="flex justify-center items-center p-12 min-h-[150px] w-full">
@@ -245,7 +245,7 @@
           >
             <div class="fixed inset-0 bg-black/80 backdrop-blur-sm touch-none" @click="showHabitReplyFriendSelectModal = false"></div>
 
-            <div class="relative w-full max-w-sm bg-surface-raised border border-border-muted rounded-2xl shadow-2xl flex flex-col max-h-[80vh] overflow-hidden select-none">
+            <div class="relative w-full max-w-sm bg-surface-raised border border-border-muted rounded-2xl flex flex-col max-h-[80vh] overflow-hidden select-none">
               <div class="p-4 border-b border-border-muted/60 flex items-center justify-between">
                 <h3 class="text-sm font-bold text-fg">Chat about this habit with</h3>
                 <button
@@ -318,7 +318,7 @@
         >
           <div v-if="showShareBeforeReplyModal" class="fixed inset-0 z-[160] flex items-center justify-center p-4">
             <div class="absolute inset-0 bg-black/80 backdrop-blur-md touch-none" @click="closeShareBeforeReplyModal"></div>
-            <div class="relative w-full max-w-sm bg-surface-raised border border-border-muted rounded-3xl shadow-2xl p-8 text-center">
+            <div class="relative w-full max-w-sm bg-surface-raised border border-border-muted rounded-3xl p-8 text-center">
               <div class="w-16 h-16 bg-surface-raised rounded-full flex items-center justify-center mx-auto mb-4">
                 <UserPlus class="w-8 h-8 text-fg" />
               </div>

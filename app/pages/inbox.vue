@@ -1,10 +1,10 @@
 <template>
-  <div class="inbox-shell relative h-[calc(100dvh-57px)] md:h-[calc(100dvh-80px)] flex flex-col md:flex-row bg-black/60 backdrop-blur-xl sm:-mx-6 md:mx-0 md:rounded-2xl border border-border-muted/80 border-x-0 border-t-0 overflow-hidden shadow-2xl md:mt-2 md:mb-2 md:bg-transparent md:backdrop-blur-none md:border-transparent md:overflow-visible md:shadow-none md:gap-2">
+  <div class="inbox-shell relative h-[calc(100dvh-57px)] md:h-[calc(100dvh-80px)] flex flex-col md:flex-row bg-black/60 backdrop-blur-xl sm:-mx-6 md:mx-0 md:rounded-2xl border border-border-muted/80 border-x-0 border-t-0 overflow-hidden md:mt-2 md:mb-2 md:bg-transparent md:backdrop-blur-none md:border-transparent md:overflow-visible md:shadow-none md:gap-2">
 
     <!-- Sidebar Pane: Conversations List -->
     <div
       v-show="!activeFriend || !isMobile"
-      class="inbox-list-panel w-full md:w-80 shrink-0 flex flex-col bg-surface-muted/40 md:rounded-2xl md:border md:border-border-muted/80 md:bg-black/60 md:backdrop-blur-xl md:shadow-2xl md:overflow-hidden"
+      class="inbox-list-panel w-full md:w-80 shrink-0 flex flex-col bg-surface-muted/40 md:rounded-2xl md:border md:border-border-muted/80 md:bg-black/60 md:backdrop-blur-xl md: md:overflow-hidden"
       :class="{ 'h-full': isMobile }"
     >
       <!-- Sidebar Header -->
@@ -137,7 +137,7 @@
     <!-- Main Pane: Chat History & Input -->
     <div
       v-show="activeFriend || (viewportReady && !isMobile)"
-      class="inbox-chat-panel flex-1 flex flex-col min-h-0 md:h-full bg-surface-muted/20 relative md:rounded-2xl md:border md:border-border-muted/80 md:bg-black/60 md:backdrop-blur-xl md:shadow-2xl md:overflow-hidden"
+      class="inbox-chat-panel flex-1 flex flex-col min-h-0 md:h-full bg-surface-muted/20 relative md:rounded-2xl md:border md:border-border-muted/80 md:bg-black/60 md:backdrop-blur-xl md: md:overflow-hidden"
     >
       <!-- Chat Header + Messages + Input (only when a conversation is active) -->
       <template v-if="activeFriend">
@@ -495,7 +495,7 @@
             v-if="showNewChatModal"
             class="fixed inset-0 z-[150] pointer-events-none flex items-center justify-center p-4"
           >
-            <div class="w-full max-w-sm bg-surface-raised border border-border-muted rounded-2xl shadow-2xl flex flex-col max-h-[80vh] overflow-hidden select-none pointer-events-auto">
+            <div class="w-full max-w-sm bg-surface-raised border border-border-muted rounded-2xl flex flex-col max-h-[80vh] overflow-hidden select-none pointer-events-auto">
 
               <!-- Modal Header -->
               <div class="p-4 border-b border-border-muted/60 flex items-center justify-between">
@@ -590,7 +590,7 @@
             v-if="showClearChatModal"
             class="fixed inset-0 z-[150] pointer-events-none flex flex-col items-center justify-start overflow-y-auto p-4 sm:py-8"
           >
-            <div class="relative my-auto w-full max-w-sm bg-surface-raised border border-border-muted rounded-3xl shadow-2xl p-8 text-center select-none pointer-events-auto">
+            <div class="relative my-auto w-full max-w-sm bg-surface-raised border border-border-muted rounded-3xl p-8 text-center select-none pointer-events-auto">
               <div class="w-16 h-16 bg-surface-solid border border-border-muted/50 rounded-full flex items-center justify-center mx-auto mb-4">
                 <Trash2 class="w-8 h-8 text-fg-muted" />
               </div>
@@ -659,7 +659,7 @@
             v-if="messagePendingDelete"
             class="fixed inset-0 z-[150] pointer-events-none flex flex-col items-center justify-start overflow-y-auto p-4 sm:py-8"
           >
-            <div class="relative my-auto w-full max-w-sm bg-surface-raised border border-border-muted rounded-3xl shadow-2xl p-8 text-center select-none pointer-events-auto">
+            <div class="relative my-auto w-full max-w-sm bg-surface-raised border border-border-muted rounded-3xl p-8 text-center select-none pointer-events-auto">
               <div class="w-16 h-16 bg-surface-solid border border-border-muted/50 rounded-full flex items-center justify-center mx-auto mb-4">
                 <Trash2 class="w-8 h-8 text-fg-muted" />
               </div>

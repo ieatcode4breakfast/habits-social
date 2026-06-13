@@ -24,7 +24,7 @@
         ></div>
         <div
           ref="floatingRef"
-          class="fixed z-[200] w-max max-w-[calc(100vw-1.25rem)] bg-surface-solid/95 backdrop-blur-xl border border-border-muted rounded-2xl shadow-2xl p-1.5 flex flex-row gap-1.5"
+          class="fixed z-[200] w-max max-w-[calc(100vw-1.25rem)] bg-surface-solid/95 backdrop-blur-xl border border-border-muted rounded-2xl p-1.5 flex flex-row gap-1.5"
           :style="floatingStyles"
           :data-coach-target="menuCoachTarget"
           @click.stop

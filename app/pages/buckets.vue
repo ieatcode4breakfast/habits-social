@@ -108,7 +108,7 @@
     <!-- Bucket List -->
     <div v-motion-fade :style="pullStyle" 
          class="buckets-content-surface sm:rounded-b-2xl rounded-none overflow-hidden border-b border-x-0 sm:border-x sm:border-b relative will-change-transform transition-colors duration-300"
-         :class="!loading ? 'backdrop-blur-md bg-surface-raised/80 border-border-muted/80 shadow-2xl' : 'border-transparent'">
+         :class="!loading ? 'backdrop-blur-md bg-surface-raised/80 border-border-muted/80' : 'border-transparent'">
 
       <div class="w-full relative">
         <div v-if="loading" class="flex justify-center items-center p-12 min-h-[150px] w-full">

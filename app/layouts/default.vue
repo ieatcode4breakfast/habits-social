@@ -138,7 +138,7 @@
         leave-to-class="translate-y-full"
       >
         <div v-if="showMobileMenu" class="fixed inset-x-0 bottom-[calc(4rem-6px+env(safe-area-inset-bottom,0px))] z-[45] flex flex-col justify-end md:hidden pointer-events-none">
-          <div class="relative w-full bg-surface-muted border-t border-border-muted rounded-t-3xl shadow-2xl overflow-hidden pointer-events-auto">
+          <div class="relative w-full bg-surface-muted border-t border-border-muted rounded-t-3xl overflow-hidden pointer-events-auto">
             <div class="p-4 border-b border-border-muted flex flex-col items-center gap-4">
               <div class="w-full flex items-center justify-between">
                 <div class="flex items-center gap-3">

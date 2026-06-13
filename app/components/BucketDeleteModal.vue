@@ -27,7 +27,7 @@
         <div v-if="modelValue" class="fixed inset-0 z-[110] pointer-events-none flex flex-col items-center justify-start overflow-y-auto p-4 sm:py-8">
           
           <!-- Modal Content -->
-          <div class="relative my-auto w-full max-w-sm bg-surface-raised border border-border-muted rounded-3xl shadow-2xl p-8 text-center pointer-events-auto">
+          <div class="relative my-auto w-full max-w-sm bg-surface-raised border border-border-muted rounded-3xl p-8 text-center pointer-events-auto">
             <div class="w-16 h-16 bg-surface-raised rounded-full flex items-center justify-center mx-auto mb-4">
               <Trash2 class="w-8 h-8 text-fg-muted" />
             </div>

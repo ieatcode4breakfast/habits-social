@@ -26,7 +26,7 @@
     >
       <div v-if="modelValue" class="fixed inset-0 z-[100] pointer-events-none flex flex-col items-center justify-start overflow-y-auto sm:p-4 p-0 sm:py-8">
         <!-- Modal Content -->
-        <div class="relative my-auto w-full sm:max-w-sm bg-surface-raised border-t sm:border border-border-muted sm:rounded-3xl rounded-3xl shadow-2xl overflow-hidden flex flex-col pointer-events-auto" style="max-height: 80vh">
+        <div class="relative my-auto w-full sm:max-w-sm bg-surface-raised border-t sm:border border-border-muted sm:rounded-3xl rounded-3xl overflow-hidden flex flex-col pointer-events-auto" style="max-height: 80vh">
           <!-- Header -->
           <div class="flex items-center justify-between px-5 py-4 border-b border-border-muted/80 shrink-0">
             <div>

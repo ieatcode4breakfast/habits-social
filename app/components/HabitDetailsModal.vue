@@ -27,7 +27,7 @@
       <div v-if="modelValue && habit" 
         class="fixed inset-0 z-[100] pointer-events-none flex flex-col items-center justify-start overflow-y-auto sm:py-8 py-0"
       >
-        <div class="relative my-auto w-full h-full sm:h-auto sm:max-w-md max-w-none bg-surface-raised border-x-0 sm:border border-border-muted sm:rounded-3xl rounded-none shadow-2xl overflow-hidden transition-all duration-300 flex flex-col pointer-events-auto">
+        <div class="relative my-auto w-full h-full sm:h-auto sm:max-w-md max-w-none bg-surface-raised border-x-0 sm:border border-border-muted sm:rounded-3xl rounded-none overflow-hidden transition-all duration-300 flex flex-col pointer-events-auto">
           <div v-if="loading && (!logs || !logs.length)" class="flex justify-center p-12">
             <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-fg"></div>
           </div>

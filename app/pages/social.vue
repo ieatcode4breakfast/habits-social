@@ -46,7 +46,7 @@
       </div>
 
       <template v-else>
-        <div v-if="!feed || feed.length === 0" class="activity-content-surface bg-surface-raised/80 backdrop-blur-sm sm:rounded-2xl rounded-none border-y border-x-0 sm:border border-border-muted/80 p-10 text-center shadow-2xl flex flex-col items-center">
+        <div v-if="!feed || feed.length === 0" class="activity-content-surface bg-surface-raised/80 backdrop-blur-sm sm:rounded-2xl rounded-none border-y border-x-0 sm:border border-border-muted/80 p-10 text-center flex flex-col items-center">
         <div class="w-16 h-16 bg-surface-muted rounded-full flex items-center justify-center mx-auto mb-4 border border-border-muted">
           <Activity class="w-8 h-8 text-fg-subtle" />
         </div>
@@ -151,7 +151,7 @@
       </div>
       <template v-else>
         <!-- Incoming Requests Accordion -->
-      <div v-if="pendingIncoming.length > 0" v-motion-fade class="bg-surface-raised/80 backdrop-blur-sm sm:rounded-2xl rounded-none border-y border-x-0 sm:border border-border-muted/80 overflow-hidden shadow-2xl">
+      <div v-if="pendingIncoming.length > 0" v-motion-fade class="bg-surface-raised/80 backdrop-blur-sm sm:rounded-2xl rounded-none border-y border-x-0 sm:border border-border-muted/80 overflow-hidden">
       <button @click="isRequestsExpanded = !isRequestsExpanded"
         class="w-full flex items-center justify-between p-6 hover:bg-action-primary/5 transition-colors cursor-pointer group"
       >
@@ -189,7 +189,7 @@
     </div>
 
     <!-- Combined Social Sections -->
-    <div v-motion-fade class="bg-surface-raised/80 backdrop-blur-sm sm:rounded-2xl rounded-none shadow-2xl border-y border-x-0 sm:border border-border-muted/80 overflow-hidden">
+    <div v-motion-fade class="bg-surface-raised/80 backdrop-blur-sm sm:rounded-2xl rounded-none border-y border-x-0 sm:border border-border-muted/80 overflow-hidden">
       <!-- Search Users -->
       <div class="sm:p-6 sm:pb-0 py-6 pb-0">
         <h2 class="text-sm font-bold uppercase tracking-wider text-fg-subtle mb-2 px-6 sm:px-0">Search Users</h2>
@@ -323,7 +323,7 @@
       >
         <div v-if="showUnfriendModal" class="fixed inset-0 z-[110] flex flex-col items-center justify-start overflow-y-auto p-4 sm:py-8">
           <div class="fixed inset-0 bg-black/80 backdrop-blur-md touch-none" @click="showUnfriendModal = false"></div>
-          <div class="relative my-auto w-full max-w-sm bg-surface-raised border border-border-muted rounded-3xl shadow-2xl p-8 text-center">
+          <div class="relative my-auto w-full max-w-sm bg-surface-raised border border-border-muted rounded-3xl p-8 text-center">
             <div class="w-16 h-16 bg-surface-raised rounded-full flex items-center justify-center mx-auto mb-4">
               <User class="w-8 h-8 text-rose-500" />
             </div>
@@ -367,7 +367,7 @@
           <div class="fixed inset-0 bg-black/80 backdrop-blur-sm touch-none" @click="showActivityReplyFriendSelectModal = false"></div>
 
           <!-- Sibling Modal Card -->
-          <div class="relative w-full max-w-sm bg-surface-raised border border-border-muted rounded-2xl shadow-2xl flex flex-col max-h-[80vh] overflow-hidden select-none">
+          <div class="relative w-full max-w-sm bg-surface-raised border border-border-muted rounded-2xl flex flex-col max-h-[80vh] overflow-hidden select-none">
 
             <!-- Modal Header -->
             <div class="p-4 border-b border-border-muted/60 flex items-center justify-between">
@@ -443,7 +443,7 @@
       >
         <div v-if="showShareBeforeReplyModal" class="fixed inset-0 z-[160] flex items-center justify-center p-4">
           <div class="absolute inset-0 bg-black/80 backdrop-blur-md touch-none" @click="closeShareBeforeReplyModal"></div>
-          <div class="relative w-full max-w-sm bg-surface-raised border border-border-muted rounded-3xl shadow-2xl p-8 text-center">
+          <div class="relative w-full max-w-sm bg-surface-raised border border-border-muted rounded-3xl p-8 text-center">
             <div class="w-16 h-16 bg-surface-raised rounded-full flex items-center justify-center mx-auto mb-4">
               <UserPlus class="w-8 h-8 text-fg" />
             </div>

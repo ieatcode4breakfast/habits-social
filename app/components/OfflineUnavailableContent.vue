@@ -1,7 +1,7 @@
 <template>
   <div class="fixed inset-0 md:top-[57px] z-40 bg-surface-muted overflow-y-auto select-none flex flex-col">
     <div class="flex-1 flex items-center justify-center px-4 py-12 pb-24 md:pb-12">
-      <div class="w-full max-w-md bg-surface-solid border border-border-muted rounded-3xl p-8 shadow-2xl space-y-8 relative overflow-hidden">
+      <div class="w-full max-w-md bg-surface-solid border border-border-muted rounded-3xl p-8 space-y-8 relative overflow-hidden">
       <div class="absolute -top-20 -left-20 w-40 h-40 bg-surface-hover/10 rounded-full blur-3xl pointer-events-none"></div>
 
       <div class="text-center space-y-4 relative">
