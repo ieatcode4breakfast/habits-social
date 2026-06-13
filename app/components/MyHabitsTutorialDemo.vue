@@ -174,6 +174,38 @@
       @close="handleTutorialLogMenuClose"
     />
 
+    <!-- Mobile Bottom Navigation -->
+    <nav class="md:hidden fixed bottom-0 left-0 right-0 z-[91] bg-nav-bg border-t border-fg/5 px-6 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))]">
+      <div class="flex items-center justify-around">
+        <div class="flex items-center group transition-colors text-fg">
+          <div class="p-2 rounded-xl transition-all duration-300 bg-action-primary/10 scale-110">
+            <ListChecks class="w-6 h-6" />
+          </div>
+        </div>
+        <div class="flex items-center group transition-colors text-fg-subtle">
+          <div class="p-2 rounded-xl transition-all duration-300 group-hover:bg-action-primary/5">
+            <PaintBucket class="w-6 h-6" />
+          </div>
+        </div>
+        <div class="flex items-center group transition-colors text-fg-subtle relative">
+          <div class="p-2 rounded-xl transition-all duration-300 group-hover:bg-action-primary/5">
+            <Users class="w-6 h-6" />
+          </div>
+        </div>
+        <div class="flex items-center group transition-colors text-fg-subtle relative">
+          <div class="p-2 rounded-xl transition-all duration-300 group-hover:bg-action-primary/5">
+            <MessageCircle class="w-6 h-6" />
+          </div>
+          <div class="absolute top-1 right-1 w-2.5 h-2.5 bg-rose-500 rounded-full border-2 border-surface-muted"></div>
+        </div>
+        <div class="flex items-center group transition-colors text-fg-subtle">
+          <div class="p-2 rounded-xl transition-all duration-300 group-hover:bg-action-primary/5 active:bg-action-primary/10">
+            <Menu class="w-6 h-6" />
+          </div>
+        </div>
+      </div>
+    </nav>
+
     <div
       v-if="showHelpCenterMenu"
       class="fixed inset-x-0 top-0 bottom-[calc(4rem-6px+env(safe-area-inset-bottom,0px))] z-[92] bg-black/80 backdrop-blur-sm touch-none lg:hidden"
@@ -218,7 +250,7 @@
 
 <script setup lang="ts">
 import { subDays, format } from 'date-fns';
-import { CircleHelp, LogOut, MessageCircle, Plus, Sun, User as UserIcon } from 'lucide-vue-next';
+import { CircleHelp, ListChecks, LogOut, Menu, MessageCircle, PaintBucket, Plus, Sun, User as UserIcon, Users } from 'lucide-vue-next';
 import type { Habit, HabitLog } from '~/composables/useHabitsApi';
 import {
   MY_HABITS_TUTORIAL_DASHBOARD_HABITS,

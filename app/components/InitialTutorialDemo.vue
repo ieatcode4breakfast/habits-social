@@ -157,6 +157,38 @@
       </div>
     </div>
 
+    <!-- Mobile Bottom Navigation -->
+    <nav class="md:hidden fixed bottom-0 left-0 right-0 z-[91] bg-nav-bg border-t border-fg/5 px-6 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))]">
+      <div class="flex items-center justify-around">
+        <div class="flex items-center group transition-colors" :class="tutorialNavActiveTab === 'habits' ? 'text-fg' : 'text-fg-subtle'">
+          <div class="p-2 rounded-xl transition-all duration-300" :class="tutorialNavActiveTab === 'habits' ? 'bg-action-primary/10 scale-110' : 'group-hover:bg-action-primary/5'">
+            <ListChecks class="w-6 h-6" />
+          </div>
+        </div>
+        <div class="flex items-center group transition-colors text-fg-subtle">
+          <div class="p-2 rounded-xl transition-all duration-300 group-hover:bg-action-primary/5">
+            <PaintBucket class="w-6 h-6" />
+          </div>
+        </div>
+        <div class="flex items-center group transition-colors text-fg-subtle relative">
+          <div class="p-2 rounded-xl transition-all duration-300 group-hover:bg-action-primary/5">
+            <Users class="w-6 h-6" />
+          </div>
+        </div>
+        <div class="flex items-center group transition-colors text-fg-subtle relative">
+          <div class="p-2 rounded-xl transition-all duration-300 group-hover:bg-action-primary/5">
+            <MessageCircle class="w-6 h-6" />
+          </div>
+          <div class="absolute top-1 right-1 w-2.5 h-2.5 bg-rose-500 rounded-full border-2 border-surface-muted"></div>
+        </div>
+        <div class="flex items-center group transition-colors" :class="tutorialNavActiveTab === 'menu' ? 'text-fg' : 'text-fg-subtle'">
+          <div class="p-2 rounded-xl transition-all duration-300" :class="tutorialNavActiveTab === 'menu' ? 'bg-action-primary/10 scale-110' : 'group-hover:bg-action-primary/5 active:bg-action-primary/10'">
+            <Menu class="w-6 h-6" />
+          </div>
+        </div>
+      </div>
+    </nav>
+
     <!-- Mobile Bottom Nav Help Center (identical to MyHabitsTutorialDemo.vue) -->
     <div
       v-if="tutorialShowHelpCenterMenu"
@@ -203,7 +235,7 @@
 <script setup lang="ts">
 import { onMounted, onUnmounted, ref, nextTick } from 'vue';
 import { subDays, format } from 'date-fns';
-import { CircleHelp, LogOut, MessageCircle, Plus, Sun, User as UserIcon } from 'lucide-vue-next';
+import { CircleHelp, ListChecks, LogOut, Menu, MessageCircle, PaintBucket, Plus, Sun, User as UserIcon, Users } from 'lucide-vue-next';
 import { setTutorialCompleted } from '~/utils/tutorialFlags';
 import {
   MY_HABITS_TUTORIAL_DASHBOARD_HABITS,
@@ -227,6 +259,7 @@ const dateKey = (index: number) => format(days[index]!, 'yyyy-MM-dd');
 const demoRootRef = ref<HTMLElement | null>(null);
 
 const tutorialShowHelpCenterMenu = ref(false);
+const tutorialNavActiveTab = ref<'habits' | 'menu'>('habits');
 const demoHabits = MY_HABITS_TUTORIAL_DASHBOARD_HABITS;
 
 const buildStatusMap = (habit: MyHabitsTutorialDashboardHabit) => {
@@ -355,6 +388,7 @@ onMounted(async () => {
         },
         onHighlightStarted: () => {
           tutorialShowHelpCenterMenu.value = false;
+          tutorialNavActiveTab.value = 'habits';
         },
       },
       {
@@ -371,6 +405,7 @@ onMounted(async () => {
         },
         onHighlightStarted: () => {
           tutorialShowHelpCenterMenu.value = false;
+          tutorialNavActiveTab.value = 'habits';
         },
       },
       {
@@ -391,6 +426,7 @@ onMounted(async () => {
         onHighlightStarted: (el, _, { driver: d }) => {
           const needsBottomSheet = resolveTutorialHelpCenterTarget() === MY_HABITS_TUTORIAL_TARGETS.mobileHelpCenter;
           tutorialShowHelpCenterMenu.value = needsBottomSheet;
+          tutorialNavActiveTab.value = needsBottomSheet ? 'menu' : 'habits';
           if (!el) setTimeout(() => d.refresh(), 100);
         },
       },

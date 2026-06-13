@@ -84,7 +84,7 @@ export const MY_HABITS_TUTORIAL_PRIMARY_HABIT: MyHabitsTutorialPrimaryHabit = {
   sharedWith: [MY_HABITS_TUTORIAL_FRIENDS[0]!.id],
 };
 
-export const MY_HABITS_TUTORIAL_STREAK_HELP_PATH = '/help-center/habit-logs-and-streaks#streaks';
+export const MY_HABITS_TUTORIAL_STREAK_HELP_PATH = '/help-center/habit-logs-and-streaks';
 
 export const MY_HABITS_TUTORIAL_STATUS_COACH_TARGETS: Record<MyHabitsTutorialStatusKey, string> = {
   completed: 'my-habits-demo-status-completed',

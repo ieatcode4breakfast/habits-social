@@ -65,7 +65,7 @@ describe('useHelpArticle', () => {
 
     expect(resolveArticle).toHaveBeenLastCalledWith('/help-center/welcome');
 
-    path.value = '/help-center/habit-logs-and-streaks#streaks';
+    path.value = '/help-center/habit-logs-and-streaks';
 
     expect(key()).toBe('help-article-/help-center/habit-logs-and-streaks');
 
