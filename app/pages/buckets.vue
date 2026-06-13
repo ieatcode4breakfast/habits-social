@@ -12,6 +12,15 @@
       </div>
       <div class="flex items-center gap-2">
         <button
+          type="button"
+          @click="replayTutorial"
+          class="w-11 py-2.5 bg-surface-hover hover:bg-surface-hover text-fg-muted hover:text-fg font-semibold rounded-xl transition-all cursor-pointer text-sm flex items-center justify-center active:scale-95 border border-border-strong/60"
+          title="Help on this page"
+          aria-label="Help on this page"
+        >
+          <Lightbulb class="w-4 h-4" />
+        </button>
+        <button
           v-if="buckets.length > 1"
           @click="showReorderModal = true"
           class="w-11 sm:w-28 py-2.5 bg-surface-hover hover:bg-surface-hover text-fg-muted hover:text-fg font-semibold rounded-xl transition-all cursor-pointer text-sm flex items-center justify-center gap-2 active:scale-95 border border-border-strong/60"
@@ -103,6 +112,24 @@
       :bucket-title="editingBucket?.title || ''"
       :loading="isDeletingBucket"
       @confirm="handleDelete"
+    />
+
+    <BucketsTutorialDemo
+      v-if="showTutorialDemo"
+      :log-menu-status="tutorialLogMenuStatus"
+      :show-help-center-menu="tutorialShowHelpCenterMenu"
+      :expanded-bucket-id="tutorialExpandedBucketId"
+    />
+
+    <BucketModal
+      v-model="showTutorialAddModal"
+      :bucket="null"
+      :available-habits="tutorialAvailableHabits"
+      :status-map="{}"
+      :saving="false"
+      :tutorial-readonly="true"
+      :initial-values="tutorialPrefill"
+      @save="handleTutorialSave"
     />
 
     <!-- Bucket List -->
@@ -284,12 +311,23 @@
 </template>
 
 <script setup lang="ts">
-import { Plus, Trash2, Check, X as XIcon, Minus, ChevronLeft, ChevronRight, Flame, PaintBucket, Palmtree, Edit2, ChevronDown, ChevronUp, ArrowUpDown, GripVertical, CheckSquare, WifiOff } from 'lucide-vue-next';
+import { Plus, Trash2, Check, X as XIcon, Minus, ChevronLeft, ChevronRight, Flame, PaintBucket, Palmtree, Edit2, ChevronDown, ChevronUp, ArrowUpDown, GripVertical, CheckSquare, WifiOff, Lightbulb } from 'lucide-vue-next';
 import { format, subDays, startOfMonth, endOfMonth, eachDayOfInterval, addMonths, subMonths, isAfter, startOfDay, parseISO, startOfWeek, addDays, isSameDay, isSameWeek, isSameMonth } from 'date-fns';
 import type { Bucket, BucketLog, Habit, HabitLog } from '~/composables/useHabitsApi';
 import { getStreakTheme, isStreakFaded as isFaded, autoExpandTextarea as autoExpand, isMarkable } from '~/utils/ui';
 import { useSortable } from '@vueuse/integrations/useSortable';
 import { useCalendar } from '~/composables/useCalendar';
+import type { DriveStep, Driver, PopoverDOM } from 'driver.js';
+import { isBucketTutorialCompleted, setBucketTutorialCompleted } from '~/utils/tutorialFlags';
+import {
+  BUCKETS_TUTORIAL_FAKE_BUCKETS,
+  BUCKETS_TUTORIAL_FAKE_HABITS,
+  BUCKETS_TUTORIAL_STEP_COPY,
+  BUCKETS_TUTORIAL_STREAK_HELP_PATH,
+  BUCKETS_TUTORIAL_TARGETS,
+  getBucketsTutorialLayout,
+} from '~/utils/bucketsTutorialDemo';
+import type { MyHabitsTutorialStatusKey } from '~/utils/myHabitsTutorialDemo';
 
 type LogMenuStatus = Exclude<HabitLog['status'], 'cleared'> | null;
 
@@ -301,6 +339,7 @@ const { friends } = useSocial();
 const { lastSyncTime } = api;
 const { showToast } = useToast();
 const { isOnline } = useNetwork();
+const route = useRoute();
 const isOnlineMounted = ref(true);
 watch(isOnline, (val) => { isOnlineMounted.value = val; });
 
@@ -353,6 +392,38 @@ const calendarLoading = ref(false);
 const expandedBucketId = ref<string | null>(null);
 const activeLogMenu = ref<{ habitId: string, date: Date } | null>(null);
 const referenceRef = ref<HTMLElement | null>(null);
+
+// --- Tutorial State ---
+const isTutorialActive = ref(false);
+const showTutorialDemo = ref(false);
+const showTutorialAddModal = ref(false);
+const tutorialLogMenuStatus = ref<MyHabitsTutorialStatusKey | null>(null);
+const tutorialShowHelpCenterMenu = ref(false);
+const tutorialExpandedBucketId = ref<string | null>(null);
+const tutorialAvailableHabits: Habit[] = BUCKETS_TUTORIAL_FAKE_HABITS.map(h => ({
+  id: h.id,
+  ownerId: 'demo-user',
+  title: h.title,
+  description: '',
+  skipsCount: 2,
+  skipsPeriod: 'weekly',
+  color: '#6366f1',
+  sharedWith: [],
+  currentStreak: h.streak,
+}));
+const tutorialPrefill = computed(() => ({
+  title: BUCKETS_TUTORIAL_FAKE_BUCKETS[0]!.title,
+  description: 'A collection of habits to start the day right.',
+  habitIds: BUCKETS_TUTORIAL_FAKE_BUCKETS[0]!.habits.map(h => h.id),
+}));
+
+const handleTutorialSave = () => {};
+
+let tutorialDriver: Driver | null = null;
+let tutorialStarting = false;
+let tutorialCompleted = false;
+let tutorialDestroyingForCleanup = false;
+const helpModalOpen = useState<boolean>('help-modal-open', () => false);
 
 const onBucketCalendarMonthChange = async (newDate: Date) => {
   const start = format(startOfMonth(newDate), 'yyyy-MM-dd');
@@ -654,6 +725,344 @@ useModalHistory(isAnyModalOpen, () => {
   showDeleteModal.value = false;
 });
 
+// --- Tutorial Orchestration ---
+
+const isTutorialBlocked = computed(() => {
+  return (
+    showBucketModal.value ||
+    showHabitEditModal.value ||
+    showDeleteModal.value ||
+    showReorderModal.value ||
+    helpModalOpen.value ||
+    activeLogMenu.value !== null ||
+    loading.value ||
+    isSavingBucket.value
+  );
+});
+
+const coachSelector = (target: string) => `[data-coach-target="${target}"]`;
+
+const getCoachElement = (target: string): Element => {
+  const element = document.querySelector(coachSelector(target));
+  if (!element) {
+    throw new Error(`Missing tutorial coach target: ${target}`);
+  }
+  return element;
+};
+
+const tryGetCoachElement = (target: string): Element | null =>
+  document.querySelector(coachSelector(target));
+
+const waitForCoachElement = async (target: string, timeoutMs = 2000): Promise<Element | null> => {
+  const selector = coachSelector(target);
+  const startedAt = Date.now();
+
+  while (Date.now() - startedAt < timeoutMs) {
+    const el = document.querySelector(selector);
+    if (el) return el;
+    await new Promise(resolve => window.setTimeout(resolve, 50));
+  }
+
+  return document.querySelector(selector);
+};
+
+const completeTutorial = () => {
+  if (tutorialCompleted) return;
+  tutorialCompleted = true;
+  showTutorialAddModal.value = false;
+  showTutorialDemo.value = false;
+  tutorialLogMenuStatus.value = null;
+  tutorialShowHelpCenterMenu.value = false;
+  isTutorialActive.value = false;
+  if (user.value?.id) {
+    setBucketTutorialCompleted(user.value.id);
+  }
+  if (tutorialDriver) {
+    const d = tutorialDriver;
+    tutorialDriver = null;
+    d.destroy();
+  }
+};
+
+const cleanupTutorial = () => {
+  const d = tutorialDriver;
+  tutorialDriver = null;
+  tutorialDestroyingForCleanup = true;
+  showTutorialAddModal.value = false;
+  showTutorialDemo.value = false;
+  tutorialLogMenuStatus.value = null;
+  tutorialShowHelpCenterMenu.value = false;
+  isTutorialActive.value = false;
+  if (d?.isActive()) d.destroy();
+  tutorialDestroyingForCleanup = false;
+};
+
+const startTutorial = async (options: { force?: boolean } = {}) => {
+  if (!import.meta.client) return;
+  if (tutorialStarting) return;
+  if (tutorialDriver) return;
+  if (route.path !== '/buckets') return;
+  if (isTutorialBlocked.value) return;
+  if (!user.value?.id || (!options.force && isBucketTutorialCompleted(user.value.id))) return;
+
+  tutorialStarting = true;
+  showTutorialDemo.value = true;
+  await nextTick();
+  const addTarget = await waitForCoachElement('buckets-demo-add');
+  if (!addTarget || route.path !== '/buckets' || isTutorialBlocked.value || !user.value?.id || (!options.force && isBucketTutorialCompleted(user.value.id))) {
+    showTutorialDemo.value = false;
+    tutorialStarting = false;
+    return;
+  }
+
+  const { driver } = await import('driver.js');
+
+  tutorialCompleted = false;
+  const BUCKET_CREATED_STEP_INDEX = 6;
+
+  const advanceFromAddStep = async (d: Driver) => {
+    showTutorialAddModal.value = true;
+    isTutorialActive.value = true;
+    await nextTick();
+    const nameTarget = await waitForCoachElement('buckets-add-name');
+    if (!nameTarget) {
+      completeTutorial();
+      return;
+    }
+    d.moveNext();
+  };
+
+  const advanceFromSaveStep = async (d: Driver) => {
+    showTutorialAddModal.value = false;
+    isTutorialActive.value = false;
+    await nextTick();
+    const createdTarget = await waitForCoachElement(getBucketsTutorialLayout(window.innerWidth).created.target);
+    if (!createdTarget) {
+      completeTutorial();
+      return;
+    }
+    d.moveNext();
+  };
+
+  const advanceTutorialFromOverlay = async (d: Driver) => {
+    if (d.isLastStep()) return;
+
+    const activeIndex = d.getActiveIndex();
+    if (activeIndex === 0) {
+      await advanceFromAddStep(d);
+      return;
+    }
+    if (activeIndex === 5) {
+      await advanceFromSaveStep(d);
+      return;
+    }
+
+    d.moveNext();
+  };
+
+  const labelSkipAllButton = (popover: PopoverDOM) => {
+    popover.closeButton.textContent = 'Skip all';
+    popover.closeButton.setAttribute('aria-label', 'Skip all');
+    popover.closeButton.classList.add('driver-popover-skip-all-btn');
+    popover.progress.insertAdjacentElement('afterend', popover.closeButton);
+
+    const streakHelpLink = popover.description.querySelector<HTMLAnchorElement>(`a[href="${BUCKETS_TUTORIAL_STREAK_HELP_PATH}"]`);
+    streakHelpLink?.addEventListener('click', () => {
+      completeTutorial();
+    });
+  };
+
+  tutorialDriver = driver({
+    animate: true,
+    overlayOpacity: 0.5,
+    allowClose: true,
+    disableActiveInteraction: true,
+    overlayClickBehavior: (_, __, { driver: d }) => {
+      void advanceTutorialFromOverlay(d);
+    },
+    doneBtnText: 'Finish',
+    nextBtnText: 'Next',
+    prevBtnText: 'Previous',
+    showProgress: true,
+    progressText: '{{current}} of {{total}}',
+    onPopoverRender: labelSkipAllButton,
+
+    onCloseClick: () => {
+      completeTutorial();
+    },
+
+    onDestroyed: () => {
+      if (!tutorialDestroyingForCleanup && !tutorialCompleted && user.value?.id) {
+        tutorialCompleted = true;
+        setBucketTutorialCompleted(user.value.id);
+      }
+      showTutorialAddModal.value = false;
+      showTutorialDemo.value = false;
+      tutorialLogMenuStatus.value = null;
+      tutorialShowHelpCenterMenu.value = false;
+      isTutorialActive.value = false;
+      tutorialDriver = null;
+    },
+
+    steps: [
+      {
+        element: () => getCoachElement('buckets-demo-add'),
+        popover: {
+          title: BUCKETS_TUTORIAL_STEP_COPY.welcome.title,
+          description: BUCKETS_TUTORIAL_STEP_COPY.welcome.description,
+          side: 'bottom',
+          align: 'end',
+          showButtons: ['next', 'close'],
+          onNextClick: async (_, __, { driver: d }) => {
+            await advanceFromAddStep(d);
+          },
+        },
+        onHighlightStarted: () => {
+          tutorialLogMenuStatus.value = null;
+          tutorialShowHelpCenterMenu.value = false;
+          if (showTutorialAddModal.value) {
+            showTutorialAddModal.value = false;
+            isTutorialActive.value = false;
+          }
+        },
+      },
+      {
+        element: () => getCoachElement('buckets-add-name'),
+        popover: {
+          description: BUCKETS_TUTORIAL_STEP_COPY.name.description,
+          side: 'bottom',
+          showButtons: ['next', 'previous', 'close'],
+          onPrevClick: async (_, __, { driver: d }) => {
+            showTutorialAddModal.value = false;
+            isTutorialActive.value = false;
+            await nextTick();
+            d.movePrevious();
+          },
+        },
+        onHighlightStarted: (el, _, { driver: d }) => {
+          tutorialLogMenuStatus.value = null;
+          tutorialShowHelpCenterMenu.value = false;
+          if (!el && d.getActiveIndex() === 1) {
+            setTimeout(() => d.refresh(), 100);
+          }
+        },
+      },
+      {
+        element: () => getCoachElement('buckets-add-description'),
+        popover: {
+          description: BUCKETS_TUTORIAL_STEP_COPY.description.description,
+          side: 'bottom',
+          showButtons: ['next', 'previous', 'close'],
+        },
+        onHighlightStarted: (el, _, { driver: d }) => {
+          tutorialLogMenuStatus.value = null;
+          tutorialShowHelpCenterMenu.value = false;
+          if (!el) setTimeout(() => d.refresh(), 100);
+        },
+      },
+      {
+        element: () => getCoachElement('buckets-add-habits'),
+        popover: {
+          description: BUCKETS_TUTORIAL_STEP_COPY.habits.description,
+          side: 'bottom',
+          showButtons: ['next', 'previous', 'close'],
+        },
+        onHighlightStarted: (el, _, { driver: d }) => {
+          tutorialLogMenuStatus.value = null;
+          tutorialShowHelpCenterMenu.value = false;
+          if (!el) setTimeout(() => d.refresh(), 100);
+        },
+      },
+      {
+        element: () => getCoachElement('buckets-add-save'),
+        popover: {
+          description: BUCKETS_TUTORIAL_STEP_COPY.save.description,
+          side: 'top',
+          showButtons: ['next', 'previous', 'close'],
+          onNextClick: async (_, __, { driver: d }) => {
+            await advanceFromSaveStep(d);
+          },
+        },
+        onHighlightStarted: (el, _, { driver: d }) => {
+          tutorialLogMenuStatus.value = null;
+          tutorialShowHelpCenterMenu.value = false;
+          if (!el) setTimeout(() => d.refresh(), 100);
+        },
+      },
+      {
+        element: () => getCoachElement(getBucketsTutorialLayout(window.innerWidth).created.target),
+        popover: {
+          description: BUCKETS_TUTORIAL_STEP_COPY.created.description,
+          side: getBucketsTutorialLayout(window.innerWidth).created.side,
+          align: getBucketsTutorialLayout(window.innerWidth).created.align,
+          showButtons: ['next', 'previous', 'close'],
+          onPrevClick: async (_, __, { driver: d }) => {
+            showTutorialAddModal.value = true;
+            isTutorialActive.value = true;
+            await nextTick();
+            const saveTarget = await waitForCoachElement('buckets-add-save');
+            if (!saveTarget) {
+              completeTutorial();
+              return;
+            }
+            d.movePrevious();
+          },
+        },
+        onHighlightStarted: () => {
+          showTutorialAddModal.value = false;
+          isTutorialActive.value = false;
+          tutorialLogMenuStatus.value = null;
+          tutorialShowHelpCenterMenu.value = false;
+        },
+      },
+      {
+        popover: {
+          title: BUCKETS_TUTORIAL_STEP_COPY.completionRule.title,
+          description: BUCKETS_TUTORIAL_STEP_COPY.completionRule.description,
+          showButtons: ['next', 'previous', 'close'],
+        },
+        onHighlightStarted: () => {
+          showTutorialAddModal.value = false;
+          isTutorialActive.value = false;
+          tutorialLogMenuStatus.value = null;
+          tutorialShowHelpCenterMenu.value = false;
+        },
+      },
+      {
+        popover: {
+          description: BUCKETS_TUTORIAL_STEP_COPY.streakHelp.description,
+          showButtons: ['next', 'previous', 'close'],
+          onNextClick: () => {
+            completeTutorial();
+          },
+          onPrevClick: async (_, __, { driver: d }) => {
+            await nextTick();
+            const createdTarget = await waitForCoachElement(getBucketsTutorialLayout(window.innerWidth).created.target);
+            if (!createdTarget) {
+              completeTutorial();
+              return;
+            }
+            d.movePrevious();
+          },
+        },
+        onHighlightStarted: () => {
+          showTutorialAddModal.value = false;
+          isTutorialActive.value = false;
+          tutorialLogMenuStatus.value = null;
+          tutorialShowHelpCenterMenu.value = false;
+        },
+      },
+    ],
+  });
+
+  tutorialDriver.drive(0);
+  tutorialStarting = false;
+};
+
+const replayTutorial = () => {
+  void startTutorial({ force: true });
+};
+
 onMounted(() => {
   isMounted.value = true;
   isOnlineMounted.value = isOnline.value;
@@ -661,11 +1070,19 @@ onMounted(() => {
   if (isOnline.value) {
     api.sync();
   }
+
+  if (isOnline.value) {
+    void startTutorial();
+  }
 });
 
 watch(lastSyncTime, () => {
   console.log('[Buckets] Background sync detected, refreshing data...');
   load(true);
+});
+
+onUnmounted(() => {
+  cleanupTutorial();
 });
 
 </script>

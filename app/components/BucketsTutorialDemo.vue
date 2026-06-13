@@ -16,8 +16,8 @@
           </div>
 
           <nav class="hidden md:flex items-center gap-1 ml-2">
-            <div class="px-3 py-1.5 text-sm font-medium rounded-lg text-[var(--nav-link-fg-active)] bg-[var(--nav-link-bg-active)] transition-colors">My Habits</div>
-            <div class="px-3 py-1.5 text-sm font-medium rounded-lg text-[var(--nav-link-fg-inactive)] transition-colors">Buckets</div>
+            <div class="px-3 py-1.5 text-sm font-medium rounded-lg text-[var(--nav-link-fg-inactive)] transition-colors">My Habits</div>
+            <div class="px-3 py-1.5 text-sm font-medium rounded-lg text-[var(--nav-link-fg-active)] bg-[var(--nav-link-bg-active)] transition-colors">Buckets</div>
             <div class="px-3 py-1.5 text-sm font-medium rounded-lg text-[var(--nav-link-fg-inactive)] transition-colors">Social</div>
             <div class="px-3 py-1.5 text-sm font-medium rounded-lg text-[var(--nav-link-fg-inactive)] transition-colors flex items-center gap-2">
               Inbox
@@ -56,15 +56,11 @@
     <div class="min-h-[100dvh] md:min-h-[calc(100dvh-57px)] max-w-5xl mx-auto px-0 sm:px-6 lg:px-8 pb-20 md:pb-12">
       <div class="sticky top-0 md:top-[57px] z-40 bg-surface-inset">
         <div class="px-4 sm:px-0 flex items-end justify-between gap-4 bg-surface-inset pt-2 pb-2 sm:pt-4">
-          <div class="flex items-center gap-4">
-            <UserAvatar
-              :src="null"
-              container-class="w-10 h-10 bg-surface-raised rounded-xl shadow-sm"
-              icon-class="w-6 h-6 text-fg-subtle"
-            />
+          <div class="flex items-center gap-3">
+            <PaintBucket class="w-7 h-7 text-fg-muted shrink-0" />
             <div>
-              <h1 class="text-base font-bold tracking-tight text-fg">My Habits</h1>
-              <p class="text-fg-muted text-xs">2 habits</p>
+              <h1 class="text-base font-bold tracking-tight text-fg">Buckets</h1>
+              <p class="text-fg-muted text-xs">{{ demoBuckets.length }} bucket{{ demoBuckets.length === 1 ? '' : 's' }}</p>
             </div>
           </div>
 
@@ -90,8 +86,8 @@
             <button
               type="button"
               class="w-11 sm:w-28 py-2.5 bg-action-primary hover:bg-action-primary-hover text-action-primary-fg font-semibold rounded-xl transition-all shadow-lg shadow-fg-inverted/5 cursor-pointer text-sm flex items-center justify-center gap-2 active:scale-95"
-              title="Add Habit"
-              data-coach-target="my-habits-demo-add"
+              title="Add Bucket"
+              data-coach-target="buckets-demo-add"
               tabindex="-1"
             >
               <Plus class="w-4 h-4" />
@@ -124,46 +120,94 @@
         </div>
       </div>
 
-      <div class="habits-content-surface sm:rounded-b-2xl rounded-none overflow-hidden border-b border-x-0 sm:border-x sm:border-b relative backdrop-blur-md bg-surface-raised/80 border-border-muted/80">
-        <div class="divide-y divide-border-muted/80 w-full">
+      <div class="buckets-content-surface sm:rounded-b-2xl rounded-none overflow-hidden border-b border-x-0 sm:border-x sm:border-b relative backdrop-blur-md bg-surface-raised/80 border-border-muted/80">
+        <div class="w-full">
           <div
-            v-for="habit in demoHabits"
-            :key="habit.id"
-            class="relative py-3 transition-colors flex flex-col items-stretch sm:flex-row sm:flex-nowrap sm:items-center sm:justify-between gap-x-4 gap-y-2 sm:px-4 bg-surface-raised/80"
-            :data-coach-target="habit.id === primaryHabitId ? MY_HABITS_TUTORIAL_TARGETS.addedHabitRow : undefined"
+            v-for="bucket in demoBuckets"
+            :key="bucket.id"
+            class="border-b border-border-muted/80 last:border-b-0"
           >
             <div
-              class="w-full px-4 sm:px-0 sm:flex-1 sm:min-w-[200px] flex flex-col gap-1 sm:pr-2"
-              :data-coach-target="habit.id === primaryHabitId ? MY_HABITS_TUTORIAL_TARGETS.addedHabitSummary : undefined"
+              class="relative py-3 transition-colors bg-surface-raised/80"
             >
-              <div class="flex justify-between items-start gap-4">
-                <div class="flex-1 min-w-0">
-                  <h3 class="text-sm font-bold text-fg leading-tight break-all">
-                    {{ habit.title }}
-                    <span class="inline-flex items-center gap-1 px-1.5 py-0.5 bg-surface-inset border border-emerald-500/50 rounded-md shrink-0 align-middle ml-1.5">
-                      <span class="text-[9px] font-black tracking-tight text-emerald-500">x{{ habit.streak }} STREAK</span>
-                    </span>
-                  </h3>
+              <div
+                class="flex flex-col items-stretch sm:flex-row sm:items-center sm:justify-between gap-x-4 gap-y-2 sm:px-4"
+              >
+                <div
+                  class="w-full px-4 sm:px-0 sm:flex-1 sm:min-w-[200px] flex flex-col gap-0.5 sm:pr-2"
+                  :data-coach-target="BUCKETS_TUTORIAL_TARGETS.bucketRow"
+                >
+                  <div class="flex items-start gap-2">
+                    <ChevronRight
+                      class="w-4 h-4 text-fg-subtle mt-0.5 shrink-0"
+                    />
+                    <h3 class="text-sm font-bold text-fg leading-tight break-all flex-1 min-w-0">
+                      {{ bucket.title }}
+                      <span class="inline-flex items-center gap-1 px-1.5 py-0.5 bg-surface-inset border border-emerald-500/50 rounded-md shrink-0 align-middle ml-1.5">
+                        <span class="text-[9px] font-black tracking-tight text-emerald-500">x{{ bucket.streak }} STREAK</span>
+                      </span>
+                    </h3>
+                  </div>
+                  <div class="flex items-center gap-2 text-[10px] text-fg-subtle font-medium ml-6 mt-1">
+                    <span>{{ bucket.habits.length }} habits</span>
+                  </div>
+                </div>
+
+                <div class="px-4 sm:px-0">
+                  <TimelineRow
+                    :days="days"
+                    :reference-date="today"
+                    :status-map="buildStatusMap(bucket)"
+                    cell-shape="square"
+                  />
+                </div>
+
+                <div class="hidden sm:flex w-7 shrink-0 items-center justify-center">
+                  <MessageCircle class="w-5 h-5 text-fg-subtle opacity-70" />
                 </div>
               </div>
-              <div class="text-[10px] font-semibold tracking-tight text-fg-subtle mt-0.5">
-                {{ habit.frequency }}
+
+              <div
+                v-if="expandedBucketId === bucket.id"
+                class="border-t border-border-muted/50 mt-3"
+              >
+                <div class="divide-y divide-border-muted/30">
+                  <div
+                    v-for="habit in bucket.habits"
+                    :key="habit.id"
+                    class="flex flex-col items-stretch sm:flex-row sm:items-center sm:justify-between gap-x-4 gap-y-2 py-3 sm:px-4"
+                  >
+                    <div
+                      class="w-full px-4 sm:px-0 sm:flex-1 sm:min-w-[200px] flex items-center gap-2"
+                    >
+                      <div class="w-4 h-4 shrink-0"></div>
+                      <div class="min-w-0 flex-1 flex items-center gap-2">
+                        <span class="text-xs sm:text-sm font-bold text-fg-muted truncate">{{ habit.title }}</span>
+                        <div
+                          v-if="habit.streak >= 2"
+                          class="flex items-center gap-1 px-1.5 py-0.5 bg-surface-inset border border-emerald-500/50 rounded-md shrink-0"
+                        >
+                          <span class="text-[9px] font-black tracking-tight text-emerald-500">x{{ habit.streak }} STREAK</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div>
+                      <TimelineRow
+                        interactive
+                        :days="days"
+                        :reference-date="today"
+                        :status-map="buildHabitStatusMap(habit)"
+                        @click-day="(day, event) => handleTutorialHabitClick(habit, day, event)"
+                      />
+                    </div>
+
+                    <div class="hidden sm:flex w-7 shrink-0 items-center justify-center">
+                      <MessageCircle class="w-5 h-5 text-fg-subtle opacity-70" />
+                    </div>
+                  </div>
+                </div>
               </div>
-            </div>
-
-            <div
-              :data-coach-target="habit.id === primaryHabitId ? MY_HABITS_TUTORIAL_TARGETS.logStatus : undefined"
-            >
-              <TimelineRow
-                :days="days"
-                :reference-date="today"
-                :status-map="buildStatusMap(habit)"
-                :coach-target-map="buildCoachTargetMap(habit)"
-              />
-            </div>
-
-            <div class="hidden sm:flex w-7 shrink-0 items-center justify-center">
-              <MessageCircle class="w-5 h-5 text-fg-subtle opacity-70" />
             </div>
           </div>
         </div>
@@ -177,22 +221,21 @@
       :logs="tutorialLogMenuLogs"
       :reference-el="logMenuReferenceRef"
       option-mode="all"
-      menu-coach-target="my-habits-demo-log-menu"
+      menu-coach-target="buckets-demo-log-menu"
       :coach-target-by-status="MY_HABITS_TUTORIAL_STATUS_MENU_COACH_TARGETS"
       @select="handleTutorialLogMenuSelect"
       @close="handleTutorialLogMenuClose"
     />
 
-    <!-- Mobile Bottom Navigation -->
     <nav class="md:hidden fixed bottom-0 left-0 right-0 z-[91] bg-nav-bg border-t border-fg/5 px-6 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))]">
       <div class="flex items-center justify-around">
-        <div class="flex items-center group transition-colors text-fg">
-          <div class="p-2 rounded-xl transition-all duration-300 bg-action-primary/10 scale-110">
+        <div class="flex items-center group transition-colors text-fg-subtle">
+          <div class="p-2 rounded-xl transition-all duration-300 group-hover:bg-action-primary/5">
             <ListChecks class="w-6 h-6" />
           </div>
         </div>
-        <div class="flex items-center group transition-colors text-fg-subtle">
-          <div class="p-2 rounded-xl transition-all duration-300 group-hover:bg-action-primary/5">
+        <div class="flex items-center group transition-colors text-fg">
+          <div class="p-2 rounded-xl transition-all duration-300 bg-action-primary/10 scale-110">
             <PaintBucket class="w-6 h-6" />
           </div>
         </div>
@@ -258,61 +301,64 @@
 </template>
 
 <script setup lang="ts">
+import { ref, watch, nextTick } from 'vue';
 import { subDays, format } from 'date-fns';
-import { ArrowUpDown, CircleHelp, Lightbulb, ListChecks, LogOut, Menu, MessageCircle, PaintBucket, Plus, Sun, User as UserIcon, Users } from 'lucide-vue-next';
+import { ArrowUpDown, CircleHelp, Lightbulb, ListChecks, LogOut, Menu, MessageCircle, PaintBucket, Plus, Sun, User as UserIcon, Users, ChevronRight } from 'lucide-vue-next';
 import type { Habit, HabitLog } from '~/composables/useHabitsApi';
 import {
-  MY_HABITS_TUTORIAL_DASHBOARD_HABITS,
-  MY_HABITS_TUTORIAL_PRIMARY_DASHBOARD_HABIT,
+  BUCKETS_TUTORIAL_FAKE_BUCKETS,
+  BUCKETS_TUTORIAL_TARGETS,
+  type BucketsTutorialFakeHabit,
+} from '~/utils/bucketsTutorialDemo';
+import {
   MY_HABITS_TUTORIAL_STATUS_COACH_TARGETS,
   MY_HABITS_TUTORIAL_STATUS_MENU_COACH_TARGETS,
   MY_HABITS_TUTORIAL_TARGETS,
-  type MyHabitsTutorialDashboardHabit,
   type MyHabitsTutorialStatusKey,
 } from '~/utils/myHabitsTutorialDemo';
 
 const props = defineProps<{
   logMenuStatus?: MyHabitsTutorialStatusKey | null;
   showHelpCenterMenu?: boolean;
+  expandedBucketId?: string | null;
 }>();
 
 const today = new Date(2026, 5, 13);
 const logoSrc = '/icons/icon-192.png';
 const days = Array.from({ length: 7 }, (_, i) => subDays(today, 6 - i));
-const primaryHabitId = MY_HABITS_TUTORIAL_PRIMARY_DASHBOARD_HABIT.id;
 const dateKey = (index: number) => format(days[index]!, 'yyyy-MM-dd');
 const demoRootRef = ref<HTMLElement | null>(null);
 const logMenuReferenceRef = ref<HTMLElement | null>(null);
 
 const tutorialLogHabit: Habit = {
-  id: MY_HABITS_TUTORIAL_PRIMARY_DASHBOARD_HABIT.id,
+  id: BUCKETS_TUTORIAL_FAKE_BUCKETS[0]!.habits[0]!.id,
   ownerId: 'demo-user',
-  title: MY_HABITS_TUTORIAL_PRIMARY_DASHBOARD_HABIT.title,
+  title: BUCKETS_TUTORIAL_FAKE_BUCKETS[0]!.habits[0]!.title,
   description: '',
   skipsCount: 2,
   skipsPeriod: 'weekly',
   color: '#10b981',
   sharedWith: [],
-  currentStreak: MY_HABITS_TUTORIAL_PRIMARY_DASHBOARD_HABIT.streak,
+  currentStreak: BUCKETS_TUTORIAL_FAKE_BUCKETS[0]!.habits[0]!.streak,
 };
 
 const tutorialLogMenuLogs: HabitLog[] = [];
 
-const buildStatusMap = (habit: MyHabitsTutorialDashboardHabit) => {
+const buildStatusMap = (bucket: typeof BUCKETS_TUTORIAL_FAKE_BUCKETS[number]) => {
+  return Object.entries(bucket.statusesByDayIndex).reduce<Record<string, string | undefined>>((map, [index, status]) => {
+    map[dateKey(Number(index))] = status;
+    return map;
+  }, {});
+};
+
+const buildHabitStatusMap = (habit: BucketsTutorialFakeHabit) => {
   return Object.entries(habit.statusesByDayIndex).reduce<Record<string, string | undefined>>((map, [index, status]) => {
     map[dateKey(Number(index))] = status;
     return map;
   }, {});
 };
 
-const buildCoachTargetMap = (habit: MyHabitsTutorialDashboardHabit) => {
-  return Object.entries(habit.coachTargetsByDayIndex ?? {}).reduce<Record<string, string | undefined>>((map, [index, target]) => {
-    map[dateKey(Number(index))] = target;
-    return map;
-  }, {});
-};
-
-const demoHabits = MY_HABITS_TUTORIAL_DASHBOARD_HABITS;
+const demoBuckets = BUCKETS_TUTORIAL_FAKE_BUCKETS;
 
 watch(
   () => props.logMenuStatus,
@@ -333,4 +379,5 @@ watch(
 
 const handleTutorialLogMenuSelect = () => {};
 const handleTutorialLogMenuClose = () => {};
+const handleTutorialHabitClick = (habit: BucketsTutorialFakeHabit, day: Date, event: MouseEvent) => {};
 </script>

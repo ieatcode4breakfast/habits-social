@@ -11,7 +11,7 @@
       <div
         v-if="modelValue"
         class="fixed inset-0 z-[100] bg-black/80 backdrop-blur-md touch-none"
-        @click="$emit('update:modelValue', false)"
+        @click="handleOverlayClick"
       ></div>
     </Transition>
 
@@ -30,7 +30,7 @@
         >
           <!-- Sticky Header -->
           <div class="sticky top-0 z-10 bg-surface-raised px-4 sm:px-8 py-4 sm:py-6 border-b border-border-muted/80 flex items-center gap-1 shrink-0">
-            <button @click="$emit('update:modelValue', false)" class="p-2 -ml-2 text-fg-subtle hover:text-fg transition-all cursor-pointer flex-shrink-0">
+            <button @click="handleBackClick" :disabled="tutorialReadonly" class="p-2 -ml-2 text-fg-subtle hover:text-fg transition-all cursor-pointer flex-shrink-0 disabled:opacity-60 disabled:cursor-not-allowed">
               <ChevronLeft class="w-6 h-6" />
             </button>
             <div class="flex-1 min-w-0">
@@ -71,7 +71,7 @@
           <!-- Scrollable Content -->
           <div class="flex-1 overflow-y-auto p-4 sm:p-8 sm:py-6">
             <form id="bucketForm" @submit.prevent="handleSave" class="space-y-6">
-              <div class="space-y-2">
+              <div class="space-y-2" data-coach-target="buckets-add-name">
                 <label class="text-xs font-bold uppercase tracking-widest text-fg-subtle">Name</label>
                 <input
                   v-model="title"
@@ -79,11 +79,12 @@
                   placeholder="e.g. Morning Routine"
                   required
                   maxlength="50"
-                  class="w-full px-4 py-3 bg-surface-inset border border-border-muted rounded-xl focus:outline-none focus:ring-2 focus:ring-border-strong text-fg placeholder-fg-subtle transition-all"
+                  :disabled="tutorialReadonly"
+                  class="w-full px-4 py-3 bg-surface-inset border border-border-muted rounded-xl focus:outline-none focus:ring-2 focus:ring-border-strong text-fg placeholder-fg-subtle transition-all disabled:opacity-60 disabled:cursor-not-allowed"
                 />
               </div>
 
-              <div class="space-y-2">
+              <div class="space-y-2" data-coach-target="buckets-add-description">
                 <label class="text-xs font-bold uppercase tracking-widest text-fg-subtle">Description</label>
                 <div class="relative">
                   <textarea
@@ -91,8 +92,9 @@
                     rows="1"
                     maxlength="300"
                     placeholder=""
+                    :disabled="tutorialReadonly"
                     @input="autoExpandTextarea"
-                    class="w-full px-4 py-3 bg-surface-inset border border-border-muted rounded-xl focus:outline-none focus:ring-2 focus:ring-border-strong text-fg placeholder-fg-subtle transition-all resize-none overflow-hidden"
+                    class="w-full px-4 py-3 bg-surface-inset border border-border-muted rounded-xl focus:outline-none focus:ring-2 focus:ring-border-strong text-fg placeholder-fg-subtle transition-all resize-none overflow-hidden disabled:opacity-60 disabled:cursor-not-allowed"
                   ></textarea>
                   <div class="absolute -bottom-5 right-1 text-[10px] font-bold text-fg-subtle">
                     {{ description.length }}/300
@@ -161,20 +163,21 @@
               </div>
 
               <!-- Habits Group -->
-              <div class="space-y-2 pt-4">
+              <div class="space-y-2 pt-4" data-coach-target="buckets-add-habits">
                 <div class="flex items-center justify-between">
                   <label class="text-xs font-bold uppercase tracking-widest text-fg-subtle">Habits in this bucket</label>
                   <button 
                     type="button"
                     @click="toggleSelectAll"
-                    class="p-1 text-fg-subtle hover:text-fg transition-colors cursor-pointer"
+                    :disabled="tutorialReadonly"
+                    class="p-1 text-fg-subtle hover:text-fg transition-colors cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
                   >
                     <CheckSquare class="w-4 h-4" />
                   </button>
                 </div>
 
                 <div class="space-y-2 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
-                  <label v-for="habit in sortedHabits" :key="habit.id" class="flex items-center justify-between p-3 bg-surface-inset border border-surface-raised rounded-xl cursor-pointer hover:border-border-muted transition-colors">
+                  <label v-for="habit in sortedHabits" :key="habit.id" class="flex items-center justify-between p-3 bg-surface-inset border border-surface-raised rounded-xl transition-colors" :class="tutorialReadonly ? 'cursor-not-allowed opacity-70' : 'cursor-pointer hover:border-border-muted'">
                     <span class="text-sm font-semibold text-fg truncate flex-1 min-w-0 mr-4">{{ habit.title }}</span>
                     <div 
                       class="w-6 h-6 rounded-lg flex items-center justify-center transition-all"
@@ -182,7 +185,7 @@
                     >
                       <Check v-if="selectedHabitIds.includes(habit.id)" class="w-3.5 h-3.5 text-white" />
                     </div>
-                    <input type="checkbox" :value="habit.id" v-model="selectedHabitIds" class="hidden" />
+                    <input type="checkbox" :value="habit.id" v-model="selectedHabitIds" :disabled="tutorialReadonly" class="hidden" />
                   </label>
                 </div>
               </div>
@@ -191,12 +194,14 @@
 
           <!-- Footer -->
           <div class="px-8 py-4 border-t border-border-muted bg-surface-raised/80 backdrop-blur-md flex gap-3">
-            <button @click="$emit('update:modelValue', false)" class="flex-1 px-5 py-3 text-fg-muted hover:text-fg font-semibold rounded-xl transition-all cursor-pointer">Cancel</button>
+            <button @click="handleBackClick" :disabled="tutorialReadonly" class="flex-1 px-5 py-3 text-fg-muted hover:text-fg font-semibold rounded-xl transition-all cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed">Cancel</button>
             <button 
               type="submit"
               form="bucketForm" 
               :disabled="saving"
-              class="flex-1 px-5 py-3 bg-action-primary hover:bg-action-primary-hover text-action-primary-fg font-semibold rounded-xl transition-all shadow-lg shadow-fg-inverted/5 flex items-center justify-center gap-2 cursor-pointer"
+              :aria-disabled="tutorialReadonly || saving ? 'true' : undefined"
+              data-coach-target="buckets-add-save"
+              class="flex-1 px-5 py-3 bg-action-primary hover:bg-action-primary-hover text-action-primary-fg font-semibold rounded-xl transition-all shadow-lg shadow-fg-inverted/5 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
             >
               {{ isEdit ? 'Save' : 'Add Bucket' }}
             </button>
@@ -216,14 +221,25 @@ import { getStreakTheme, isStreakFaded, autoExpandTextarea, isMarkable } from '~
 import { useCalendar } from '~/composables/useCalendar';
 import type { Bucket, Habit } from '~/composables/useHabitsApi';
 
-const props = defineProps<{
+export type TutorialInitialValues = {
+  title?: string;
+  description?: string;
+  habitIds?: string[];
+};
+
+const props = withDefaults(defineProps<{
   modelValue: boolean;
   bucket: Bucket | null;
   availableHabits: Habit[];
   statusMap: Record<string, string | undefined>;
   loading?: boolean;
   saving?: boolean;
-}>();
+  tutorialReadonly?: boolean;
+  initialValues?: TutorialInitialValues;
+}>(), {
+  tutorialReadonly: false,
+  initialValues: () => ({}),
+});
 
 const emit = defineEmits(['update:modelValue', 'save', 'delete', 'change-month']);
 
@@ -244,9 +260,15 @@ const nextMonth = () => { nextMonthRaw(); emit('change-month', currentCalendarDa
 
 watch(() => props.modelValue, (isOpen) => {
   if (isOpen) {
-    title.value = props.bucket?.title || '';
-    description.value = props.bucket?.description || '';
-    selectedHabitIds.value = [...(props.bucket?.habitIds || [])];
+    if (props.tutorialReadonly && props.initialValues) {
+      title.value = props.initialValues.title ?? '';
+      description.value = props.initialValues.description ?? '';
+      selectedHabitIds.value = [...(props.initialValues.habitIds ?? [])];
+    } else {
+      title.value = props.bucket?.title || '';
+      description.value = props.bucket?.description || '';
+      selectedHabitIds.value = [...(props.bucket?.habitIds || [])];
+    }
     currentCalendarDate.value = new Date();
   }
 }, { immediate: true });
@@ -270,7 +292,18 @@ const toggleSelectAll = () => {
   }
 };
 
+const handleOverlayClick = () => {
+  if (props.tutorialReadonly) return;
+  emit('update:modelValue', false);
+};
+
+const handleBackClick = () => {
+  if (props.tutorialReadonly) return;
+  emit('update:modelValue', false);
+};
+
 const handleSave = () => {
+  if (props.tutorialReadonly) return;
   emit('save', {
     title: title.value.trim(),
     description: description.value.trim(),

@@ -40,7 +40,7 @@
             :data-coach-target="MY_HABITS_TUTORIAL_TARGETS.desktopHelpCenter"
             tabindex="-1"
           >
-            <Lightbulb class="w-5 h-5" />
+            <CircleHelp class="w-5 h-5" />
           </button>
           <div class="w-px h-6 bg-surface-hover mx-2 shrink-0"></div>
           <div class="p-2 text-fg-subtle rounded-lg flex items-center justify-center">
@@ -228,7 +228,7 @@
             class="w-full p-2 flex items-center gap-3 text-fg-muted rounded-xl"
             :data-coach-target="MY_HABITS_TUTORIAL_TARGETS.mobileHelpCenter"
           >
-            <Lightbulb class="w-5 h-5 text-fg-muted" />
+            <CircleHelp class="w-5 h-5 text-fg-muted" />
             <span class="font-semibold">Help Center</span>
           </div>
           <div class="w-full p-2 flex items-center gap-3 text-rose-500 rounded-xl">
@@ -244,7 +244,7 @@
 <script setup lang="ts">
 import { onMounted, onUnmounted, ref, nextTick } from 'vue';
 import { subDays, format } from 'date-fns';
-import { ArrowUpDown, Lightbulb, ListChecks, LogOut, Menu, MessageCircle, PaintBucket, Plus, Sun, User as UserIcon, Users } from 'lucide-vue-next';
+import { ArrowUpDown, CircleHelp, Lightbulb, ListChecks, LogOut, Menu, MessageCircle, PaintBucket, Plus, Sun, User as UserIcon, Users } from 'lucide-vue-next';
 import { setTutorialCompleted } from '~/utils/tutorialFlags';
 import {
   MY_HABITS_TUTORIAL_DASHBOARD_HABITS,

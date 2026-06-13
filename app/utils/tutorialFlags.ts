@@ -1,4 +1,5 @@
 export const TUTORIAL_STORAGE_PREFIX = 'habits-social:tutorial:initial:v1:';
+export const BUCKET_TUTORIAL_STORAGE_PREFIX = 'habits-social:tutorial:buckets:v1:';
 
 export interface TutorialFlag {
   status: 'completed';
@@ -11,9 +12,9 @@ const isTutorialFlag = (value: unknown): value is TutorialFlag => {
   return record.status === 'completed' && typeof record.completedAt === 'string';
 };
 
-export const getTutorialFlag = (userId: string): TutorialFlag | null => {
+const getTutorialFlagWithPrefix = (userId: string, prefix: string): TutorialFlag | null => {
   try {
-    const raw = localStorage.getItem(`${TUTORIAL_STORAGE_PREFIX}${userId}`);
+    const raw = localStorage.getItem(`${prefix}${userId}`);
     if (!raw) return null;
     const parsed = JSON.parse(raw) as unknown;
     return isTutorialFlag(parsed) ? parsed : null;
@@ -22,18 +23,34 @@ export const getTutorialFlag = (userId: string): TutorialFlag | null => {
   }
 };
 
-export const isTutorialCompleted = (userId: string): boolean => {
-  return getTutorialFlag(userId) !== null;
-};
-
-export const setTutorialCompleted = (userId: string): void => {
+const setTutorialFlagWithPrefix = (userId: string, prefix: string): void => {
   try {
     const flag: TutorialFlag = {
       status: 'completed',
       completedAt: new Date().toISOString()
     };
-    localStorage.setItem(`${TUTORIAL_STORAGE_PREFIX}${userId}`, JSON.stringify(flag));
+    localStorage.setItem(`${prefix}${userId}`, JSON.stringify(flag));
   } catch {
     // localStorage unavailable, silently ignore
   }
+};
+
+export const getTutorialFlag = (userId: string): TutorialFlag | null => {
+  return getTutorialFlagWithPrefix(userId, TUTORIAL_STORAGE_PREFIX);
+};
+
+export const isTutorialCompleted = (userId: string): boolean => {
+  return getTutorialFlag(userId) !== null;
+};
+
+export const setTutorialCompleted = (userId: string): void => {
+  setTutorialFlagWithPrefix(userId, TUTORIAL_STORAGE_PREFIX);
+};
+
+export const isBucketTutorialCompleted = (userId: string): boolean => {
+  return getTutorialFlagWithPrefix(userId, BUCKET_TUTORIAL_STORAGE_PREFIX) !== null;
+};
+
+export const setBucketTutorialCompleted = (userId: string): void => {
+  setTutorialFlagWithPrefix(userId, BUCKET_TUTORIAL_STORAGE_PREFIX);
 };

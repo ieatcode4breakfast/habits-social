@@ -183,7 +183,7 @@ export const MY_HABITS_TUTORIAL_DASHBOARD_HABITS = [
 export const MY_HABITS_TUTORIAL_STEP_COPY = {
   welcome: {
     title: 'Welcome to My Habits',
-    description: 'This Add button starts a new habit. Let\'s walk through how it works.',
+    description: 'Track your daily habits, build streaks, and share progress with friends. Let\'s walk through creating your first habit.',
   },
   title: {
     description: `Give your habit a clear, specific name. For example: "${MY_HABITS_TUTORIAL_PRIMARY_HABIT.title}"`,
