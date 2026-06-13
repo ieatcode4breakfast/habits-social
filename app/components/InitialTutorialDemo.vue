@@ -40,7 +40,7 @@
             :data-coach-target="MY_HABITS_TUTORIAL_TARGETS.desktopHelpCenter"
             tabindex="-1"
           >
-            <CircleHelp class="w-5 h-5" />
+            <Lightbulb class="w-5 h-5" />
           </button>
           <div class="w-px h-6 bg-surface-hover mx-2 shrink-0"></div>
           <div class="p-2 text-fg-subtle rounded-lg flex items-center justify-center">
@@ -78,7 +78,16 @@
               :data-coach-target="MY_HABITS_TUTORIAL_TARGETS.replayHelp"
               tabindex="-1"
             >
-              <CircleHelp class="w-4 h-4" />
+              <Lightbulb class="w-4 h-4" />
+            </button>
+            <button
+              type="button"
+              class="w-11 sm:w-28 py-2.5 bg-surface-hover text-fg-muted font-semibold rounded-xl transition-all text-sm flex items-center justify-center gap-2 active:scale-95 border border-border-strong/60"
+              title="Reorder"
+              tabindex="-1"
+            >
+              <ArrowUpDown class="w-4 h-4" />
+              <span class="hidden sm:inline">Reorder</span>
             </button>
             <button
               type="button"
@@ -219,7 +228,7 @@
             class="w-full p-2 flex items-center gap-3 text-fg-muted rounded-xl"
             :data-coach-target="MY_HABITS_TUTORIAL_TARGETS.mobileHelpCenter"
           >
-            <CircleHelp class="w-5 h-5 text-fg-muted" />
+            <Lightbulb class="w-5 h-5 text-fg-muted" />
             <span class="font-semibold">Help Center</span>
           </div>
           <div class="w-full p-2 flex items-center gap-3 text-rose-500 rounded-xl">
@@ -235,7 +244,7 @@
 <script setup lang="ts">
 import { onMounted, onUnmounted, ref, nextTick } from 'vue';
 import { subDays, format } from 'date-fns';
-import { CircleHelp, ListChecks, LogOut, Menu, MessageCircle, PaintBucket, Plus, Sun, User as UserIcon, Users } from 'lucide-vue-next';
+import { ArrowUpDown, Lightbulb, ListChecks, LogOut, Menu, MessageCircle, PaintBucket, Plus, Sun, User as UserIcon, Users } from 'lucide-vue-next';
 import { setTutorialCompleted } from '~/utils/tutorialFlags';
 import {
   MY_HABITS_TUTORIAL_DASHBOARD_HABITS,

@@ -43,7 +43,7 @@
             aria-label="Help Center"
             @click="openHelpCenter"
           >
-            <CircleHelp class="w-5 h-5" />
+            <Lightbulb class="w-5 h-5" />
           </button>
           <div class="w-px h-6 bg-surface-hover mx-2 shrink-0"></div>
           <ClientOnly>
@@ -181,7 +181,7 @@
                 @click="() => { suppressNextHistoryBack(); showMobileMenu = false; openHelpCenter(); }"
                 class="w-full p-2 flex items-center gap-3 text-fg-muted hover:bg-surface-solid rounded-xl transition-colors cursor-pointer"
               >
-                <CircleHelp class="w-5 h-5 text-fg-muted" />
+                <Lightbulb class="w-5 h-5 text-fg-muted" />
                 <span class="font-semibold">Help Center</span>
               </button>
 
@@ -212,7 +212,7 @@
 </template>
 
 <script setup lang="ts">
-import { LogOut, ListChecks, Users, User as UserIcon, PaintBucket, MessageCircle, Menu, Moon, Sun, CircleHelp } from 'lucide-vue-next';
+import { LogOut, ListChecks, Users, User as UserIcon, PaintBucket, MessageCircle, Menu, Moon, Sun, Lightbulb } from 'lucide-vue-next';
 import { clearCachedAuthUser, flushPendingServerLogout, markPendingServerLogout } from '~/utils/cachedAuth';
 import { isTutorialCompleted } from '~/utils/tutorialFlags';
 
