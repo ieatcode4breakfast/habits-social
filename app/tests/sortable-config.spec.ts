@@ -21,7 +21,9 @@ describe('page-level sortable configuration', () => {
     const options = extractUseSortableOptions(source, 'habits');
 
     expect(options).toContain('watchElement: true');
+    expect(options).toContain('delayOnTouchOnly: false');
     expect(options).toContain('touchStartThreshold: 5');
+    expect(options).toContain('fallbackTolerance: 6');
   });
 
   it('keeps Buckets drag-and-drop attached after the conditional list renders', () => {
@@ -29,6 +31,8 @@ describe('page-level sortable configuration', () => {
     const options = extractUseSortableOptions(source, 'buckets');
 
     expect(options).toContain('watchElement: true');
+    expect(options).toContain('delayOnTouchOnly: false');
     expect(options).toContain('touchStartThreshold: 5');
+    expect(options).toContain('fallbackTolerance: 6');
   });
 });

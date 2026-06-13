@@ -619,9 +619,10 @@ useSortable(sortableContainer, buckets, {
   watchElement: true,
   draggable: '.sortable-item',
   animation: 250,
-  delay: 200, // delay on mobile to prevent accidental drags when scrolling
-  delayOnTouchOnly: true,
+  delay: 200,
+  delayOnTouchOnly: false,
   touchStartThreshold: 5,
+  fallbackTolerance: 6,
   ghostClass: 'opacity-0',
   dragClass: 'scale-[1.02]',
   forceFallback: true,

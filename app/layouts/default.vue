@@ -272,7 +272,7 @@ const route = useRoute();
 
 // Profile Modal State
 const showProfileModal = useState('showProfileModal', () => false);
-const showChooseAvatarModal = ref(false);
+const showChooseAvatarModal = useState<boolean>('signup-avatar-modal-open', () => false);
 const showMobileMenu = ref(false);
 
 const { suppressNextHistoryBack } = useModalHistory(showMobileMenu);

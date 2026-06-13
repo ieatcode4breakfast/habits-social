@@ -44,6 +44,7 @@ describe('useModalHistory scroll lock', () => {
       setWindowScrollY(y ?? 0);
     });
     vi.spyOn(window.history, 'back').mockImplementation(() => undefined);
+    vi.spyOn(window.history, 'go').mockImplementation(() => undefined);
   });
 
   afterEach(() => {

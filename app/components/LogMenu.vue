@@ -26,6 +26,7 @@
           ref="floatingRef"
           class="fixed z-[200] w-max max-w-[calc(100vw-1.25rem)] bg-surface-solid/95 backdrop-blur-xl border border-border-muted rounded-2xl shadow-2xl p-1.5 flex flex-row gap-1.5"
           :style="floatingStyles"
+          :data-coach-target="menuCoachTarget"
           @click.stop
         >
           <button
@@ -35,6 +36,7 @@
             class="w-8 h-8 rounded-full flex items-center justify-center transition-all border-2 cursor-pointer relative"
             :class="opt.bgColor"
             :title="opt.label"
+            :data-coach-target="coachTargetByStatus?.[getCoachStatus(opt.status)]"
           >
             <component :is="opt.icon" class="w-4 h-4" :class="opt.color" />
           </button>
@@ -60,6 +62,7 @@ import { format, isSameWeek, isSameMonth } from 'date-fns';
 import type { Habit, HabitLog } from '~/composables/useHabitsApi';
 
 type SelectableLogStatus = Exclude<HabitLog['status'], 'cleared'> | null;
+type LogMenuCoachStatus = Exclude<HabitLog['status'], 'cleared'> | 'cleared';
 
 interface LogMenuOption {
   label: string;
@@ -77,6 +80,9 @@ const props = defineProps<{
   // Optional effective settings (e.g. from a modal's temporary state)
   skipsPeriod?: Habit['skipsPeriod'];
   skipsCount?: number;
+  optionMode?: 'available' | 'all';
+  menuCoachTarget?: string;
+  coachTargetByStatus?: Partial<Record<LogMenuCoachStatus, string>>;
 }>();
 
 const emit = defineEmits<{
@@ -122,6 +128,16 @@ const arrowStyles = computed<Record<string, string>>(() => {
   return styles;
 });
 
+const buildOption = (label: string, status: SelectableLogStatus, icon: Component, color: string, bgColor: string): LogMenuOption => ({
+  label,
+  status,
+  icon,
+  color,
+  bgColor,
+});
+
+const getCoachStatus = (status: SelectableLogStatus): LogMenuCoachStatus => status ?? 'cleared';
+
 const options = computed<LogMenuOption[]>(() => {
   const habit = props.habit;
   const selectedDate = props.date;
@@ -162,54 +178,64 @@ const options = computed<LogMenuOption[]>(() => {
   const opts: LogMenuOption[] = [];
   const canSkip = usedSkips < maxSkips;
 
+  if (props.optionMode === 'all') {
+    return [
+      buildOption('Complete', 'completed', Check, 'text-fg', 'bg-emerald-500 border-emerald-500 shadow-md shadow-emerald-500/20'),
+      buildOption('Skip', 'skipped', Minus, 'text-fg', 'bg-zinc-500 border-zinc-500 shadow-none'),
+      buildOption('Fail', 'failed', XIcon, 'text-fg', 'bg-rose-500 border-rose-500 shadow-md shadow-rose-500/20'),
+      buildOption('Vacation', 'vacation', Palmtree, 'text-fg', 'bg-amber-500 border-amber-500 shadow-md shadow-amber-500/20'),
+      buildOption('Clear', null, Trash2, 'text-fg-muted', 'bg-surface-hover border-border-strong'),
+    ];
+  }
+
   if (currentStatus !== 'completed') {
-    opts.push({
-      label: 'Complete',
-      status: 'completed',
-      icon: Check,
-      color: 'text-fg',
-      bgColor: 'bg-emerald-500 border-emerald-500 shadow-md shadow-emerald-500/20'
-    });
+    opts.push(buildOption(
+      'Complete',
+      'completed',
+      Check,
+      'text-fg',
+      'bg-emerald-500 border-emerald-500 shadow-md shadow-emerald-500/20'
+    ));
   }
 
   if (currentStatus !== 'skipped' && canSkip) {
-    opts.push({
-      label: 'Skip',
-      status: 'skipped',
-      icon: Minus,
-      color: 'text-fg',
-      bgColor: 'bg-zinc-500 border-zinc-500 shadow-none'
-    });
+    opts.push(buildOption(
+      'Skip',
+      'skipped',
+      Minus,
+      'text-fg',
+      'bg-zinc-500 border-zinc-500 shadow-none'
+    ));
   }
 
   if (currentStatus !== 'failed' && !canSkip) {
-    opts.push({
-      label: 'Fail',
-      status: 'failed',
-      icon: XIcon,
-      color: 'text-fg',
-      bgColor: 'bg-rose-500 border-rose-500 shadow-md shadow-rose-500/20'
-    });
+    opts.push(buildOption(
+      'Fail',
+      'failed',
+      XIcon,
+      'text-fg',
+      'bg-rose-500 border-rose-500 shadow-md shadow-rose-500/20'
+    ));
   }
 
   if (currentStatus !== 'vacation' && !canSkip) {
-    opts.push({
-      label: 'Vacation',
-      status: 'vacation',
-      icon: Palmtree,
-      color: 'text-fg',
-      bgColor: 'bg-amber-500 border-amber-500 shadow-md shadow-amber-500/20'
-    });
+    opts.push(buildOption(
+      'Vacation',
+      'vacation',
+      Palmtree,
+      'text-fg',
+      'bg-amber-500 border-amber-500 shadow-md shadow-amber-500/20'
+    ));
   }
 
   if (currentStatus && currentStatus !== 'cleared') {
-    opts.push({
-      label: 'Clear',
-      status: null,
-      icon: Trash2,
-      color: 'text-fg-muted',
-      bgColor: 'bg-surface-hover border-border-strong'
-    });
+    opts.push(buildOption(
+      'Clear',
+      null,
+      Trash2,
+      'text-fg-muted',
+      'bg-surface-hover border-border-strong'
+    ));
   }
 
   return opts;

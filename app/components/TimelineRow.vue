@@ -12,6 +12,7 @@
             :is="interactive ? 'button' : 'div'"
             type="button"
             @click="handleDayClick(day, $event)"
+            :data-coach-target="coachTargetMap?.[format(day, 'yyyy-MM-dd')]"
             :class="[
               'w-8 h-8 flex items-center justify-center transition-all border-2 relative',
               cellShape === 'square' ? 'rounded-lg' : 'rounded-full',
@@ -48,9 +49,11 @@ const props = defineProps<{
   referenceDate?: Date;
   interactive?: boolean;
   cellShape?: 'circle' | 'square';
+  coachTargetMap?: Record<string, string | undefined>;
 }>();
 
 const referenceDate = computed(() => props.referenceDate ?? new Date());
+const coachTargetMap = computed(() => props.coachTargetMap);
 
 const emit = defineEmits<{
   'click-day': [day: Date, event: MouseEvent];

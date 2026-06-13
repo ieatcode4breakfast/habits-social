@@ -18,6 +18,15 @@
       </div>
       <div class="flex items-center gap-2">
         <button
+          type="button"
+          @click="replayTutorial"
+          class="w-11 py-2.5 bg-surface-hover hover:bg-surface-hover text-fg-muted hover:text-fg font-semibold rounded-xl transition-all cursor-pointer text-sm flex items-center justify-center active:scale-95 border border-border-strong/60"
+          title="Help on this page"
+          aria-label="Help on this page"
+        >
+          <CircleHelp class="w-4 h-4" />
+        </button>
+        <button
           v-if="habits.length > 1"
           @click="showReorderModal = true"
           class="w-11 sm:w-28 py-2.5 bg-surface-hover hover:bg-surface-hover text-fg-muted hover:text-fg font-semibold rounded-xl transition-all cursor-pointer text-sm flex items-center justify-center gap-2 active:scale-95 border border-border-strong/60"
@@ -171,6 +180,21 @@
       :friends="friends"
       :saving="isAddingHabit"
       @save="handleHabitAdd"
+    />
+
+    <MyHabitsTutorialDemo
+      v-if="showTutorialDemo"
+      :log-menu-status="tutorialLogMenuStatus"
+      :show-help-center-menu="tutorialShowHelpCenterMenu"
+    />
+
+    <HabitAddModal
+      v-model="showTutorialAddModal"
+      :friends="tutorialFriends"
+      :saving="false"
+      :tutorial-readonly="true"
+      :initial-values="tutorialPrefill"
+      @save="handleTutorialSave"
     />
 
     <!-- Shared Habit Edit Modal -->
@@ -333,12 +357,24 @@
 </template>
 
 <script setup lang="ts">
-import { Plus, Trash2, Check, X as XIcon, Minus, ChevronLeft, ChevronRight, User, ChevronUp, ChevronDown, Edit2, Save, CheckSquare, GripVertical, ArrowUpDown, Flame, Palmtree, MessageCircle, UserPlus, Star, WifiOff } from 'lucide-vue-next';
+import { Plus, Trash2, Check, X as XIcon, Minus, ChevronLeft, ChevronRight, User, ChevronUp, ChevronDown, Edit2, Save, CheckSquare, GripVertical, ArrowUpDown, Flame, Palmtree, MessageCircle, UserPlus, Star, WifiOff, CircleHelp } from 'lucide-vue-next';
 import { format, subDays, startOfMonth, endOfMonth, eachDayOfInterval, addMonths, subMonths, isAfter, startOfDay, addDays, isSameWeek, isSameMonth, parseISO, startOfWeek, isSameDay } from 'date-fns';
 import type { Habit, HabitLog } from '~/composables/useHabitsApi';
+import type { HabitAddPayload } from '~/components/HabitAddModal.vue';
 import { getStreakTheme, isStreakFaded as isFaded, autoExpandTextarea as autoExpand, isMarkable } from '~/utils/ui';
 import { useSortable } from '@vueuse/integrations/useSortable';
 import { useCalendar } from '~/composables/useCalendar';
+import type { DriveStep, Driver, PopoverDOM } from 'driver.js';
+import { isTutorialCompleted, setTutorialCompleted } from '~/utils/tutorialFlags';
+import {
+  MY_HABITS_TUTORIAL_FRIENDS,
+  MY_HABITS_TUTORIAL_PRIMARY_HABIT,
+  MY_HABITS_TUTORIAL_STATUS_STEPS,
+  MY_HABITS_TUTORIAL_STEP_COPY,
+  MY_HABITS_TUTORIAL_STREAK_HELP_PATH,
+  getMyHabitsTutorialLayout,
+  type MyHabitsTutorialStatusKey,
+} from '~/utils/myHabitsTutorialDemo';
 
 type EditableLogStatus = Exclude<HabitLog['status'], 'cleared'>;
 type LogMenuStatus = EditableLogStatus | null;
@@ -380,6 +416,8 @@ type HabitReplyCard = {
 const api = useHabitsApi();
 const { user } = useAuth();
 const { lastSyncTime } = api;
+const route = useRoute();
+const router = useRouter();
 
 const isMounted = ref(false);
 
@@ -466,15 +504,50 @@ const replyFriendSearchQuery = ref('');
 const replyFriendActionId = ref<string | null>(null);
 const shareReplyLoading = ref(false);
 
+// --- Tutorial State ---
+const isTutorialActive = ref(false);
+const showTutorialDemo = ref(false);
+const showTutorialAddModal = ref(false);
+const tutorialLogMenuStatus = ref<MyHabitsTutorialStatusKey | null>(null);
+const tutorialShowHelpCenterMenu = ref(false);
+const tutorialFriends = MY_HABITS_TUTORIAL_FRIENDS;
+const tutorialPrefill = computed(() => MY_HABITS_TUTORIAL_PRIMARY_HABIT);
+
+const handleTutorialSave = () => {};
+
+let tutorialDriver: Driver | null = null;
+let tutorialStarting = false;
+let tutorialCompleted = false;
+let tutorialDestroyingForCleanup = false;
+
+const signupAvatarOpen = useState<boolean>('signup-avatar-modal-open', () => false);
+const helpModalOpen = useState<boolean>('help-modal-open', () => false);
+
+const isTutorialBlocked = computed(() => {
+  return (
+    showModal.value ||
+    showEditModal.value ||
+    showReorderModal.value ||
+    showHabitReplyFriendSelectModal.value ||
+    showShareBeforeReplyModal.value ||
+    showProfileModal.value ||
+    helpModalOpen.value ||
+    activeLogMenu.value !== null ||
+    loading.value ||
+    isAddingHabit.value
+  );
+});
+
 const sortableContainer = ref<HTMLElement | null>(null);
 
 useSortable(sortableContainer, habits, {
   watchElement: true,
   draggable: '.sortable-item',
   animation: 250,
-  delay: 200, // delay on mobile to prevent accidental drags when scrolling
-  delayOnTouchOnly: true,
+  delay: 200,
+  delayOnTouchOnly: false,
   touchStartThreshold: 5,
+  fallbackTolerance: 6,
   ghostClass: 'opacity-0',
   dragClass: 'scale-[1.02]',
   forceFallback: true,
@@ -555,19 +628,18 @@ const load = async (silent = false) => {
   const currentSequence = ++lastLoadSequence;
   if (!silent) loading.value = true;
   try {
-    const promises: Promise<any>[] = [
-      api.getHabits(), 
-      api.getLogs(startDate.value, endDate.value)
-    ];
+    const habitPromise = api.getHabits();
+    const logsPromise = api.getLogs(startDate.value, endDate.value);
+    const sideEffects: Promise<unknown>[] = [];
     if (isOnline.value) {
-      promises.push(refreshSocial());
+      sideEffects.push(refreshSocial());
     }
     if (!silent) {
-      promises.push(new Promise(resolve => setTimeout(resolve, 500)));
+      sideEffects.push(new Promise<void>(resolve => setTimeout(resolve, 500)));
     }
-    const results = await Promise.all(promises);
-    const h = results[0];
-    const l = results[1];
+    const sideEffectsPromise = Promise.all(sideEffects);
+    const [h, l] = await Promise.all([habitPromise, logsPromise]);
+    await sideEffectsPromise;
 
     if (currentSequence !== lastLoadSequence) return;
 
@@ -866,7 +938,7 @@ const setLogStatus = async (habit: Habit, day: Date, nextStatus: LogMenuStatus) 
   }
 };
 
-const handleHabitAdd = async (data: any) => {
+const handleHabitAdd = async (data: HabitAddPayload) => {
   if (isAddingHabit.value) return;
   isAddingHabit.value = true;
   try {
@@ -932,6 +1004,580 @@ watch(showHabitReplyFriendSelectModal, (val) => {
 
 // Social integration is now handled by useSocial
 
+// --- Tutorial Orchestration ---
+
+const coachSelector = (target: string) => `[data-coach-target="${target}"]`;
+
+const getCoachElement = (target: string): Element => {
+  const element = document.querySelector(coachSelector(target));
+  if (!element) {
+    throw new Error(`Missing tutorial coach target: ${target}`);
+  }
+  return element;
+};
+
+/**
+ * Returns the coach element without throwing — used for status-menu
+ * steps where the target exists inside a floating component that may
+ * not have settled into its final DOM position when the driver first
+ * evaluates the element function.  Returns null instead of throwing so
+ * driver.js falls back to its dummy-element path instead of corrupting
+ * its internal state.
+ */
+const tryGetCoachElement = (target: string): Element | null =>
+  document.querySelector(coachSelector(target));
+
+/**
+ * Returns the correct Help Center coach target for the current viewport
+ * by checking which element is actually visible in the DOM rather than
+ * relying on the cached layout calculated at tutorial start.  The fake
+ * desktop nav uses 'md:block' (≥768px) and the mobile menu uses
+ * 'lg:hidden' (<1024px).  We resolve the first visible match.
+ */
+const resolveTutorialHelpCenterTarget = (): string => {
+  const desktopEl = document.querySelector(
+    coachSelector(MY_HABITS_TUTORIAL_TARGETS.desktopHelpCenter),
+  );
+  if (desktopEl instanceof HTMLElement && desktopEl.offsetParent !== null) {
+    return MY_HABITS_TUTORIAL_TARGETS.desktopHelpCenter;
+  }
+  return MY_HABITS_TUTORIAL_TARGETS.mobileHelpCenter;
+};
+
+const waitForCoachElement = async (target: string, timeoutMs = 2000): Promise<Element | null> => {
+  const selector = coachSelector(target);
+  const startedAt = Date.now();
+
+  while (Date.now() - startedAt < timeoutMs) {
+    const el = document.querySelector(selector);
+    if (el) return el;
+    await new Promise(resolve => window.setTimeout(resolve, 50));
+  }
+
+  return document.querySelector(selector);
+};
+
+const labelSkipAllButton = (popover: PopoverDOM) => {
+  popover.closeButton.textContent = 'Skip all';
+  popover.closeButton.setAttribute('aria-label', 'Skip all');
+  popover.closeButton.classList.add('driver-popover-skip-all-btn');
+  popover.progress.insertAdjacentElement('afterend', popover.closeButton);
+
+  const streakHelpLink = popover.description.querySelector<HTMLAnchorElement>(`a[href="${MY_HABITS_TUTORIAL_STREAK_HELP_PATH}"]`);
+  streakHelpLink?.addEventListener('click', () => {
+    completeTutorial();
+  });
+};
+
+const completeTutorial = () => {
+  if (tutorialCompleted) return;
+  tutorialCompleted = true;
+  showTutorialAddModal.value = false;
+  showTutorialDemo.value = false;
+  tutorialLogMenuStatus.value = null;
+  tutorialShowHelpCenterMenu.value = false;
+  isTutorialActive.value = false;
+  if (user.value?.id) {
+    setTutorialCompleted(user.value.id);
+  }
+  if (tutorialDriver) {
+    const d = tutorialDriver;
+    tutorialDriver = null;
+    d.destroy();
+  }
+};
+
+const cleanupTutorial = () => {
+  const d = tutorialDriver;
+  tutorialDriver = null;
+  tutorialDestroyingForCleanup = true;
+  showTutorialAddModal.value = false;
+  showTutorialDemo.value = false;
+  tutorialLogMenuStatus.value = null;
+  tutorialShowHelpCenterMenu.value = false;
+  isTutorialActive.value = false;
+  if (d?.isActive()) d.destroy();
+  tutorialDestroyingForCleanup = false;
+};
+
+const startTutorial = async (options: { force?: boolean } = {}) => {
+  if (!import.meta.client) return;
+  if (tutorialStarting) return;
+  if (tutorialDriver) return;
+  if (route.path !== '/habits') return;
+  if (signupAvatarOpen.value) return;
+  if (isTutorialBlocked.value) return;
+  if (!user.value?.id || (!options.force && isTutorialCompleted(user.value.id))) return;
+
+  tutorialStarting = true;
+  showTutorialDemo.value = true;
+  await nextTick();
+  const addTarget = await waitForCoachElement('my-habits-demo-add');
+  if (!addTarget || route.path !== '/habits' || signupAvatarOpen.value || isTutorialBlocked.value || !user.value?.id || (!options.force && isTutorialCompleted(user.value.id))) {
+    showTutorialDemo.value = false;
+    tutorialStarting = false;
+    return;
+  }
+
+  const { driver } = await import('driver.js');
+
+  tutorialCompleted = false;
+  const getTutorialLayout = () => getMyHabitsTutorialLayout(window.innerWidth);
+  const addStepIndex = 0;
+  const saveStepIndex = 5;
+  const statusIntroStepIndex = 7;
+  const replayHelpStepIndex = 8 + MY_HABITS_TUTORIAL_STATUS_STEPS.length;
+  const helpCenterStepIndex = replayHelpStepIndex + 1;
+
+  const advanceFromAddStep = async (d: Driver) => {
+    showTutorialAddModal.value = true;
+    isTutorialActive.value = true;
+    await nextTick();
+    const titleTarget = await waitForCoachElement('my-habits-add-title');
+    if (!titleTarget) {
+      completeTutorial();
+      return;
+    }
+    d.moveNext();
+  };
+
+  const advanceFromSaveStep = async (d: Driver) => {
+    showTutorialAddModal.value = false;
+    isTutorialActive.value = false;
+    await nextTick();
+    const addedHabitTarget = await waitForCoachElement(getTutorialLayout().habitAdded.target);
+    if (!addedHabitTarget) {
+      completeTutorial();
+      return;
+    }
+    d.moveNext();
+  };
+
+  const advanceFromStatusIntroStep = async (d: Driver) => {
+    tutorialLogMenuStatus.value = 'completed';
+    await nextTick();
+    const firstStatusStep = MY_HABITS_TUTORIAL_STATUS_STEPS[0];
+    if (!firstStatusStep) {
+      completeTutorial();
+      return;
+    }
+    const firstStatusTarget = await waitForCoachElement(firstStatusStep.coachTarget);
+    if (!firstStatusTarget) {
+      completeTutorial();
+      return;
+    }
+    d.moveNext();
+  };
+
+const advanceFromReplayHelpStep = async (d: Driver) => {
+    tutorialShowHelpCenterMenu.value = true;
+    await nextTick();
+    const target = resolveTutorialHelpCenterTarget();
+    const helpCenterTarget = await waitForCoachElement(target);
+    if (!helpCenterTarget) {
+      completeTutorial();
+      return;
+    }
+    d.moveNext();
+  };
+
+  const movePreviousToHelpCenter = async (d: Driver) => {
+    showTutorialAddModal.value = false;
+    isTutorialActive.value = false;
+    tutorialLogMenuStatus.value = null;
+    tutorialShowHelpCenterMenu.value = true;
+    await nextTick();
+    const target = resolveTutorialHelpCenterTarget();
+    const helpCenterTarget = await waitForCoachElement(target);
+    if (!helpCenterTarget) {
+      completeTutorial();
+      return;
+    }
+    d.movePrevious();
+  };
+
+  const movePreviousWithStatusMenu = async (d: Driver, status: MyHabitsTutorialStatusKey) => {
+    showTutorialAddModal.value = false;
+    isTutorialActive.value = false;
+    tutorialShowHelpCenterMenu.value = false;
+    tutorialLogMenuStatus.value = status;
+    await nextTick();
+    const target = MY_HABITS_TUTORIAL_STATUS_STEPS.find(step => step.status === status)?.coachTarget;
+    if (!target) {
+      d.movePrevious();
+      return;
+    }
+    const statusTarget = await waitForCoachElement(target);
+    if (!statusTarget) {
+      completeTutorial();
+      return;
+    }
+    d.movePrevious();
+  };
+
+  const movePreviousToReplayHelp = async (d: Driver) => {
+    showTutorialAddModal.value = false;
+    isTutorialActive.value = false;
+    tutorialLogMenuStatus.value = null;
+    tutorialShowHelpCenterMenu.value = false;
+    await nextTick();
+    const replayTarget = await waitForCoachElement(getTutorialLayout().replayHelp.target);
+    if (!replayTarget) {
+      completeTutorial();
+      return;
+    }
+    d.movePrevious();
+  };
+
+  const advanceTutorialFromOverlay = async (d: Driver) => {
+    if (d.isLastStep()) return;
+
+    const activeIndex = d.getActiveIndex();
+    if (activeIndex === addStepIndex) {
+      await advanceFromAddStep(d);
+      return;
+    }
+    if (activeIndex === saveStepIndex) {
+      await advanceFromSaveStep(d);
+      return;
+    }
+    if (activeIndex === statusIntroStepIndex) {
+      await advanceFromStatusIntroStep(d);
+      return;
+    }
+    if (activeIndex === replayHelpStepIndex) {
+      await advanceFromReplayHelpStep(d);
+      return;
+    }
+    if (activeIndex === helpCenterStepIndex) {
+      const needsBottomSheet = resolveTutorialHelpCenterTarget() === MY_HABITS_TUTORIAL_TARGETS.mobileHelpCenter;
+      tutorialShowHelpCenterMenu.value = needsBottomSheet;
+    }
+
+    d.moveNext();
+  };
+
+  const statusCoachSteps: DriveStep[] = MY_HABITS_TUTORIAL_STATUS_STEPS.map((statusStep, index) => {
+    const isLastStatusStep = index === MY_HABITS_TUTORIAL_STATUS_STEPS.length - 1;
+    const nextStatusStep = isLastStatusStep ? null : MY_HABITS_TUTORIAL_STATUS_STEPS[index + 1]!;
+
+    return {
+      element: () => tryGetCoachElement(statusStep.coachTarget) as Element,
+      popover: {
+        description: statusStep.stepDescription,
+        side: getTutorialLayout().statusMenu[statusStep.status].side,
+        align: getTutorialLayout().statusMenu[statusStep.status].align,
+        popoverClass: 'my-habits-tutorial-status-popover',
+        showButtons: ['next', 'previous', 'close'],
+        // Pre-load the NEXT status so its coach target is guaranteed to
+        // exist in the DOM before driver.js calls the element function
+        // inside G() -> xe().  Without this, a synchronous gap between
+        // state update and Vue DOM flush causes the element function to
+        // return null, driver.js falls back to a zero-size dummy at the
+        // viewport center, and d.refresh() cannot recover it.
+        ...(nextStatusStep
+          ? {
+              onNextClick: async (_el, _step, { driver: d }) => {
+                tutorialLogMenuStatus.value = nextStatusStep.status;
+                await nextTick();
+                const ready = await waitForCoachElement(nextStatusStep.coachTarget);
+                if (!ready) {
+                  completeTutorial();
+                  return;
+                }
+                d.moveNext();
+              },
+            }
+          : {}),
+        ...(index > 0
+          ? {
+              onPrevClick: async (_el, _step, { driver: d }) => {
+                const previousStatus = MY_HABITS_TUTORIAL_STATUS_STEPS[index - 1]?.status;
+                if (!previousStatus) {
+                  d.movePrevious();
+                  return;
+                }
+                await movePreviousWithStatusMenu(d, previousStatus);
+              },
+            }
+          : {}),
+      },
+      onHighlightStarted: (_el, _step, { driver: d }) => {
+        showTutorialAddModal.value = false;
+        isTutorialActive.value = false;
+        tutorialLogMenuStatus.value = statusStep.status;
+        tutorialShowHelpCenterMenu.value = false;
+        // Always do a deferred refresh: even when the element was found,
+        // the LogMenu's @floating-ui/vue position may not have settled.
+        // The onNextClick pre-load handles forward-navigation DOM timing;
+        // this catches backward navigation and floating-position races.
+        void nextTick().then(() => { setTimeout(() => d.refresh(), 50); });
+      },
+    };
+  });
+
+  tutorialDriver = driver({
+    animate: true,
+    overlayOpacity: 0.5,
+    allowClose: true,
+    disableActiveInteraction: true,
+    overlayClickBehavior: (_, __, { driver: d }) => {
+      void advanceTutorialFromOverlay(d);
+    },
+    doneBtnText: 'Finish',
+    nextBtnText: 'Next',
+    prevBtnText: 'Previous',
+    showProgress: true,
+    progressText: '{{current}} of {{total}}',
+    onPopoverRender: labelSkipAllButton,
+
+    onCloseClick: () => {
+      completeTutorial();
+    },
+
+    onDestroyed: () => {
+      if (!tutorialDestroyingForCleanup && !tutorialCompleted && user.value?.id) {
+        tutorialCompleted = true;
+        setTutorialCompleted(user.value.id);
+      }
+      showTutorialAddModal.value = false;
+      showTutorialDemo.value = false;
+      tutorialLogMenuStatus.value = null;
+      tutorialShowHelpCenterMenu.value = false;
+      isTutorialActive.value = false;
+      tutorialDriver = null;
+    },
+
+    steps: [
+      {
+        element: () => getCoachElement('my-habits-demo-add'),
+        popover: {
+          title: MY_HABITS_TUTORIAL_STEP_COPY.welcome.title,
+          description: MY_HABITS_TUTORIAL_STEP_COPY.welcome.description,
+          side: 'bottom',
+          showButtons: ['next', 'close'],
+          onNextClick: async (_, __, { driver: d }) => {
+            await advanceFromAddStep(d);
+          },
+        },
+        onHighlightStarted: () => {
+          tutorialLogMenuStatus.value = null;
+          tutorialShowHelpCenterMenu.value = false;
+          if (showTutorialAddModal.value) {
+            showTutorialAddModal.value = false;
+            isTutorialActive.value = false;
+          }
+        },
+      },
+      {
+        element: () => getCoachElement('my-habits-add-title'),
+        popover: {
+          description: MY_HABITS_TUTORIAL_STEP_COPY.title.description,
+          side: 'bottom',
+          showButtons: ['next', 'previous', 'close'],
+          onPrevClick: async (_, __, { driver: d }) => {
+            showTutorialAddModal.value = false;
+            isTutorialActive.value = false;
+            await nextTick();
+            d.movePrevious();
+          },
+        },
+        onHighlightStarted: (el, _, { driver: d }) => {
+          tutorialLogMenuStatus.value = null;
+          tutorialShowHelpCenterMenu.value = false;
+          if (!el && d.getActiveIndex() === 1) {
+            setTimeout(() => d.refresh(), 100);
+          }
+        },
+      },
+      {
+        element: () => getCoachElement('my-habits-add-description'),
+        popover: {
+          description: MY_HABITS_TUTORIAL_STEP_COPY.description.description,
+          side: 'bottom',
+          showButtons: ['next', 'previous', 'close'],
+        },
+        onHighlightStarted: (el, _, { driver: d }) => {
+          tutorialLogMenuStatus.value = null;
+          tutorialShowHelpCenterMenu.value = false;
+          if (!el) setTimeout(() => d.refresh(), 100);
+        },
+      },
+      {
+        element: () => getCoachElement('my-habits-add-skips'),
+        popover: {
+          description: MY_HABITS_TUTORIAL_STEP_COPY.skips.description,
+          side: 'bottom',
+          showButtons: ['next', 'previous', 'close'],
+        },
+        onHighlightStarted: (el, _, { driver: d }) => {
+          tutorialLogMenuStatus.value = null;
+          tutorialShowHelpCenterMenu.value = false;
+          if (!el) setTimeout(() => d.refresh(), 100);
+        },
+      },
+      {
+        element: () => getCoachElement('my-habits-add-share'),
+        popover: {
+          description: MY_HABITS_TUTORIAL_STEP_COPY.share.description,
+          side: 'bottom',
+          showButtons: ['next', 'previous', 'close'],
+        },
+        onHighlightStarted: (el, _, { driver: d }) => {
+          tutorialLogMenuStatus.value = null;
+          tutorialShowHelpCenterMenu.value = false;
+          if (!el) setTimeout(() => d.refresh(), 100);
+        },
+      },
+      {
+        element: () => getCoachElement('my-habits-add-save'),
+        popover: {
+          description: MY_HABITS_TUTORIAL_STEP_COPY.save.description,
+          side: 'top',
+          showButtons: ['next', 'previous', 'close'],
+          onNextClick: async (_, __, { driver: d }) => {
+            await advanceFromSaveStep(d);
+          },
+        },
+        onHighlightStarted: (el, _, { driver: d }) => {
+          tutorialLogMenuStatus.value = null;
+          tutorialShowHelpCenterMenu.value = false;
+          if (!el) setTimeout(() => d.refresh(), 100);
+        },
+      },
+      {
+        element: () => getCoachElement(getTutorialLayout().habitAdded.target),
+        popover: {
+          description: MY_HABITS_TUTORIAL_STEP_COPY.habitAdded.description,
+          side: getTutorialLayout().habitAdded.side,
+          align: getTutorialLayout().habitAdded.align,
+          showButtons: ['next', 'previous', 'close'],
+          onPrevClick: async (_, __, { driver: d }) => {
+            showTutorialAddModal.value = true;
+            isTutorialActive.value = true;
+            await nextTick();
+            const saveTarget = await waitForCoachElement('my-habits-add-save');
+            if (!saveTarget) {
+              completeTutorial();
+              return;
+            }
+            d.movePrevious();
+          },
+        },
+        onHighlightStarted: () => {
+          showTutorialAddModal.value = false;
+          isTutorialActive.value = false;
+          tutorialLogMenuStatus.value = null;
+          tutorialShowHelpCenterMenu.value = false;
+        },
+      },
+      {
+        element: () => getCoachElement(getTutorialLayout().statusIntro.target),
+        popover: {
+          description: MY_HABITS_TUTORIAL_STEP_COPY.statusIntro.description,
+          side: getTutorialLayout().statusIntro.side,
+          align: getTutorialLayout().statusIntro.align,
+          showButtons: ['next', 'previous', 'close'],
+          onNextClick: async (_, __, { driver: d }) => {
+            await advanceFromStatusIntroStep(d);
+          },
+        },
+        onHighlightStarted: (el, _, { driver: d }) => {
+          showTutorialAddModal.value = false;
+          isTutorialActive.value = false;
+          tutorialLogMenuStatus.value = 'completed';
+          tutorialShowHelpCenterMenu.value = false;
+          if (!el) setTimeout(() => d.refresh(), 100);
+        },
+      },
+      ...statusCoachSteps,
+      {
+        element: () => getCoachElement(getTutorialLayout().replayHelp.target),
+        popover: {
+          description: MY_HABITS_TUTORIAL_STEP_COPY.replayHelp.description,
+          side: getTutorialLayout().replayHelp.side,
+          align: getTutorialLayout().replayHelp.align,
+          showButtons: ['next', 'previous', 'close'],
+          onNextClick: async (_, __, { driver: d }) => {
+            await advanceFromReplayHelpStep(d);
+          },
+          onPrevClick: async (_, __, { driver: d }) => {
+            const lastStatus = MY_HABITS_TUTORIAL_STATUS_STEPS.at(-1)?.status;
+            if (!lastStatus) {
+              d.movePrevious();
+              return;
+            }
+            await movePreviousWithStatusMenu(d, lastStatus);
+          },
+        },
+        onHighlightStarted: () => {
+          showTutorialAddModal.value = false;
+          isTutorialActive.value = false;
+          tutorialLogMenuStatus.value = null;
+          tutorialShowHelpCenterMenu.value = false;
+        },
+      },
+      {
+        element: () => getCoachElement(resolveTutorialHelpCenterTarget()),
+        popover: {
+          description: MY_HABITS_TUTORIAL_STEP_COPY.helpCenter.description,
+          side: getTutorialLayout().helpCenter.side,
+          align: getTutorialLayout().helpCenter.align,
+          showButtons: ['next', 'previous', 'close'],
+          onPrevClick: async (_, __, { driver: d }) => {
+            await movePreviousToReplayHelp(d);
+          },
+        },
+        onHighlightStarted: (el, _, { driver: d }) => {
+          showTutorialAddModal.value = false;
+          isTutorialActive.value = false;
+          tutorialLogMenuStatus.value = null;
+          const needsBottomSheet = resolveTutorialHelpCenterTarget() === MY_HABITS_TUTORIAL_TARGETS.mobileHelpCenter;
+          tutorialShowHelpCenterMenu.value = needsBottomSheet;
+          if (!el) setTimeout(() => d.refresh(), 100);
+        },
+      },
+      {
+        popover: {
+          description: MY_HABITS_TUTORIAL_STEP_COPY.streakHelp.description,
+          showButtons: ['next', 'previous', 'close'],
+          onNextClick: () => {
+            completeTutorial();
+          },
+          onPrevClick: async (_, __, { driver: d }) => {
+            await movePreviousToHelpCenter(d);
+          },
+        },
+        onHighlightStarted: () => {
+          showTutorialAddModal.value = false;
+          isTutorialActive.value = false;
+          tutorialLogMenuStatus.value = null;
+          tutorialShowHelpCenterMenu.value = false;
+        },
+      },
+    ],
+  });
+
+  tutorialDriver.drive(0);
+  tutorialStarting = false;
+};
+
+const replayTutorial = () => {
+  void startTutorial({ force: true });
+};
+
+if (import.meta.client) {
+  watch([
+    () => loading.value,
+    () => signupAvatarOpen.value,
+    () => isTutorialBlocked.value,
+    () => user.value?.id,
+    () => route.path
+  ], () => {
+    void startTutorial();
+  });
+}
+
 onMounted(() => {
   isMounted.value = true;
   isOnlineMounted.value = isOnline.value;
@@ -941,14 +1587,18 @@ onMounted(() => {
     api.sync();
   }
 
-  const route = useRoute();
-  const router = useRouter();
   if (route.query.action === 'add') {
     openAddModal();
     const newQuery = { ...route.query };
     delete newQuery.action;
     router.replace({ query: newQuery });
   }
+
+  void startTutorial();
+});
+
+onUnmounted(() => {
+  cleanupTutorial();
 });
 
 watch(lastSyncTime, () => {

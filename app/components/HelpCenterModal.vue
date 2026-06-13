@@ -51,27 +51,17 @@
 <script setup lang="ts">
 import { nextTick, onBeforeUnmount, ref, watch } from 'vue';
 import { useHelpModal } from '~/composables/useHelpModal';
+import { useModalHistory } from '~/composables/useModalHistory';
 import HelpCenterUI from './HelpCenterUI.vue';
 
-interface ScrollLockSnapshot {
-  scrollY: number;
-  body: {
-    position: string;
-    top: string;
-    left: string;
-    right: string;
-    width: string;
-    overflow: string;
-  };
-  html: {
-    overflow: string;
-  };
-}
-
 const { isOpen, activePath, open, close } = useHelpModal();
+useModalHistory(isOpen, close, {
+  activePath,
+  onNavigate: (path) => open(path)
+});
+
 const dialogRef = ref<HTMLElement | null>(null);
 const previouslyFocusedElement = ref<HTMLElement | null>(null);
-const scrollLockSnapshot = ref<ScrollLockSnapshot | null>(null);
 
 const focusableSelector = [
   'a[href]',
@@ -97,54 +87,7 @@ const focusDialog = () => {
   dialogRef.value?.focus();
 };
 
-const lockScroll = () => {
-  if (!import.meta.client || scrollLockSnapshot.value) return;
 
-  const bodyEl = document.body;
-  const htmlEl = document.documentElement;
-
-  scrollLockSnapshot.value = {
-    scrollY: window.scrollY,
-    body: {
-      position: bodyEl.style.position,
-      top: bodyEl.style.top,
-      left: bodyEl.style.left,
-      right: bodyEl.style.right,
-      width: bodyEl.style.width,
-      overflow: bodyEl.style.overflow
-    },
-    html: {
-      overflow: htmlEl.style.overflow
-    }
-  };
-
-  bodyEl.style.position = 'fixed';
-  bodyEl.style.top = `-${scrollLockSnapshot.value.scrollY}px`;
-  bodyEl.style.left = '0';
-  bodyEl.style.right = '0';
-  bodyEl.style.width = '100%';
-  bodyEl.style.overflow = 'hidden';
-  htmlEl.style.overflow = 'hidden';
-};
-
-const unlockScroll = () => {
-  if (!import.meta.client || !scrollLockSnapshot.value) return;
-
-  const bodyEl = document.body;
-  const htmlEl = document.documentElement;
-  const snapshot = scrollLockSnapshot.value;
-  scrollLockSnapshot.value = null;
-
-  bodyEl.style.position = snapshot.body.position;
-  bodyEl.style.top = snapshot.body.top;
-  bodyEl.style.left = snapshot.body.left;
-  bodyEl.style.right = snapshot.body.right;
-  bodyEl.style.width = snapshot.body.width;
-  bodyEl.style.overflow = snapshot.body.overflow;
-  htmlEl.style.overflow = snapshot.html.overflow;
-
-  window.scrollTo(0, snapshot.scrollY);
-};
 
 const restoreFocus = () => {
   if (!import.meta.client) return;
@@ -195,13 +138,11 @@ watch(isOpen, async (openValue) => {
 
   if (openValue) {
     previouslyFocusedElement.value = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-    lockScroll();
     await nextTick();
     focusDialog();
     document.addEventListener('focusin', handleFocusIn);
   } else {
     document.removeEventListener('focusin', handleFocusIn);
-    unlockScroll();
     await nextTick();
     restoreFocus();
   }
@@ -210,6 +151,5 @@ watch(isOpen, async (openValue) => {
 onBeforeUnmount(() => {
   if (!import.meta.client) return;
   document.removeEventListener('focusin', handleFocusIn);
-  unlockScroll();
 });
 </script>

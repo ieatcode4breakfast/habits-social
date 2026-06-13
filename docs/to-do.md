@@ -1,3 +1,3 @@
-To do before PlayStore launch
-- Onboarding for first-time users
+- Make My Habits page the default again
+- Onboarding/tutorial
 - Notification system
