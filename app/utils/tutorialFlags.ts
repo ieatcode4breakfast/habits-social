@@ -1,5 +1,6 @@
 export const TUTORIAL_STORAGE_PREFIX = 'habits-social:tutorial:initial:v1:';
 export const BUCKET_TUTORIAL_STORAGE_PREFIX = 'habits-social:tutorial:buckets:v1:';
+export const SOCIAL_TUTORIAL_STORAGE_PREFIX = 'habits-social:tutorial:social:v1:';
 
 export interface TutorialFlag {
   status: 'completed';
@@ -53,4 +54,12 @@ export const isBucketTutorialCompleted = (userId: string): boolean => {
 
 export const setBucketTutorialCompleted = (userId: string): void => {
   setTutorialFlagWithPrefix(userId, BUCKET_TUTORIAL_STORAGE_PREFIX);
+};
+
+export const isSocialTutorialCompleted = (userId: string): boolean => {
+  return getTutorialFlagWithPrefix(userId, SOCIAL_TUTORIAL_STORAGE_PREFIX) !== null;
+};
+
+export const setSocialTutorialCompleted = (userId: string): void => {
+  setTutorialFlagWithPrefix(userId, SOCIAL_TUTORIAL_STORAGE_PREFIX);
 };

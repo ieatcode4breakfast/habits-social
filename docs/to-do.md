@@ -1,3 +1,2 @@
-- Make My Habits page the default again
-- Click Help Center
 - Notification system
+- Final code review, security checks, performance optimizations and refactors

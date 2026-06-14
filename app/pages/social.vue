@@ -10,6 +10,17 @@
             <p class="text-fg-muted text-xs">{{ displayFriends.length }} friend{{ displayFriends.length === 1 ? '' : 's' }}</p>
           </div>
         </div>
+        <div class="flex items-center gap-2">
+          <button
+            type="button"
+            @click="replayTutorial"
+            class="w-11 py-2.5 bg-surface-hover hover:bg-surface-hover text-fg-muted hover:text-fg font-semibold rounded-xl transition-all cursor-pointer text-sm flex items-center justify-center active:scale-95 border border-border-strong/60"
+            title="Help on this page"
+            aria-label="Help on this page"
+          >
+            <Lightbulb class="w-4 h-4" />
+          </button>
+        </div>
       </div>
 
       <!-- Tab Navigation -->
@@ -310,6 +321,12 @@
 </div>
 </div>
 
+    <SocialTutorialDemo
+      v-if="showTutorialDemo"
+      :active-tab="tutorialActiveTab"
+      :active-view="tutorialActiveView"
+    />
+
     <!-- Unfriend Confirmation Modal -->
     <ClientOnly>
       <Teleport to="body">
@@ -503,12 +520,21 @@
 
 <script setup lang="ts">
 defineOptions({ name: 'social' });
-import { Search, UserPlus, UserMinus, Check, X as XIcon, User, Users, Trash2, ChevronDown, CheckSquare, Activity, Star, ChevronLeft, ChevronRight, Flame, Minus, Palmtree, MessageCircle, ShieldBan } from 'lucide-vue-next';
+import { Search, UserPlus, UserMinus, Check, X as XIcon, User, Users, Trash2, ChevronDown, CheckSquare, Activity, Star, ChevronLeft, ChevronRight, Flame, Minus, Palmtree, MessageCircle, ShieldBan, Lightbulb } from 'lucide-vue-next';
 import { format, parseISO, isSameDay, addDays, startOfMonth, endOfMonth, eachDayOfInterval, subDays, isAfter, startOfDay, subMonths, addMonths } from 'date-fns';
 import { useSocial } from '../composables/useSocial';
 import { useToast } from '../composables/useToast';
 import { shouldRefreshFeed } from '~/utils/feed';
 import { onBeforeRouteLeave } from 'vue-router';
+import type { DriveStep, Driver, PopoverDOM } from 'driver.js';
+import { isSocialTutorialCompleted, setSocialTutorialCompleted } from '~/utils/tutorialFlags';
+import {
+  SOCIAL_TUTORIAL_FEED_ITEMS,
+  SOCIAL_TUTORIAL_STEP_COPY,
+  SOCIAL_TUTORIAL_TARGETS,
+  getSocialTutorialLayout,
+  type SocialTutorialDemoView,
+} from '~/utils/socialTutorialDemo';
 
 definePageMeta({ middleware: 'auth' });
 
@@ -1105,6 +1131,380 @@ const loadFriendships = async (silent = true) => {
   ]);
 };
 
+// --- Tutorial State ---
+const isTutorialActive = ref(false);
+const showTutorialDemo = ref(false);
+const tutorialActiveTab = ref<'activity' | 'friends'>('activity');
+const tutorialActiveView = ref<SocialTutorialDemoView>('social');
+
+let tutorialDriver: Driver | null = null;
+let tutorialStarting = false;
+let tutorialCompleted = false;
+let tutorialDestroyingForCleanup = false;
+const helpModalOpen = useState<boolean>('help-modal-open', () => false);
+
+const isTutorialBlocked = computed(() => {
+  return (
+    showUnfriendModal.value ||
+    showActivityReplyFriendSelectModal.value ||
+    showShareBeforeReplyModal.value ||
+    showShareModal.value ||
+    showHabitModal.value ||
+    helpModalOpen.value
+  );
+});
+
+const coachSelector = (target: string) => `[data-coach-target="${target}"]`;
+
+const getCoachElement = (target: string): Element => {
+  const element = document.querySelector(coachSelector(target));
+  if (!element) {
+    throw new Error(`Missing tutorial coach target: ${target}`);
+  }
+  return element;
+};
+
+const tryGetCoachElement = (target: string): Element | null =>
+  document.querySelector(coachSelector(target));
+
+const waitForCoachElement = async (target: string, timeoutMs = 2000): Promise<Element | null> => {
+  const selector = coachSelector(target);
+  const startedAt = Date.now();
+
+  while (Date.now() - startedAt < timeoutMs) {
+    const el = document.querySelector(selector);
+    if (el) return el;
+    await new Promise(resolve => window.setTimeout(resolve, 50));
+  }
+
+  return document.querySelector(selector);
+};
+
+const completeTutorial = () => {
+  if (tutorialCompleted) return;
+  tutorialCompleted = true;
+  showTutorialDemo.value = false;
+  isTutorialActive.value = false;
+  tutorialActiveView.value = 'social';
+  tutorialActiveTab.value = 'activity';
+  if (user.value?.id) {
+    setSocialTutorialCompleted(user.value.id);
+  }
+  if (tutorialDriver) {
+    const d = tutorialDriver;
+    tutorialDriver = null;
+    d.destroy();
+  }
+};
+
+const cleanupTutorial = () => {
+  const d = tutorialDriver;
+  tutorialDriver = null;
+  tutorialDestroyingForCleanup = true;
+  showTutorialDemo.value = false;
+  isTutorialActive.value = false;
+  tutorialActiveView.value = 'social';
+  tutorialActiveTab.value = 'activity';
+  if (d?.isActive()) d.destroy();
+  tutorialDestroyingForCleanup = false;
+};
+
+const startTutorial = async (options: { force?: boolean } = {}) => {
+  if (!import.meta.client) return;
+  if (tutorialStarting) return;
+  if (tutorialDriver) return;
+  if (route.path !== '/social') return;
+  if (isTutorialBlocked.value) return;
+  if (!user.value?.id || (!options.force && isSocialTutorialCompleted(user.value.id))) return;
+
+  tutorialStarting = true;
+  tutorialActiveView.value = 'social';
+  tutorialActiveTab.value = 'activity';
+  showTutorialDemo.value = true;
+  await nextTick();
+  const activityTabTarget = await waitForCoachElement('social-demo-activity-tab');
+  if (!activityTabTarget || route.path !== '/social' || isTutorialBlocked.value || !user.value?.id || (!options.force && isSocialTutorialCompleted(user.value.id))) {
+    showTutorialDemo.value = false;
+    tutorialStarting = false;
+    return;
+  }
+
+  const { driver } = await import('driver.js');
+
+  tutorialCompleted = false;
+  const getTutorialLayout = () => getSocialTutorialLayout(window.innerWidth);
+  const profilePictureStepIndex = 4;
+  const friendHabitChatStepIndex = 6;
+
+  const showSocialActivityView = async () => {
+    tutorialActiveView.value = 'social';
+    tutorialActiveTab.value = 'activity';
+    await nextTick();
+  };
+
+  const showFriendProfileView = async () => {
+    tutorialActiveView.value = 'friendProfile';
+    await nextTick();
+  };
+
+  const showSocialFriendsView = async () => {
+    tutorialActiveView.value = 'social';
+    tutorialActiveTab.value = 'friends';
+    await nextTick();
+  };
+
+  const advanceFromProfilePictureStep = async (d: Driver) => {
+    await showFriendProfileView();
+    const target = await waitForCoachElement(SOCIAL_TUTORIAL_TARGETS.friendProfileView);
+    if (!target) {
+      completeTutorial();
+      return;
+    }
+    d.moveNext();
+  };
+
+  const advanceFromFriendHabitChatStep = async (d: Driver) => {
+    await showSocialFriendsView();
+    const target = await waitForCoachElement(SOCIAL_TUTORIAL_TARGETS.friendsTab);
+    if (!target) {
+      completeTutorial();
+      return;
+    }
+    d.moveNext();
+  };
+
+  const movePreviousFromFriendProfileStep = async (d: Driver) => {
+    await showSocialActivityView();
+    const target = await waitForCoachElement(SOCIAL_TUTORIAL_TARGETS.profilePicture);
+    if (!target) {
+      completeTutorial();
+      return;
+    }
+    d.movePrevious();
+  };
+
+  const movePreviousFromFriendsTabStep = async (d: Driver) => {
+    await showFriendProfileView();
+    const target = await waitForCoachElement(SOCIAL_TUTORIAL_TARGETS.friendProfileHabitChatButton);
+    if (!target) {
+      completeTutorial();
+      return;
+    }
+    d.movePrevious();
+  };
+
+  const advanceTutorialFromOverlay = async (d: Driver) => {
+    if (d.isLastStep()) return;
+
+    const activeIndex = d.getActiveIndex();
+    if (activeIndex === profilePictureStepIndex) {
+      await advanceFromProfilePictureStep(d);
+      return;
+    }
+    if (activeIndex === friendHabitChatStepIndex) {
+      await advanceFromFriendHabitChatStep(d);
+      return;
+    }
+
+    d.moveNext();
+  };
+
+  const labelSkipAllButton = (popover: PopoverDOM) => {
+    popover.closeButton.textContent = 'Skip all';
+    popover.closeButton.setAttribute('aria-label', 'Skip all');
+    popover.closeButton.classList.add('driver-popover-skip-all-btn');
+    popover.progress.insertAdjacentElement('afterend', popover.closeButton);
+  };
+
+  tutorialDriver = driver({
+    animate: true,
+    overlayOpacity: 0.5,
+    allowClose: true,
+    disableActiveInteraction: true,
+    overlayClickBehavior: (_, __, { driver: d }) => {
+      void advanceTutorialFromOverlay(d);
+    },
+    doneBtnText: 'Finish',
+    nextBtnText: 'Next',
+    prevBtnText: 'Previous',
+    showProgress: true,
+    progressText: '{{current}} of {{total}}',
+    onPopoverRender: labelSkipAllButton,
+
+    onCloseClick: () => {
+      completeTutorial();
+    },
+
+    onDestroyed: () => {
+      if (!tutorialDestroyingForCleanup && !tutorialCompleted && user.value?.id) {
+        tutorialCompleted = true;
+        setSocialTutorialCompleted(user.value.id);
+      }
+      showTutorialDemo.value = false;
+      isTutorialActive.value = false;
+      tutorialActiveView.value = 'social';
+      tutorialActiveTab.value = 'activity';
+      tutorialDriver = null;
+    },
+
+    steps: [
+      {
+        popover: {
+          title: SOCIAL_TUTORIAL_STEP_COPY.welcome.title,
+          description: SOCIAL_TUTORIAL_STEP_COPY.welcome.description,
+          showButtons: ['next', 'close'],
+        },
+        onHighlightStarted: () => {
+          tutorialActiveView.value = 'social';
+          tutorialActiveTab.value = 'activity';
+          isTutorialActive.value = true;
+        },
+      },
+      {
+        element: () => getCoachElement(SOCIAL_TUTORIAL_TARGETS.activityTab),
+        popover: {
+          description: SOCIAL_TUTORIAL_STEP_COPY.activityTab.description,
+          side: 'bottom',
+          showButtons: ['next', 'previous', 'close'],
+        },
+        onHighlightStarted: () => {
+          tutorialActiveView.value = 'social';
+          tutorialActiveTab.value = 'activity';
+          isTutorialActive.value = true;
+        },
+      },
+      {
+        element: () => getCoachElement(SOCIAL_TUTORIAL_TARGETS.feedItem),
+        popover: {
+          description: SOCIAL_TUTORIAL_STEP_COPY.feedItem.description,
+          side: getTutorialLayout().feedItem.side,
+          align: getTutorialLayout().feedItem.align,
+          showButtons: ['next', 'previous', 'close'],
+        },
+        onHighlightStarted: () => {
+          tutorialActiveView.value = 'social';
+          tutorialActiveTab.value = 'activity';
+          isTutorialActive.value = true;
+        },
+      },
+      {
+        element: () => getCoachElement(SOCIAL_TUTORIAL_TARGETS.chatButton),
+        popover: {
+          description: SOCIAL_TUTORIAL_STEP_COPY.chatButton.description,
+          side: getTutorialLayout().chatButton.side,
+          align: getTutorialLayout().chatButton.align,
+          showButtons: ['next', 'previous', 'close'],
+        },
+        onHighlightStarted: () => {
+          tutorialActiveView.value = 'social';
+          tutorialActiveTab.value = 'activity';
+          isTutorialActive.value = true;
+        },
+      },
+      {
+        element: () => getCoachElement(SOCIAL_TUTORIAL_TARGETS.profilePicture),
+        popover: {
+          description: SOCIAL_TUTORIAL_STEP_COPY.profilePicture.description,
+          side: getTutorialLayout().profilePicture.side,
+          align: getTutorialLayout().profilePicture.align,
+          showButtons: ['next', 'previous', 'close'],
+          onNextClick: async (_, __, { driver: d }) => {
+            await advanceFromProfilePictureStep(d);
+          },
+        },
+        onHighlightStarted: () => {
+          tutorialActiveView.value = 'social';
+          tutorialActiveTab.value = 'activity';
+          isTutorialActive.value = true;
+        },
+      },
+      {
+        element: () => getCoachElement(SOCIAL_TUTORIAL_TARGETS.friendProfileView),
+        popover: {
+          description: SOCIAL_TUTORIAL_STEP_COPY.friendProfile.description,
+          side: getTutorialLayout().friendProfileView.side,
+          align: getTutorialLayout().friendProfileView.align,
+          showButtons: ['next', 'previous', 'close'],
+          onPrevClick: async (_, __, { driver: d }) => {
+            await movePreviousFromFriendProfileStep(d);
+          },
+        },
+        onHighlightStarted: () => {
+          tutorialActiveView.value = 'friendProfile';
+          isTutorialActive.value = true;
+        },
+      },
+      {
+        element: () => getCoachElement(SOCIAL_TUTORIAL_TARGETS.friendProfileHabitChatButton),
+        popover: {
+          description: SOCIAL_TUTORIAL_STEP_COPY.friendHabitChatButton.description,
+          side: getTutorialLayout().friendProfileHabitChatButton.side,
+          align: getTutorialLayout().friendProfileHabitChatButton.align,
+          showButtons: ['next', 'previous', 'close'],
+          onNextClick: async (_, __, { driver: d }) => {
+            await advanceFromFriendHabitChatStep(d);
+          },
+        },
+        onHighlightStarted: () => {
+          tutorialActiveView.value = 'friendProfile';
+          isTutorialActive.value = true;
+        },
+      },
+      {
+        element: () => getCoachElement(SOCIAL_TUTORIAL_TARGETS.friendsTab),
+        popover: {
+          description: SOCIAL_TUTORIAL_STEP_COPY.friendsTab.description,
+          side: getTutorialLayout().friendsTab.side,
+          align: getTutorialLayout().friendsTab.align,
+          showButtons: ['next', 'previous', 'close'],
+          onPrevClick: async (_, __, { driver: d }) => {
+            await movePreviousFromFriendsTabStep(d);
+          },
+        },
+        onHighlightStarted: () => {
+          tutorialActiveView.value = 'social';
+          tutorialActiveTab.value = 'friends';
+          isTutorialActive.value = true;
+        },
+      },
+      {
+        element: () => getCoachElement(SOCIAL_TUTORIAL_TARGETS.search),
+        popover: {
+          description: SOCIAL_TUTORIAL_STEP_COPY.search.description,
+          side: getTutorialLayout().search.side,
+          align: getTutorialLayout().search.align,
+          showButtons: ['next', 'previous', 'close'],
+        },
+        onHighlightStarted: () => {
+          tutorialActiveView.value = 'social';
+          tutorialActiveTab.value = 'friends';
+          isTutorialActive.value = true;
+        },
+      },
+      {
+        popover: {
+          title: SOCIAL_TUTORIAL_STEP_COPY.finish.title,
+          description: SOCIAL_TUTORIAL_STEP_COPY.finish.description,
+          showButtons: ['next', 'previous', 'close'],
+          onNextClick: () => {
+            completeTutorial();
+          },
+        },
+        onHighlightStarted: () => {
+          isTutorialActive.value = true;
+        },
+      },
+    ],
+  });
+
+  tutorialDriver.drive(0);
+  tutorialStarting = false;
+};
+
+const replayTutorial = () => {
+  void startTutorial({ force: true });
+};
+
 onMounted(() => {
   isMounted.value = true;
   if (!isOnline.value) return;
@@ -1113,6 +1513,7 @@ onMounted(() => {
 });
 
 onUnmounted(() => {
+  cleanupTutorial();
 });
 
 onActivated(async () => {

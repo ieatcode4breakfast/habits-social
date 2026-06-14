@@ -22,7 +22,6 @@
             <div class="px-3 py-1.5 text-sm font-medium rounded-lg text-[var(--nav-link-fg-inactive)] transition-colors">Social</div>
             <div class="px-3 py-1.5 text-sm font-medium rounded-lg text-[var(--nav-link-fg-inactive)] transition-colors flex items-center gap-2">
               Inbox
-              <span class="flex w-2 h-2 bg-rose-500 rounded-full"></span>
             </div>
           </nav>
         </div>
@@ -188,7 +187,6 @@
           <div class="p-2 rounded-xl transition-all duration-300 group-hover:bg-action-primary/5">
             <MessageCircle class="w-6 h-6" />
           </div>
-          <div class="absolute top-1 right-1 w-2.5 h-2.5 bg-rose-500 rounded-full border-2 border-surface-muted"></div>
         </div>
         <div class="flex items-center group transition-colors" :class="tutorialNavActiveTab === 'menu' ? 'text-fg' : 'text-fg-subtle'">
           <div class="p-2 rounded-xl transition-all duration-300" :class="tutorialNavActiveTab === 'menu' ? 'bg-action-primary/10 scale-110' : 'group-hover:bg-action-primary/5 active:bg-action-primary/10'">
