@@ -10,6 +10,7 @@ const isSupported = ref(false);
 const isPermissionGranted = ref(false);
 const isPermissionDenied = ref(false);
 const isSubscribing = ref(false);
+const isSubscribed = ref(false);
 const isPushConfigured = ref(false);
 const vapidPublicKey = ref<string | null>(null);
 const subscriptionState = ref<'loading' | 'supported' | 'unsupported' | 'denied'>('loading');
@@ -86,6 +87,7 @@ export function useChatNotifications() {
               expirationTime: subJson.expirationTime || null,
             },
           });
+          isSubscribed.value = true;
         }
       }
     } catch {
@@ -112,6 +114,7 @@ export function useChatNotifications() {
       const existing = await registration.pushManager.getSubscription();
       if (existing) {
         await syncExistingSubscription(registration);
+        isSubscribed.value = true;
         isSubscribing.value = false;
         return true;
       }
@@ -133,6 +136,7 @@ export function useChatNotifications() {
         },
       });
 
+      isSubscribed.value = true;
       isSubscribing.value = false;
       return true;
     } catch {
@@ -158,6 +162,7 @@ export function useChatNotifications() {
           }
         }
         await existing.unsubscribe();
+        isSubscribed.value = false;
       }
     } catch {
       // Best-effort
@@ -169,6 +174,7 @@ export function useChatNotifications() {
     isPermissionGranted,
     isPermissionDenied,
     isSubscribing,
+    isSubscribed,
     isPushConfigured,
     canSubscribe,
     subscriptionState,
@@ -185,6 +191,7 @@ export function _resetChatNotificationState(): void {
   isPermissionDenied.value = false;
   isSubscribing.value = false;
   isPushConfigured.value = false;
+  isSubscribed.value = false;
   vapidPublicKey.value = null;
   subscriptionState.value = 'loading';
   initialized = false;

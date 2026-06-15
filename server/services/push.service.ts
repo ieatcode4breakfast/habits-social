@@ -151,8 +151,7 @@ export class PushService {
     try {
       webpush = await import('web-push');
     } catch (error: unknown) {
-      const safeMsg = error instanceof Error ? error.message : 'Unknown import failure';
-      console.warn(`[Push] web-push import failed: ${safeMsg}`);
+      console.error(`[Push] web-push import failed:`, error);
       return;
     }
 
@@ -181,8 +180,7 @@ export class PushService {
             await this.disableSubscriptionByEndpoint(db, sub.endpoint).catch(() => {});
           }
         }
-        const safeMsg = error instanceof Error ? error.message : 'Unknown push failure';
-        console.warn(`[Push] Delivery failed: ${safeMsg}`);
+        console.error(`[Push] Delivery failed:`, error);
       }
     };
 

@@ -769,11 +769,12 @@ const { isOnline } = useNetwork();
 const {
   canSubscribe,
   isSubscribing: isPushSubscribing,
+  isSubscribed,
   init: initPushNotifications,
   requestPermission,
 } = useChatNotifications();
 
-const pushCtaVisible = computed(() => canSubscribe.value);
+const pushCtaVisible = computed(() => canSubscribe.value && !isSubscribed.value);
 
 const pushCtaDisabled = computed(() => isPushSubscribing.value);
 

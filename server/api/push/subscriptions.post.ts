@@ -10,10 +10,7 @@ export default defineEventHandler(async (event) => {
 
   const body = await readBody(event);
   const parsed = pushSubscriptionSchema.safeParse(body);
-  if (!parsed.success) {
-    console.error('[Push] Subscription validation failed:', JSON.stringify(parsed.error.issues, null, 2), 'body:', JSON.stringify(body));
-    return throwZodError(parsed.error);
-  }
+  if (!parsed.success) return throwZodError(parsed.error);
 
   const { endpoint, keys, expirationTime, userAgent } = parsed.data;
   const headerUserAgent = userAgent || getHeader(event, 'user-agent') || null;
