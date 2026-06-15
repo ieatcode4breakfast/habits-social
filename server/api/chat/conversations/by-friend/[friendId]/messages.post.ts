@@ -4,6 +4,17 @@ import { ChatService } from '~~/server/services/chat.service';
 import { friendIdSchema, chatMessageSchema, throwZodError } from '~~/server/utils/validation';
 import { checkChatRateLimit } from '~~/server/utils/chatRateLimit';
 
+type WaitUntilCarrier = {
+  waitUntil: (promise: Promise<unknown>) => void;
+};
+
+const hasWaitUntil = (value: unknown): value is WaitUntilCarrier => (
+  typeof value === 'object' &&
+  value !== null &&
+  'waitUntil' in value &&
+  typeof (value as { waitUntil?: unknown }).waitUntil === 'function'
+);
+
 export default defineEventHandler(async (event) => {
   const userId = await requireAuth(event);
   const friendIdParam = getRouterParam(event, 'friendId');
@@ -21,7 +32,14 @@ export default defineEventHandler(async (event) => {
   try {
     const conv = await ChatService.getOrCreateConversationForFriend(db, userId, friendIdValidation.data);
     if (!conv) throw new Error('Could not create conversation');
-    return await ChatService.sendMessage(db, userId, conv.id, bodyValidation.data.body, bodyValidation.data.replyToActivity);
+    const waitUntil = hasWaitUntil(event) ? event.waitUntil.bind(event) : undefined;
+
+    return await ChatService.sendMessage(
+      db, userId, conv.id,
+      bodyValidation.data.body,
+      bodyValidation.data.replyToActivity,
+      waitUntil,
+    );
   } catch (error: any) {
     throw createError({
       statusCode: error.statusCode === 429 ? 429 : 403,

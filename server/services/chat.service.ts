@@ -183,7 +183,8 @@ export class ChatService {
     senderId: string,
     conversationId: string,
     body: string,
-    replyToActivity?: FeedItem
+    replyToActivity?: FeedItem,
+    waitUntil?: (promise: Promise<unknown>) => void
   ): Promise<ChatMessage> {
     const conversation = await this.verifyAccess(db, senderId, conversationId, 'write');
 
@@ -236,10 +237,13 @@ export class ChatService {
 
     const otherParticipantId = conversation.user1Id === senderId ? conversation.user2Id : conversation.user1Id;
     if (otherParticipantId) {
-      void PushService.notifyUser(db, otherParticipantId, senderId).catch((error: unknown) => {
+      const pushPromise = PushService.notifyUser(db, otherParticipantId, senderId).catch((error: unknown) => {
         const msg = error instanceof Error ? error.message : 'Unknown push notification failure';
         console.warn('[Push] Chat notification failed:', msg);
       });
+      if (waitUntil) {
+        waitUntil(pushPromise);
+      }
     }
 
     return message;
