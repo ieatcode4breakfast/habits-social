@@ -2,6 +2,14 @@ import { eq, and, isNull, or, sql } from 'drizzle-orm';
 import type { DBConnection } from '../types/db';
 import * as schema from '../db/schema';
 
+if (typeof Object.hasOwnProperty === 'undefined') {
+  Object.defineProperty(Object, 'hasOwnProperty', {
+    value: (obj: object, prop: string | symbol): boolean => Object.prototype.hasOwnProperty.call(obj, prop),
+    writable: true,
+    configurable: true,
+  });
+}
+
 const MAX_CONCURRENCY = 5;
 
 export interface PushDeliveryPayload {
