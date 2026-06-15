@@ -777,6 +777,8 @@ const pushCtaVisible = computed(() => canSubscribe.value);
 
 const pushCtaDisabled = computed(() => isPushSubscribing.value);
 
+
+
 onMounted(async () => {
   if (isOnline.value) {
     await initPushNotifications();
