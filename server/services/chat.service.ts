@@ -9,6 +9,7 @@ import type {
   ChatMessage 
 } from '../types/chat';
 import * as realtimeNotifier from '../utils/realtimeNotifier';
+import { PushService } from './push.service';
 import { createError } from 'h3';
 import type { FeedItem } from './social-narrator.service';
 
@@ -232,6 +233,15 @@ export class ChatService {
     });
 
     notifyChatChanged(conversation, senderId);
+
+    const otherParticipantId = conversation.user1Id === senderId ? conversation.user2Id : conversation.user1Id;
+    if (otherParticipantId) {
+      void PushService.notifyUser(db, otherParticipantId, senderId).catch((error: unknown) => {
+        const msg = error instanceof Error ? error.message : 'Unknown push notification failure';
+        console.warn('[Push] Chat notification failed:', msg);
+      });
+    }
+
     return message;
   }
 

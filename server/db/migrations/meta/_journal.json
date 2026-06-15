@@ -64,6 +64,20 @@
       "when": 1780379340689,
       "tag": "0008_fantastic_silver_fox",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1780679340689,
+      "tag": "0009_simplify_bucket_membership",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1781000000000,
+      "tag": "0010_odd_sunspot",
+      "breakpoints": true
     }
   ]
 }
