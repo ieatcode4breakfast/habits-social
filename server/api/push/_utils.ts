@@ -17,9 +17,11 @@ const isPrivateOrLocalHost = (hostname: string): boolean => {
   const lower = hostname.toLowerCase();
   if (lower === 'localhost' || lower.endsWith('.localhost') || lower.endsWith('.local')) return true;
   if (lower === '[::1]' || lower === '::1' || lower === '[::]' || lower === '::') return true;
-  if (lower.startsWith('[fc') || lower.startsWith('[fd') || lower.startsWith('fc') || lower.startsWith('fd')) return true;
-  if (lower.startsWith('[fe8') || lower.startsWith('[fe9') || lower.startsWith('[fea') || lower.startsWith('[feb')
-    || lower.startsWith('fe8') || lower.startsWith('fe9') || lower.startsWith('fea') || lower.startsWith('feb')) return true;
+  if (lower.startsWith('[fc') || lower.startsWith('[fd') || lower.startsWith('[fe8') || lower.startsWith('[fe9') || lower.startsWith('[fea') || lower.startsWith('[feb')) return true;
+  if (lower.includes(':')) {
+    if (lower.startsWith('fc') || lower.startsWith('fd')) return true;
+    if (lower.startsWith('fe8') || lower.startsWith('fe9') || lower.startsWith('fea') || lower.startsWith('feb')) return true;
+  }
   for (const pattern of PRIVATE_IPV4_PATTERNS) {
     if (pattern.test(lower)) return true;
   }
