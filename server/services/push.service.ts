@@ -1,4 +1,3 @@
-import * as webpush from 'web-push';
 import { eq, and, isNull, or, sql } from 'drizzle-orm';
 import type { DBConnection } from '../types/db';
 import * as schema from '../db/schema';
@@ -147,6 +146,15 @@ export class PushService {
 
     const subscriptions = await this.findActiveSubscriptions(db, recipientId);
     if (subscriptions.length === 0) return;
+
+    let webpush: typeof import('web-push');
+    try {
+      webpush = await import('web-push');
+    } catch (error: unknown) {
+      const safeMsg = error instanceof Error ? error.message : 'Unknown import failure';
+      console.warn(`[Push] web-push import failed: ${safeMsg}`);
+      return;
+    }
 
     const details = getPushConfiguredOrThrow();
     webpush.setVapidDetails(details.subject, details.publicKey, details.privateKey);
