@@ -1,7 +1,7 @@
 name = "habits-social-staging"
 main = ".output/server/index.mjs"
 compatibility_date = "2024-11-01"
-compatibility_flags = ["nodejs_compat", "nodejs_compat_v2"]
+compatibility_flags = ["nodejs_compat_v2"]
 
 [env.production]
 name = "habits-social-live"
