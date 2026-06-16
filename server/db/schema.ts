@@ -216,7 +216,6 @@ export const pushSubscriptions = pgTable('push_subscriptions', {
 }, (table) => {
   return {
     pushSubscriptionsEndpointIdx: uniqueIndex('push_subscriptions_endpoint_idx').on(table.endpoint),
-    pushSubscriptionsUserIdExpirationIdx: index('push_subscriptions_user_id_expiration_idx').on(table.userId, table.expirationTime, table.disabledAt),
     pushSubscriptionsDeliveryIdx: index('push_subscriptions_delivery_idx').on(table.userId, table.expirationTime, table.disabledAt, table.lastSeenAt),
   };
 });

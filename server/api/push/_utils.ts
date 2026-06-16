@@ -1,13 +1,5 @@
 import { z } from 'zod';
 
-interface PushRuntimeConfig {
-  vapidPrivateKey?: string;
-  vapidSubject?: string;
-  public?: {
-    vapidPublicKey?: string;
-  };
-}
-
 const PRIVATE_IPV4_PATTERNS = [
   /^127\./, /^10\./, /^172\.(1[6-9]|2\d|3[01])\./, /^192\.168\./, /^169\.254\./,
   /^0\./,
@@ -51,14 +43,6 @@ const validateEndpoint = (endpoint: string, ctx: z.RefinementCtx): void => {
 
   if (isPrivateOrLocalHost(parsed.hostname)) {
     ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Endpoint must not target local or private hosts' });
-  }
-};
-
-export const getPushRuntimeConfig = (): PushRuntimeConfig => {
-  try {
-    return useRuntimeConfig() as unknown as PushRuntimeConfig;
-  } catch {
-    return {};
   }
 };
 

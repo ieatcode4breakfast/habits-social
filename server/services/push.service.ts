@@ -6,13 +6,6 @@ import { buildPushPayload } from '@block65/webcrypto-web-push';
 
 const MAX_CONCURRENCY = 5;
 
-export interface PushDeliveryPayload {
-  type: 'chat.message';
-  title: string;
-  body: string;
-  url: string;
-}
-
 interface PushRuntimeConfig {
   vapidPrivateKey?: string;
   vapidSubject?: string;
@@ -29,7 +22,7 @@ const getPushRuntimeConfig = (): PushRuntimeConfig => {
   }
 };
 
-const getVapidDetails = (): { subject: string; publicKey: string; privateKey: string } | null => {
+export const getVapidConfig = (): { subject: string; publicKey: string; privateKey: string } | null => {
   const config = getPushRuntimeConfig();
   // Nuxt auto-injects Cloudflare secrets into runtimeConfig when secrets are named with
   // the NUXT_ prefix (e.g. NUXT_VAPID_PRIVATE_KEY → runtimeConfig.vapidPrivateKey).
@@ -53,10 +46,8 @@ const getVapidDetails = (): { subject: string; publicKey: string; privateKey: st
   return { subject, publicKey, privateKey };
 };
 
-const isPushConfigured = (): boolean => getVapidDetails() !== null;
-
 const getPushConfiguredOrThrow = (): { subject: string; publicKey: string; privateKey: string } => {
-  const details = getVapidDetails();
+  const details = getVapidConfig();
   if (!details) {
     throw new Error('VAPID keys are not configured.');
   }
