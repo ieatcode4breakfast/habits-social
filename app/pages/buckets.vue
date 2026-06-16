@@ -850,7 +850,7 @@ const startTutorial = async (options: { force?: boolean } = {}) => {
   };
 
   const advanceTutorialFromOverlay = async (d: Driver) => {
-    if (d.isLastStep()) { completeTutorial(); return; }
+    if (d.isLastStep()) return;
 
     const activeIndex = d.getActiveIndex();
     if (activeIndex === 0) {
@@ -882,9 +882,7 @@ const startTutorial = async (options: { force?: boolean } = {}) => {
     overlayOpacity: 0.5,
     allowClose: true,
     disableActiveInteraction: true,
-    overlayClickBehavior: (_, __, { driver: d }) => {
-      void advanceTutorialFromOverlay(d);
-    },
+    overlayClickBehavior: () => {},
     doneBtnText: 'Finish',
     nextBtnText: 'Next',
     prevBtnText: 'Previous',
@@ -1066,7 +1064,6 @@ const startTutorial = async (options: { force?: boolean } = {}) => {
   handleGlobalTutorialClick = (e: MouseEvent) => {
     if (!tutorialDriver || !tutorialDriver.isActive()) return;
     const target = e.target as Element;
-    if (!target.closest('.driver-popover')) return;
     if (target.closest('.driver-popover-skip-all-btn') ||
         target.closest('.driver-popover-prev-btn') ||
         target.closest('.driver-popover-next-btn') ||

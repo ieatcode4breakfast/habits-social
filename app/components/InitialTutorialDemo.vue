@@ -336,7 +336,7 @@ const movePreviousToPageHelpStep = async (d: Driver) => {
 };
 
 const advanceTutorialFromOverlay = async (d: Driver) => {
-  if (d.isLastStep()) { d.destroy(); return; }
+  if (d.isLastStep()) return;
   const activeIndex = d.getActiveIndex();
   if (activeIndex === 1) { // Page Help step
     await advanceFromPageHelpStep(d);
