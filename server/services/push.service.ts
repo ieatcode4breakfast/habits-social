@@ -37,9 +37,24 @@ const getPushRuntimeConfig = (): PushRuntimeConfig => {
 
 const getVapidDetails = (): { subject: string; publicKey: string; privateKey: string } | null => {
   const config = getPushRuntimeConfig();
-  const privateKey = config.vapidPrivateKey || process.env.VAPID_PRIVATE_KEY || '';
-  const subject = config.vapidSubject || process.env.VAPID_SUBJECT || 'mailto:noreply@habitssocial.com';
-  const publicKey = config.public?.vapidPublicKey || process.env.VAPID_PUBLIC_KEY || '';
+  // Nuxt auto-injects Cloudflare secrets into runtimeConfig when secrets are named with
+  // the NUXT_ prefix (e.g. NUXT_VAPID_PRIVATE_KEY → runtimeConfig.vapidPrivateKey).
+  // We also fall back to the bare VAPID_ env vars for local dev and legacy deployments.
+  const privateKey =
+    config.vapidPrivateKey ||
+    process.env.NUXT_VAPID_PRIVATE_KEY ||
+    process.env.VAPID_PRIVATE_KEY ||
+    '';
+  const subject =
+    config.vapidSubject ||
+    process.env.NUXT_VAPID_SUBJECT ||
+    process.env.VAPID_SUBJECT ||
+    'mailto:noreply@habitssocial.com';
+  const publicKey =
+    config.public?.vapidPublicKey ||
+    process.env.NUXT_PUBLIC_VAPID_PUBLIC_KEY ||
+    process.env.VAPID_PUBLIC_KEY ||
+    '';
   if (!privateKey || !publicKey) return null;
   return { subject, publicKey, privateKey };
 };

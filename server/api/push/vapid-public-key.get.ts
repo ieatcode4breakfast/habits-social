@@ -4,8 +4,16 @@ import { getPushRuntimeConfig } from './_utils';
 export default defineEventHandler(async (event) => {
   await requireAuth(event);
   const config = getPushRuntimeConfig();
-  const publicKey = config.public?.vapidPublicKey || process.env.VAPID_PUBLIC_KEY || '';
-  const privateKey = config.vapidPrivateKey || process.env.VAPID_PRIVATE_KEY || '';
+  const publicKey =
+    config.public?.vapidPublicKey ||
+    process.env.NUXT_PUBLIC_VAPID_PUBLIC_KEY ||
+    process.env.VAPID_PUBLIC_KEY ||
+    '';
+  const privateKey =
+    config.vapidPrivateKey ||
+    process.env.NUXT_VAPID_PRIVATE_KEY ||
+    process.env.VAPID_PRIVATE_KEY ||
+    '';
   const supported = !!publicKey && !!privateKey;
   return { supported, publicKey: supported ? publicKey : undefined };
 });
