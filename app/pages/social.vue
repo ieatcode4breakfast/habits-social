@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div key="social-page-root" class="relative">
     <!-- Sticky Header + Tabs -->
     <div class="sticky top-0 md:top-[57px] z-40 bg-surface-inset">
@@ -1141,6 +1141,7 @@ let tutorialDriver: Driver | null = null;
 let tutorialStarting = false;
 let tutorialCompleted = false;
 let tutorialDestroyingForCleanup = false;
+let handleGlobalTutorialClick: ((e: MouseEvent) => void) | null = null;
 const helpModalOpen = useState<boolean>('help-modal-open', () => false);
 
 const isTutorialBlocked = computed(() => {
@@ -1205,6 +1206,10 @@ const cleanupTutorial = () => {
   isTutorialActive.value = false;
   tutorialActiveView.value = 'social';
   tutorialActiveTab.value = 'activity';
+  if (handleGlobalTutorialClick) {
+    window.removeEventListener('click', handleGlobalTutorialClick, { capture: true });
+    handleGlobalTutorialClick = null;
+  }
   if (d?.isActive()) d.destroy();
   tutorialDestroyingForCleanup = false;
 };
@@ -1294,7 +1299,7 @@ const startTutorial = async (options: { force?: boolean } = {}) => {
   };
 
   const advanceTutorialFromOverlay = async (d: Driver) => {
-    if (d.isLastStep()) return;
+    if (d.isLastStep()) { completeTutorial(); return; }
 
     const activeIndex = d.getActiveIndex();
     if (activeIndex === profilePictureStepIndex) {
@@ -1499,6 +1504,24 @@ const startTutorial = async (options: { force?: boolean } = {}) => {
 
   tutorialDriver.drive(0);
   tutorialStarting = false;
+
+  handleGlobalTutorialClick = (e: MouseEvent) => {
+    if (!tutorialDriver || !tutorialDriver.isActive()) return;
+    const target = e.target as Element;
+    if (!target.closest('.driver-popover')) return;
+    if (target.closest('.driver-popover-skip-all-btn') ||
+        target.closest('.driver-popover-prev-btn') ||
+        target.closest('.driver-popover-next-btn') ||
+        target.closest('.driver-popover-done-btn') ||
+        target.closest('a')) {
+      return;
+    }
+    e.stopPropagation();
+    e.preventDefault();
+    void advanceTutorialFromOverlay(tutorialDriver);
+  };
+
+  window.addEventListener('click', handleGlobalTutorialClick, { capture: true });
 };
 
 const replayTutorial = () => {

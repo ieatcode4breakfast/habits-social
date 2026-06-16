@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div
     ref="demoRootRef"
     class="fixed inset-0 z-[90] bg-surface-inset text-fg overflow-y-auto"
@@ -336,7 +336,7 @@ const movePreviousToPageHelpStep = async (d: Driver) => {
 };
 
 const advanceTutorialFromOverlay = async (d: Driver) => {
-  if (d.isLastStep()) return;
+  if (d.isLastStep()) { d.destroy(); return; }
   const activeIndex = d.getActiveIndex();
   if (activeIndex === 1) { // Page Help step
     await advanceFromPageHelpStep(d);
@@ -354,7 +354,14 @@ onMounted(async () => {
   handleGlobalTutorialClick = (e: MouseEvent) => {
     if (!tutorialDriver || !tutorialDriver.isActive()) return;
     const target = e.target as Element;
-    if (target.closest('.driver-popover')) return;
+
+    if (target.closest('.driver-popover-skip-all-btn') ||
+        target.closest('.driver-popover-prev-btn') ||
+        target.closest('.driver-popover-next-btn') ||
+        target.closest('.driver-popover-done-btn') ||
+        target.closest('a')) {
+      return;
+    }
 
     e.stopPropagation();
     e.preventDefault();
