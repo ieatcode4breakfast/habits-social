@@ -237,7 +237,11 @@ export class ChatService {
 
     const otherParticipantId = conversation.user1Id === senderId ? conversation.user2Id : conversation.user1Id;
     if (otherParticipantId) {
-      const pushPromise = PushService.notifyUser(db, otherParticipantId, senderId).catch((error: unknown) => {
+      const pushPromise = PushService.notifyUser(
+        db, otherParticipantId, senderId, body,
+        replyToActivity?.type,
+        replyToActivity?.message,
+      ).catch((error: unknown) => {
         const msg = error instanceof Error ? error.message : 'Unknown push notification failure';
         console.warn('[Push] Chat notification failed:', msg);
       });

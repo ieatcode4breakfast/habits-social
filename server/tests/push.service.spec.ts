@@ -133,7 +133,7 @@ describe('PushService', () => {
 
     it('should send push to recipient only (exclude sender)', async () => {
       await PushService.upsertSubscription(db, userA.id, dummyEndpoint + '/sender', dummyP256dh, dummyAuth, null, null);
-      await PushService.notifyUser(db, userB.id, userA.id);
+      await PushService.notifyUser(db, userB.id, userA.id, 'Hello!');
       const calls = mockedBuildPushPayload.mock.calls;
       interface SubArg { endpoint: string; keys: { p256dh: string; auth: string } }
       const subArgs = calls.map((c: unknown[]) => c[1] as SubArg);
@@ -143,44 +143,44 @@ describe('PushService', () => {
 
     it('should NOT send push when recipient blocked sender', async () => {
       await db.insert(schema.userBlocks).values({ blockerId: userB.id, blockedId: userA.id, createdAt: new Date() });
-      await PushService.notifyUser(db, userB.id, userA.id);
+      await PushService.notifyUser(db, userB.id, userA.id, 'Hello!');
       expect(mockedBuildPushPayload).not.toHaveBeenCalled();
     });
 
     it('should NOT send push when sender blocked recipient', async () => {
       await db.insert(schema.userBlocks).values({ blockerId: userA.id, blockedId: userB.id, createdAt: new Date() });
-      await PushService.notifyUser(db, userB.id, userA.id);
+      await PushService.notifyUser(db, userB.id, userA.id, 'Hello!');
       expect(mockedBuildPushPayload).not.toHaveBeenCalled();
     });
 
     it('should not fail when push delivery fails', async () => {
       mockedBuildPushPayload.mockRejectedValue(new Error('Crypto error'));
-      await expect(PushService.notifyUser(db, userB.id, userA.id)).resolves.toBeUndefined();
+      await expect(PushService.notifyUser(db, userB.id, userA.id, 'Hello!')).resolves.toBeUndefined();
     });
 
     it('should soft-disable subscription on 410', async () => {
       mockFetch.mockResolvedValue(makePayloadResponse(410));
-      await PushService.notifyUser(db, userB.id, userA.id);
+      await PushService.notifyUser(db, userB.id, userA.id, 'Hello!');
       const active = await PushService.findActiveSubscriptions(db, userB.id);
       expect(active.length).toBe(0);
     });
 
     it('should soft-disable subscription on 404', async () => {
       mockFetch.mockResolvedValue(makePayloadResponse(404));
-      await PushService.notifyUser(db, userB.id, userA.id);
+      await PushService.notifyUser(db, userB.id, userA.id, 'Hello!');
       const active = await PushService.findActiveSubscriptions(db, userB.id);
       expect(active.length).toBe(0);
     });
 
     it('should send payload without message body or sender profile', async () => {
-      await PushService.notifyUser(db, userB.id, userA.id);
+      await PushService.notifyUser(db, userB.id, userA.id, 'Hello!');
       const calls = mockedBuildPushPayload.mock.calls;
       for (const call of calls) {
         const message = call[0] as { data: Record<string, string>; options: { ttl: number } };
         expect(message.data.type).toBe('chat.message');
-        expect(message.data.title).toBe('New message on Habits Social');
-        expect(message.data.body).toBe('Open Inbox to view it.');
-        expect(message.data.url).toBe('/inbox');
+        expect(message.data.title).toBe(userA.username);
+        expect(message.data.body).toBe('Hello!');
+        expect(message.data.url).toBe(`/inbox?replyToFriend=${userA.id}`);
         expect('messageBody' in (message.data as Record<string, unknown>)).toBe(false);
         expect('senderName' in (message.data as Record<string, unknown>)).toBe(false);
         expect('senderPhoto' in (message.data as Record<string, unknown>)).toBe(false);
@@ -191,8 +191,35 @@ describe('PushService', () => {
       for (let i = 0; i < 3; i++) {
         await PushService.upsertSubscription(db, userB.id, `${dummyEndpoint}/${i}`, dummyP256dh, dummyAuth, null, null);
       }
-      await PushService.notifyUser(db, userB.id, userA.id);
+      await PushService.notifyUser(db, userB.id, userA.id, 'Hello!');
       expect(mockedBuildPushPayload).toHaveBeenCalled();
+    });
+
+    it('should include activity context line when replyToActivity is a log type', async () => {
+      await PushService.notifyUser(db, userB.id, userA.id, '', 'STREAK_MILESTONE', 'hit a [S:5]5-day streak[/S] by completing [H]Cooking[/H]');
+      const call = mockedBuildPushPayload.mock.calls[0]![0] as { data: Record<string, string>; options: { ttl: number } };
+      expect(call.data.body).toBe('Sent a message about an activity: hit a 5-day streak by completing Cooking');
+      expect(call.data.title).toBe(userA.username);
+      expect(call.data.url).toBe(`/inbox?replyToFriend=${userA.id}`);
+    });
+
+    it('should include habit context line when replyToActivity is COMMITMENT', async () => {
+      await PushService.notifyUser(db, userB.id, userA.id, 'Great idea!', 'COMMITMENT', 'committed to [H]Cooking[/H]');
+      const call = mockedBuildPushPayload.mock.calls[0]![0] as { data: Record<string, string>; options: { ttl: number } };
+      expect(call.data.body).toBe('Sent a message about a habit: Great idea!');
+      expect(call.data.title).toBe(userA.username);
+    });
+
+    it('should use activity message as fallback when messageBody is empty', async () => {
+      await PushService.notifyUser(db, userB.id, userA.id, '', 'STREAK_STARTED', 'started a streak by completing [H]Cooking[/H] for Jun 16.');
+      const call = mockedBuildPushPayload.mock.calls[0]![0] as { data: Record<string, string>; options: { ttl: number } };
+      expect(call.data.body).toBe('Sent a message about an activity: started a streak by completing Cooking for Jun 16.');
+    });
+
+    it('should use Sent a message fallback when both body and activity are empty', async () => {
+      await PushService.notifyUser(db, userB.id, userA.id, '', undefined, undefined);
+      const call = mockedBuildPushPayload.mock.calls[0]![0] as { data: Record<string, string>; options: { ttl: number } };
+      expect(call.data.body).toBe('Sent a message');
     });
   });
 
@@ -206,7 +233,7 @@ describe('PushService', () => {
       const notifySpy = vi.spyOn(PushService, 'notifyUser').mockResolvedValue();
       const conv = await ChatService.getOrCreateConversationForFriend(db, userA.id, userB.id);
       await ChatService.sendMessage(db, userA.id, conv!.id, 'Hello!');
-      expect(notifySpy).toHaveBeenCalledWith(db, userB.id, userA.id);
+      expect(notifySpy).toHaveBeenCalledWith(db, userB.id, userA.id, 'Hello!', undefined, undefined);
     });
 
     it('chat send still succeeds when push delivery fails', async () => {

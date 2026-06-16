@@ -56,6 +56,17 @@ const getPushConfiguredOrThrow = (): { subject: string; publicKey: string; priva
 
 const PUSH_TIMEOUT_MS = 5000;
 
+function stripNarratorMarkup(text: string): string {
+  return text.replace(/\[H\]|\[\/H\]|\[S:\d+]|\[\/S\]/g, '');
+}
+
+function truncatePushBody(body: string, maxLen = 80): string {
+  const firstLine = body.split('\n')[0]?.trim() || '';
+  if (!firstLine) return 'Sent a message';
+  if (firstLine.length <= maxLen) return firstLine;
+  return firstLine.slice(0, maxLen - 3).trimEnd() + '...';
+}
+
 export class PushService {
   static async findActiveSubscriptions(db: DBConnection, userId: string): Promise<typeof schema.pushSubscriptions.$inferSelect[]> {
     return await db.select()
@@ -147,6 +158,9 @@ export class PushService {
     db: DBConnection,
     recipientId: string,
     senderId: string,
+    messageBody: string,
+    activityType?: string,
+    activityMessage?: string,
   ): Promise<void> {
     if (recipientId === senderId) return;
 
@@ -157,11 +171,31 @@ export class PushService {
 
     const details = getPushConfiguredOrThrow();
 
+    let senderName = 'Someone';
+    try {
+      const [sender] = await db.select({ username: schema.users.username })
+        .from(schema.users)
+        .where(eq(schema.users.id, senderId));
+      if (sender?.username) senderName = sender.username;
+    } catch { /* non-critical: use fallback */ }
+
+    const preview = messageBody.trim()
+      ? truncatePushBody(messageBody)
+      : activityMessage
+        ? truncatePushBody(stripNarratorMarkup(activityMessage))
+        : 'Sent a message';
+
+    const prefix = activityType
+      ? (activityType === 'COMMITMENT' ? 'Sent a message about a habit' : 'Sent a message about an activity')
+      : null;
+
+    const notificationBody = prefix ? `${prefix}: ${preview}` : preview;
+
     const messageData: Record<string, string> = {
       type: 'chat.message',
-      title: 'New message on Habits Social',
-      body: 'Open Inbox to view it.',
-      url: '/inbox',
+      title: senderName,
+      body: notificationBody,
+      url: `/inbox?replyToFriend=${senderId}`,
     };
 
     const sendOne = async (sub: typeof schema.pushSubscriptions.$inferSelect): Promise<void> => {
