@@ -3,22 +3,25 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { eq } from 'drizzle-orm';
 import { db, createTestUser, createFriendship, deleteTestUser, type User } from './test.utils';
 import { PushService } from '../services/push.service';
-import type { PushDeliveryPayload } from '../services/push.service';
 import { ChatService } from '../services/chat.service';
 import * as schema from '../db/schema';
-import * as webpush from 'web-push';
+import * as webcryptoPush from '@block65/webcrypto-web-push';
 
-vi.mock('web-push', () => ({
-  sendNotification: vi.fn(),
-  setVapidDetails: vi.fn(),
-  generateVAPIDKeys: vi.fn(),
+vi.mock('@block65/webcrypto-web-push', () => ({
+  buildPushPayload: vi.fn(),
 }));
 
 vi.stubEnv('VAPID_PRIVATE_KEY', 'test-vapid-private-key');
 vi.stubEnv('VAPID_SUBJECT', 'mailto:test@example.com');
 vi.stubEnv('VAPID_PUBLIC_KEY', 'test-vapid-public-key');
 
-const mockedWebPush = vi.mocked(webpush);
+const mockedBuildPushPayload = vi.mocked(webcryptoPush.buildPushPayload);
+
+const makePayloadResponse = (status: number): Response => {
+  const response = new Response(null, { status });
+  Object.defineProperty(response, 'ok', { value: status >= 200 && status < 300 });
+  return response;
+};
 
 const deleteSubsForUsers = async (userIds: string[]) => {
   for (const uid of userIds) {
@@ -35,12 +38,29 @@ describe('PushService', () => {
   const dummyP256dh = 'BP4oWPiS8l5iX1FJ6H6G8ylxyLz4T6g8RwHK7nT6wK4jLzQ6o9VzPqR4wK4jLzQ6o9VzPqR4wK4jLzQ6o9Vw';
   const dummyAuth = 'dummy-auth-key-value';
 
+  const mockFetch = vi.fn<typeof fetch>();
+
   beforeEach(async () => {
     const id = crypto.randomUUID().slice(0, 8);
     userA = await createTestUser(`PushA_${id}`, `pusha_${id}@example.com`);
     userB = await createTestUser(`PushB_${id}`, `pushb_${id}@example.com`);
     userC = await createTestUser(`PushC_${id}`, `pushc_${id}@example.com`);
     vi.clearAllMocks();
+    mockFetch.mockResolvedValue(makePayloadResponse(201));
+    vi.stubGlobal('fetch', mockFetch);
+    mockedBuildPushPayload.mockResolvedValue({
+      headers: {
+        authorization: 'vapid t=mock,k=mock',
+        'content-encoding': 'aesgcm',
+        'content-length': '32',
+        'content-type': 'application/octet-stream',
+        'crypto-key': 'dh=mock;p256ecdsa=mock',
+        encryption: 'salt=mock',
+        ttl: '86400',
+      },
+      method: 'POST',
+      body: new Uint8Array(32),
+    });
   });
 
   afterEach(async () => {
@@ -113,62 +133,57 @@ describe('PushService', () => {
 
     it('should send push to recipient only (exclude sender)', async () => {
       await PushService.upsertSubscription(db, userA.id, dummyEndpoint + '/sender', dummyP256dh, dummyAuth, null, null);
-      mockedWebPush.sendNotification.mockResolvedValue({ statusCode: 201, body: '', headers: {} });
       await PushService.notifyUser(db, userB.id, userA.id);
-      const calls = mockedWebPush.sendNotification.mock.calls;
-      interface SendCallArg { endpoint: string; keys: { p256dh: string; auth: string } }
-      const sendArgs = calls.map((c: unknown[]) => c[0] as SendCallArg);
-      const endpoints = sendArgs.map((a: SendCallArg) => a.endpoint);
+      const calls = mockedBuildPushPayload.mock.calls;
+      interface SubArg { endpoint: string; keys: { p256dh: string; auth: string } }
+      const subArgs = calls.map((c: unknown[]) => c[1] as SubArg);
+      const endpoints = subArgs.map((a: SubArg) => a.endpoint);
       expect(endpoints).not.toContain(dummyEndpoint + '/sender');
     });
 
     it('should NOT send push when recipient blocked sender', async () => {
       await db.insert(schema.userBlocks).values({ blockerId: userB.id, blockedId: userA.id, createdAt: new Date() });
-      mockedWebPush.sendNotification.mockResolvedValue({ statusCode: 201, body: '', headers: {} });
       await PushService.notifyUser(db, userB.id, userA.id);
-      expect(mockedWebPush.sendNotification).not.toHaveBeenCalled();
+      expect(mockedBuildPushPayload).not.toHaveBeenCalled();
     });
 
     it('should NOT send push when sender blocked recipient', async () => {
       await db.insert(schema.userBlocks).values({ blockerId: userA.id, blockedId: userB.id, createdAt: new Date() });
-      mockedWebPush.sendNotification.mockResolvedValue({ statusCode: 201, body: '', headers: {} });
       await PushService.notifyUser(db, userB.id, userA.id);
-      expect(mockedWebPush.sendNotification).not.toHaveBeenCalled();
+      expect(mockedBuildPushPayload).not.toHaveBeenCalled();
     });
 
     it('should not fail when push delivery fails', async () => {
-      mockedWebPush.sendNotification!.mockRejectedValue(new Error('Network error'));
+      mockedBuildPushPayload.mockRejectedValue(new Error('Crypto error'));
       await expect(PushService.notifyUser(db, userB.id, userA.id)).resolves.toBeUndefined();
     });
 
     it('should soft-disable subscription on 410', async () => {
-      mockedWebPush.sendNotification!.mockRejectedValue({ statusCode: 410, message: 'Gone' });
+      mockFetch.mockResolvedValue(makePayloadResponse(410));
       await PushService.notifyUser(db, userB.id, userA.id);
       const active = await PushService.findActiveSubscriptions(db, userB.id);
       expect(active.length).toBe(0);
     });
 
     it('should soft-disable subscription on 404', async () => {
-      mockedWebPush.sendNotification!.mockRejectedValue({ statusCode: 404, message: 'Not found' });
+      mockFetch.mockResolvedValue(makePayloadResponse(404));
       await PushService.notifyUser(db, userB.id, userA.id);
       const active = await PushService.findActiveSubscriptions(db, userB.id);
       expect(active.length).toBe(0);
     });
 
     it('should send payload without message body or sender profile', async () => {
-      mockedWebPush.sendNotification.mockResolvedValue({ statusCode: 201, body: '', headers: {} });
       await PushService.notifyUser(db, userB.id, userA.id);
-      const calls = mockedWebPush.sendNotification.mock.calls;
+      const calls = mockedBuildPushPayload.mock.calls;
       for (const call of calls) {
-        const payloadStr = call[1] as string;
-        const payload = JSON.parse(payloadStr) as PushDeliveryPayload;
-        expect(payload.title).toBe('New message on Habits Social');
-        expect(payload.body).toBe('Open Inbox to view it.');
-        expect(payload.url).toBe('/inbox');
-        expect(payload.type).toBe('chat.message');
-        expect('messageBody' in payload).toBe(false);
-        expect('senderName' in payload).toBe(false);
-        expect('senderPhoto' in payload).toBe(false);
+        const message = call[0] as { data: Record<string, string>; options: { ttl: number } };
+        expect(message.data.type).toBe('chat.message');
+        expect(message.data.title).toBe('New message on Habits Social');
+        expect(message.data.body).toBe('Open Inbox to view it.');
+        expect(message.data.url).toBe('/inbox');
+        expect('messageBody' in (message.data as Record<string, unknown>)).toBe(false);
+        expect('senderName' in (message.data as Record<string, unknown>)).toBe(false);
+        expect('senderPhoto' in (message.data as Record<string, unknown>)).toBe(false);
       }
     });
 
@@ -176,9 +191,8 @@ describe('PushService', () => {
       for (let i = 0; i < 3; i++) {
         await PushService.upsertSubscription(db, userB.id, `${dummyEndpoint}/${i}`, dummyP256dh, dummyAuth, null, null);
       }
-      mockedWebPush.sendNotification.mockResolvedValue({ statusCode: 201, body: '', headers: {} });
       await PushService.notifyUser(db, userB.id, userA.id);
-      expect(mockedWebPush.sendNotification).toHaveBeenCalled();
+      expect(mockedBuildPushPayload).toHaveBeenCalled();
     });
   });
 

@@ -2,13 +2,7 @@ import { eq, and, isNull, or, sql } from 'drizzle-orm';
 import type { DBConnection } from '../types/db';
 import * as schema from '../db/schema';
 
-if (typeof Object.hasOwnProperty === 'undefined') {
-  Object.defineProperty(Object, 'hasOwnProperty', {
-    value: (obj: object, prop: string | symbol): boolean => Object.prototype.hasOwnProperty.call(obj, prop),
-    writable: true,
-    configurable: true,
-  });
-}
+import { buildPushPayload } from '@block65/webcrypto-web-push';
 
 const MAX_CONCURRENCY = 5;
 
@@ -170,39 +164,48 @@ export class PushService {
     const subscriptions = await this.findActiveSubscriptions(db, recipientId);
     if (subscriptions.length === 0) return;
 
-    let webpush: typeof import('web-push');
-    try {
-      webpush = await import('web-push');
-    } catch (error: unknown) {
-      console.error(`[Push] web-push import failed:`, error);
-      return;
-    }
-
     const details = getPushConfiguredOrThrow();
-    webpush.setVapidDetails(details.subject, details.publicKey, details.privateKey);
 
-    const payload: PushDeliveryPayload = {
+    const messageData: Record<string, string> = {
       type: 'chat.message',
       title: 'New message on Habits Social',
       body: 'Open Inbox to view it.',
       url: '/inbox',
     };
-    const payloadJson = JSON.stringify(payload);
 
     const sendOne = async (sub: typeof schema.pushSubscriptions.$inferSelect): Promise<void> => {
       try {
-        await webpush.sendNotification(
-          { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
-          payloadJson,
-          { TTL: 86400, timeout: PUSH_TIMEOUT_MS }
+        const { headers, body, method } = await buildPushPayload(
+          { data: messageData, options: { ttl: 86400 } },
+          {
+            endpoint: sub.endpoint,
+            expirationTime: null,
+            keys: { p256dh: sub.p256dh, auth: sub.auth },
+          },
+          {
+            subject: details.subject,
+            publicKey: details.publicKey,
+            privateKey: details.privateKey,
+          },
         );
-      } catch (error: unknown) {
-        if (error && typeof error === 'object') {
-          const err = error as Record<string, unknown>;
-          if (err.statusCode === 404 || err.statusCode === 410) {
+
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), PUSH_TIMEOUT_MS);
+        const response = await fetch(sub.endpoint, {
+          method,
+          headers,
+          body: body as unknown as BodyInit,
+          signal: controller.signal,
+        });
+        clearTimeout(timeout);
+
+        if (!response.ok) {
+          if (response.status === 404 || response.status === 410) {
             await this.disableSubscriptionByEndpoint(db, sub.endpoint).catch(() => {});
           }
+          console.error(`[Push] Delivery failed: HTTP ${response.status}`);
         }
+      } catch (error: unknown) {
         console.error(`[Push] Delivery failed:`, error);
       }
     };
