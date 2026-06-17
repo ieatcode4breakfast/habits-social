@@ -725,7 +725,7 @@ const buildHabitReplyCard = (habit: Habit): HabitReplyCard | null => {
   };
 };
 
-const navigateToHabitReplyFriend = (friendId: string) => {
+const navigateToHabitReplyFriend = async (friendId: string) => {
   if (!isOnline.value) {
     showToast('This action needs an internet connection.', 'failed');
     return;
@@ -738,10 +738,9 @@ const navigateToHabitReplyFriend = (friendId: string) => {
 
   const replyContext = useState<HabitReplyCard | null>('chat-reply-activity-context');
   replyContext.value = { ...card };
+  modalHistory.suppressNextHistoryBack();
   showHabitReplyFriendSelectModal.value = false;
-  setTimeout(() => {
-    navigateTo(`/inbox?replyToFriend=${friendId}`);
-  }, 50);
+  await navigateTo(`/inbox?replyToFriend=${friendId}`);
 };
 
 const chatAboutHabit = (habit: Habit) => {
@@ -761,7 +760,7 @@ const selectFriendForHabitReply = async (friend: ReplyFriend) => {
   try {
     const sharedWith = (habit.sharedWith ?? []).map(String);
     if (sharedWith.includes(friend.id)) {
-      navigateToHabitReplyFriend(friend.id);
+      await navigateToHabitReplyFriend(friend.id);
       return;
     }
 
@@ -819,7 +818,7 @@ const executeShareBeforeHabitReply = async () => {
 
     showShareBeforeReplyModal.value = false;
     pendingShareFriend.value = null;
-    navigateToHabitReplyFriend(friend.id);
+    await navigateToHabitReplyFriend(friend.id);
   } catch (error) {
     console.error('Failed to share habit before reply:', error);
     showToast('Could not share this habit. Try again.', 'failed');
