@@ -13,7 +13,7 @@ self.addEventListener('push', function (event) {
     icon: '/icons/icon-192.png',
     badge: '/icons/icon-192.png',
     data: { url: data.url || '/inbox' },
-    tag: 'chat-message',
+    tag: data.senderId ? 'chat-message-' + data.senderId : 'chat-message',
     renotify: true,
   };
   event.waitUntil(self.registration.showNotification(title, options));

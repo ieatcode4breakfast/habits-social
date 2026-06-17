@@ -196,6 +196,7 @@ export class PushService {
       title: senderName,
       body: notificationBody,
       url: `/inbox?replyToFriend=${senderId}`,
+      senderId,
     };
 
     const sendOne = async (sub: typeof schema.pushSubscriptions.$inferSelect): Promise<void> => {

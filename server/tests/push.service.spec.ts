@@ -181,6 +181,7 @@ describe('PushService', () => {
         expect(message.data.title).toBe(userA.username);
         expect(message.data.body).toBe('Hello!');
         expect(message.data.url).toBe(`/inbox?replyToFriend=${userA.id}`);
+        expect(message.data.senderId).toBe(userA.id);
         expect('messageBody' in (message.data as Record<string, unknown>)).toBe(false);
         expect('senderName' in (message.data as Record<string, unknown>)).toBe(false);
         expect('senderPhoto' in (message.data as Record<string, unknown>)).toBe(false);
@@ -201,6 +202,7 @@ describe('PushService', () => {
       expect(call.data.body).toBe('Sent a message about an activity: hit a 5-day streak by completing Cooking');
       expect(call.data.title).toBe(userA.username);
       expect(call.data.url).toBe(`/inbox?replyToFriend=${userA.id}`);
+      expect(call.data.senderId).toBe(userA.id);
     });
 
     it('should include habit context line when replyToActivity is COMMITMENT', async () => {
@@ -208,6 +210,7 @@ describe('PushService', () => {
       const call = mockedBuildPushPayload.mock.calls[0]![0] as { data: Record<string, string>; options: { ttl: number } };
       expect(call.data.body).toBe('Sent a message about a habit: Great idea!');
       expect(call.data.title).toBe(userA.username);
+      expect(call.data.senderId).toBe(userA.id);
     });
 
     it('should use activity message as fallback when messageBody is empty', async () => {
