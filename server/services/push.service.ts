@@ -186,7 +186,7 @@ export class PushService {
         : 'Sent a message';
 
     const prefix = activityType
-      ? (activityType === 'COMMITMENT' ? 'Sent a message about a habit' : 'Sent a message about an activity')
+      ? (activityType === 'SHARE' ? 'Sent a message about an activity' : 'Sent a message about a habit')
       : null;
 
     const notificationBody = prefix ? `${prefix}: ${preview}` : preview;

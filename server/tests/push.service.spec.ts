@@ -199,7 +199,7 @@ describe('PushService', () => {
     it('should include activity context line when replyToActivity is a log type', async () => {
       await PushService.notifyUser(db, userB.id, userA.id, '', 'STREAK_MILESTONE', 'hit a [S:5]5-day streak[/S] by completing [H]Cooking[/H]');
       const call = mockedBuildPushPayload.mock.calls[0]![0] as { data: Record<string, string>; options: { ttl: number } };
-      expect(call.data.body).toBe('Sent a message about an activity: hit a 5-day streak by completing Cooking');
+      expect(call.data.body).toBe('Sent a message about a habit: hit a 5-day streak by completing Cooking');
       expect(call.data.title).toBe(userA.username);
       expect(call.data.url).toBe(`/inbox?replyToFriend=${userA.id}`);
       expect(call.data.senderId).toBe(userA.id);
@@ -213,10 +213,16 @@ describe('PushService', () => {
       expect(call.data.senderId).toBe(userA.id);
     });
 
+    it('should include activity context line when replyToActivity is SHARE', async () => {
+      await PushService.notifyUser(db, userB.id, userA.id, '', 'SHARE', 'shared [H]Cooking[/H] with you on Jun 16.');
+      const call = mockedBuildPushPayload.mock.calls[0]![0] as { data: Record<string, string>; options: { ttl: number } };
+      expect(call.data.body).toBe('Sent a message about an activity: shared Cooking with you on Jun 16.');
+    });
+
     it('should use activity message as fallback when messageBody is empty', async () => {
       await PushService.notifyUser(db, userB.id, userA.id, '', 'STREAK_STARTED', 'started a streak by completing [H]Cooking[/H] for Jun 16.');
       const call = mockedBuildPushPayload.mock.calls[0]![0] as { data: Record<string, string>; options: { ttl: number } };
-      expect(call.data.body).toBe('Sent a message about an activity: started a streak by completing Cooking for Jun 16.');
+      expect(call.data.body).toBe('Sent a message about a habit: started a streak by completing Cooking for Jun 16.');
     });
 
     it('should use Sent a message fallback when both body and activity are empty', async () => {
