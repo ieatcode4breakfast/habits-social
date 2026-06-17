@@ -51,6 +51,7 @@
     </div>
 
     <div :style="pullStyle" class="will-change-transform">
+    <PushNotificationCTA />
     <div v-if="activeTab === 'activity'" v-motion-fade class="space-y-6">
       <div v-if="feedLoading" class="flex justify-center p-12">
         <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-fg"></div>
