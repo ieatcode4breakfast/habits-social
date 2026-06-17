@@ -11,8 +11,6 @@ scratch/
 .rules
 .kilo/
 .opencode/
-
-# Testing
 test-results/
 playwright-report/
 blob-report/
@@ -21,3 +19,4 @@ coverage/
 .wrangler/
 .partykit/
 .antigravitycli/
+.plans/

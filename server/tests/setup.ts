@@ -6,9 +6,12 @@ vi.stubGlobal('useRuntimeConfig', (event?: any) => {
   return {
     databaseUrl: process.env.DATABASE_URL || 'postgres://localhost:5432/postgres',
     jwtSecret: process.env.JWT_SECRET || 'fallback-secret-for-dev',
+    vapidPrivateKey: process.env.VAPID_PRIVATE_KEY || 'test-vapid-private-key',
+    vapidSubject: process.env.VAPID_SUBJECT || 'mailto:test@example.com',
     public: {
       realtimeEnabled: true,
       partykitHost: 'habits-social-realtime-test.partykit.dev',
+      vapidPublicKey: process.env.VAPID_PUBLIC_KEY || 'test-vapid-public-key',
     },
   };
 });
@@ -29,6 +32,10 @@ vi.stubGlobal('setHeader', (event: any, name: string, value: string) => {
   event._headers[name.toLowerCase()] = value;
 });
 vi.stubGlobal('getRequestIP', (event: any) => event._ip || '127.0.0.1');
+vi.stubGlobal('getHeader', (event: any, name: string) => {
+  if (event._headers?.[name.toLowerCase()]) return event._headers[name.toLowerCase()];
+  return undefined;
+});
 
 const storageMock: Record<string, any> = {};
 vi.stubGlobal('useStorage', (base: string) => {

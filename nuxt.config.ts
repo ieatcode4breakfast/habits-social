@@ -57,6 +57,7 @@ export default defineNuxtConfig({
       ],
     },
     workbox: {
+      importScripts: ['/push-sw.js'],
       navigateFallback: '/',
       navigateFallbackDenylist: [/^\/api\//, /^\/login$/, /^\/forgot-password$/, /^\/reset-password$/],
       globPatterns: ['**/*.{js,css,html,png,svg,ico,webmanifest}'],
@@ -143,11 +144,14 @@ export default defineNuxtConfig({
     resendApiKey: process.env.RESEND_API_KEY,
     resendFromEmail: process.env.RESEND_FROM_EMAIL || 'Habits Social <noreply@habitssocial.com>',
     appUrl: process.env.APP_URL || process.env.NUXT_PUBLIC_APP_URL || 'https://www.habitssocial.com',
+    vapidPrivateKey: process.env.VAPID_PRIVATE_KEY || '',
+    vapidSubject: process.env.VAPID_SUBJECT || 'mailto:noreply@habitssocial.com',
     public: {
       appName: process.env.APP_NAME || 'Habits Social',
       realtimeEnabled: process.env.NUXT_PUBLIC_REALTIME_ENABLED === 'true',
       partykitHost: process.env.NUXT_PUBLIC_PARTYKIT_HOST || '',
       googleClientId: process.env.NUXT_PUBLIC_GOOGLE_CLIENT_ID || process.env.GOOGLE_CLIENT_ID || '',
+      vapidPublicKey: process.env.NUXT_PUBLIC_VAPID_PUBLIC_KEY || process.env.VAPID_PUBLIC_KEY || '',
     }
   },
 

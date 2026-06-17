@@ -201,6 +201,25 @@ export const chatParticipants = pgTable('chat_participants', {
   };
 });
 
+export const pushSubscriptions = pgTable('push_subscriptions', {
+  id: uuid('id').primaryKey(),
+  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  endpoint: text('endpoint').notNull(),
+  p256dh: text('p256dh').notNull(),
+  auth: text('auth').notNull(),
+  expirationTime: timestamp('expiration_time', { withTimezone: true, mode: 'date' }),
+  userAgent: text('user_agent'),
+  disabledAt: timestamp('disabled_at', { withTimezone: true, mode: 'date' }),
+  lastSeenAt: timestamp('last_seen_at', { withTimezone: true, mode: 'date' }).defaultNow(),
+  createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' }).defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true, mode: 'date' }).defaultNow(),
+}, (table) => {
+  return {
+    pushSubscriptionsEndpointIdx: uniqueIndex('push_subscriptions_endpoint_idx').on(table.endpoint),
+    pushSubscriptionsDeliveryIdx: index('push_subscriptions_delivery_idx').on(table.userId, table.expirationTime, table.disabledAt, table.lastSeenAt),
+  };
+});
+
 export const chatMessages = pgTable('chat_messages', {
   id: uuid('id').primaryKey(),
   conversationId: uuid('conversation_id').notNull().references(() => chatConversations.id, { onDelete: 'cascade' }),
