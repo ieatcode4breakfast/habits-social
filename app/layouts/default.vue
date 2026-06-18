@@ -269,7 +269,7 @@ watch([isOnline, () => user.value?.id], ([online, userId]) => {
   } else if (!online || !userId) {
     stopServices();
   }
-}, { immediate: true });
+});
 
 const router = useRouter();
 const route = useRoute();
