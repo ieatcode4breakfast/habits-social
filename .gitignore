@@ -1,16 +1,12 @@
 node_modules
 .nuxt
+.nuxtrc
 .output
 dist
 .env
 *.log
 .data/
 scratch/
-*.kilocode/
-.claude/
-.rules
-.kilo/
-.opencode/
 test-results/
 playwright-report/
 blob-report/
@@ -18,5 +14,3 @@ playwright/.cache/
 coverage/
 .wrangler/
 .partykit/
-.antigravitycli/
-.plans/
