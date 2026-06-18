@@ -1,7 +1,7 @@
 <template>
   <div
     v-if="visible"
-    class="mx-2 mt-2 mb-0 px-3 py-2 bg-surface-solid border border-border-muted/80 rounded-xl flex items-center justify-between gap-2 shrink-0"
+    class="mx-2 mt-1 mb-1 px-3 py-2 bg-surface-solid border border-border-muted/80 rounded-xl flex items-center justify-between gap-2 shrink-0"
   >
     <div class="flex-1 min-w-0">
       <p class="text-xs font-bold text-fg truncate">Get notified</p>
