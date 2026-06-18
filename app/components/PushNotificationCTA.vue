@@ -5,7 +5,7 @@
   >
     <div class="flex-1 min-w-0">
       <p class="text-xs font-bold text-fg truncate">Get notified</p>
-      <p class="text-[10px] text-fg-subtle leading-tight">Enable push for new messages</p>
+      <p class="text-[10px] text-fg-subtle leading-tight">Enable notifications for new messages and friend requests</p>
     </div>
     <button
       @click="enable"
