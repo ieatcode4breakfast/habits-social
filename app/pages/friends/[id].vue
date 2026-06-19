@@ -41,9 +41,9 @@
 
         <!-- Action Row -->
         <div v-if="profile && !loading" class="flex items-center gap-2">
-          <button v-if="relationshipStatus === 'friends'" @click="showUnfriendModal = true" class="w-11 sm:w-auto py-2.5 sm:px-4 bg-rose-500 hover:bg-rose-600 text-white font-semibold rounded-xl border border-transparent transition-all shadow-lg shadow-rose-500/20 cursor-pointer text-sm flex items-center justify-center gap-2 active:scale-95" title="Unfriend">
-            <UserMinus class="w-4 h-4" />
-            <span class="hidden sm:inline">Unfriend</span>
+          <button v-if="relationshipStatus === 'friends'" @click="openShareModal" class="w-11 sm:w-auto py-2.5 sm:px-4 bg-action-primary hover:bg-action-primary-hover text-action-primary-fg font-semibold rounded-xl border border-transparent transition-all shadow-lg shadow-fg-inverted/5 cursor-pointer text-sm flex items-center justify-center gap-2 active:scale-95" title="Share habits">
+            <Share2 class="w-4 h-4" />
+            <span class="hidden sm:inline">Share</span>
           </button>
           <button 
             v-if="relationshipStatus === 'none' && !profile.blockedByMe"
@@ -339,7 +339,8 @@
     <FriendProfileMenu
       v-if="showMenu"
       :reference-el="menuReferenceEl"
-      :show-share="relationshipStatus === 'friends'"
+      :show-chat="relationshipStatus === 'friends'"
+      :show-unfriend="relationshipStatus === 'friends'"
       :is-blocked="!!profile?.blockedByMe"
       @action="handleMenuAction"
       @close="showMenu = false"
@@ -560,9 +561,12 @@ const openMenu = (event: MouseEvent) => {
   }
 };
 
-const handleMenuAction = (action: 'share' | 'block' | 'unblock') => {
-  if (action === 'share') {
-    openShareModal();
+const handleMenuAction = (action: 'chat' | 'unfriend' | 'block' | 'unblock') => {
+  if (action === 'chat') {
+    if (!requireOnlineAction()) return;
+    navigateTo(`/inbox?replyToFriend=${friendId}`);
+  } else if (action === 'unfriend') {
+    showUnfriendModal.value = true;
   } else if (action === 'block') {
     showBlockModal.value = true;
   } else if (action === 'unblock') {

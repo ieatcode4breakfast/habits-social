@@ -29,12 +29,21 @@
           @click.stop
         >
           <button
-            v-if="showShare"
-            @click.stop="handleAction('share')"
+            v-if="showChat"
+            @click.stop="handleAction('chat')"
             class="w-full text-left px-3 py-2.5 rounded-xl hover:bg-surface-hover transition-colors flex items-center gap-3 cursor-pointer outline-none border border-transparent group"
           >
-            <Share2 class="w-4 h-4 text-fg group-hover:text-fg" />
-            <span class="text-sm font-semibold text-fg">Share habits</span>
+            <MessageCircle class="w-4 h-4 text-fg group-hover:text-fg" />
+            <span class="text-sm font-semibold text-fg">Chat</span>
+          </button>
+
+          <button
+            v-if="showUnfriend"
+            @click.stop="handleAction('unfriend')"
+            class="w-full text-left px-3 py-2.5 rounded-xl hover:bg-surface-hover transition-colors flex items-center gap-3 cursor-pointer outline-none border border-transparent group"
+          >
+            <UserMinus class="w-4 h-4 text-rose-500 group-hover:text-rose-500" />
+            <span class="text-sm font-semibold text-rose-500 group-hover:text-rose-500">Unfriend</span>
           </button>
 
           <button
@@ -61,17 +70,18 @@
 
 <script setup lang="ts">
 import { ref, computed, watch, nextTick } from 'vue';
-import { Share2, ShieldBan } from 'lucide-vue-next';
+import { MessageCircle, UserMinus, ShieldBan } from 'lucide-vue-next';
 import { useFloating, offset, flip, shift, arrow, autoUpdate } from '@floating-ui/vue';
 
 const props = defineProps<{
   referenceEl: HTMLElement | null;
-  showShare: boolean;
+  showChat: boolean;
+  showUnfriend: boolean;
   isBlocked: boolean;
 }>();
 
 const emit = defineEmits<{
-  action: [type: 'share' | 'block' | 'unblock'];
+  action: [type: 'chat' | 'unfriend' | 'block' | 'unblock'];
   close: [];
 }>();
 
@@ -125,8 +135,7 @@ watch(
   },
   { flush: 'post' }
 );
-
-const handleAction = (type: 'share' | 'block' | 'unblock') => {
+const handleAction = (type: 'chat' | 'unfriend' | 'block' | 'unblock') => {
   emit('action', type);
   emit('close');
 };
