@@ -8,12 +8,18 @@ self.addEventListener('push', function (event) {
     }
   }
   const title = data.title || 'New message on Habits Social';
+  var tagPrefix = data.type && data.type !== 'chat.message'
+    ? data.type
+    : 'chat-message';
+  var notificationTag = data.senderId
+    ? tagPrefix + '-' + data.senderId
+    : tagPrefix;
   const options = {
     body: data.body || 'Open Inbox to view it.',
     icon: '/icons/icon-192.png',
     badge: '/icons/icon-192.png',
     data: { url: data.url || '/inbox' },
-    tag: data.senderId ? 'chat-message-' + data.senderId : 'chat-message',
+    tag: notificationTag,
     renotify: true,
   };
   event.waitUntil(self.registration.showNotification(title, options));
@@ -28,8 +34,16 @@ self.addEventListener('notificationclick', function (event) {
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function (windowClients) {
       for (var i = 0; i < windowClients.length; i++) {
         var client = windowClients[i];
-        if (client.url.includes(self.location.origin) && 'focus' in client) {
-          return client.focus();
+        if (client.url.includes(self.location.origin)) {
+          if ('navigate' in client) {
+            var resolvedUrl = new URL(urlToOpen, self.location.origin).href;
+            return client.navigate(resolvedUrl).then(function () {
+              return client.focus();
+            });
+          }
+          if ('focus' in client) {
+            return client.focus();
+          }
         }
       }
       if (clients.openWindow) {

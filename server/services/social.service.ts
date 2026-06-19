@@ -4,6 +4,7 @@ import { extractRows } from '~~/server/utils/db';
 import type { DBConnection } from '~~/server/types/db';
 import type { Friendship, UserBlock } from '~~/server/types';
 import * as realtimeNotifier from '~~/server/utils/realtimeNotifier';
+import { PushService } from '~~/server/services/push.service';
 
 const isUniqueConstraintError = (error: unknown): boolean => {
   if (!error || typeof error !== 'object') return false;
@@ -16,6 +17,27 @@ const notifyFriendsChanged = (userIds: readonly string[]): void => {
     const message = error instanceof Error ? error.message : 'Unknown realtime notification failure';
     console.warn('[Realtime] Friends invalidation failed:', message);
   });
+};
+
+const getCfWaitUntil = (event: unknown): ((promise: Promise<unknown>) => void) | undefined => {
+  if (
+    event &&
+    typeof event === 'object' &&
+    'context' in event &&
+    event.context &&
+    typeof event.context === 'object' &&
+    'cloudflare' in event.context &&
+    event.context.cloudflare &&
+    typeof event.context.cloudflare === 'object' &&
+    'context' in event.context.cloudflare &&
+    event.context.cloudflare.context &&
+    typeof event.context.cloudflare.context === 'object' &&
+    'waitUntil' in event.context.cloudflare.context &&
+    typeof event.context.cloudflare.context.waitUntil === 'function'
+  ) {
+    return event.context.cloudflare.context.waitUntil.bind(event.context.cloudflare.context);
+  }
+  return undefined;
 };
 
 const friendshipPairCondition = (u1: string, u2: string) => or(
@@ -148,6 +170,20 @@ export const SocialService = {
       throw createError({ statusCode: 500, statusMessage: 'Failed to create friendship' });
     }
     notifyFriendsChanged([initiatorId, targetUserId]);
+
+    const waitUntil = getCfWaitUntil(event);
+    const pushPromise = PushService.notifyFriendRequestReceived(
+      db,
+      targetUserId,
+      initiatorId,
+    ).catch((error: unknown) => {
+      const msg = error instanceof Error ? error.message : 'Unknown push failure';
+      console.warn('[Push] Friend request notification failed:', msg);
+    });
+    if (waitUntil) {
+      waitUntil(pushPromise);
+    }
+
     return friendship;
   },
 
@@ -166,14 +202,31 @@ export const SocialService = {
 
     const result = await db.update(friendshipsTable)
       .set({ status: 'accepted', updatedAt: new Date() })
-      .where(and(eq(friendshipsTable.id, id), eq(friendshipsTable.receiverId, userId)))
+      .where(and(
+        eq(friendshipsTable.id, id),
+        eq(friendshipsTable.receiverId, userId),
+        eq(friendshipsTable.status, 'pending'),
+      ))
       .returning();
 
     const friendship = result[0];
     if (friendship) {
       notifyFriendsChanged([friendship.initiatorId, friendship.receiverId]);
+
+      const waitUntil = getCfWaitUntil(event);
+      const pushPromise = PushService.notifyFriendRequestAccepted(
+        db,
+        friendship.initiatorId,
+        friendship.receiverId,
+      ).catch((error: unknown) => {
+        const msg = error instanceof Error ? error.message : 'Unknown push failure';
+        console.warn('[Push] Friend request accepted notification failed:', msg);
+      });
+      if (waitUntil) {
+        waitUntil(pushPromise);
+      }
     }
-    return friendship;
+    return friendship || existing;
   },
 
   async cleanupFriendshipData(db: DBConnection, u1: string, u2: string): Promise<void> {

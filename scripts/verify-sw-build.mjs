@@ -25,6 +25,19 @@ if (!existsSync(pushSwPath)) {
   fail('.output/public/push-sw.js not found');
 } else {
   pass('push-sw.js exists in build output');
+
+  const pushSwContent = readFileSync(pushSwPath, 'utf-8');
+  if (pushSwContent.includes("data.type && data.type !== 'chat.message'")) {
+    pass('push-sw.js uses type-aware notification tagging');
+  } else {
+    fail('push-sw.js missing type-aware notification tagging');
+  }
+
+  if (pushSwContent.includes('client.navigate(')) {
+    pass('push-sw.js includes existing-client navigation');
+  } else {
+    fail('push-sw.js missing existing-client navigation');
+  }
 }
 
 if (!existsSync(swPath)) {

@@ -232,6 +232,123 @@ describe('PushService', () => {
     });
   });
 
+  describe('notifyFriendRequestReceived', () => {
+    beforeEach(async () => {
+      await PushService.upsertSubscription(db, userB.id, dummyEndpoint, dummyP256dh, dummyAuth, null, null);
+    });
+
+    it('should send to receiver subscriptions only', async () => {
+      await PushService.upsertSubscription(db, userA.id, dummyEndpoint + '/sender', dummyP256dh, dummyAuth, null, null);
+      await PushService.notifyFriendRequestReceived(db, userB.id, userA.id);
+      const calls = mockedBuildPushPayload.mock.calls;
+      const subArgs = calls.map((c: unknown[]) => c[1] as { endpoint: string });
+      const endpoints = subArgs.map((a: { endpoint: string }) => a.endpoint);
+      expect(endpoints).not.toContain(dummyEndpoint + '/sender');
+    });
+
+    it('should produce correct friend request payload', async () => {
+      await PushService.notifyFriendRequestReceived(db, userB.id, userA.id);
+      const call = mockedBuildPushPayload.mock.calls[0]![0] as { data: Record<string, string>; options: { ttl: number } };
+      expect(call.data.type).toBe('friend.request.received');
+      expect(call.data.title).toBe('New friend request');
+      expect(call.data.body).toBe(`You received a friend request from ${userA.username}`);
+      expect(call.data.url).toBe('/social');
+      expect(call.data.senderId).toBe(userA.id);
+      expect(call.options.ttl).toBe(86400);
+    });
+
+    it('should use Someone when username lookup fails', async () => {
+      const fakeId = crypto.randomUUID();
+      await PushService.notifyFriendRequestReceived(db, userB.id, fakeId);
+      const call = mockedBuildPushPayload.mock.calls[0]![0] as { data: Record<string, string> };
+      expect(call.data.body).toBe('You received a friend request from Someone');
+    });
+
+    it('should do nothing when no active subscription exists', async () => {
+      await db.delete(schema.pushSubscriptions).where(eq(schema.pushSubscriptions.userId, userB.id));
+      await PushService.notifyFriendRequestReceived(db, userB.id, userA.id);
+      expect(mockedBuildPushPayload).not.toHaveBeenCalled();
+    });
+
+    it('should do nothing when either user blocked the other', async () => {
+      await db.insert(schema.userBlocks).values({ blockerId: userB.id, blockedId: userA.id, createdAt: new Date() });
+      await PushService.notifyFriendRequestReceived(db, userB.id, userA.id);
+      expect(mockedBuildPushPayload).not.toHaveBeenCalled();
+    });
+
+    it('should do nothing when recipient equals initiator', async () => {
+      await PushService.notifyFriendRequestReceived(db, userA.id, userA.id);
+      expect(mockedBuildPushPayload).not.toHaveBeenCalled();
+    });
+
+    it('should preserve 404/410 subscription disabling', async () => {
+      mockFetch.mockResolvedValue(makePayloadResponse(410));
+      await PushService.notifyFriendRequestReceived(db, userB.id, userA.id);
+      const active = await PushService.findActiveSubscriptions(db, userB.id);
+      expect(active.length).toBe(0);
+    });
+
+    it('should resolve without throwing when delivery fails', async () => {
+      mockedBuildPushPayload.mockRejectedValue(new Error('Crypto error'));
+      await expect(PushService.notifyFriendRequestReceived(db, userB.id, userA.id)).resolves.toBeUndefined();
+    });
+  });
+
+  describe('notifyFriendRequestAccepted', () => {
+    beforeEach(async () => {
+      await PushService.upsertSubscription(db, userA.id, dummyEndpoint, dummyP256dh, dummyAuth, null, null);
+    });
+
+    it('should send to initiator subscriptions only', async () => {
+      await PushService.upsertSubscription(db, userB.id, dummyEndpoint + '/receiver', dummyP256dh, dummyAuth, null, null);
+      await PushService.notifyFriendRequestAccepted(db, userA.id, userB.id);
+      const calls = mockedBuildPushPayload.mock.calls;
+      const subArgs = calls.map((c: unknown[]) => c[1] as { endpoint: string });
+      const endpoints = subArgs.map((a: { endpoint: string }) => a.endpoint);
+      expect(endpoints).not.toContain(dummyEndpoint + '/receiver');
+    });
+
+    it('should produce correct accepted payload', async () => {
+      await PushService.notifyFriendRequestAccepted(db, userA.id, userB.id);
+      const call = mockedBuildPushPayload.mock.calls[0]![0] as { data: Record<string, string>; options: { ttl: number } };
+      expect(call.data.type).toBe('friend.request.accepted');
+      expect(call.data.title).toBe('Friend request accepted');
+      expect(call.data.body).toBe(`${userB.username} has accepted your friend request`);
+      expect(call.data.url).toBe('/social');
+      expect(call.data.senderId).toBe(userB.id);
+      expect(call.options.ttl).toBe(86400);
+    });
+
+    it('should use Someone when username lookup fails', async () => {
+      const fakeId = crypto.randomUUID();
+      await PushService.notifyFriendRequestAccepted(db, userA.id, fakeId);
+      const call = mockedBuildPushPayload.mock.calls[0]![0] as { data: Record<string, string> };
+      expect(call.data.body).toBe('Someone has accepted your friend request');
+    });
+
+    it('should do nothing when no active subscription exists', async () => {
+      await db.delete(schema.pushSubscriptions).where(eq(schema.pushSubscriptions.userId, userA.id));
+      await PushService.notifyFriendRequestAccepted(db, userA.id, userB.id);
+      expect(mockedBuildPushPayload).not.toHaveBeenCalled();
+    });
+
+    it('should do nothing when either user blocked the other', async () => {
+      await db.insert(schema.userBlocks).values({ blockerId: userA.id, blockedId: userB.id, createdAt: new Date() });
+      await PushService.notifyFriendRequestAccepted(db, userA.id, userB.id);
+      expect(mockedBuildPushPayload).not.toHaveBeenCalled();
+    });
+
+    it('should do nothing when initiator equals receiver', async () => {
+      await PushService.notifyFriendRequestAccepted(db, userA.id, userA.id);
+      expect(mockedBuildPushPayload).not.toHaveBeenCalled();
+    });
+
+    it('should resolve without throwing when delivery fails', async () => {
+      mockedBuildPushPayload.mockRejectedValue(new Error('Crypto error'));
+      await expect(PushService.notifyFriendRequestAccepted(db, userA.id, userB.id)).resolves.toBeUndefined();
+    });
+  });
+
   describe('chat integration (ChatService.sendMessage triggers push)', () => {
     beforeEach(async () => {
       await createFriendship(userA.id, userB.id, 'accepted');

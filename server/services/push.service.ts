@@ -154,50 +154,12 @@ export class PushService {
     return result!.count > 0;
   }
 
-  static async notifyUser(
+  private static async deliverPushPayloads(
     db: DBConnection,
-    recipientId: string,
-    senderId: string,
-    messageBody: string,
-    activityType?: string,
-    activityMessage?: string,
+    subscriptions: typeof schema.pushSubscriptions.$inferSelect[],
+    messageData: Record<string, string>,
   ): Promise<void> {
-    if (recipientId === senderId) return;
-
-    if (await this.hasBlock(db, recipientId, senderId)) return;
-
-    const subscriptions = await this.findActiveSubscriptions(db, recipientId);
-    if (subscriptions.length === 0) return;
-
     const details = getPushConfiguredOrThrow();
-
-    let senderName = 'Someone';
-    try {
-      const [sender] = await db.select({ username: schema.users.username })
-        .from(schema.users)
-        .where(eq(schema.users.id, senderId));
-      if (sender?.username) senderName = sender.username;
-    } catch { /* non-critical: use fallback */ }
-
-    const preview = messageBody.trim()
-      ? truncatePushBody(messageBody)
-      : activityMessage
-        ? truncatePushBody(stripNarratorMarkup(activityMessage))
-        : 'Sent a message';
-
-    const prefix = activityType
-      ? (activityType === 'SHARE' ? 'Sent a message about an activity' : 'Sent a message about a habit')
-      : null;
-
-    const notificationBody = prefix ? `${prefix}: ${preview}` : preview;
-
-    const messageData: Record<string, string> = {
-      type: 'chat.message',
-      title: senderName,
-      body: notificationBody,
-      url: `/inbox?replyToFriend=${senderId}`,
-      senderId,
-    };
 
     const sendOne = async (sub: typeof schema.pushSubscriptions.$inferSelect): Promise<void> => {
       try {
@@ -240,5 +202,113 @@ export class PushService {
       const batch = subscriptions.slice(i, i + MAX_CONCURRENCY);
       await Promise.all(batch.map(sendOne));
     }
+  }
+
+  static async notifyUser(
+    db: DBConnection,
+    recipientId: string,
+    senderId: string,
+    messageBody: string,
+    activityType?: string,
+    activityMessage?: string,
+  ): Promise<void> {
+    if (recipientId === senderId) return;
+
+    if (await this.hasBlock(db, recipientId, senderId)) return;
+
+    const subscriptions = await this.findActiveSubscriptions(db, recipientId);
+    if (subscriptions.length === 0) return;
+
+    let senderName = 'Someone';
+    try {
+      const [sender] = await db.select({ username: schema.users.username })
+        .from(schema.users)
+        .where(eq(schema.users.id, senderId));
+      if (sender?.username) senderName = sender.username;
+    } catch { /* non-critical: use fallback */ }
+
+    const preview = messageBody.trim()
+      ? truncatePushBody(messageBody)
+      : activityMessage
+        ? truncatePushBody(stripNarratorMarkup(activityMessage))
+        : 'Sent a message';
+
+    const prefix = activityType
+      ? (activityType === 'SHARE' ? 'Sent a message about an activity' : 'Sent a message about a habit')
+      : null;
+
+    const notificationBody = prefix ? `${prefix}: ${preview}` : preview;
+
+    const messageData: Record<string, string> = {
+      type: 'chat.message',
+      title: senderName,
+      body: notificationBody,
+      url: `/inbox?replyToFriend=${senderId}`,
+      senderId,
+    };
+
+    await this.deliverPushPayloads(db, subscriptions, messageData);
+  }
+
+  static async notifyFriendRequestReceived(
+    db: DBConnection,
+    receiverId: string,
+    initiatorId: string,
+  ): Promise<void> {
+    if (receiverId === initiatorId) return;
+
+    if (await this.hasBlock(db, receiverId, initiatorId)) return;
+
+    const subscriptions = await this.findActiveSubscriptions(db, receiverId);
+    if (subscriptions.length === 0) return;
+
+    let initiatorName = 'Someone';
+    try {
+      const [initiator] = await db.select({ username: schema.users.username })
+        .from(schema.users)
+        .where(eq(schema.users.id, initiatorId));
+      if (initiator?.username) initiatorName = initiator.username;
+    } catch { /* non-critical: use fallback */ }
+
+    const messageData: Record<string, string> = {
+      type: 'friend.request.received',
+      title: 'New friend request',
+      body: `You received a friend request from ${initiatorName}`,
+      url: '/social',
+      senderId: initiatorId,
+    };
+
+    await this.deliverPushPayloads(db, subscriptions, messageData);
+  }
+
+  static async notifyFriendRequestAccepted(
+    db: DBConnection,
+    initiatorId: string,
+    receiverId: string,
+  ): Promise<void> {
+    if (initiatorId === receiverId) return;
+
+    if (await this.hasBlock(db, initiatorId, receiverId)) return;
+
+    const subscriptions = await this.findActiveSubscriptions(db, initiatorId);
+    if (subscriptions.length === 0) return;
+
+    let receiverName = 'Someone';
+    try {
+      const [receiver] = await db.select({ username: schema.users.username })
+        .from(schema.users)
+        .where(eq(schema.users.id, receiverId));
+      if (receiver?.username) receiverName = receiver.username;
+    } catch { /* non-critical: use fallback */ }
+
+    const messageData: Record<string, string> = {
+      type: 'friend.request.accepted',
+      title: 'Friend request accepted',
+      body: `${receiverName} has accepted your friend request`,
+      url: '/social',
+      senderId: receiverId,
+    };
+
+    await this.deliverPushPayloads(db, subscriptions, messageData);
   }
 }
