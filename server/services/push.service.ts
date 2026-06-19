@@ -274,7 +274,7 @@ export class PushService {
       type: 'friend.request.received',
       title: 'New friend request',
       body: `You received a friend request from ${initiatorName}`,
-      url: '/social',
+      url: `/friends/${initiatorId}`,
       senderId: initiatorId,
     };
 
@@ -305,7 +305,7 @@ export class PushService {
       type: 'friend.request.accepted',
       title: 'Friend request accepted',
       body: `${receiverName} has accepted your friend request`,
-      url: '/social',
+      url: `/friends/${receiverId}`,
       senderId: receiverId,
     };
 

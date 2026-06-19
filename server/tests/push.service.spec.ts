@@ -252,7 +252,7 @@ describe('PushService', () => {
       expect(call.data.type).toBe('friend.request.received');
       expect(call.data.title).toBe('New friend request');
       expect(call.data.body).toBe(`You received a friend request from ${userA.username}`);
-      expect(call.data.url).toBe('/social');
+      expect(call.data.url).toBe(`/friends/${userA.id}`);
       expect(call.data.senderId).toBe(userA.id);
       expect(call.options.ttl).toBe(86400);
     });
@@ -314,7 +314,7 @@ describe('PushService', () => {
       expect(call.data.type).toBe('friend.request.accepted');
       expect(call.data.title).toBe('Friend request accepted');
       expect(call.data.body).toBe(`${userB.username} has accepted your friend request`);
-      expect(call.data.url).toBe('/social');
+      expect(call.data.url).toBe(`/friends/${userB.id}`);
       expect(call.data.senderId).toBe(userB.id);
       expect(call.options.ttl).toBe(86400);
     });
