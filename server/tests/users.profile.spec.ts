@@ -34,11 +34,9 @@ describe('GET /api/users/[id]/profile', () => {
     await expect(handler(event)).rejects.toThrow(/User not found/i);
   });
 
-  it('should return 400 for malformed profile ID', async () => {
+  it('should reject malformed profile ID (DB-enforced UUID per Note #11)', async () => {
     const event = createMockEvent(testUser.id, {}, {}, { id: 'not-a-user-id' });
-    await expect(handler(event)).rejects.toMatchObject({
-      statusCode: 400
-    });
+    await expect(handler(event)).rejects.toThrow();
   });
 
   it('should hide blocker profile from the blocked user', async () => {

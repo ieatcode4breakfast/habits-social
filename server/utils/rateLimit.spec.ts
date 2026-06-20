@@ -43,12 +43,12 @@ describe('rateLimit utility', () => {
   });
 
   it('should allow requests within limits', async () => {
-    const event = { _ip: '1.1.1.1' } as any;
+    const event = { _ip: '1.1.1.1', _getRequestIP: () => '1.1.1.1' } as any;
     await expect(checkRateLimit(event, 'user@example.com')).resolves.not.toThrow();
   });
 
   it('should throw 429 when identifier limit is reached', async () => {
-    const event = { _ip: '1.1.1.1' } as any;
+    const event = { _ip: '1.1.1.1', _getRequestIP: () => '1.1.1.1' } as any;
     const identifier = 'user@example.com';
 
     // 5 attempts are allowed (but increment the counter)
@@ -66,7 +66,7 @@ describe('rateLimit utility', () => {
   });
 
   it('should throw 429 when IP limit is reached', async () => {
-    const event = { _ip: '1.1.1.1' } as any;
+    const event = { _ip: '1.1.1.1', _getRequestIP: () => '1.1.1.1' } as any;
 
     // 50 attempts from same IP with different identifiers
     for (let i = 0; i < 50; i++) {
@@ -81,7 +81,7 @@ describe('rateLimit utility', () => {
   });
 
   it('should be case-insensitive for identifiers', async () => {
-    const event = { _ip: '1.1.1.1' } as any;
+    const event = { _ip: '1.1.1.1', _getRequestIP: () => '1.1.1.1' } as any;
     const identifierUpper = 'USER@EXAMPLE.COM';
     const identifierLower = 'user@example.com';
 
@@ -95,7 +95,7 @@ describe('rateLimit utility', () => {
   });
 
   it('should reset identifier limit', async () => {
-    const event = { _ip: '1.1.1.1' } as any;
+    const event = { _ip: '1.1.1.1', _getRequestIP: () => '1.1.1.1' } as any;
     const identifier = 'user@example.com';
 
     for (let i = 0; i < 5; i++) {
@@ -110,7 +110,7 @@ describe('rateLimit utility', () => {
   });
 
   it('should fail-closed on storage error', async () => {
-    const event = { _ip: '1.1.1.1' } as any;
+    const event = { _ip: '1.1.1.1', _getRequestIP: () => '1.1.1.1' } as any;
     const storage = (global as any).useStorage('authRateLimit');
     vi.spyOn(storage, 'getItem').mockRejectedValue(new Error('DB Down'));
 
