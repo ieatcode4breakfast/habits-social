@@ -12,45 +12,6 @@
 
 ---
 
-## 🔵 NITPICKS & BEST PRACTICES
-
-### 13. Missing Indexes on Heavily Queried Columns
-- **Location:** `server/db/schema.ts`
-- **Note:** These are fine for low user counts but will cause sequential scans at scale:
-  - `friendships` — needs indexes on `initiatorId` and `receiverId` (every lookup is a seq scan)
-  - `shareEvents` — needs index on `recipientId`
-
-### 14. status Columns Are Untyped `text` — No DB-Level Constraint
-- **Location:** `friendships.status`, `habitLogs.status`, `bucketLogs.status`
-- **Note:** Any arbitrary string can be persisted. Consider Postgres enums or CHECK constraints for data integrity.
-
-### 15. API Route Handlers Lack HTTP Method Guards
-- **Location:** `bucketlogs/index.ts`, `buckets/index.ts`, `habits/index.ts`, `habitlogs/index.ts`, `friendships/index.ts`
-- **Note:** Unsupported methods (PATCH, OPTIONS, etc.) silently return `undefined` / `200 OK`. Should return 405 Method Not Allowed.
-
-### 17. CI Uses wrangler@latest — Unpinned Dependency
-- **Location:** `.github/workflows/deploy.yml:33`
-- **Note:** A breaking Wrangler release could silently break deployments. Pin to a specific version.
-
-### 18. habitLogSchema.id Uses z.string() While All Other IDs Use z.string().uuid()
-- **Location:** `server/utils/validation.ts:84`
-- **Note:** Log IDs accept any arbitrary string from the client, while other IDs enforce UUID format. This is presumably intentional (composite IDs like `{habitId}_{date}`), but worth noting.
-
-### 19. SocialNarratorService Throws on Malformed Date From DB
-- **Location:** `server/services/social-narrator.service.ts:49,128,148`
-- **Note:** `format(parseISO(log.date), 'MMM d')` throws `RangeError` on malformed dates. A single corrupt row crashes the entire feed. Wrap in try-catch.
-
-### 21. SQL Performance (LATERAL join) - DEFERRED
-- **Location:** `server/api/social/feed.get.ts`
-- **Note:** Fine for small groups, but will bottleneck at scale.
-
-### 22. Magic Strings for Defaults - DEFERRED
-- **Location:** `server/utils/validation.ts`
-- **Note:** Hardcoded hex colors and limits.
-- **Fix:** Extract to a shared `constants.ts`.
-
----
-
 ## 📝 NOTES
 
 ### 1. Payload Size Limits (By Design)
