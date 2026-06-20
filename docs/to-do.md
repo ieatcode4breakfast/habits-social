@@ -1,2 +1,0 @@
-- Notification system
-- Final code review, security checks, performance optimizations and refactors

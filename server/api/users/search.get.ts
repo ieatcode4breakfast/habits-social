@@ -2,11 +2,13 @@ import { ilike, and, ne, sql } from 'drizzle-orm';
 import { userBlocks, users } from '~~/server/db/schema';
 import { useDB as _useDB } from '~~/server/utils/db';
 import { requireAuth as _requireAuth } from '~~/server/utils/auth';
+import { generalCheckRateLimit } from '~~/server/utils/generalRateLimit';
 
 export default defineEventHandler(async (event) => {
   const requireAuth = (event.context as any).requireAuth || _requireAuth;
   const useDB = (event.context as any).useDB || _useDB;
   const userId = await requireAuth(event);
+  await generalCheckRateLimit(event, userId);
   const db = useDB(event);
 
   const { username } = getQuery(event);

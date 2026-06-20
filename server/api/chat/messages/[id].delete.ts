@@ -1,7 +1,6 @@
 import { useDB } from '~~/server/utils/db';
 import { requireAuth } from '~~/server/utils/auth';
 import { ChatService } from '~~/server/services/chat.service';
-import { messageIdSchema, throwZodError } from '~~/server/utils/validation';
 import { checkChatRateLimit } from '~~/server/utils/chatRateLimit';
 
 export default defineEventHandler(async (event) => {
@@ -9,12 +8,13 @@ export default defineEventHandler(async (event) => {
   await checkChatRateLimit(event, userId, 'delete_msg');
   const db = useDB(event);
 
-  const idParam = getRouterParam(event, 'id');
-  const idValidation = messageIdSchema.safeParse(idParam);
-  if (!idValidation.success) return throwZodError(idValidation.error);
+  const id = getRouterParam(event, 'id');
+  if (!id) {
+    throw createError({ statusCode: 400, statusMessage: 'Message ID is required' });
+  }
 
   try {
-    await ChatService.deleteMessage(db, userId, idValidation.data);
+    await ChatService.deleteMessage(db, userId, id);
     return { success: true };
   } catch (error: any) {
     throw createError({

@@ -1,7 +1,7 @@
 import { useDB } from '~~/server/utils/db';
 import { requireAuth } from '~~/server/utils/auth';
 import { ChatService } from '~~/server/services/chat.service';
-import { friendIdSchema, chatMessageSchema, throwZodError } from '~~/server/utils/validation';
+import { chatMessageSchema, throwZodError } from '~~/server/utils/validation';
 import { checkChatRateLimit } from '~~/server/utils/chatRateLimit';
 
 /**
@@ -23,11 +23,12 @@ const getCfWaitUntil = (event: Parameters<typeof defineEventHandler>[0] extends 
 
 export default defineEventHandler(async (event) => {
   const userId = await requireAuth(event);
-  const friendIdParam = getRouterParam(event, 'friendId');
-  const friendIdValidation = friendIdSchema.safeParse(friendIdParam);
-  if (!friendIdValidation.success) return throwZodError(friendIdValidation.error);
+  const friendId = getRouterParam(event, 'friendId');
+  if (!friendId) {
+    throw createError({ statusCode: 400, statusMessage: 'Friend ID is required' });
+  }
 
-  await checkChatRateLimit(event, userId, friendIdValidation.data);
+  await checkChatRateLimit(event, userId, friendId);
 
   const db = useDB(event);
 
@@ -36,7 +37,7 @@ export default defineEventHandler(async (event) => {
   if (!bodyValidation.success) return throwZodError(bodyValidation.error);
 
   try {
-    const conv = await ChatService.getOrCreateConversationForFriend(db, userId, friendIdValidation.data);
+    const conv = await ChatService.getOrCreateConversationForFriend(db, userId, friendId);
     if (!conv) throw new Error('Could not create conversation');
 
     // Extract CF waitUntil so push delivery outlives the HTTP response

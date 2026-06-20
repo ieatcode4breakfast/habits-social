@@ -1,7 +1,6 @@
 import { useDB } from '~~/server/utils/db';
 import { requireAuth } from '~~/server/utils/auth';
 import { ChatService } from '~~/server/services/chat.service';
-import { conversationIdSchema, throwZodError } from '~~/server/utils/validation';
 import { checkChatReadRateLimit } from '~~/server/utils/chatRateLimit';
 
 export default defineEventHandler(async (event) => {
@@ -9,12 +8,13 @@ export default defineEventHandler(async (event) => {
   await checkChatReadRateLimit(event, userId);
   const db = useDB(event);
 
-  const idParam = getRouterParam(event, 'id');
-  const idValidation = conversationIdSchema.safeParse(idParam);
-  if (!idValidation.success) return throwZodError(idValidation.error);
+  const id = getRouterParam(event, 'id');
+  if (!id) {
+    throw createError({ statusCode: 400, statusMessage: 'Conversation ID is required' });
+  }
 
   try {
-    await ChatService.markAsRead(db, userId, idValidation.data);
+    await ChatService.markAsRead(db, userId, id);
     return { success: true };
   } catch (error: any) {
     throw createError({

@@ -6,6 +6,7 @@ import { requireAuth as _requireAuth } from '~~/server/utils/auth';
 import { habitLogSchema, throwZodError } from '~~/server/utils/validation';
 import { recalculateHabitStreak } from '~~/server/utils/streaks';
 import { syncBucketLogsForHabit } from '~~/server/utils/buckets';
+import { generalCheckRateLimit } from '~~/server/utils/generalRateLimit';
 
 import { HabitService } from '~~/server/services/habit.service';
 
@@ -14,6 +15,8 @@ export default defineEventHandler(async (event) => {
   const useDB = (event.context as any).useDB || _useDB;
   const userId = await requireAuth(event);
   const db = useDB(event);
+  // ponytail: rate-limits GET too (30/min is generous); narrower method-gating not worth the complexity
+  await generalCheckRateLimit(event, userId);
 
   if (event.method === 'GET') {
     setResponseHeader(event, 'Cache-Control', 'no-cache, no-store, must-revalidate');

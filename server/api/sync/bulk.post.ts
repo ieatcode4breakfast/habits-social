@@ -9,6 +9,7 @@ import { BucketService } from '~~/server/services/bucket.service';
 import { sanitizeHabitShareRecipientIds } from '~~/server/services/habit-sharing.service';
 import { recalculateHabitStreak } from '~~/server/utils/streaks';
 import { syncBucketLogsForHabit, recalculateMultipleBucketStreaks } from '~~/server/utils/buckets';
+import { generalCheckRateLimit } from '~~/server/utils/generalRateLimit';
 
 const bulkSyncSchema = z.object({
   operations: z.array(z.object({ type: z.string(), data: z.any() })).max(100)
@@ -22,6 +23,7 @@ type BulkHabitLog = z.infer<typeof bulkHabitLogSchema>;
 export default defineEventHandler(async (event) => {
   const db = useDB(event);
   const userId = await requireAuth(event);
+  await generalCheckRateLimit(event, userId, { maxPerIdentifier: 10 });
   
   const contentLength = event.node?.req?.headers?.['content-length'];
   if (contentLength && parseInt(contentLength as string) > 1024 * 1024) {

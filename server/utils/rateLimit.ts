@@ -1,4 +1,4 @@
-import type { H3Event } from 'h3';
+import { getHeader, type H3Event } from 'h3';
 
 const IDENTIFIER_LIMIT = 5;
 const IP_LIMIT = 50;
@@ -12,7 +12,9 @@ interface RateLimitData {
 export const checkRateLimit = async (event: H3Event, identifier: string) => {
   const storage = useStorage('authRateLimit');
   // @ts-ignore - _getRequestIP is added by our test mock
-  const ip = event._getRequestIP ? event._getRequestIP() : getRequestIP(event, { xForwardedFor: true }) || 'unknown';
+  // Use CF-Connecting-IP (Cloudflare-controlled, not spoofable). Falls back
+  // to getRequestIP for local dev where Cloudflare isn't in the path.
+  const ip = event._getRequestIP ? event._getRequestIP() : getHeader(event, 'cf-connecting-ip') || getRequestIP(event) || 'unknown';
   
   const idKey = `id:${identifier.toLowerCase()}`;
   const ipKey = `ip:${ip}`;

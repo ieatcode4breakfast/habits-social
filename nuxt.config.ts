@@ -29,12 +29,15 @@ export default defineNuxtConfig({
   pwa: {
     registerType: 'autoUpdate',
     manifest: {
+      id: '/',
       name: process.env.APP_NAME || 'Habits Social',
       short_name: process.env.APP_NAME || 'Habits Social',
+      description: 'Track habits, build streaks, and stay accountable with friends.',
       theme_color: '#000000',
       background_color: '#000000',
       display: 'standalone',
       start_url: '/?source=pwa',
+      scope: '/',
       icons: [
         {
           src: '/icons/icon-192.png?v=2',
@@ -132,6 +135,9 @@ export default defineNuxtConfig({
         driver: 'memory'
       },
       chatRateLimit: {
+        driver: 'memory'
+      },
+      generalRateLimit: {
         driver: 'memory'
       }
     }

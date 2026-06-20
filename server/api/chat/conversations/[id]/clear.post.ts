@@ -13,12 +13,6 @@ export default defineEventHandler(async (event) => {
   if (!conversationId) {
     throw createError({ statusCode: 400, statusMessage: 'Conversation ID is required' });
   }
-  
-  // Basic UUID format validation
-  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-  if (!uuidRegex.test(conversationId)) {
-    throw createError({ statusCode: 400, statusMessage: 'Invalid Conversation ID format' });
-  }
 
   // 3. Rate Limit
   await checkChatClearRateLimit(event, userId);

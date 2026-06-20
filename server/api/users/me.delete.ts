@@ -6,6 +6,7 @@ import { UserService } from '~~/server/services/user.service';
 import { useDB as _useDB } from '~~/server/utils/db';
 import { requireAuth as _requireAuth, AUTH_COOKIE_NAME } from '~~/server/utils/auth';
 import { deleteAccountSchema, throwZodError } from '~~/server/utils/validation';
+import { generalCheckRateLimit } from '~~/server/utils/generalRateLimit';
 
 export default defineEventHandler(async (event) => {
   const requireAuth = (event.context as any).requireAuth || _requireAuth;
@@ -13,6 +14,7 @@ export default defineEventHandler(async (event) => {
 
   const userId = await requireAuth(event);
   const db = useDB(event);
+  await generalCheckRateLimit(event, userId, { maxPerIdentifier: 5, windowSeconds: 3600 });
 
   // 1. Read and validate password
   // On Cloudflare Workers, h3's readBody hangs for DELETE requests because

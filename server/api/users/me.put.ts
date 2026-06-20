@@ -1,9 +1,10 @@
 import { eq, and, ne, or, sql } from 'drizzle-orm';
 import { users } from '~~/server/db/schema';
 import { useDB as _useDB } from '~~/server/utils/db';
-import { requireAuth as _requireAuth } from '~~/server/utils/auth';
+import { requireAuth as _requireAuth, BCRYPT_COST_FACTOR } from '~~/server/utils/auth';
 import { hash, compare } from 'bcrypt-ts';
 import { updateProfileSchema, throwZodError } from '~~/server/utils/validation';
+import { generalCheckRateLimit } from '~~/server/utils/generalRateLimit';
 
 export default defineEventHandler(async (event) => {
   const requireAuth = (event.context as any).requireAuth || _requireAuth;
@@ -11,6 +12,7 @@ export default defineEventHandler(async (event) => {
 
   const userId = await requireAuth(event);
   const db = useDB(event);
+  await generalCheckRateLimit(event, userId);
 
   // 1. Read and strictly validate body
   const body = await readBody(event);
@@ -72,7 +74,7 @@ export default defineEventHandler(async (event) => {
   // 5. Prepare update values
   let newPasswordHash = user.passwordHash;
   if (password) {
-    newPasswordHash = await hash(password, 10);
+    newPasswordHash = await hash(password, BCRYPT_COST_FACTOR);
   }
 
   const newEmailVerifiedAt = (email !== undefined && email !== user.email) ? null : user.emailVerifiedAt;

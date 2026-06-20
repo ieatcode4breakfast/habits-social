@@ -2,8 +2,6 @@ import { and, eq, sql } from 'drizzle-orm';
 import { userBlocks, users } from '~~/server/db/schema';
 import { useDB as _useDB } from '~~/server/utils/db';
 import { requireAuth as _requireAuth } from '~~/server/utils/auth';
-import { zId } from '~~/server/utils/schemaPrimitives';
-
 export default defineEventHandler(async (event) => {
   const requireAuth = (event.context as any).requireAuth || _requireAuth;
   const useDB = (event.context as any).useDB || _useDB;
@@ -11,11 +9,9 @@ export default defineEventHandler(async (event) => {
   const db = useDB(event);
 
   const id = getRouterParam(event, 'id');
-  const idValidation = zId.safeParse(id);
-  if (!idValidation.success) {
+  if (!id) {
     throw createError({ statusCode: 400, statusMessage: 'Bad Request' });
   }
-  const targetId = idValidation.data;
 
   const results = await db.select({
     id: users.id,
@@ -30,7 +26,7 @@ export default defineEventHandler(async (event) => {
   })
   .from(users)
   .where(and(
-    eq(users.id, targetId),
+    eq(users.id, id),
     sql`NOT EXISTS (
       SELECT 1
       FROM ${userBlocks}

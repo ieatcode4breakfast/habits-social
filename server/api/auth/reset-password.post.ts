@@ -5,6 +5,7 @@ import { useDB as _useDB } from '~~/server/utils/db';
 import { BCRYPT_COST_FACTOR } from '~~/server/utils/auth';
 import { resetPasswordSchema, throwZodError } from '~~/server/utils/validation';
 import { hashPasswordResetToken } from '~~/server/utils/passwordReset';
+import { generalCheckRateLimit } from '~~/server/utils/generalRateLimit';
 
 const RESET_COMPLETE_MESSAGE = 'Password has been reset successfully.';
 
@@ -14,6 +15,9 @@ export default defineEventHandler(async (event) => {
   };
   const useDB = context.useDB || _useDB;
   const db = useDB(event);
+  // Rate limit by IP since this endpoint is unauthenticated (uses reset tokens)
+  const ip = getHeader(event, 'cf-connecting-ip') || getRequestIP(event) || 'unknown';
+  await generalCheckRateLimit(event, ip, { maxPerIdentifier: 5, windowSeconds: 900 });
 
   const body = await readBody(event);
   const validation = resetPasswordSchema.safeParse(body);

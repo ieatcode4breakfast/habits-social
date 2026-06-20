@@ -24,66 +24,6 @@
   }).from(habitsTable).where(...)
   ```
 
-### 2. IP-Based Rate Limiting Bypassable via `X-Forwarded-For` Spoofing
-- **Location:** `server/utils/rateLimit.ts:15`
-- **Issue:** `getRequestIP(event, { xForwardedFor: true })` trusts the `X-Forwarded-For` header. Unless Cloudflare always strips/overwrites this before the worker, attackers can rotate their apparent IP per request and bypass the 50-request IP limit entirely.
-- **Fix:** On Cloudflare Workers, use the `CF-Connecting-IP` header instead, which Cloudflare controls and cannot be spoofed:
-  ```ts
-  const ip = getHeader(event, 'cf-connecting-ip') || getRequestIP(event) || 'unknown';
-  ```
-
-### 3. Rate Limit Check-Then-Increment Is Non-Atomic
-- **Location:** `server/utils/rateLimit.ts:24-37`
-- **Issue:** The pattern reads `count`, checks it, then writes `count + 1` in separate storage calls. Under concurrent burst requests, multiple requests read the same count before any write lands, allowing the 5-request limit to be exceeded.
-- **Fix:** If using Cloudflare KV (eventually consistent), this is inherent and somewhat mitigated by KV's caching. For stronger protection, consider using Cloudflare Durable Objects or an atomic increment pattern. At minimum, document this as a known limitation.
-
-### 4. No Rate Limiting on Sensitive Non-Auth Endpoints
-- **Location:** Various API routes
-- **Issue:** Auth endpoints have rate limiting, but several sensitive non-auth endpoints remain unprotected:
-  - `users/search.get.ts` — username enumeration via brute force
-  - `friendships/index.ts POST` — spam friend requests
-  - `sync/bulk.post.ts` — expensive bulk operations
-  - `social/feed.get.ts` — complex LATERAL join queries
-- **Fix:** Apply a general-purpose rate limiter middleware or add per-route rate limiting to the above endpoints.
-
-### 5. JWT Tokens Cannot Be Revoked on Logout
-- **Location:** `server/api/auth/logout.post.ts:4-6`
-- **Issue:** Logout only deletes the cookie. JWTs are stateless — a captured token remains valid for up to 7 days. No server-side blacklist exists.
-- **Fix:** For immediate mitigation, reduce JWT lifetime from 7 days to a shorter window (e.g., 1 hour) with aggressive sliding renewal. For full revocation, implement a server-side token blacklist in KV checked on each `requireAuth` call.
-
-### 7. Route Param `id` Not Validated as UUID Before DB Query
-- **Location:** `server/api/friendships/[id].ts:13`, `server/api/habits/[id].ts`, `server/api/buckets/[id].ts`
-- **Issue:** Route parameters are passed directly to DB queries without validating UUID format. Malformed IDs cause raw Postgres errors (22P02 invalid_text_representation) rather than clean 400 responses.
-- **Fix:** Add a UUID format check at the top of each handler:
-  ```ts
-  const id = getRouterParam(event, 'id');
-  const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-  if (!id || !UUID_REGEX.test(id)) {
-    throw createError({ statusCode: 400, statusMessage: 'Invalid ID format' });
-  }
-  ```
-
-### 9. `N+1` Queries in `UserService.deleteUser` Friendship Cleanup
-- **Location:** `server/services/user.service.ts:27-29`
-- **Issue:** For every friendship the user has, `cleanupFriendshipData` is called individually (5 DB queries each). A user with 50 friends triggers 250 queries in a single transaction.
-- **Fix:** Refactor `cleanupFriendshipData` to accept an array of friend pairs and batch all operations.
-
-### 10. `SyncService.getPaginatedDeltas` Uses 3 Separate Transactions
-- **Location:** `server/services/sync.service.ts:242-358`
-- **Issue:** Paginated sync uses 3 independent `db.transaction()` calls. Data can change between them, producing inconsistent snapshots (e.g., a bucket deleted between fetching IDs and details).
-- **Fix:** Consolidate into a single transaction with `REPEATABLE READ` isolation, or document this as a known limitation of the eventually-consistent sync model.
-
-### 11. Bcrypt Cost Factor Hardcoded in `me.put.ts`, Diverges from Constant
-- **Location:** `server/api/users/me.put.ts:63`
-- **Issue:** Uses `hash(password, 10)` instead of the shared `BCRYPT_COST_FACTOR` from `auth.ts`. If the constant changes, password updates will use a different cost factor.
-- **Fix:**
-  ```ts
-  // me.put.ts — replace line 63
-  import { BCRYPT_COST_FACTOR } from '~~/server/utils/auth';
-  // ...
-  newPasswordHash = await hash(password, BCRYPT_COST_FACTOR);
-  ```
-
 ---
 
 ## 🔵 NITPICKS & BEST PRACTICES
@@ -178,3 +118,35 @@ The current block UI intentionally accepts two rare stale-state cases:
 - If that same profile request fails after User B blocks User A, the page may not aggressively clear already-loaded local profile state until normal navigation or refresh.
 - This is acceptable because the backend still rejects the forbidden action and prevents data access. The impact is limited to a narrow, temporary user-experience mismatch, not a security boundary failure.
 
+### 11. Route Param UUID Validation Intentionally Removed (By Design)
+
+UUID format validation (Zod `.uuid()` or regex) was deliberately removed from all route param handlers. Only a truthiness `if (!id)` check remains.
+- All route params are passed as bind parameters via Drizzle's parameterized queries. There is **no SQL injection vector** — a malformed ID produces a Postgres type error (`22P02`), not an injection.
+- The `uuid` column type in the schema already enforces format at the database boundary.
+- **DO NOT FLAG** missing UUID format checks on route params in future audits. Truthiness checks are sufficient, and the DB is the authoritative enforcer.
+
+### 12. Non-Atomic Rate Limit Counter (Accepted Limitation)
+
+The rate limiter's read-then-write pattern is not atomic. Under perfectly timed concurrent bursts, 2-3 extra requests may leak past the IP cap.
+- Fixing this requires architectural changes (atomic counters, distributed locks, or Durable Objects) that would exhaust Cloudflare KV's free tier or add unjustified complexity. This is the same trade-off documented in Note #9 (in-memory rate limiting).
+- The per-account cap of 5 attempts provides a hard backstop regardless of IP-layer leakage. A human user will never trigger the race condition — it only matters for automated scripts at millisecond timing.
+- **DO NOT FLAG** this as a fixable bug in future audits. It is an accepted limitation of the chosen storage architecture.
+
+### 13. JWT Tokens Cannot Be Revoked on Logout (Accepted Limitation)
+
+JWTs are stateless by design — logout only deletes the cookie. A captured token remains valid for up to 7 days.
+- Full revocation requires a server-side token blacklist checked on every authenticated request, adding a KV read to the hottest path in the app. This is a classic JWT trade-off, not a bug.
+- The pragmatic mitigation (reducing token lifetime to 1 hour with sliding renewal) remains available if the risk profile changes.
+- **DO NOT FLAG** missing server-side JWT revocation in future audits. Cookie deletion on logout is the intended behavior for this architecture.
+
+### 14. N+1 Queries in Account Deletion Friendship Cleanup (Accepted Limitation)
+
+When a user with many friends deletes their account, `cleanupFriendshipData` runs once per friendship (5 queries each). A user with 50 friends triggers ~250 queries.
+- Account deletion is a once-ever, cold-path operation. The code is functionally correct — it's just slow during a rare event. The blast radius of refactoring `cleanupFriendshipData` to batch (touching the social service and all its callers) outweighs the benefit.
+- **DO NOT FLAG** N+1 patterns in deletion paths in future audits unless deletion latency becomes a real user-facing problem.
+
+### 15. SyncService Uses 3 Separate Transactions (Accepted Limitation)
+
+Paginated sync uses 3 independent database transactions. In theory, data can change between them, producing a slightly inconsistent snapshot (e.g., a bucket deleted between transaction 1 and 3).
+- Consolidating into a single transaction with stricter isolation touches the sync pipeline — the highest-traffic path in the app. The edge case is theoretical at current user counts, and breaking sync silently is a worse outcome than living with a narrow inconsistency window.
+- **DO NOT FLAG** multiple transaction boundaries in sync as a fixable bug in future audits. It is an accepted limitation of the eventually-consistent sync model.

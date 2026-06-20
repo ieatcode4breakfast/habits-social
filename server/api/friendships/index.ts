@@ -3,6 +3,7 @@ import { friendships as friendshipsTable, users } from '~~/server/db/schema';
 import { useDB as _useDB } from '~~/server/utils/db';
 import { requireAuth as _requireAuth } from '~~/server/utils/auth';
 import { friendshipCreateSchema } from '~~/server/utils/validation';
+import { generalCheckRateLimit } from '~~/server/utils/generalRateLimit';
 
 import { SocialService } from '~~/server/services/social.service';
 
@@ -11,6 +12,8 @@ export default defineEventHandler(async (event) => {
   const useDB = (event.context as any).useDB || _useDB;
   const userId = await requireAuth(event);
   const db = useDB(event);
+  // ponytail: rate-limits GET too (20/min generous for reads); narrower method-gating not worth the complexity
+  await generalCheckRateLimit(event, userId, { maxPerIdentifier: 20 });
 
   if (event.method === 'GET') {
     setResponseHeader(event, 'Cache-Control', 'no-cache, no-store, must-revalidate');

@@ -31,7 +31,7 @@ Release Habits Social as a Trusted Web Activity using Bubblewrap. Work is ordere
 
 No new deletion article is required.
 
-## 2. Improve the PWA manifest — Small code phase
+## 2. Improve the PWA manifest — Complete June 20, 2026
 
 1. Add a stable manifest `id`.
 2. Add a user-facing manifest description.

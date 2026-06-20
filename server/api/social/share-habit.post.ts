@@ -3,6 +3,7 @@ import { friendships, habits as habitsTable, shareEvents } from '~~/server/db/sc
 import { useDB as _useDB } from '~~/server/utils/db';
 import { requireAuth as _requireAuth } from '~~/server/utils/auth';
 import { shareHabitSchema, throwZodError } from '~~/server/utils/validation';
+import { generalCheckRateLimit } from '~~/server/utils/generalRateLimit';
 import { SocialService } from '~~/server/services/social.service';
 
 type ShareHabitContext = {
@@ -16,6 +17,7 @@ export default defineEventHandler(async (event) => {
   const useDB = eventContext.useDB ?? _useDB;
   const userId = await requireAuth(event);
   const db = useDB(event);
+  await generalCheckRateLimit(event, userId);
 
   const body = await readBody(event);
   const validation = shareHabitSchema.safeParse(body);

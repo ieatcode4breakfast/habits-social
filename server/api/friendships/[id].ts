@@ -2,6 +2,7 @@ import { eq, and, or, sql } from 'drizzle-orm';
 import { friendships, bucketHabits, buckets, habits, habitLogs } from '~~/server/db/schema';
 import { useDB as _useDB, extractRows } from '~~/server/utils/db';
 import { requireAuth as _requireAuth } from '~~/server/utils/auth';
+import { generalCheckRateLimit } from '~~/server/utils/generalRateLimit';
 
 import { SocialService } from '~~/server/services/social.service';
 
@@ -10,6 +11,7 @@ export default defineEventHandler(async (event) => {
   const useDB = (event.context as any).useDB || _useDB;
   const userId = await requireAuth(event);
   const db = useDB(event);
+  await generalCheckRateLimit(event, userId, { maxPerIdentifier: 20 });
   const id = getRouterParam(event, 'id');
   if (!id) {
     throw createError({ statusCode: 400, statusMessage: 'Bad Request' });

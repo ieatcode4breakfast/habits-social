@@ -3,6 +3,7 @@ import { format, parseISO, subDays } from 'date-fns';
 import { friendships as friendshipsTable, habitLogs, habits as habitsTable, users, shareEvents, userBlocks } from '~~/server/db/schema';
 import { useDB as _useDB } from '~~/server/utils/db';
 import { requireAuth as _requireAuth } from '~~/server/utils/auth';
+import { generalCheckRateLimit } from '~~/server/utils/generalRateLimit';
 import { SocialNarratorService, type HabitLogSummary } from '~~/server/services/social-narrator.service';
 
 export interface FeedRowBase {
@@ -60,6 +61,7 @@ export default defineEventHandler(async (event) => {
   const useDB = (event.context as any).useDB || _useDB;
   const userId = await requireAuth(event);
   const db = useDB(event);
+  await generalCheckRateLimit(event, userId);
 
   // Fetch the current user's actual name for feed display
   const [currentUser] = await db.select({ username: users.username })
