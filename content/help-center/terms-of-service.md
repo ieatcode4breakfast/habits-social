@@ -4,6 +4,7 @@ order: 8
 # Terms of Service
 
 **Effective Date:** May 26, 2026
+**Last Updated:** June 20, 2026
 
 Welcome to Habits Social. By accessing or using our application, you agree to be bound by these Terms of Service ("Terms"). If you do not agree to all the terms and conditions, you may not access the service.
 
@@ -21,9 +22,9 @@ Habits Social provides social features, including habit sharing and real-time ch
 - Any habits you track or routines you follow are done strictly at your own risk. We disclaim any liability for injury, damages, or health complications resulting from the use of our service.
 
 ## 4. Payments and Subscriptions
-While Habits Social may offer free services, we reserve the right to introduce premium features or subscriptions in the future.
-- All purchases are final and **non-refundable**.
-- We reserve the right to change our prices and billing methods at any time.
+Habits Social is currently free to use and does not contain purchases, paid subscriptions, or advertising.
+
+If paid functionality is introduced in the future, these Terms and the applicable store disclosures will be updated before that functionality is offered.
 
 ## 5. User-Generated Content & Intellectual Property
 You retain ownership of any content (e.g., habit descriptions, bucket titles, chat messages) you submit to the application.

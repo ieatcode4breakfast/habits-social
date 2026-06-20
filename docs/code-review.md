@@ -10,28 +10,19 @@
 ## 🟡 WARNINGS (Highly recommended to address)
 *UX failures, data integrity issues, scalability issues, and technical debt.*
 
-### 1. `friend-data.get.ts` Fetches ALL Friend Logs, Filters in JavaScript
-- **Location:** `server/api/social/friend-data.get.ts:45-51,65-80`
-- **Issue:** Lines 65-68 fetch **all** habit logs for a friend from the database. The shared-habit filter (line 80) only runs in JavaScript after the full result set is loaded. Unshared log data crosses the DB boundary into memory. Additionally, `db.select()` on line 45 returns all habit columns including `sharedWith`, exposing other users' IDs.
-- **Fix:** Filter logs at the DB level and add column projection to habits:
+### 1. `friend-data.get.ts` — Column Projection Missing on Habits Query
+- **Location:** `server/api/social/friend-data.get.ts:45-51`
+- **Issue:** ✅ **Logs DB-level filtering has been applied** — `gte`/`lte` conditions now push date range filtering into the SQL `WHERE` clause. However, `db.select()` (with no arguments) on the habits query still returns all columns including `sharedWith`, exposing other users' IDs in the response payload.
+- **Fix:** Add column projection to the habits query to exclude `sharedWith`:
   ```ts
-  // Replace lines 45-51 (habits query) with column projection:
-  const habitIds = habits.map((h: any) => h.id);
- 
-  // Replace lines 65-80 (logs query) with DB-level filter:
-  const logsConditions = [
-    eq(habitLogs.ownerId, fId),
-    inArray(habitLogs.habitId, habitIds),
-    gte(habitLogs.date, startDateStr)
-  ];
-  if (endDateStr) {
-    logsConditions.push(lte(habitLogs.date, endDateStr));
-  }
-  const logs = await db.select().from(habitLogs)
-    .where(and(...logsConditions))
-    .orderBy(desc(habitLogs.date));
+  // Replace db.select() with explicit column list excluding sharedWith
+  const habits = await db.select({
+    id: habitsTable.id,
+    ownerId: habitsTable.ownerId,
+    name: habitsTable.name,
+    // ... all columns except sharedWith
+  }).from(habitsTable).where(...)
   ```
-  Also add column projection to the habits query to exclude `sharedWith`.
 
 ### 2. IP-Based Rate Limiting Bypassable via `X-Forwarded-For` Spoofing
 - **Location:** `server/utils/rateLimit.ts:15`
@@ -60,15 +51,6 @@
 - **Issue:** Logout only deletes the cookie. JWTs are stateless — a captured token remains valid for up to 7 days. No server-side blacklist exists.
 - **Fix:** For immediate mitigation, reduce JWT lifetime from 7 days to a shorter window (e.g., 1 hour) with aggressive sliding renewal. For full revocation, implement a server-side token blacklist in KV checked on each `requireAuth` call.
 
-### 6. `zColor` Accepts Arbitrary 50-Character Strings — XSS Vector
-- **Location:** `server/utils/schemaPrimitives.ts:6`
-- **Issue:** `z.string().max(50)` has no format constraint. A color field could contain `"><script>alert(1)` (25 chars). If ever rendered in an HTML attribute or unescaped context, it's an injection vector.
-- **Fix:**
-  ```ts
-  // schemaPrimitives.ts — replace line 6
-  export const zColor = z.string().regex(/^#[0-9a-fA-F]{3,8}$/)
-  ```
-
 ### 7. Route Param `id` Not Validated as UUID Before DB Query
 - **Location:** `server/api/friendships/[id].ts:13`, `server/api/habits/[id].ts`, `server/api/buckets/[id].ts`
 - **Issue:** Route parameters are passed directly to DB queries without validating UUID format. Malformed IDs cause raw Postgres errors (22P02 invalid_text_representation) rather than clean 400 responses.
@@ -79,15 +61,6 @@
   if (!id || !UUID_REGEX.test(id)) {
     throw createError({ statusCode: 400, statusMessage: 'Invalid ID format' });
   }
-  ```
-
-### 8. `loginSchema.identifier` Has No Max Length
-- **Location:** `server/utils/validation.ts:54`
-- **Issue:** `z.string().min(1)` with no `.max()` allows a multi-megabyte identifier string to be sent to a Postgres `WHERE` clause.
-- **Fix:**
-  ```ts
-  // validation.ts — replace line 54
-  identifier: z.string().min(1).max(255),
   ```
 
 ### 9. `N+1` Queries in `UserService.deleteUser` Friendship Cleanup
@@ -115,11 +88,6 @@
 
 ## 🔵 NITPICKS & BEST PRACTICES
 
-### 12. `zDateString` Doesn't Validate Real Dates
-- **Location:** `server/utils/schemaPrimitives.ts:7`
-- **Issue:** `/^\d{4}-\d{2}-\d{2}$/` accepts `"2024-13-45"`.
-- **Fix:** Add a refinement: `.refine(val => !isNaN(Date.parse(val)), { message: 'Invalid date' })`.
-
 ### 13. Missing Indexes on Heavily Queried Columns
 - **Location:** `server/db/schema.ts`
 - **Note:** These are fine for low user counts but will cause sequential scans at scale:
@@ -134,10 +102,6 @@
 - **Location:** `bucketlogs/index.ts`, `buckets/index.ts`, `habits/index.ts`, `habitlogs/index.ts`, `friendships/index.ts`
 - **Note:** Unsupported methods (PATCH, OPTIONS, etc.) silently return `undefined` / `200 OK`. Should return 405 Method Not Allowed.
 
-### 16. SESSION_MAX_AGE_SECONDS and SESSION_EXPIRATION_JWT Are Semantically Duplicated
-- **Location:** `server/utils/auth.ts:8-9`
-- **Note:** Two constants represent 7 days in different formats. If one changes without the other, cookie and JWT lifetimes diverge. Derive one from the other.
-
 ### 17. CI Uses wrangler@latest — Unpinned Dependency
 - **Location:** `.github/workflows/deploy.yml:33`
 - **Note:** A breaking Wrangler release could silently break deployments. Pin to a specific version.
@@ -149,10 +113,6 @@
 ### 19. SocialNarratorService Throws on Malformed Date From DB
 - **Location:** `server/services/social-narrator.service.ts:49,128,148`
 - **Note:** `format(parseISO(log.date), 'MMM d')` throws `RangeError` on malformed dates. A single corrupt row crashes the entire feed. Wrap in try-catch.
-
-### 20. viewport Disables User Zoom — Accessibility Violation
-- **Location:** `nuxt.config.ts:62`
-- **Note:** `maximum-scale=1, user-scalable=0` prevents zooming, violating WCAG 1.4.4. Remove these restrictions.
 
 ### 21. SQL Performance (LATERAL join) - DEFERRED
 - **Location:** `server/api/social/feed.get.ts`

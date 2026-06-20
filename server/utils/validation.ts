@@ -51,7 +51,7 @@ export const registerSchema = z.object({
 });
 
 export const loginSchema = z.object({
-  identifier: z.string().min(1),
+  identifier: z.string().min(1).max(255),
   password: zLoginPassword
 });
 

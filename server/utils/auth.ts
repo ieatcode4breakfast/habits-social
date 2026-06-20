@@ -6,7 +6,7 @@ export const DUMMY_HASH = '$2b$10$N9qo8uLOickgx2ZMRZoMyeIjZAgNIhp.pX7wMQRpM64ls7
 
 export const AUTH_COOKIE_NAME = 'auth_token';
 export const SESSION_MAX_AGE_SECONDS = 60 * 60 * 24 * 7; // 7 days
-export const SESSION_EXPIRATION_JWT = '7d';
+export const SESSION_EXPIRATION_JWT = `${SESSION_MAX_AGE_SECONDS / 86400}d`;
 
 const getSecret = (event?: H3Event) => {
   let config: any = {};
