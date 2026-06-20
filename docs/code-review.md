@@ -10,20 +10,6 @@
 ## 🟡 WARNINGS (Highly recommended to address)
 *UX failures, data integrity issues, scalability issues, and technical debt.*
 
-### 1. `friend-data.get.ts` — Column Projection Missing on Habits Query
-- **Location:** `server/api/social/friend-data.get.ts:45-51`
-- **Issue:** ✅ **Logs DB-level filtering has been applied** — `gte`/`lte` conditions now push date range filtering into the SQL `WHERE` clause. However, `db.select()` (with no arguments) on the habits query still returns all columns including `sharedWith`, exposing other users' IDs in the response payload.
-- **Fix:** Add column projection to the habits query to exclude `sharedWith`:
-  ```ts
-  // Replace db.select() with explicit column list excluding sharedWith
-  const habits = await db.select({
-    id: habitsTable.id,
-    ownerId: habitsTable.ownerId,
-    name: habitsTable.name,
-    // ... all columns except sharedWith
-  }).from(habitsTable).where(...)
-  ```
-
 ---
 
 ## 🔵 NITPICKS & BEST PRACTICES

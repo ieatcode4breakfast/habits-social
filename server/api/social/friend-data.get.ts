@@ -84,7 +84,10 @@ export default defineEventHandler(async (event) => {
 
   return {
     data: {
-      habits: habits,
+      habits: habits.map((h: any) => {
+        const { sharedWith, ...rest } = h;
+        return rest;
+      }),
       logs: logs
     }
   };
