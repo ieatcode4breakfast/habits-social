@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   buildConnectSrc,
   buildContentSecurityPolicy,
+  buildNativeContentSecurityPolicy,
   normalizePartykitHostForCsp,
 } from './securityHeaders';
 
@@ -82,5 +83,47 @@ describe('security header CSP helpers', () => {
     expect(csp).toContain(
       "connect-src 'self' https://habits-social-realtime-staging.ieatcode4breakfast.partykit.dev wss://habits-social-realtime-staging.ieatcode4breakfast.partykit.dev https://cloudflareinsights.com;"
     );
+  });
+});
+
+describe('buildNativeContentSecurityPolicy', () => {
+  it('includes production hosts and PartyKit websocket endpoints', () => {
+    const csp = buildNativeContentSecurityPolicy({
+      partykitHost: 'habits-social-realtime-production.ieatcode4breakfast.partykit.dev',
+      apiBaseUrl: 'https://www.habitssocial.com',
+    });
+
+    expect(csp).toContain('https://habits-social-realtime-production.ieatcode4breakfast.partykit.dev');
+    expect(csp).toContain('wss://habits-social-realtime-production.ieatcode4breakfast.partykit.dev');
+    expect(csp).toContain('https://www.habitssocial.com');
+    expect(csp).toContain("default-src 'self'");
+    expect(csp).toContain("script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval'");
+  });
+
+  it('does not include accounts.google.com', () => {
+    const csp = buildNativeContentSecurityPolicy({
+      partykitHost: 'habits-social-realtime-production.ieatcode4breakfast.partykit.dev',
+      apiBaseUrl: 'https://www.habitssocial.com',
+    });
+
+    expect(csp).not.toContain('accounts.google.com');
+  });
+
+  it('does not include cleartext http://', () => {
+    const csp = buildNativeContentSecurityPolicy({
+      partykitHost: 'habits-social-realtime-production.ieatcode4breakfast.partykit.dev',
+      apiBaseUrl: 'https://www.habitssocial.com',
+    });
+
+    expect(csp).not.toContain('http://');
+  });
+
+  it('does not include cloudflareinsights.com', () => {
+    const csp = buildNativeContentSecurityPolicy({
+      partykitHost: 'habits-social-realtime-production.ieatcode4breakfast.partykit.dev',
+      apiBaseUrl: 'https://www.habitssocial.com',
+    });
+
+    expect(csp).not.toContain('cloudflareinsights.com');
   });
 });

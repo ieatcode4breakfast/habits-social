@@ -15,6 +15,9 @@ coverage/
 .wrangler/
 .partykit/
 
+# AI agent config files (from ai-setup)
+tui.json
+
 # Android (Capacitor) — keys, signing props, SDK paths, build outputs
 *.jks
 *.keystore

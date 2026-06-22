@@ -40,3 +40,14 @@ export const buildConnectSrc = ({ realtimeEnabled, partykitHost }: RealtimeCspIn
 
 export const buildContentSecurityPolicy = (input: RealtimeCspInput): string =>
   `default-src 'self'; script-src 'self' 'unsafe-inline' https://static.cloudflareinsights.com 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://api.dicebear.com; connect-src ${buildConnectSrc(input)} https://cloudflareinsights.com; font-src 'self'; frame-src 'self';`;
+
+// ponytail: meta CSP requires 'unsafe-inline' in script-src because Nuxt injects inline hydration + theme bootstrap; static build has no per-request nonce server, so no upgrade path without reintroducing a remote server.url (forbidden by roadmap). Ceiling: cross-origin script blocking still applies.
+export const buildNativeContentSecurityPolicy = (input: { partykitHost?: string; apiBaseUrl?: string }): string => {
+  const normalizedHost = normalizePartykitHostForCsp(input.partykitHost);
+  const partykitConnect = normalizedHost
+    ? ` https://${normalizedHost} wss://${normalizedHost}`
+    : '';
+  const apiConnect = input.apiBaseUrl ? ` ${input.apiBaseUrl}` : '';
+
+  return `default-src 'self'; script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://api.dicebear.com; connect-src 'self'${apiConnect}${partykitConnect}; frame-src 'self';`;
+};

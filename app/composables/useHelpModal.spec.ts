@@ -11,6 +11,8 @@ const mocks = vi.hoisted(() => {
     isOpen: { value: false },
     activePath: { value: '/help-center/welcome' }
   };
+  const runtimeConfig = { public: { build: 'web' } };
+  const browserOpenMock = vi.fn();
 
   const useStateMock = vi.fn((key: string, init: () => boolean | string) => {
     if (key === 'help-modal-open') {
@@ -28,6 +30,8 @@ const mocks = vi.hoisted(() => {
 
   return {
     state,
+    runtimeConfig,
+    browserOpenMock,
     useStateMock
   };
 });
@@ -36,10 +40,14 @@ vi.mock('#app', () => ({
   useState: mocks.useStateMock
 }));
 
+vi.mock('@capacitor/browser', () => ({ Browser: { open: mocks.browserOpenMock } }));
+vi.stubGlobal('useRuntimeConfig', () => mocks.runtimeConfig);
+
 describe('useHelpModal', () => {
   beforeEach(() => {
     mocks.state.isOpen.value = false;
     mocks.state.activePath.value = DEFAULT_HELP_PATH;
+    mocks.runtimeConfig.public.build = 'web';
     vi.clearAllMocks();
   });
 
@@ -80,5 +88,27 @@ describe('useHelpModal', () => {
 
     expect(isOpen.value).toBe(false);
     expect(activePath.value).toBe(DEFAULT_HELP_PATH);
+  });
+
+  it('opens the in-app browser under the native flag and does not set isOpen', async () => {
+    mocks.runtimeConfig.public.build = 'native';
+    const modal = useHelpModal();
+
+    await modal.open('/help-center/welcome');
+
+    expect(mocks.browserOpenMock).toHaveBeenCalledWith({
+      url: 'https://www.habitssocial.com/help-center/welcome',
+      presentationStyle: 'popover',
+    });
+    expect(modal.isOpen.value).toBe(false);
+  });
+
+  it('keeps the modal web path under the web flag and does not call Browser.open', async () => {
+    const modal = useHelpModal();
+
+    await modal.open('/help-center/buckets');
+
+    expect(modal.isOpen.value).toBe(true);
+    expect(mocks.browserOpenMock).not.toHaveBeenCalled();
   });
 });

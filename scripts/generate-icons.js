@@ -54,96 +54,71 @@ async function main() {
       fs.mkdirSync(outputDir, { recursive: true });
     }
 
-    // Process each icon
-    for (const icon of icons) {
-      console.log(`Generating ${icon.name} at size ${icon.size}x${icon.size}...`);
-      
-      const N = icon.size;
-      // We want to recreate:
-      // A white circle in the center of a transparent canvas.
-      // An image inside the circle, scaled to 135% of the canvas size, offset by -17.5% in both x and y.
-      
-      // Let's create a blank transparent target image of size N x N
+    // Reusable circular icon renderer matching the SVG's viewBox 0 0 100 100
+    function renderCircularIcon(size) {
+      const N = size;
       const canvas = new Jimp({ width: N, height: N, color: 0x00000000 });
-
-      // Calculate source crop/scale properties
-      // Since SVG viewBox is 0 0 100 100, the white circle is centered with radius 50 (fits perfectly).
-      // The image is at x=-17.5, y=-17.5 with width=135, height=135.
-      // So the scaled image size is 1.35 * N, and offset is -0.175 * N.
       const scaledSize = Math.round(1.35 * N);
       const offset = Math.round(-0.175 * N);
-
-      // Clone the source image and resize it to scaledSize x scaledSize
       const resizedSrc = sourceImage.clone().resize({ w: scaledSize, h: scaledSize });
-
-      // Loop through each pixel of our N x N target canvas
       const halfN = N / 2;
       const radius = N / 2;
 
       for (let y = 0; y < N; y++) {
         for (let x = 0; x < N; x++) {
-          // Calculate distance from center of target canvas
-          // Center is (N/2, N/2)
           const dx = (x + 0.5) - halfN;
           const dy = (y + 0.5) - halfN;
           const distance = Math.sqrt(dx * dx + dy * dy);
 
           if (distance <= radius) {
-            // Inside the circular viewport!
-            // Map target coordinates back to the resized source image coordinates.
-            // Target (x, y) corresponds to resizedSrc at (x - offset, y - offset)
             const srcX = x - offset;
             const srcY = y - offset;
-
-            let r = 255;
-            let g = 255;
-            let b = 255;
-            let a = 255;
-
-            // If the coordinates fall inside the resized source image, sample it
+            let r = 255, g = 255, b = 255, a = 255;
             if (srcX >= 0 && srcX < scaledSize && srcY >= 0 && srcY < scaledSize) {
               const hexColor = resizedSrc.getPixelColor(srcX, srcY);
               const rgba = intToRGBA(hexColor);
-              
-              // Blend the source image pixel over a solid white background
               const alpha = rgba.a / 255;
               r = Math.round(rgba.r * alpha + 255 * (1 - alpha));
               g = Math.round(rgba.g * alpha + 255 * (1 - alpha));
               b = Math.round(rgba.b * alpha + 255 * (1 - alpha));
-              a = 255; // Opaque inside the white circle
+              a = 255;
             }
-
             canvas.setPixelColor(rgbaToInt(r, g, b, a), x, y);
           } else {
-            // Outside the circle
-            if (icon.maskable) {
-              // For maskable icon, fill the background outside the circle too
-              // Map to the source image just like inside the circle
-              const srcX = x - offset;
-              const srcY = y - offset;
-              let r = 255, g = 255, b = 255, a = 255;
-              if (srcX >= 0 && srcX < scaledSize && srcY >= 0 && srcY < scaledSize) {
-                const hexColor = resizedSrc.getPixelColor(srcX, srcY);
-                const rgba = intToRGBA(hexColor);
-                const alpha = rgba.a / 255;
-                r = Math.round(rgba.r * alpha + 255 * (1 - alpha));
-                g = Math.round(rgba.g * alpha + 255 * (1 - alpha));
-                b = Math.round(rgba.b * alpha + 255 * (1 - alpha));
-                a = 255;
-              }
-              canvas.setPixelColor(rgbaToInt(r, g, b, a), x, y);
-            } else {
-              // Standard circular icon: transparent outside the circle
-              canvas.setPixelColor(0x00000000, x, y);
-            }
+            canvas.setPixelColor(0x00000000, x, y);
           }
         }
       }
+      return canvas;
+    }
 
-      // Write the icon to the output directory
+    // Process each web icon
+    for (const icon of icons) {
+      console.log(`Generating ${icon.name} at size ${icon.size}x${icon.size}...`);
+      const canvas = renderCircularIcon(icon.size);
       const outputPath = path.join(outputDir, icon.name);
       await canvas.write(outputPath);
       console.log(`Saved ${icon.name} successfully!`);
+    }
+
+    // Android launcher icons
+    // ponytail: single icon generator reuses the Jimp pipeline; ceiling = manual density buckets (no adaptive icons), upgrade path = adaptive icons in Phase 12 store material.
+    const androidIcons = [
+      { density: 'mipmap-mdpi', size: 48 },
+      { density: 'mipmap-hdpi', size: 72 },
+      { density: 'mipmap-xhdpi', size: 96 },
+      { density: 'mipmap-xxhdpi', size: 144 },
+      { density: 'mipmap-xxxhdpi', size: 192 },
+    ];
+    for (const icon of androidIcons) {
+      const dir = `android/app/src/main/res/${icon.density}`;
+      if (!fs.existsSync(dir)) {
+        fs.mkdirSync(dir, { recursive: true });
+      }
+      console.log(`Generating Android ${icon.density}/ic_launcher.png at ${icon.size}x${icon.size}...`);
+      const canvas = renderCircularIcon(icon.size);
+      await canvas.write(path.join(dir, 'ic_launcher.png'));
+      console.log(`Saved ${icon.density}/ic_launcher.png successfully!`);
     }
 
     console.log('All icons generated successfully!');

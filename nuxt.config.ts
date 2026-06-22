@@ -1,7 +1,7 @@
 import { readdirSync } from 'node:fs';
 import { join, parse } from 'node:path';
 import tailwindcss from '@tailwindcss/vite';
-import { buildContentSecurityPolicy } from './utils/securityHeaders';
+import { buildContentSecurityPolicy, buildNativeContentSecurityPolicy } from './utils/securityHeaders';
 import { getThemeModeBootstrapScript } from './app/utils/theme';
 
 const contentSecurityPolicy = buildContentSecurityPolicy({
@@ -9,11 +9,16 @@ const contentSecurityPolicy = buildContentSecurityPolicy({
   partykitHost: process.env.NUXT_PUBLIC_PARTYKIT_HOST,
 });
 
+// ponytail: HABITS_BUILD === 'native' selects a single-process build mode (ssr:false, no PWA, static nitro preset, embedded prod hosts). Ceiling: single-process env switch; no matrix builds.
+const isNativeBuild = process.env.HABITS_BUILD === 'native';
+
 // Dynamically discover help-center articles so new .md files need no config update.
 const helpCenterDir = join(process.cwd(), 'content', 'help-center');
 const helpCenterRoutes = readdirSync(helpCenterDir)
   .filter((name) => name.endsWith('.md'))
   .map((name) => `/help-center/${parse(name).name}`);
+
+// ponytail: conditional spread preserves contextual typing from defineNuxtConfig, avoiding widened types
 
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
@@ -24,71 +29,76 @@ export default defineNuxtConfig({
     '@vueuse/nuxt',
     '@vueuse/motion/nuxt',
     '@nuxtjs/seo',
-    ...(process.env.NODE_ENV !== 'test' ? ['@vite-pwa/nuxt'] : [])
+    ...(process.env.NODE_ENV !== 'test' && !isNativeBuild ? ['@vite-pwa/nuxt'] : [])
   ],
-  pwa: {
-    registerType: 'autoUpdate',
-    manifest: {
-      id: '/',
-      name: process.env.APP_NAME || 'Habits Social',
-      short_name: process.env.APP_NAME || 'Habits Social',
-      description: 'Track habits, build streaks, and stay accountable with friends.',
-      theme_color: '#000000',
-      background_color: '#000000',
-      display: 'standalone',
-      start_url: '/?source=pwa',
-      scope: '/',
-      icons: [
-        {
-          src: '/icons/icon-192.png?v=2',
-          sizes: '192x192',
-          type: 'image/png',
-          purpose: 'any'
-        },
-        {
-          src: '/icons/icon-512.png?v=2',
-          sizes: '512x512',
-          type: 'image/png',
-          purpose: 'any'
-        },
-        {
-          src: '/icons/icon-maskable-512.png?v=2',
-          sizes: '512x512',
-          type: 'image/png',
-          purpose: 'maskable'
-        }
-      ],
-    },
-    workbox: {
-      importScripts: ['/push-sw.js'],
-      navigateFallback: '/',
-      navigateFallbackDenylist: [/^\/api\//, /^\/login$/, /^\/forgot-password$/, /^\/reset-password$/],
-      globPatterns: ['**/*.{js,css,html,png,svg,ico,webmanifest}'],
-      runtimeCaching: [
-        {
-          urlPattern: ({ url }) => url.pathname.startsWith('/api'),
-          handler: 'NetworkOnly',
-        },
-        {
-          urlPattern: ({ url }) => url.pathname.startsWith('/_nuxt/'),
-          handler: 'CacheFirst',
-          options: {
-            cacheName: 'nuxt-assets',
-            expiration: {
-              maxEntries: 100,
-              maxAgeSeconds: 60 * 60 * 24 * 30, // 30 days
-            },
+  ...(!isNativeBuild ? {
+    pwa: {
+      registerType: 'autoUpdate',
+      manifest: {
+        id: '/',
+        name: process.env.APP_NAME || 'Habits Social',
+        short_name: process.env.APP_NAME || 'Habits Social',
+        description: 'Track habits, build streaks, and stay accountable with friends.',
+        theme_color: '#000000',
+        background_color: '#000000',
+        display: 'standalone',
+        start_url: '/?source=pwa',
+        scope: '/',
+        icons: [
+          {
+            src: '/icons/icon-192.png?v=2',
+            sizes: '192x192',
+            type: 'image/png',
+            purpose: 'any'
           },
-        }
-      ],
+          {
+            src: '/icons/icon-512.png?v=2',
+            sizes: '512x512',
+            type: 'image/png',
+            purpose: 'any'
+          },
+          {
+            src: '/icons/icon-maskable-512.png?v=2',
+            sizes: '512x512',
+            type: 'image/png',
+            purpose: 'maskable'
+          }
+        ],
+      },
+      workbox: {
+        importScripts: ['/push-sw.js'],
+        navigateFallback: '/',
+        navigateFallbackDenylist: [/^\/api\//, /^\/login$/, /^\/forgot-password$/, /^\/reset-password$/],
+        globPatterns: ['**/*.{js,css,html,png,svg,ico,webmanifest}'],
+        runtimeCaching: [
+          {
+            urlPattern: ({ url }) => url.pathname.startsWith('/api'),
+            handler: 'NetworkOnly',
+          },
+          {
+            urlPattern: ({ url }) => url.pathname.startsWith('/_nuxt/'),
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'nuxt-assets',
+              expiration: {
+                maxEntries: 100,
+                maxAgeSeconds: 60 * 60 * 24 * 30,
+              },
+            },
+          }
+        ],
+      },
+      devOptions: {
+        enabled: false,
+      },
     },
-    devOptions: {
-      enabled: false, // Disabled in dev to prevent caching issues during active development
-    },
-  },
+  } : {}),
   app: {
     head: {
       viewport: 'width=device-width, initial-scale=1, viewport-fit=cover',
+      meta: isNativeBuild
+        ? [{ 'http-equiv': 'Content-Security-Policy', content: buildNativeContentSecurityPolicy({ partykitHost: process.env.NUXT_PUBLIC_PARTYKIT_HOST, apiBaseUrl: process.env.NUXT_PUBLIC_API_BASE_URL }) }]
+        : [],
       script: [
         { innerHTML: getThemeModeBootstrapScript() },
       ],
@@ -100,15 +110,13 @@ export default defineNuxtConfig({
     description: 'The social platform for building better habits through accountability and community.',
     defaultLocale: 'en',
   },
-  ssr: true,
+  ssr: !isNativeBuild,
   typescript: {
     strict: true
   },
   nitro: {
-    preset: 'cloudflare-module',
-    prerender: {
-      routes: helpCenterRoutes
-    },
+    preset: isNativeBuild ? 'static' : 'cloudflare-module',
+    ...(!isNativeBuild ? { prerender: { routes: helpCenterRoutes } } : {}),
     ignore: [
       'api/_v1/**',
       'api/v2/_tests/**',
@@ -157,6 +165,9 @@ export default defineNuxtConfig({
       realtimeEnabled: process.env.NUXT_PUBLIC_REALTIME_ENABLED === 'true',
       partykitHost: process.env.NUXT_PUBLIC_PARTYKIT_HOST || '',
       vapidPublicKey: process.env.NUXT_PUBLIC_VAPID_PUBLIC_KEY || process.env.VAPID_PUBLIC_KEY || '',
+      apiBaseUrl: process.env.NUXT_PUBLIC_API_BASE_URL || '',
+      pwaEnabled: !isNativeBuild && process.env.NODE_ENV !== 'test',
+      build: process.env.HABITS_BUILD || 'web',
     }
   },
 

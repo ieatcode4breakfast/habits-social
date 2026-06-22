@@ -16,10 +16,24 @@
     "check": "npm run test:types",
     "test": "vitest",
     "test:ui": "vitest --ui",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "build:native": "node scripts/build-native.mjs",
+    "cap:sync": "capacitor sync android",
+    "cap:sync:full": "npm run build:native && npm run cap:sync",
+    "android:debug": "npm run cap:sync:full && capacitor build android --debug",
+    "android:release": "npm run cap:sync:full && capacitor build android --release",
+    "verify:native-build": "node scripts/verify-native-build.mjs",
+    "open:android": "capacitor open android"
   },
   "dependencies": {
+    "@aparajita/capacitor-secure-storage": "^8.0.0",
     "@block65/webcrypto-web-push": "^1.0.2",
+    "@capacitor/android": "^8.4.1",
+    "@capacitor/app": "^8.1.0",
+    "@capacitor/browser": "^8.0.3",
+    "@capacitor/core": "^8.4.1",
+    "@capacitor/network": "^8.0.1",
+    "@capacitor/push-notifications": "^8.1.1",
     "@floating-ui/vue": "^1.1.11",
     "@nuxt/content": "^3.14.0",
     "@nuxtjs/seo": "^5.1.3",
@@ -46,6 +60,7 @@
     "vue": "3.5.35"
   },
   "devDependencies": {
+    "@capacitor/cli": "^8.4.1",
     "@neondatabase/serverless": "^1.1.0",
     "@nuxt/test-utils": "^4.0.3",
     "@playwright/test": "^1.59.1",

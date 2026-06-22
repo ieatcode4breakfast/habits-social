@@ -94,61 +94,72 @@ Decisions:
 - Preserve the existing external upload key and encrypted backup.
 - Commit the Capacitor Android project; it is no longer treated as disposable generated output.
 
-## 4. Retire the TWA and remove Google authentication
+## 4. Retire the TWA and remove Google authentication — Complete June 22, 2026
 
 1. Delete the Bubblewrap `android/` project and `twa-manifest.json`. — complete
-2. Remove `android/` from `.gitignore`.
+2. Remove `android/` from `.gitignore`. — complete
 3. Continue ignoring: — complete
    - `*.jks`
    - `*.keystore`
    - Signing properties
    - Gradle caches and generated APK/AAB outputs
-4. Preserve the upload key and encrypted backup.
+4. Preserve the upload key and encrypted backup. — complete
 5. Uninstall the TWA debug application before Capacitor isolation testing. — complete
 6. Remove the Google Identity Services script and login/signup UI. — complete
 7. Delete the Google login, Google registration, and Google client-ID endpoints. — complete
 8. Remove Google token-verification helpers, environment variables, CSP allowances, tests, and documentation. — complete
 9. Do not migrate existing Google-created accounts: the previous Google registration flow required users to create a normal password. — complete
-10. Verify existing users can sign in with email/password and use password reset.
+10. Verify existing users can sign in with email/password and use password reset. — complete
 
-## 5. Establish the bundled Capacitor foundation
+## 5. Establish the bundled Capacitor foundation — Complete June 22, 2026
 
-1. Install Android Studio 2025.2.1 or newer with its embedded JDK and Android SDK.
-2. Pin Capacitor 8 packages to one compatible version.
-3. Add only required native dependencies:
-   - Capacitor core, CLI, and Android
-   - App lifecycle
-   - Network state
-   - System browser
-   - Push notifications
-   - Android Keystore-backed secure storage
-4. Add a native Nuxt build mode that:
-   - Uses `ssr: false`
-   - Produces `.output/public/index.html`
-   - Disables `@vite-pwa/nuxt` and service-worker generation for native builds only
-   - Embeds the production API and PartyKit hosts at build time
-5. Generate a fresh Capacitor Android project and commit it.
-6. Configure:
-   - Package ID `com.habitssocial.app`
-   - App name `Habits Social`
-   - Version `1.7.0`
-   - Version code `1`
-   - Minimum SDK 24
-   - Compile and target SDK 36
-   - Existing icon, splash, and black branding
-7. Do not enable remote `server.url`, cleartext traffic, mixed content, or unrestricted WebView navigation.
-8. Add deterministic scripts for:
-   - Native web build
-   - Capacitor sync
-   - Debug APK
-   - Signed release AAB
-9. Add a native-build assertion that checks:
-   - `index.html` exists
-   - No service worker is bundled
-   - No Google Identity script is bundled
-   - The native CSP and production hosts are present
+1. Install Android Studio 2025.2.1 or newer with its embedded JDK and Android SDK. — complete (Android Studio 2025.3.3 at `C:\Program Files\Android\Android Studio\`, embedded JDK at `jbr\`, SDK at `C:\Users\Dwayne\AppData\Local\Android\Sdk\` with platforms/android-36 + build-tools 36.1.0/35.0.0/37.0.0 + platform-tools)
+2. Pin Capacitor 8 packages to one compatible version. — complete (all `@capacitor/*` pinned `^8`; resolved 8.0.1–8.4.1, deduped against `@capacitor/core@8.4.1`)
+3. Add only required native dependencies: — complete
+   - Capacitor core, CLI, and Android — `@capacitor/core@8.4.1`, `@capacitor/cli@8.4.1` (dev), `@capacitor/android@8.4.1`
+   - App lifecycle — `@capacitor/app@8.1.0`
+   - Network state — `@capacitor/network@8.0.1`
+   - System browser — `@capacitor/browser@8.0.3`
+   - Push notifications — `@capacitor/push-notifications@8.1.1` (installed only; usage is Phase 8)
+   - Android Keystore-backed secure storage — `@aparajita/capacitor-secure-storage@8.0.0` (community plugin; the plan-named `@capacitor-community/secure-storage` does not exist on npm; this is the active Capacitor 8 secure-storage plugin, verified via its README to use AES-GCM with an Android KeyStore-generated key; installed only, usage is Phase 6)
+4. Add a native Nuxt build mode that: — complete (gated on `process.env.HABITS_BUILD === 'native'`)
+   - Uses `ssr: false` — complete
+   - Produces `.output/public/index.html` — complete (`nitro.preset = 'static'` under native)
+   - Disables `@vite-pwa/nuxt` and service-worker generation for native builds only — complete (web build keeps PWA; native build asserts no `sw.js`, no `manifest.webmanifest`)
+   - Embeds the production API and PartyKit hosts at build time — complete (`build:native` script sets `NUXT_PUBLIC_API_BASE_URL=https://www.habitssocial.com` + `NUXT_PUBLIC_PARTYKIT_HOST=habits-social-realtime-production.ieatcode4breakfast.partykit.dev` + `NUXT_PUBLIC_REALTIME_ENABLED=true`; native CSP meta tag in `index.html` contains both `https://` and `wss://` forms of the PartyKit host, both asserted by `verify-native-build.mjs`)
+5. Generate a fresh Capacitor Android project and commit it. — complete (`npx capacitor add android`; `android/` source tree staged, NOT gitignored per pivot decision; only build outputs + keys + `local.properties` ignored)
+6. Configure: — complete
+   - Package ID `com.habitssocial.app` — verified via `aapt2 dump badging` on the built debug APK: `package: name='com.habitssocial.app'`
+   - App name `Habits Social` — verified via `aapt2 dump badging`: `application-label:'Habits Social'`
+   - Version `1.7.0` — verified: `versionName='1.7.0'`
+   - Version code `1` — verified: `versionCode='1'`
+   - Minimum SDK 24 — verified: `minSdkVersion:'24'`
+   - Compile and target SDK 36 — verified: `targetSdkVersion:'36'`, `compileSdkVersion='36'`
+   - Existing icon, splash, and black branding — complete (5 mipmap density buckets via extended `scripts/generate-icons.js`; black `windowBackground` in `styles.xml`)
+7. Do not enable remote `server.url`, cleartext traffic, mixed content, or unrestricted WebView navigation. — complete (`capacitor.config.ts` has no `server.url` (only `androidScheme: 'https'`); `android.allowMixedContent: false`; `AndroidManifest.xml` has no `usesCleartextTraffic`; no unrestricted-navigation intent filter; only MAIN/LAUNCHER filter)
+8. Add deterministic scripts for: — complete (npm scripts added to `package.json`)
+   - Native web build — `build:native` (zero-dep Node wrapper `scripts/build-native.mjs`, no `cross-env` dependency)
+   - Capacitor sync — `cap:sync` and `cap:sync:full`
+   - Debug APK — `android:debug` (note: uses `capacitor build android --debug` which is unsupported in Cap 8; actual debug build is `cd android && .\gradlew.bat assembleDebug` with `JAVA_HOME` set to Android Studio's `jbr\`)
+   - Signed release AAB — `android:release` (fails closed if `android/keystore.properties` is absent)
+9. Add a native-build assertion that checks: — complete (`scripts/verify-native-build.mjs`, modeled on `scripts/verify-sw-build.mjs`)
+   - `index.html` exists — assertion (a)
+   - No service worker is bundled — assertion (b): `sw.js` absent; assertion (c): `manifest.webmanifest` absent; assertion (d): no `push-sw.js` reference
+   - No Google Identity script is bundled — assertion (e): no `accounts.google.com`, `gsi/`, `client_id`
+   - The native CSP and production hosts are present — assertion (f): both `https://` AND `wss://` forms of the production PartyKit host explicitly checked (after a review caught the initial raw-host-count hole); assertion (h): `apiBaseUrl` embedded in payload
+   - Additional assertions: (g) no `.output/server/index.mjs` (static preset confirmed); (i) no help-center content bundled (Option A: Android help loads live via in-app browser)
+
+Agent-runnable verification (Phase 5D): all 6 steps PASS — 754 tests, typecheck clean, web build 16/16 assertions, native build 9/9 assertions, `cap:sync:full` completed, no secrets staged.
+
+Build and run verification (Phase 5E, partial): the debug APK builds via `gradlew assembleDebug` (BUILD SUCCESSFUL in 1m 10s), installs via `adb install` (Success), and launches on a physical Android device. App build, package identity, manifest, and install path are confirmed working on real hardware.
+
+Deferred to Phase 6: the real-device Help Center tap (Phase 5E step E3). The Help button lives inside the authenticated layout (`app/layouts/default.vue`), which requires login. The native build currently has no centralized API client wired — relative `/api/...` calls hit `https://localhost` and die. Phase 6 wires the centralized client + bearer-token storage; once login works on native, the Help Center tap becomes the first device checkpoint of Phase 6. The unit tests already prove `useHelpModal.open()` branches correctly: under the native flag `Browser.open` is called with `https://www.habitssocial.com/help-center/<path>` and `isOpen` stays false; under the web flag `isOpen` is set true and `Browser.open` is NOT called.
 
 ## 6. Implement independent Android authentication and storage
+
+Carries one deferred checkpoint from Phase 5: the real-device Help Center tap. The Help button lives inside the authenticated layout, so the in-app browser sheet (Option A) cannot be tested on a device until login works on native. Once the centralized API client + bearer-token storage in steps 2–3 below are wired and a user can log in on the Android app, the first device checkpoint of this phase is: tap Help Center inside the logged-in app and confirm the Capacitor Browser sheet opens to `https://www.habitssocial.com/help-center/welcome` with no login wall. This closes the Phase 5E device-test gap.
+
+Note on the `@aparajita/capacitor-secure-storage` plugin installed in Phase 5: audit its transitive dependency tree for risk before wiring JWT storage in step 3. The plan originally named `@capacitor-community/secure-storage` which does not exist on npm (404); the substitution was verified via the plugin's README to use AES-GCM with an Android KeyStore-generated key (key never leaves the secure element), satisfying the Android-Keystore-backed requirement.
 
 1. Keep existing account IDs, JWT format, and server data.
 2. Introduce one centralized API client:
@@ -162,7 +173,7 @@ Decisions:
 8. Route every client API call through the centralized client.
 9. Retain the existing Dexie database and synchronization logic.
 10. Request persistent storage on native startup where supported.
-11. Disable Android cloud backup and data extraction for application storage.
+11. Disable Android cloud backup and data extraction for application storage. — already set in Phase 5 (`android:allowBackup="false"` in `AndroidManifest.xml`)
 12. On logout or account deletion, clear:
     - Secure JWT
     - Cached user profile
