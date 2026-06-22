@@ -65,7 +65,6 @@ Required deployment secrets:
 - `JWT_SECRET` — signs session auth tokens (HS256).
 - `REALTIME_JWT_SECRET` — signs Worker-issued WebSocket tokens. Used as `NUXT_REALTIME_JWT_SECRET` in the Nuxt runtime config.
 - `PARTYKIT_NOTIFY_SECRET` — signs Worker-to-PartyKit notification requests. Used as `NUXT_PARTYKIT_NOTIFY_SECRET` in the Nuxt runtime config.
-- `GOOGLE_CLIENT_ID` — Google OAuth 2.0 client ID. Exposed to the client via `runtimeConfig.public.googleClientId` (also settable as `NUXT_PUBLIC_GOOGLE_CLIENT_ID` for build-time injection).
 - `RESEND_API_KEY` — API key for Resend transactional email delivery.
 - `RESEND_FROM_EMAIL` — sender address for outgoing emails (default: `Habits Social <noreply@habitssocial.com>`).
 - `APP_URL` — canonical application URL used in email links and redirects.
@@ -115,17 +114,6 @@ Required deployment secrets:
 - **Password Reset**: `POST /api/auth/forgot-password` generates a SHA-256 hashed reset token (15-minute TTL, stored in `password_reset_tokens` table) and sends it via email. `POST /api/auth/reset-password` verifies the reset token hash and updates the user's password, then increments `sessionVersion` to invalidate all existing sessions.
 - **Logout**: `POST /api/auth/logout` clears the `auth_token` cookie.
 - **Current User**: `GET /api/auth/me` returns the authenticated user profile.
-
-### 8.3 Google OAuth 2.0 Authentication
-
-- **Provider**: Google Identity Services (OAuth 2.0).
-- **Client ID**: The `GOOGLE_CLIENT_ID` environment variable is exposed to the frontend via `runtimeConfig.public.googleClientId` and also served at `GET /api/auth/google-client-id`.
-- **ID Token Verification**: Google ID tokens are verified server-side using `jose` against Google's public JWKS endpoint (`https://www.googleapis.com/oauth2/v3/certs`). The `verifyGoogleIdToken()` utility in `server/utils/auth.ts` performs audience validation, expiry checking, and signature verification.
-- **Sign-In Flow (first step)**: The client sends the Google credential (ID token) to `POST /api/auth/google`. The server verifies the token to extract the verified email and photo URL.
-  - **Existing user**: If the email matches a user in the database, the server auto-verifies their email (if not already verified), issues a full session token, sets the auth cookie, and returns `{ signupRequired: false, token, id, email, username, photoUrl }`.
-  - **New user**: If no matching user exists, the server generates a temporary signup token (a 15-minute JWT containing the verified email and photo URL) via `generateSignupToken()` and returns `{ signupRequired: true, signupToken, email, photoUrl }`.
-- **Registration Flow (second step)**: The client collects a username and password from the new Google user and sends them along with the temporary `signupToken` to `POST /api/auth/register-google`. The server verifies the signup token, checks that the email and username are not already taken, creates the user with the verified email (pre-marked as verified), and issues a full session token.
-- **Rate Limiting**: Both Google auth endpoints are subject to the same rate limiting as local auth (5 requests per 15 minutes per email identifier, 50 requests per 15 minutes per IP).
 
 ## 9. Email Delivery
 

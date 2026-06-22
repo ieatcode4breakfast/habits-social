@@ -15,12 +15,6 @@ Open the login screen, then select the **Log In** tab.
 
 Enter your email or username, enter your password, then select **Log In**.
 
-## Log In With Google
-
-On the login screen, use the Google sign-in button.
-
-If this is your first time using Google with Habits Social, finish your profile by choosing a username and password. After the profile is complete, the app logs you in.
-
 ## Log Out
 
 You can log out of your account at any time from the navigation menu.

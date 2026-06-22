@@ -104,37 +104,7 @@ vi.mock('../utils/auth', () => ({
     // Track that a cookie was set for test assertions
     event._cookieWasRefreshed = true;
   },
-  getGoogleClientId: (event?: any) => {
-    return process.env.GOOGLE_CLIENT_ID || '';
-  },
-  verifyGoogleIdToken: async (token: string, event: any) => {
-    const { jwtVerify } = require('jose');
-    const secret = new TextEncoder().encode(process.env.JWT_SECRET || 'test-secret');
-    const { payload } = await jwtVerify(token, secret);
-    return {
-      email: payload.email as string,
-      picture: payload.picture as string,
-      sub: payload.sub as string
-    };
-  },
-  generateSignupToken: async (email: string, photoUrl: string | undefined) => {
-    const { SignJWT } = require('jose');
-    const secret = new TextEncoder().encode(process.env.JWT_SECRET || 'test-secret');
-    return await new SignJWT({ email, photoUrl })
-      .setProtectedHeader({ alg: 'HS256' })
-      .setIssuedAt()
-      .setExpirationTime('15m')
-      .sign(secret);
-  },
-  verifySignupToken: async (token: string) => {
-    const { jwtVerify } = require('jose');
-    const secret = new TextEncoder().encode(process.env.JWT_SECRET || 'test-secret');
-    const { payload } = await jwtVerify(token, secret);
-    return {
-      email: payload.email as string,
-      photoUrl: payload.photoUrl as string
-    };
-  },
+
   AUTH_COOKIE_NAME: 'auth_token',
   SESSION_MAX_AGE_SECONDS: 60 * 60 * 24 * 7,
   SESSION_EXPIRATION_JWT: '7d',

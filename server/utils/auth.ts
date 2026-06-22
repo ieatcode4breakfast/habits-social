@@ -23,22 +23,6 @@ const getSecret = (event?: H3Event) => {
   return new TextEncoder().encode(secret);
 };
 
-export const getGoogleClientId = (event?: H3Event): string => {
-  let config: any = {};
-  try {
-    config = useRuntimeConfig(event);
-  } catch (e) {}
-
-  const cf = (event as any)?.context?.cloudflare;
-  const clientId = cf?.env?.NUXT_GOOGLE_CLIENT_ID || cf?.env?.GOOGLE_CLIENT_ID || (config.googleClientId as string) || process.env.GOOGLE_CLIENT_ID;
-
-  if (!clientId) {
-    throw new Error('FATAL: GOOGLE_CLIENT_ID environment variable is missing.');
-  }
-
-  return clientId;
-};
-
 export const generateToken = async (userId: string | number, event: H3Event, sessionVersion = 1): Promise<string> => {
   const secret = getSecret(event);
   return await new SignJWT({ userId, sessionVersion })
@@ -88,68 +72,5 @@ export const requireAuth = async (event: H3Event): Promise<string> => {
   const userId = await getUserFromEvent(event);
   if (!userId) throw createError({ statusCode: 401, statusMessage: 'Unauthorized' });
   return userId;
-};
-
-import { createRemoteJWKSet } from 'jose';
-
-const GOOGLE_JWKS_URL = 'https://www.googleapis.com/oauth2/v3/certs';
-let jwksClient: any = null;
-
-export const verifyGoogleIdToken = async (token: string, event: H3Event): Promise<{ email: string; picture?: string; sub: string }> => {
-  const clientId = getGoogleClientId(event);
-
-  // Support local offline testing of Google JWT verification
-  if (process.env.NODE_ENV === 'test') {
-    const secret = getSecret(event);
-    const { payload } = await jwtVerify(token, secret);
-    if (payload.aud !== clientId) {
-      throw new Error('Invalid audience');
-    }
-    if (payload.iss !== 'accounts.google.com' && payload.iss !== 'https://accounts.google.com') {
-      throw new Error('Invalid issuer');
-    }
-    return {
-      email: payload.email as string,
-      picture: payload.picture as string,
-      sub: payload.sub as string
-    };
-  }
-
-  if (!jwksClient) {
-    jwksClient = createRemoteJWKSet(new URL(GOOGLE_JWKS_URL));
-  }
-
-  const { payload } = await jwtVerify(token, jwksClient, {
-    issuer: ['accounts.google.com', 'https://accounts.google.com'],
-    audience: clientId,
-  });
-
-  if (!payload.email) {
-    throw new Error('Google ID Token missing email claim.');
-  }
-
-  return {
-    email: payload.email as string,
-    picture: payload.picture as string,
-    sub: payload.sub as string
-  };
-};
-
-export const generateSignupToken = async (email: string, photoUrl: string | undefined, event: H3Event): Promise<string> => {
-  const secret = getSecret(event);
-  return await new SignJWT({ email, photoUrl })
-    .setProtectedHeader({ alg: 'HS256' })
-    .setIssuedAt()
-    .setExpirationTime('15m')
-    .sign(secret);
-};
-
-export const verifySignupToken = async (token: string, event: H3Event): Promise<{ email: string; photoUrl?: string }> => {
-  const secret = getSecret(event);
-  const { payload } = await jwtVerify(token, secret);
-  return {
-    email: payload.email as string,
-    photoUrl: payload.photoUrl as string
-  };
 };
 

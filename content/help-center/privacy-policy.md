@@ -19,7 +19,7 @@ Please read this Privacy Policy carefully. If you do not agree with the terms of
 
 We collect the information needed to operate the service:
 
-- **Account information:** Your email address, username, password hash, and optional avatar URL. If you use Google authentication, Google provides your verified email address and may provide a profile-picture URL.
+- **Account information:** Your email address, username, password hash, and optional avatar URL.
 - **Habit and social content:** Habits, habit logs, buckets, streak data, friendships, blocks, sharing activity, and chat messages.
 - **Notification information:** If you enable push notifications, we store the browser-provided push endpoint, encryption keys, expiration information, and limited browser or device information such as the user-agent string.
 - **Security and operational information:** Our infrastructure may process IP addresses, request headers, timestamps, and error or request logs to deliver the service, apply rate limits, investigate failures, and protect accounts.
@@ -47,7 +47,6 @@ We disclose information only as needed to operate the service, follow the law, o
 - **Neon:** Hosts the primary application database.
 - **PartyKit:** Delivers authenticated real-time change notifications so clients can refresh chat and social data. Chat message content remains in the primary application database.
 - **Resend:** Delivers password-reset emails and receives the destination email address and email contents needed for that delivery.
-- **Google:** Provides optional Google authentication and returns account information you authorize Google to provide.
 - **DiceBear:** Generates optional avatar images requested by your browser. Request metadata such as your IP address is sent to DiceBear when those images are loaded.
 - **Browser and device push services:** Route notifications when you opt in. The specific provider depends on your browser and device.
 

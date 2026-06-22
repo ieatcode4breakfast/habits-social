@@ -14,3 +14,19 @@ playwright/.cache/
 coverage/
 .wrangler/
 .partykit/
+
+# Android (Capacitor) — keys, signing props, SDK paths, build outputs
+*.jks
+*.keystore
+android.keystore
+keystore.properties
+signing.properties
+local.properties
+*.apk
+*.aab
+android/.gradle/
+android/build/
+android/app/build/
+android/.idea/
+android/captures/
+*.iml
