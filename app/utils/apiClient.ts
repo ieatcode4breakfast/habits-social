@@ -26,28 +26,25 @@ export interface HabitsApiOptions {
 }
 
 const getRuntimeConfigPublic = (): { build?: string; apiBaseUrl?: string } => {
-  // 1. Read from the serialized Nuxt config in the static HTML (always available before hydration).
-  //    window.__NUXT__.config.public contains build, apiBaseUrl, and all other public runtimeConfig values.
-  try {
-    const nuxtWindow = window as unknown as { __NUXT__?: { config?: { public?: { build?: string; apiBaseUrl?: string } } } };
-    if (nuxtWindow.__NUXT__?.config?.public) {
-      return nuxtWindow.__NUXT__.config.public;
-    }
-  } catch {
-    // window unavailable (SSR)
-  }
-
-  // 2. Fall back to the Nuxt composable (SSR, dev server, test environment).
-  try {
-    const maybeGetter = (globalThis as { useRuntimeConfig?: unknown }).useRuntimeConfig;
-    if (typeof maybeGetter === 'function') {
+  // ponytail: globalThis.useRuntimeConfig is a test-environment hook (vi.stubGlobal);
+  // in production, Nuxt auto-imports the bare useRuntimeConfig() below.
+  // Old code read window.__NUXT__ directly — Nuxt deletes that post-hydration
+  // on Android, so isNativeRuntime() always returned false and habitsApi()
+  // used relative URLs that Capacitor served as index.html (200 OK, text/html).
+  const maybeGetter = (globalThis as { useRuntimeConfig?: unknown }).useRuntimeConfig;
+  if (typeof maybeGetter === 'function') {
+    try {
       return (maybeGetter() as { public?: { build?: string; apiBaseUrl?: string } }).public ?? {};
+    } catch {
+      // fall through to bare auto-import
     }
-  } catch {
-    // useRuntimeConfig unavailable
   }
 
-  return {};
+  try {
+    return useRuntimeConfig().public as { build?: string; apiBaseUrl?: string };
+  } catch {
+    return {};
+  }
 };
 
 let _nativeRuntimeCache: boolean | null = null;
