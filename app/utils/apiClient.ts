@@ -26,35 +26,48 @@ export interface HabitsApiOptions {
 }
 
 const getRuntimeConfigPublic = (): { build?: string; apiBaseUrl?: string } => {
+  // 1. Read from the serialized Nuxt config in the static HTML (always available before hydration).
+  //    window.__NUXT__.config.public contains build, apiBaseUrl, and all other public runtimeConfig values.
+  try {
+    const nuxtWindow = window as unknown as { __NUXT__?: { config?: { public?: { build?: string; apiBaseUrl?: string } } } };
+    if (nuxtWindow.__NUXT__?.config?.public) {
+      return nuxtWindow.__NUXT__.config.public;
+    }
+  } catch {
+    // window unavailable (SSR)
+  }
+
+  // 2. Fall back to the Nuxt composable (SSR, dev server, test environment).
   try {
     const maybeGetter = (globalThis as { useRuntimeConfig?: unknown }).useRuntimeConfig;
     if (typeof maybeGetter === 'function') {
       return (maybeGetter() as { public?: { build?: string; apiBaseUrl?: string } }).public ?? {};
     }
   } catch {
-    // useRuntimeConfig unavailable (SSR context, test environment)
+    // useRuntimeConfig unavailable
   }
+
   return {};
 };
 
 let _nativeRuntimeCache: boolean | null = null;
 
-const isNativeRuntime = async (): Promise<boolean> => {
+/**
+ * Determines if we're running in the Capacitor Android WebView.
+ * Uses the build-time HABITS_BUILD flag only — a native build IS a native runtime.
+ * No Capacitor dynamic import needed; that was causing silent failures in the WebView.
+ *
+ * ponytail: the plan wanted Capacitor.isNativePlatform() as a second gate, but the
+ * dynamic import fails closed in the static SPA bundle. A native build never runs in
+ * a regular browser usefully, so the build flag alone is sufficient. Ceiling: can't
+ * distinguish between native build running on Android vs native build opened in Chrome
+ * for testing. Upgrade path: if that becomes a real workflow, fix the dynamic import.
+ */
+const isNativeRuntime = (): boolean => {
   if (_nativeRuntimeCache !== null) return _nativeRuntimeCache;
 
   const config = getRuntimeConfigPublic();
-  if (config.build !== 'native') {
-    _nativeRuntimeCache = false;
-    return false;
-  }
-
-  try {
-    const { Capacitor } = await import('@capacitor/core');
-    _nativeRuntimeCache = Capacitor.isNativePlatform();
-  } catch {
-    _nativeRuntimeCache = false;
-  }
-
+  _nativeRuntimeCache = config.build === 'native';
   return _nativeRuntimeCache;
 };
 
