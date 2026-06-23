@@ -1,5 +1,6 @@
 import { ref, computed } from 'vue';
 import { useNetwork } from '@vueuse/core';
+import { habitsApi } from '~/utils/apiClient';
 
 interface VapidPublicKeyResponse {
   supported: boolean;
@@ -41,7 +42,7 @@ export function useChatNotifications() {
 
     try {
       const registration = await navigator.serviceWorker.ready;
-      const config = await $fetch<VapidPublicKeyResponse>('/api/push/vapid-public-key');
+      const config = await habitsApi<VapidPublicKeyResponse>('/api/push/vapid-public-key');
 
       if (!config.supported || !config.publicKey) {
         isPushConfigured.value = false;
@@ -79,7 +80,7 @@ export function useChatNotifications() {
       if (existing) {
         const subJson = existing.toJSON();
         if (subJson.endpoint && subJson.keys) {
-          await $fetch('/api/push/subscriptions', {
+          await habitsApi('/api/push/subscriptions', {
             method: 'POST',
             body: {
               endpoint: subJson.endpoint,
@@ -127,7 +128,7 @@ export function useChatNotifications() {
       });
 
       const subJson = subscription.toJSON();
-      await $fetch('/api/push/subscriptions', {
+      await habitsApi('/api/push/subscriptions', {
         method: 'POST',
         body: {
           endpoint: subJson.endpoint,
@@ -153,7 +154,7 @@ export function useChatNotifications() {
         const subJson = existing.toJSON();
         if (subJson.endpoint) {
           try {
-            await $fetch('/api/push/subscriptions', {
+            await habitsApi('/api/push/subscriptions', {
               method: 'DELETE',
               body: { endpoint: subJson.endpoint },
             });

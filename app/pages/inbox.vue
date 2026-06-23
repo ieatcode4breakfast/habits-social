@@ -729,6 +729,7 @@ import { useToast } from '~/composables/useToast';
 import { useChatInbox, type ChatInboxConversation } from '~/composables/useChatInbox';
 import { autoExpandTextarea } from '~/utils/ui';
 import { formatActivityMessageInline } from '~/utils/feed';
+import { habitsApi } from '~/utils/apiClient';
 
 definePageMeta({ middleware: 'auth' });
 
@@ -874,7 +875,7 @@ const openReplyActivityHabit = async (activity: ActivityReplyCard | null | undef
   selectedHabitLogs.value = [];
 
   try {
-    const { data } = await $fetch<HabitDetailsResponse>('/api/social/habit-details', { query: { habitId } });
+    const { data } = await habitsApi<HabitDetailsResponse>('/api/social/habit-details', { query: { habitId } });
     selectedHabit.value = data.habit;
     selectedHabitLogs.value = data.logs;
     showHabitModal.value = true;
@@ -897,7 +898,7 @@ const handleInboxHabitMonthChanged = async (newDate: Date) => {
   calendarLoading.value = true;
 
   try {
-    const { data } = await $fetch<HabitDetailsResponse>('/api/social/habit-details', {
+    const { data } = await habitsApi<HabitDetailsResponse>('/api/social/habit-details', {
       query: {
         habitId: selectedHabit.value.id,
         startDate: start,
@@ -1139,7 +1140,7 @@ const getConversationPreview = (conv: ChatInboxConversation) => {
 const markConversationRead = async (conversationId: string) => {
   if (!isOnline.value) return;
   try {
-    await $fetch(`/api/chat/conversations/${conversationId}/read`, { method: 'POST' });
+    await habitsApi(`/api/chat/conversations/${conversationId}/read`, { method: 'POST' });
     markConversationReadLocally(conversationId);
   } catch (e) {
     console.warn('[Inbox] Failed to mark as read', e);
@@ -1268,7 +1269,7 @@ const loadMessages = async (cursor: string | null = null, autoScroll = true) => 
     const query: Record<string, string | number> = { limit: 50 };
     if (cursor) query.cursor = cursor;
 
-    const data = await $fetch<PaginatedMessagesResponse>(`/api/chat/conversations/${activeConversationId.value}/messages`, { query });
+    const data = await habitsApi<PaginatedMessagesResponse>(`/api/chat/conversations/${activeConversationId.value}/messages`, { query });
 
     if (isPaginating) {
       // Append older messages — they go to the end of the array so they appear at the visual top when reversed
@@ -1355,7 +1356,7 @@ const sendMessage = async () => {
   await scrollToBottomSettled();
 
   try {
-    const response = await $fetch<InboxMessage>(`/api/chat/conversations/by-friend/${targetFriendId}/messages`, {
+    const response = await habitsApi<InboxMessage>(`/api/chat/conversations/by-friend/${targetFriendId}/messages`, {
       method: 'POST',
       body: {
         body: text,
@@ -1408,7 +1409,7 @@ const clearChat = async () => {
 
   isClearingChat.value = true;
   try {
-    await $fetch(`/api/chat/conversations/${activeConversationId.value}/clear`, { method: 'POST' });
+    await habitsApi(`/api/chat/conversations/${activeConversationId.value}/clear`, { method: 'POST' });
 
     showToast('Chat history cleared', 'completed');
     showClearChatModal.value = false;
@@ -1452,7 +1453,7 @@ const deletePendingMessage = async () => {
 const confirmDeleteMessage = async (messageId: string): Promise<boolean> => {
   if (!requireOnlineAction()) return false;
   try {
-    await $fetch(`/api/chat/messages/${messageId}`, { method: 'DELETE' });
+    await habitsApi(`/api/chat/messages/${messageId}`, { method: 'DELETE' });
 
     // Local updates
     const msgIndex = messages.value.findIndex(m => m.id === messageId);

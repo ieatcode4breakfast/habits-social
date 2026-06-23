@@ -214,6 +214,8 @@
 <script setup lang="ts">
 import { LogOut, ListChecks, Users, User as UserIcon, PaintBucket, MessageCircle, Menu, Moon, Sun, CircleHelp } from 'lucide-vue-next';
 import { clearCachedAuthUser, flushPendingServerLogout, markPendingServerLogout } from '~/utils/cachedAuth';
+import { logoutCleanup as runLogoutCleanup } from '~/utils/logoutCleanup';
+import { habitsApi } from '~/utils/apiClient';
 import { isTutorialCompleted } from '~/utils/tutorialFlags';
 
 const { user } = useAuth();
@@ -330,31 +332,24 @@ const logout = async () => {
     markPendingServerLogout(localStorage);
   }
 
+  // Clean up composable-level state (friends, conversations, realtime)
   logoutCleanup();
   chatInboxLogoutCleanup();
 
-  // Destroy all local data (shared device security).
-  // This is the ONLY code path that wipes IndexedDB.
-  const { db } = await import('~/utils/db');
-  await Promise.all([
-    db.habits.clear(),
-    db.habitLogs.clear(),
-    db.buckets.clear(),
-    db.bucketLogs.clear(),
-    db.habitStreakBaselines.clear(),
-    db.bucketStreakBaselines.clear(),
-    db.syncQueue.clear(),
-    db.syncState.clear(),
-  ]);
-
-  // Clear cached auth profile
-  if (import.meta.client) clearCachedAuthUser(localStorage);
+  // Centralized storage cleanup: secure JWT, cached profile, Dexie, push, notifications
+  await runLogoutCleanup({
+    clearDexie: true,
+    unsubscribePush: true,
+    clearNotifications: true,
+  });
 
   user.value = null;
   await router.push('/login');
 
   if (import.meta.client && isOnline.value) {
-    void flushPendingServerLogout(localStorage, (request, options) => $fetch(request, options));
+    void flushPendingServerLogout(localStorage, (request, options) =>
+      habitsApi(request, { method: options.method, timeout: options.timeout, authRequired: false })
+    );
   }
 };
 </script>

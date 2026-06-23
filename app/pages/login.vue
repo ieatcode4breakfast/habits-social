@@ -158,6 +158,8 @@
 <script setup lang="ts">
 import { Mail, Lock, Eye, EyeOff, User, Sun as SunIcon, Moon as MoonIcon } from 'lucide-vue-next';
 import { cacheAuthUser, type CachedAuthUser } from '~/utils/cachedAuth';
+import { habitsApi } from '~/utils/apiClient';
+import { setNativeAuthToken, isNativeAuthRuntime } from '~/utils/nativeAuthToken';
 import { useThemeMode } from '~/composables/useThemeMode';
 
 const { isLightMode, themeToggleTitle, toggleThemeMode } = useThemeMode();
@@ -170,9 +172,18 @@ definePageMeta({
 const { user } = useAuth();
 const { showToast } = useToast();
 
-type AuthSuccessUser = CachedAuthUser & {
+// ponytail: sanitize the server response to only profile fields before caching.
+// The token field must never reach localStorage.
+interface AuthResponseData extends CachedAuthUser {
   token?: string;
-};
+}
+
+const sanitizeProfileFromResponse = (data: AuthResponseData): CachedAuthUser => ({
+  id: data.id,
+  email: data.email,
+  username: data.username,
+  ...(data.photoUrl ? { photoUrl: data.photoUrl } : {})
+});
 
 useSeoMeta({
   title: 'Log In or Sign Up - Habits Social',
@@ -214,26 +225,34 @@ const handleSubmit = async () => {
 
   try {
     const endpoint = tab.value === 'login' ? '/api/auth/login' : '/api/auth/register';
-    const { data } = await $fetch<{ data: AuthSuccessUser }>(endpoint, { 
+    const { data } = await habitsApi<{ data: AuthResponseData }>(endpoint, {
       method: 'POST',
       body: { 
         [endpoint === '/api/auth/login' ? 'identifier' : 'email']: email.value, 
         username: username.value,
         password: password.value
-      }
+      },
+      authRequired: false
     });
 
+    // On Android: store the token in Keystore-backed secure storage.
+    // On web/PWA: ignore token even if accidentally present (cookie auth).
     if (data.token) {
-      user.value = data;
-      if (import.meta.client) cacheAuthUser(localStorage, data);
-      if (tab.value === 'signup') {
-        if (typeof window !== 'undefined') {
-          sessionStorage.setItem('just-signed-up', 'true');
-        }
-      }
-      showToast(tab.value === 'login' ? 'Logged in successfully!' : 'Account created successfully!');
-      await navigateTo('/habits', { replace: true });
+      await setNativeAuthToken(data.token);
     }
+
+    // Cache ONLY profile fields in localStorage — never the raw JWT.
+    const profile = sanitizeProfileFromResponse(data);
+    user.value = profile;
+    if (import.meta.client) cacheAuthUser(localStorage, profile);
+
+    if (tab.value === 'signup') {
+      if (typeof window !== 'undefined') {
+        sessionStorage.setItem('just-signed-up', 'true');
+      }
+    }
+    showToast(tab.value === 'login' ? 'Logged in successfully!' : 'Account created successfully!');
+    await navigateTo('/habits', { replace: true });
   } catch (e: any) {
     error.value = e?.data?.statusMessage || e?.statusMessage || 'Something went wrong.';
     loading.value = false;

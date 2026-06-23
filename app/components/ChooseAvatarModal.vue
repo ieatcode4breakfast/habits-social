@@ -101,6 +101,7 @@
 
 <script setup lang="ts">
 import { User as UserIcon, RefreshCw, Loader2 } from 'lucide-vue-next';
+import { habitsApi } from '~/utils/apiClient';
 
 const props = defineProps<{
   modelValue: boolean;
@@ -141,7 +142,7 @@ const handleClose = () => {
 const saveAvatar = async () => {
   saving.value = true;
   try {
-    await $fetch('/api/users/me', {
+    await habitsApi('/api/users/me', {
       method: 'PUT',
       body: {
         photoUrl: selectedAvatar.value

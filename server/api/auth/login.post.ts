@@ -6,6 +6,12 @@ import { generateToken as _generateToken, setAuthCookie as _setAuthCookie, DUMMY
 import { loginSchema, throwZodError } from '~~/server/utils/validation';
 import { checkRateLimit, resetRateLimit } from '~~/server/utils/rateLimit';
 
+// ponytail: single-line client header check; upgrade path: version matrix if more clients appear
+const isAndroidClient = (event: { node?: { req?: { headers?: Record<string, string | string[] | undefined> } } }): boolean => {
+  const clientHeader = getHeader(event as any, 'x-habits-client');
+  return typeof clientHeader === 'string' && clientHeader.toLowerCase() === 'android/1.7.0';
+};
+
 export default defineEventHandler(async (event) => {
   const useDB = (event.context as any).useDB || _useDB;
   const generateToken = (event.context as any).generateToken || _generateToken;
@@ -57,15 +63,23 @@ export default defineEventHandler(async (event) => {
   // Success: Reset identifier rate limit
   await resetRateLimit(event, identifier);
 
+  // Always set the web cookie
   setAuthCookie(event, token);
 
+  const profileData = {
+    id: user.id,
+    email: user.email,
+    username: user.username,
+    photoUrl: user.photoUrl
+  };
+
+  // Only include the raw token for Android native clients (Keystore storage).
+  // Web/PWA clients authenticate via the HttpOnly cookie — exposing the token
+  // to JavaScript-land would leak it into localStorage via existing cache patterns.
   return {
     data: {
-      token,
-      id: user.id,
-      email: user.email,
-      username: user.username,
-      photoUrl: user.photoUrl
+      ...profileData,
+      ...(isAndroidClient(event) ? { token } : {})
     }
   };
 });

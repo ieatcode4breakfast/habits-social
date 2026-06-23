@@ -505,6 +505,7 @@
 <script setup lang="ts">
 import { User as UserIcon, Mail, Lock, ChevronLeft, Loader2, Eye, EyeOff, RefreshCw, WifiOff, AlertTriangle } from 'lucide-vue-next';
 import { clearCachedAuthUser } from '~/utils/cachedAuth';
+import { habitsApi } from '~/utils/apiClient';
 
 const props = defineProps<{
   modelValue: boolean
@@ -641,7 +642,7 @@ const handleUpdateProfile = async () => {
     const isEmailChanged = initialProfileSnapshot.value && profileForm.email !== initialProfileSnapshot.value.email;
     const isPhotoChanged = initialProfileSnapshot.value && profileForm.photoUrl !== initialProfileSnapshot.value.photoUrl;
 
-    await $fetch('/api/users/me', {
+    await habitsApi('/api/users/me', {
       method: 'PUT',
       body: {
         username: isUsernameChanged ? profileForm.username : undefined,
@@ -688,16 +689,21 @@ const confirmDeleteAccount = async () => {
   deleteError.value = '';
 
   try {
-    await $fetch('/api/users/me', {
+    await habitsApi('/api/users/me', {
       method: 'DELETE',
       body: { password: deletePassword.value }
     });
 
     showToast('Account deleted. Goodbye!', 'cleared');
 
-    if (import.meta.client) {
-      clearCachedAuthUser(localStorage);
-    }
+    // Centralized cleanup: secure JWT, cached profile, Dexie, push, notifications
+    const { logoutCleanup: runCleanup } = await import('~/utils/logoutCleanup');
+    await runCleanup({
+      clearDexie: true,
+      unsubscribePush: true,
+      clearNotifications: true,
+    });
+
     user.value = null;
 
     showDeleteWarning.value = false;

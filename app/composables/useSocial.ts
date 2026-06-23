@@ -1,5 +1,6 @@
 import { ref, computed, watch } from 'vue';
 import { useNetwork } from '@vueuse/core';
+import { habitsApi } from '~/utils/apiClient';
 
 export interface UserProfile { 
   id: string; 
@@ -70,7 +71,7 @@ export const useSocial = () => {
     if (!silent) isLoading.value = true;
     try {
       // Use cache-busting timestamp to ensure fresh data
-      const { data } = await $fetch<{ data: { friendships: Friendship[]; profiles: UserProfile[] } }>(`/api/friendships?t=${Date.now()}`);
+      const { data } = await habitsApi<{ data: { friendships: Friendship[]; profiles: UserProfile[] } }>(`/api/friendships?t=${Date.now()}`);
       
       // Inject participants virtual field for frontend logic consistency
       friendships.value = data.friendships.map(f => ({
@@ -118,7 +119,7 @@ export const useSocial = () => {
 
   const toggleFavorite = async (friendshipId: string, favorite: boolean) => {
     try {
-      const { data } = await $fetch<{ data: Friendship }>('/api/friendships/favorite', {
+      const { data } = await habitsApi<{ data: Friendship }>('/api/friendships/favorite', {
         method: 'PUT',
         body: { friendshipId, favorite }
       });

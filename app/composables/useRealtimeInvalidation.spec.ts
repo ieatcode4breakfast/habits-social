@@ -181,7 +181,7 @@ describe('useRealtimeInvalidation', () => {
     socket?.dispatchEvent(new MessageEvent('message', { data: '{"type":"chat.changed"}' }));
     await vi.advanceTimersByTimeAsync(250);
 
-    expect(fetchMock).toHaveBeenCalledWith('/api/chat/conversations');
+    expect(fetchMock).toHaveBeenCalledWith('/api/chat/conversations', expect.anything());
     expect(stateStore.get('chat-inbox-conversations')?.value).toEqual([
       {
         id: 'conversation-1',
@@ -217,7 +217,7 @@ describe('useRealtimeInvalidation', () => {
     socket?.dispatchEvent(new Event('open'));
     await nextTick();
 
-    expect(fetchMock).toHaveBeenCalledWith('/api/chat/conversations');
+    expect(fetchMock).toHaveBeenCalledWith('/api/chat/conversations', expect.anything());
     expect(socialRefreshMock).toHaveBeenCalledTimes(1);
   });
 });

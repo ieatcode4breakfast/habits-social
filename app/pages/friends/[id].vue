@@ -352,6 +352,7 @@
 import { ChevronLeft, User, Flame, X as XIcon, ChevronRight, Check, Minus, UserPlus, CheckSquare, Share2, UserMinus, Star, MessageCircle, MoreVertical, ShieldBan } from 'lucide-vue-next';
 import { format, subDays, startOfMonth, endOfMonth, eachDayOfInterval, addMonths, subMonths, isAfter, startOfDay, addDays, isSameWeek, isSameMonth, getDaysInMonth, parseISO, startOfWeek, isSameDay } from 'date-fns';
 import type { Habit, HabitLog } from '~/composables/useHabitsApi';
+import { habitsApi } from '~/utils/apiClient';
 import { useSocial } from '~/composables/useSocial';
 
 definePageMeta({ middleware: 'auth' });
@@ -455,7 +456,7 @@ const isProcessing = ref(false);
 
 const openShareModal = async () => {
   if (!requireOnlineAction()) return;
-  const { data: habitsData } = await $fetch<{ data: any[] }>('/api/habits');
+  const { data: habitsData } = await habitsApi<{ data: any[] }>('/api/habits');
   myHabits.value = habitsData;
   // Pre-select habits already shared with this friend
   selectedHabitIds.value = habitsData
@@ -484,10 +485,10 @@ const executeSendRequest = async () => {
   if (!requireOnlineAction()) return;
   isProcessing.value = true;
   try {
-    await $fetch('/api/friendships', { method: 'POST', body: { targetUserId: friendId } });
+    await habitsApi('/api/friendships', { method: 'POST', body: { targetUserId: friendId } });
     await refreshSocial();
     
-    const { data: habitsData } = await $fetch<{ data: any[] }>('/api/habits');
+    const { data: habitsData } = await habitsApi<{ data: any[] }>('/api/habits');
     myHabits.value = habitsData;
     selectedHabitIds.value = [];
     
@@ -507,10 +508,10 @@ const executeAcceptRequest = async () => {
   if (!friendship.value) return;
   isProcessing.value = true;
   try {
-    await $fetch(`/api/friendships/${friendship.value.id}`, { method: 'PUT' });
+    await habitsApi(`/api/friendships/${friendship.value.id}`, { method: 'PUT' });
     await refreshSocial();
 
-    const { data: habitsData } = await $fetch<{ data: any[] }>('/api/habits');
+    const { data: habitsData } = await habitsApi<{ data: any[] }>('/api/habits');
     myHabits.value = habitsData;
     selectedHabitIds.value = [];
     
@@ -535,7 +536,7 @@ const executeBatchShareRefresh = async () => {
 const executeUnfriend = async () => {
   if (!requireOnlineAction()) return;
   if (!friendship.value) return;
-  await $fetch(`/api/friendships/${friendship.value.id}`, { method: 'DELETE' });
+  await habitsApi(`/api/friendships/${friendship.value.id}`, { method: 'DELETE' });
   await refreshSocial();
   showUnfriendModal.value = false;
   navigateTo('/social?tab=friends');
@@ -544,7 +545,7 @@ const executeUnfriend = async () => {
 const executeCancelRequest = async () => {
   if (!requireOnlineAction()) return;
   if (!friendship.value) return;
-  await $fetch(`/api/friendships/${friendship.value.id}`, { method: 'DELETE' });
+  await habitsApi(`/api/friendships/${friendship.value.id}`, { method: 'DELETE' });
   await refreshSocial();
   showCancelRequestModal.value = false;
 };
@@ -579,7 +580,7 @@ const executeBlock = async () => {
   if (!profile.value) return;
   isProcessing.value = true;
   try {
-    await $fetch(`/api/users/${friendId}/block`, { method: 'POST' });
+    await habitsApi(`/api/users/${friendId}/block`, { method: 'POST' });
     showBlockModal.value = false;
     await refreshSocial();
     await load();
@@ -595,7 +596,7 @@ const executeUnblock = async () => {
   if (!profile.value) return;
   isProcessing.value = true;
   try {
-    await $fetch(`/api/users/${friendId}/block`, { method: 'DELETE' });
+    await habitsApi(`/api/users/${friendId}/block`, { method: 'DELETE' });
     await refreshSocial();
     await load();
   } catch (err) {
@@ -767,8 +768,8 @@ const load = async () => {
     // 2. Fetch shared habits (handles 403 or empty data gracefully)
     // 3. Ensure social state is refreshed to get current relationshipStatus
     const [profileDataResponse, sharedDataResponse] = await Promise.all([
-      $fetch<{ data: FriendProfile }>(`/api/users/${friendId}/profile`),
-      $fetch<{ data: any }>('/api/social/friend-data', { query: { friendId } }).catch(err => {
+      habitsApi<{ data: FriendProfile }>(`/api/users/${friendId}/profile`),
+      habitsApi<{ data: any }>('/api/social/friend-data', { query: { friendId } }).catch(err => {
         console.warn('Could not fetch shared habits:', err.message);
         return { data: { habits: [], logs: [] } };
       }),
@@ -803,7 +804,7 @@ const handleFriendMonthChanged = async (newDate: Date) => {
   const end = format(endOfMonth(newDate), 'yyyy-MM-dd');
   calendarLoading.value = true;
   try {
-    const { data } = await $fetch<{ data: any }>('/api/social/habit-details', { 
+    const { data } = await habitsApi<{ data: any }>('/api/social/habit-details', { 
       query: { 
         habitId: selectedHabit.value.id,
         startDate: start,

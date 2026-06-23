@@ -13,7 +13,7 @@ describe('useHabitsClient', () => {
     const client = useHabitsClient();
     const result = await client.fetchHabits();
 
-    expect(global.$fetch).toHaveBeenCalledWith('/api/habits');
+    expect(global.$fetch).toHaveBeenCalledWith('/api/habits', expect.anything());
     expect(result).toEqual(mockData.data);
   });
 

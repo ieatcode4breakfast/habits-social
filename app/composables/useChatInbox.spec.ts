@@ -72,7 +72,7 @@ describe('useChatInbox', () => {
 
     await inbox.refresh();
 
-    expect(fetchMock).toHaveBeenCalledWith('/api/chat/conversations');
+    expect(fetchMock).toHaveBeenCalledWith('/api/chat/conversations', expect.anything());
     expect(inbox.conversations.value).toHaveLength(2);
     expect(inbox.conversations.value[0]?.lastMessageBody).toBe('Unread preview');
     expect(inbox.conversations.value[1]?.lastMessageSenderId).toBe('user-1');

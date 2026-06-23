@@ -6,6 +6,8 @@ import {
   hasPendingServerLogout,
   type CachedAuthUser
 } from '~/utils/cachedAuth';
+import { habitsApi } from '~/utils/apiClient';
+import { setNativeAuthToken, clearNativeAuthToken } from '~/utils/nativeAuthToken';
 
 const getFetchErrorStatus = (error: unknown): number | null => {
   if (typeof error !== 'object' || error === null) return null;
@@ -48,6 +50,10 @@ const isNetworkOrFetchFailure = (error: unknown): boolean => {
   return false;
 };
 
+interface AuthMeResponse {
+  data: (CachedAuthUser & { token?: string }) | null;
+}
+
 export const useAuth = () => {
   const user = useState<CachedAuthUser | null>('auth-user', () => null);
 
@@ -58,7 +64,9 @@ export const useAuth = () => {
     clearCachedAuthUser(localStorage);
 
     if (navigator.onLine) {
-      await flushPendingServerLogout(localStorage, (request, options) => $fetch(request, options));
+      await flushPendingServerLogout(localStorage, (request, options) =>
+        habitsApi(request, { method: options.method, timeout: options.timeout, authRequired: false })
+      );
     }
   };
 
@@ -69,13 +77,29 @@ export const useAuth = () => {
     }
 
     try {
-      const headers = useRequestHeaders(['cookie']) as Record<string, string>;
-      const { data } = await $fetch<{ data: CachedAuthUser | null }>('/api/auth/me', { headers });
-      user.value = data;
+      const response = await habitsApi<AuthMeResponse>('/api/auth/me');
+      const data = response.data;
+
+      // On Android: if the server returned a renewed token, update secure storage.
+      if (data?.token) {
+        await setNativeAuthToken(data.token);
+      }
+
+      // Sanitize: only cache profile fields, never the raw token.
+      const profile: CachedAuthUser | null = data
+        ? {
+            id: data.id,
+            email: data.email,
+            username: data.username,
+            ...(data.photoUrl ? { photoUrl: data.photoUrl } : {})
+          }
+        : null;
+
+      user.value = profile;
 
       if (import.meta.client) {
-        if (data) {
-          cacheAuthUser(localStorage, data);
+        if (profile) {
+          cacheAuthUser(localStorage, profile);
         } else {
           clearCachedAuthUser(localStorage);
         }
@@ -83,9 +107,12 @@ export const useAuth = () => {
     } catch (error: unknown) {
       const status = getFetchErrorStatus(error);
       if (status === 401 || status === 403) {
-        // Explicit auth rejection clears cached session state. Network errors keep it.
+        // Explicit auth rejection clears cached session state AND native secure token.
         user.value = null;
-        if (import.meta.client) clearCachedAuthUser(localStorage);
+        if (import.meta.client) {
+          clearCachedAuthUser(localStorage);
+          void clearNativeAuthToken();
+        }
       } else if (
         status === null &&
         import.meta.client &&

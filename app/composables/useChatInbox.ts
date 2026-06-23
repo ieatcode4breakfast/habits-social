@@ -1,5 +1,6 @@
 import { computed } from 'vue';
 import { useNetwork } from '@vueuse/core';
+import { habitsApi } from '~/utils/apiClient';
 
 export interface ChatInboxConversation {
   id: string;
@@ -38,7 +39,7 @@ export const useChatInbox = () => {
     if (!silent) isLoading.value = true;
 
     try {
-      const data = await $fetch<ChatInboxConversation[]>('/api/chat/conversations');
+      const data = await habitsApi<ChatInboxConversation[]>('/api/chat/conversations');
       conversations.value = Array.isArray(data) ? data : [];
     } catch (error: unknown) {
       console.error('[ChatInbox] Failed to refresh conversations', error);

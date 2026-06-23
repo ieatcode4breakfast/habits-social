@@ -97,6 +97,7 @@
 import { ref, watch, computed } from 'vue';
 import { useModalHistory } from '~/composables/useModalHistory';
 import { Check, CheckSquare } from 'lucide-vue-next';
+import { habitsApi } from '~/utils/apiClient';
 import { format } from 'date-fns';
 
 const props = defineProps<{
@@ -154,7 +155,7 @@ const executeBatchShare = async () => {
   if (!props.targetUser) return;
   sharing.value = true;
   try {
-    await $fetch('/api/social/share-habits', { 
+    await habitsApi('/api/social/share-habits', { 
       method: 'POST', 
       body: { 
         targetUserId: props.targetUser.id, 

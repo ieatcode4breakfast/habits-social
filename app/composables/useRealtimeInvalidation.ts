@@ -2,6 +2,7 @@ import PartySocket from 'partysocket';
 import type { Ref } from 'vue';
 import { parseRealtimeInvalidationEvent } from '../../utils/realtime';
 import { useChatInbox } from './useChatInbox';
+import { habitsApi } from '~/utils/apiClient';
 
 interface RealtimeInvalidationOptions {
   activeConversationId?: Ref<string | null>;
@@ -62,7 +63,7 @@ const fetchRealtimeToken = async (): Promise<string> => {
   }
 
   try {
-    const response = await $fetch<RealtimeTokenResponse>('/api/realtime/token', { method: 'POST' });
+    const response = await habitsApi<RealtimeTokenResponse>('/api/realtime/token', { method: 'POST' });
     tokenFetchPausedUntil = 0;
     return response.token;
   } catch (error) {
