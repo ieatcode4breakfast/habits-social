@@ -33,7 +33,8 @@ const CORS_HEADERS: Readonly<Record<string, string>> = {
 // Read the request pathname defensively across h3 versions + the test mock event.
 const getPathname = (event: H3Event): string => {
   const nodeReq = (event as unknown as { node?: { req?: { url?: string } } }).node?.req?.url;
-  if (nodeReq) return nodeReq.split('?')[0];
+  // ponytail: ?? '' defends against noUncheckedIndexedAccess narrowing [0] to string | undefined.
+  if (nodeReq) return nodeReq.split('?')[0] ?? '';
   const path = (event as unknown as { path?: string }).path;
   return typeof path === 'string' ? path : '';
 };
